@@ -1,0 +1,303 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Location;
+use App\Models\Client;
+use App\Models\User;
+use App\Models\Activity;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+
+class LocationController extends Controller
+{
+    /**
+     * Display a listing of locations.
+     */
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+        if ($user->role === 'admin' || $user->role === 'technician') {
+            $locations = Location::with(['client', 'assignedTechnician'])
+                ->orderBy('nickname')
+                ->paginate(15);
+        } elseif ($user->role === 'client') {
+            $locations = $user->locations()->with(['client', 'assignedTechnician'])
+                ->orderBy('nickname')
+                ->paginate(15);
+        } else {
+            abort(403);
+        }
+        $stats = [
+            'total' => $locations->count(),
+            'active' => $locations->where('status', 'active')->count(),
+            'favorite' => $locations->where('is_favorite', true)->count(),
+            'residential' => $locations->where('access', 'residential')->count(),
+            'commercial' => $locations->where('access', 'commercial')->count(),
+        ];
+        $clients = \App\Models\Client::orderBy('last_name')->get();
+        return view('locations.index', compact('locations', 'stats', 'clients'));
+    }
+
+    /**
+     * Show the form for creating a new location.
+     */
+    public function create(Request $request)
+    {
+        $clients = Client::orderBy('first_name')->get();
+        $technicians = User::where('role', 'technician')->orderBy('first_name')->get();
+        $selectedClientId = $request->get('client_id');
+        
+        return view('locations.create', compact('clients', 'technicians', 'selectedClientId'));
+    }
+
+    /**
+     * Store a newly created location in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'nickname' => 'nullable|string|max:255',
+            'street_address' => 'required|string|max:255',
+            'street_address_2' => 'nullable|string|max:255',
+            'city' => 'required|string|max:255',
+            'state' => 'required|string|max:2',
+            'zip_code' => 'required|string|max:10',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'access' => ['required', Rule::in(['residential', 'commercial'])],
+            'pool_type' => ['nullable', Rule::in(['fiberglass', 'vinyl_liner', 'concrete', 'gunite'])],
+            'water_type' => ['required', Rule::in(['chlorine', 'salt'])],
+            'filter_type' => 'nullable|string|max:255',
+            'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
+            'installation' => ['required', Rule::in(['inground', 'above'])],
+            'gallons' => 'nullable|integer|min:1',
+            'service_frequency' => ['required', Rule::in(['semi_weekly', 'weekly', 'bi_weekly', 'monthly'])],
+            'service_day_1' => 'nullable|string|max:255',
+            'service_day_2' => 'nullable|string|max:255',
+            'rate_per_visit' => 'nullable|numeric|min:0',
+            'chemicals_included' => 'boolean',
+            'assigned_technician_id' => 'nullable|exists:users,id',
+            'is_favorite' => 'boolean',
+            'status' => ['required', Rule::in(['active', 'inactive'])],
+        ]);
+
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            $photoPaths = [];
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('locations/photos', 'public');
+                $photoPaths[] = $path;
+            }
+            $validated['photos'] = $photoPaths;
+        }
+
+        $location = Location::create($validated);
+
+        // Log activity
+        $locationName = $location->nickname ?: $location->street_address;
+        Activity::log('create', "Created new location: {$locationName}", auth()->user(), $location);
+
+        return redirect()->route('locations.show', $location)
+                        ->with('success', 'Location created successfully.');
+    }
+
+    /**
+     * Display the specified location.
+     */
+    public function show(Location $location)
+    {
+        $location->load(['client', 'assignedTechnician', 'invoices', 'reports']);
+        
+        // Get recent activities for this location
+        $recentActivities = Activity::where('model_type', Location::class)
+                                  ->where('model_id', $location->id)
+                                  ->latest()
+                                  ->take(10)
+                                  ->get();
+
+        return view('locations.show', compact('location', 'recentActivities'));
+    }
+
+    /**
+     * Show the form for editing the specified location.
+     */
+    public function edit(Location $location)
+    {
+        $clients = Client::orderBy('first_name')->get();
+        $technicians = User::where('role', 'technician')->orderBy('first_name')->get();
+        
+        return view('locations.edit', compact('location', 'clients', 'technicians'));
+    }
+
+    /**
+     * Update the specified location in storage.
+     */
+    public function update(Request $request, Location $location)
+    {
+        $validated = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'nickname' => 'nullable|string|max:255',
+            'street_address' => 'required|string|max:255',
+            'street_address_2' => 'nullable|string|max:255',
+            'city' => 'required|string|max:255',
+            'state' => 'required|string|max:2',
+            'zip_code' => 'required|string|max:10',
+            'photos' => 'nullable|array',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'access' => ['required', Rule::in(['residential', 'commercial'])],
+            'pool_type' => ['nullable', Rule::in(['fiberglass', 'vinyl_liner', 'concrete', 'gunite'])],
+            'water_type' => ['required', Rule::in(['chlorine', 'salt'])],
+            'filter_type' => 'nullable|string|max:255',
+            'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
+            'installation' => ['required', Rule::in(['inground', 'above'])],
+            'gallons' => 'nullable|integer|min:1',
+            'service_frequency' => ['required', Rule::in(['semi_weekly', 'weekly', 'bi_weekly', 'monthly'])],
+            'service_day_1' => 'nullable|string|max:255',
+            'service_day_2' => 'nullable|string|max:255',
+            'rate_per_visit' => 'nullable|numeric|min:0',
+            'chemicals_included' => 'boolean',
+            'assigned_technician_id' => 'nullable|exists:users,id',
+            'is_favorite' => 'boolean',
+            'status' => ['required', Rule::in(['active', 'inactive'])],
+        ]);
+
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            $photoPaths = $location->photos ?: [];
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('locations/photos', 'public');
+                $photoPaths[] = $path;
+            }
+            $validated['photos'] = $photoPaths;
+        }
+
+        $location->update($validated);
+
+        // Log activity
+        $locationName = $location->nickname ?: $location->street_address;
+        Activity::log('update', "Updated location: {$locationName}", auth()->user(), $location);
+
+        return redirect()->route('locations.show', $location)
+                        ->with('success', 'Location updated successfully.');
+    }
+
+    /**
+     * Remove the specified location from storage.
+     */
+    public function destroy(Location $location)
+    {
+        // Check if location has related data
+        if ($location->invoices()->count() > 0 || $location->reports()->count() > 0) {
+            return back()->with('error', 'Cannot delete location with existing invoices or reports.');
+        }
+
+        // Delete photos if exist
+        if ($location->photos) {
+            foreach ($location->photos as $photo) {
+                Storage::disk('public')->delete($photo);
+            }
+        }
+
+        $locationName = $location->nickname ?: $location->street_address;
+        $location->delete();
+
+        // Log activity
+        Activity::log('delete', "Deleted location: {$locationName}", auth()->user());
+
+        return redirect()->route('locations.index')
+                        ->with('success', 'Location deleted successfully.');
+    }
+
+    /**
+     * Export locations to CSV.
+     */
+    public function export(Request $request)
+    {
+        $query = Location::with(['client', 'assignedTechnician']);
+
+        // Apply filters
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('pool_type')) {
+            $query->where('pool_type', $request->pool_type);
+        }
+
+        $locations = $query->get();
+
+        $filename = 'locations_' . now()->format('Y-m-d_H-i-s') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename={$filename}",
+        ];
+
+        $callback = function() use ($locations) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV headers
+            fputcsv($file, [
+                'ID', 'Client', 'Nickname', 'Address', 'City', 'State', 'Zip',
+                'Pool Type', 'Water Type', 'Gallons', 'Status', 'Technician', 'Created At'
+            ]);
+
+            foreach ($locations as $location) {
+                fputcsv($file, [
+                    $location->id,
+                    $location->client->full_name,
+                    $location->nickname,
+                    $location->street_address,
+                    $location->city,
+                    $location->state,
+                    $location->zip_code,
+                    $location->pool_type ?? 'Unknown',
+                    $location->water_type,
+                    $location->gallons,
+                    $location->status,
+                    $location->assignedTechnician ? $location->assignedTechnician->full_name : 'Unassigned',
+                    $location->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Toggle location favorite status.
+     */
+    public function toggleFavorite(Location $location)
+    {
+        $location->update(['is_favorite' => !$location->is_favorite]);
+        
+        $status = $location->is_favorite ? 'favorited' : 'unfavorited';
+        $locationName = $location->nickname ?: $location->street_address;
+        Activity::log('update', "{$status} location: {$locationName}", auth()->user(), $location);
+
+        return back()->with('success', "Location {$status} successfully.");
+    }
+
+    /**
+     * Toggle location active status.
+     */
+    public function toggleStatus(Location $location)
+    {
+        $location->update(['status' => $location->status === 'active' ? 'inactive' : 'active']);
+        
+        $status = $location->status === 'active' ? 'activated' : 'deactivated';
+        $locationName = $location->nickname ?: $location->street_address;
+        Activity::log('update', "{$status} location: {$locationName}", auth()->user(), $location);
+
+        return back()->with('success', "Location {$status} successfully.");
+    }
+} 
