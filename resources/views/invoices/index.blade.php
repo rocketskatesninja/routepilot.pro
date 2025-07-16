@@ -57,23 +57,49 @@
     <div class="card bg-base-100 shadow-xl mb-6">
         <div class="card-body">
             <form method="GET" action="{{ route('invoices.index') }}" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Search -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by invoice #, client, or location" class="input input-bordered w-full">
-                </div>
+                    </div>
                     <!-- Status -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Status</label>
                         <select name="status" class="select select-bordered w-full">
-                        <option value="">All Status</option>
-                        <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
-                        <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Paid</option>
-                        <option value="overdue" {{ request('status') === 'overdue' ? 'selected' : '' }}>Overdue</option>
-                        <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                    </select>
+                            <option value="">All Status</option>
+                            <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
+                            <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Paid</option>
+                            <option value="overdue" {{ request('status') === 'overdue' ? 'selected' : '' }}>Overdue</option>
+                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                        </select>
+                    </div>
+                    <!-- Client -->
+                    <div>
+                        <label class="block text-sm font-medium text-base-content mb-2">Client</label>
+                        <select name="client_id" class="select select-bordered w-full">
+                            <option value="">All Clients</option>
+                            @foreach($clients as $client)
+                                <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
+                                    {{ $client->full_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <!-- Technician -->
+                    <div>
+                        <label class="block text-sm font-medium text-base-content mb-2">Technician</label>
+                        <select name="technician_id" class="select select-bordered w-full">
+                            <option value="">All Technicians</option>
+                            @foreach($technicians as $technician)
+                                <option value="{{ $technician->id }}" {{ request('technician_id') == $technician->id ? 'selected' : '' }}>
+                                    {{ $technician->full_name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date From</label>
@@ -83,7 +109,7 @@
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date To</label>
                         <input type="date" name="date_to" value="{{ request('date_to') }}" class="input input-bordered w-full">
-                </div>
+                    </div>
                     <!-- Sort By -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort By</label>
@@ -92,23 +118,28 @@
                             <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date (Oldest)</option>
                             <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
                             <option value="amount" {{ request('sort_by') == 'amount' ? 'selected' : '' }}>Amount</option>
-                    </select>
+                        </select>
+                    </div>
                 </div>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button type="submit" class="btn btn-primary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search
-                    </button>
-                    <a href="{{ route('invoices.index') }}" class="btn btn-outline">Clear Filters</a>
-                    <a href="{{ route('invoices.export') }}?{{ http_build_query(request()->all()) }}" class="btn btn-secondary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Export CSV
-                    </a>
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button type="submit" class="btn btn-primary">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Search
+                        </button>
+                        <a href="{{ route('invoices.index') }}" class="btn btn-outline">Clear Filters</a>
+                        <a href="{{ route('invoices.export') }}?{{ http_build_query(request()->all()) }}" class="btn btn-secondary">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export CSV
+                        </a>
+                    </div>
+                    <div class="text-sm text-base-content/70">
+                        {{ $invoices->total() }} result{{ $invoices->total() != 1 ? 's' : '' }}
+                    </div>
                 </div>
             </form>
         </div>
@@ -135,8 +166,20 @@
                     @forelse($invoices as $invoice)
                     <tr>
                         <td>
-                            <div class="font-bold text-base-content">{{ $invoice->invoice_number }}</div>
-                            <div class="text-sm opacity-50">{{ $invoice->technician->full_name ?? '' }}</div>
+                            <div class="font-bold text-base-content">
+                                <a href="{{ route('invoices.show', $invoice) }}" class="hover:text-primary hover:underline">
+                                    {{ $invoice->invoice_number }}
+                                </a>
+                            </div>
+                            <div class="text-sm opacity-50">
+                                @if($invoice->technician)
+                                    <a href="{{ route('technicians.show', $invoice->technician) }}" class="hover:text-primary hover:underline">
+                                        {{ $invoice->technician->full_name }}
+                                    </a>
+                                @else
+                                    -
+                                @endif
+                            </div>
                         </td>
                         <td>
                             <div class="flex items-center space-x-3">
@@ -152,15 +195,39 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-base-content">{{ $invoice->client->full_name ?? '-' }}</div>
+                                    <div class="font-bold text-base-content">
+                                        @if($invoice->client)
+                                            <a href="{{ route('clients.show', $invoice->client) }}" class="hover:text-primary hover:underline">
+                                                {{ $invoice->client->full_name }}
+                                            </a>
+                                        @else
+                                            -
+                                        @endif
+                                    </div>
                                     <div class="text-sm opacity-50">{{ $invoice->client->email ?? '' }}</div>
                                 </div>
                             </div>
                         </td>
                         <td>
                             <div class="text-sm">
-                                <div class="text-base-content">{{ $invoice->location->name ?? '-' }}</div>
-                                <div class="text-base-content/70">{{ $invoice->location->city ?? '' }}, {{ $invoice->location->state ?? '' }}</div>
+                                <div class="text-base-content">
+                                    @if($invoice->location)
+                                        <a href="{{ route('locations.show', $invoice->location) }}" class="hover:text-primary hover:underline">
+                                            {{ $invoice->location->nickname ?? 'Location' }}
+                                        </a>
+                                    @else
+                                        Location
+                                    @endif
+                                </div>
+                                @if($invoice->location && $invoice->location->city && $invoice->location->state)
+                                    <a href="https://maps.google.com/?q={{ urlencode($invoice->location->street_address . ', ' . $invoice->location->city . ', ' . $invoice->location->state . ' ' . $invoice->location->zip_code) }}" 
+                                       target="_blank" 
+                                       class="text-base-content/70 hover:text-primary hover:underline">
+                                        {{ $invoice->location->city }}, {{ $invoice->location->state }}
+                                    </a>
+                                @else
+                                    <div class="text-base-content/70">{{ $invoice->location->city ?? '' }}, {{ $invoice->location->state ?? '' }}</div>
+                                @endif
                             </div>
                         </td>
                         <td>
