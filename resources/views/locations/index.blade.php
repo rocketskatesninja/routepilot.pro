@@ -53,7 +53,7 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-8">
+    <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-6">
         <form method="GET" action="{{ route('locations.index') }}" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <!-- Search -->
@@ -174,9 +174,6 @@
                                 @endif
                                 @if($location->water_type)
                                     <span class="badge badge-secondary">{{ ucfirst($location->water_type) }}</span>
-                                @endif
-                                @if($location->gallons)
-                                    <span class="text-sm text-base-content/70">{{ number_format($location->gallons) }} gallons</span>
                                 @endif
                             </div>
                         </td>

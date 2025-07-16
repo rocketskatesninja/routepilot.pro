@@ -55,17 +55,17 @@
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Client, location, tech..." class="input input-bordered w-full">
-                    </div>
+                </div>
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date From</label>
                         <input type="date" name="date_from" value="{{ request('date_from') }}" class="input input-bordered w-full">
-                    </div>
+                </div>
                     <!-- Date To -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date To</label>
                         <input type="date" name="date_to" value="{{ request('date_to') }}" class="input input-bordered w-full">
-                    </div>
+                </div>
                     <!-- Sort By -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort By</label>
@@ -73,8 +73,8 @@
                             <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date (Newest)</option>
                             <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date (Oldest)</option>
                             <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
-                        </select>
-                    </div>
+                    </select>
+                </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-4">
                     <button type="submit" class="btn btn-primary">

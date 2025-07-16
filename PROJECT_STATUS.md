@@ -66,6 +66,8 @@ RoutePilot Pro is a Laravel 11-based web application for pool service companies,
 - [x] **UPDATED**: All pages updated to use DaisyUI theme-aware classes
 - [x] **UPDATED**: Dark mode inconsistencies fixed across all pages
 - [x] **UPDATED**: Create/edit forms updated with consistent DaisyUI theming
+- [x] **UI Consistency:** Uniform filter panels and button styles across all main pages (Clients, Locations, Reports, Invoices, Technicians)
+- [x] **Stat Card Spacing:** Fixed vertical spacing and filter labels for consistency across all index pages.
 
 ### 6. Server Configuration
 - [x] Apache virtual host configured
@@ -128,6 +130,7 @@ RoutePilot Pro is a Laravel 11-based web application for pool service companies,
 - [x] Navigation updated with Invoices menu for admins
 - [x] **UPDATED**: Invoice create page updated with DaisyUI theming
 - [x] **UPDATED**: Stat cards positioned before search/filters for consistent layout
+- [x] **Export Functionality:** Export CSV only available on Invoices page for now
 - [x] **UPDATED**: Fixed routing errors in invoice actions menu
 
 ## 🔄 IN PROGRESS
@@ -186,9 +189,6 @@ RoutePilot Pro is a Laravel 11-based web application for pool service companies,
 
 - [ ] **Communication Tools**
   - [ ] Email notification system
-  - [ ] SMS notifications
-  - [ ] Customer portal
-  - [ ] Internal messaging system
 
 - [ ] **Reporting System**
   - [ ] Service reports
@@ -239,6 +239,9 @@ RoutePilot Pro is a Laravel 11-based web application for pool service companies,
 - **Invoice System**: Completed basic invoice management with payment recording
 - **Routing Fixes**: Resolved non-existent route references in invoice actions
 - **UI Improvements**: Enhanced create/edit forms with consistent DaisyUI theming
+- **UI/UX Consistency:** Refactored all filter panels and button styles for uniformity across Clients, Locations, Reports, Invoices, and Technicians pages.
+- **Export CSV:** Removed Export CSV button from all pages except Invoices.
+- **Stat Card Spacing:** Fixed vertical spacing and filter labels for consistency across all index pages.
 
 ### Current Login Credentials
 - **Admin**: admin@routepilot.pro / password123

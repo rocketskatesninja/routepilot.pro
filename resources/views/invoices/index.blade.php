@@ -62,18 +62,18 @@
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by invoice #, client, or location" class="input input-bordered w-full">
-                    </div>
+                </div>
                     <!-- Status -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Status</label>
                         <select name="status" class="select select-bordered w-full">
-                            <option value="">All Status</option>
-                            <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
-                            <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Paid</option>
-                            <option value="overdue" {{ request('status') === 'overdue' ? 'selected' : '' }}>Overdue</option>
-                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                        </select>
-                    </div>
+                        <option value="">All Status</option>
+                        <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
+                        <option value="paid" {{ request('status') === 'paid' ? 'selected' : '' }}>Paid</option>
+                        <option value="overdue" {{ request('status') === 'overdue' ? 'selected' : '' }}>Overdue</option>
+                        <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                    </select>
+                </div>
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date From</label>
@@ -83,7 +83,7 @@
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date To</label>
                         <input type="date" name="date_to" value="{{ request('date_to') }}" class="input input-bordered w-full">
-                    </div>
+                </div>
                     <!-- Sort By -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort By</label>
@@ -92,8 +92,8 @@
                             <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date (Oldest)</option>
                             <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
                             <option value="amount" {{ request('sort_by') == 'amount' ? 'selected' : '' }}>Amount</option>
-                        </select>
-                    </div>
+                    </select>
+                </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-4">
                     <button type="submit" class="btn btn-primary">

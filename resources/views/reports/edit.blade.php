@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Add Service Report')
+@section('title', 'Edit Service Report')
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-base-content">Add Service Report</h1>
-            <p class="text-base-content/70 mt-2">Create a new service report for a client location</p>
+            <h1 class="text-3xl font-bold text-base-content">Edit Service Report</h1>
+            <p class="text-base-content/70 mt-2">Update service report details</p>
         </div>
         <a href="{{ route('reports.index') }}" class="btn btn-outline">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,11 +20,9 @@
 
     <!-- Service Report Form -->
     <div class="card bg-base-100 shadow-xl border border-base-300">
-        <form action="{{ isset($report) ? route('reports.update', $report) : route('reports.store') }}" method="POST" enctype="multipart/form-data" id="report-form" class="card-body p-6">
+        <form action="{{ route('reports.update', $report) }}" method="POST" enctype="multipart/form-data" id="report-form" class="card-body p-6">
             @csrf
-            @if(isset($report))
-                @method('PUT')
-            @endif
+            @method('PUT')
 
             @if(isset($technicians))
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -41,9 +39,10 @@
                             <input type="text" id="client_search" 
                                    class="input input-bordered w-full @error('client_id') input-error @enderror" 
                                    placeholder="Start typing client name..." 
+                                   value="{{ $report->client->full_name }} - {{ $report->client->email }}"
                                    autocomplete="off">
                             <input type="hidden" name="client_id" id="client_id" 
-                                   value="{{ old('client_id', $report->client_id ?? '') }}" required>
+                                   value="{{ old('client_id', $report->client_id) }}" required>
                             <div id="client_suggestions" class="absolute z-50 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto" style="display: none;"></div>
                             @error('client_id')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -56,8 +55,11 @@
                             </label>
                             <select name="location_id" id="location_id" 
                                     class="select select-bordered w-full @error('location_id') select-error @enderror" 
-                                    required disabled>
-                                <option value="">Select a client first</option>
+                                    required>
+                                <option value="">Select Location</option>
+                                <option value="{{ $report->location->id }}" selected>
+                                    {{ $report->location->nickname ?? $report->location->name }} - {{ $report->location->city }}, {{ $report->location->state }}
+                                </option>
                             </select>
                             @error('location_id')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -70,7 +72,7 @@
                                     Service Date <span class="text-error">*</span>
                                 </label>
                                 <input type="date" name="service_date" id="service_date" 
-                                       value="{{ old('service_date', $report->service_date ?? '') }}" 
+                                       value="{{ old('service_date', $report->service_date) }}" 
                                        class="input input-bordered w-full @error('service_date') input-error @enderror" required>
                                 @error('service_date')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -82,7 +84,7 @@
                                     Service Time <span class="text-error">*</span>
                                 </label>
                                 <input type="time" name="service_time" id="service_time" 
-                                       value="{{ old('service_time', $report->service_time ?? '') }}" 
+                                       value="{{ old('service_time', $report->service_time) }}" 
                                        class="input input-bordered w-full @error('service_time') input-error @enderror" required>
                                 @error('service_time')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -98,7 +100,7 @@
                                     class="select select-bordered w-full @error('technician_id') select-error @enderror" required>
                                 <option value="">Select Technician</option>
                                 @foreach($technicians as $tech)
-                                    <option value="{{ $tech->id }}" {{ (old('technician_id', $report->technician_id ?? auth()->id()) == $tech->id) ? 'selected' : '' }}>
+                                    <option value="{{ $tech->id }}" {{ (old('technician_id', $report->technician_id) == $tech->id) ? 'selected' : '' }}>
                                         {{ $tech->full_name }}
                                     </option>
                                 @endforeach
@@ -119,7 +121,7 @@
                             <div>
                                 <label for="fac" class="block text-sm font-medium text-base-content mb-2">Chlorine</label>
                                 <input type="number" step="0.01" name="fac" id="fac" 
-                                       value="{{ old('fac', $report->fac ?? '') }}" 
+                                       value="{{ old('fac', $report->fac) }}" 
                                        class="input input-bordered w-full @error('fac') input-error @enderror">
                                 @error('fac')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -128,7 +130,7 @@
                             <div>
                                 <label for="salt" class="block text-sm font-medium text-base-content mb-2">Salt</label>
                                 <input type="number" name="salt" id="salt" 
-                                       value="{{ old('salt', $report->salt ?? '') }}" 
+                                       value="{{ old('salt', $report->salt) }}" 
                                        class="input input-bordered w-full @error('salt') input-error @enderror">
                                 @error('salt')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -137,7 +139,7 @@
                             <div>
                                 <label for="ph" class="block text-sm font-medium text-base-content mb-2">pH</label>
                                 <input type="number" step="0.1" name="ph" id="ph" 
-                                       value="{{ old('ph', $report->ph ?? '') }}" 
+                                       value="{{ old('ph', $report->ph) }}" 
                                        class="input input-bordered w-full @error('ph') input-error @enderror">
                                 @error('ph')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -146,7 +148,7 @@
                             <div>
                                 <label for="alkalinity" class="block text-sm font-medium text-base-content mb-2">Alkalinity</label>
                                 <input type="number" name="alkalinity" id="alkalinity" 
-                                       value="{{ old('alkalinity', $report->alkalinity ?? '') }}" 
+                                       value="{{ old('alkalinity', $report->alkalinity) }}" 
                                        class="input input-bordered w-full @error('alkalinity') input-error @enderror">
                                 @error('alkalinity')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -158,11 +160,11 @@
                             Secondary Measurements
                         </button>
                         
-                        <div id="secondary-chemistry" class="grid grid-cols-2 gap-4 hidden">
+                        <div id="secondary-chemistry" class="grid grid-cols-2 gap-4 {{ $report->calcium || $report->tds || $report->cya ? '' : 'hidden' }}">
                             <div>
                                 <label for="calcium" class="block text-sm font-medium text-base-content mb-2">Calcium</label>
                                 <input type="number" name="calcium" id="calcium" 
-                                       value="{{ old('calcium', $report->calcium ?? '') }}" 
+                                       value="{{ old('calcium', $report->calcium) }}" 
                                        class="input input-bordered w-full @error('calcium') input-error @enderror">
                                 @error('calcium')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -171,7 +173,7 @@
                             <div>
                                 <label for="tds" class="block text-sm font-medium text-base-content mb-2">TDS</label>
                                 <input type="number" name="tds" id="tds" 
-                                       value="{{ old('tds', $report->tds ?? '') }}" 
+                                       value="{{ old('tds', $report->tds) }}" 
                                        class="input input-bordered w-full @error('tds') input-error @enderror">
                                 @error('tds')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -180,7 +182,7 @@
                             <div>
                                 <label for="cya" class="block text-sm font-medium text-base-content mb-2">CYA</label>
                                 <input type="number" name="cya" id="cya" 
-                                       value="{{ old('cya', $report->cya ?? '') }}" 
+                                       value="{{ old('cya', $report->cya) }}" 
                                        class="input input-bordered w-full @error('cya') input-error @enderror">
                                 @error('cya')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -202,7 +204,7 @@
                                 <label class="label cursor-pointer">
                                     <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
                                            class="checkbox checkbox-primary" 
-                                           {{ old($task, $report->$task ?? false) ? 'checked' : '' }}>
+                                           {{ old($task, $report->$task) ? 'checked' : '' }}>
                                     <span class="label-text ml-2 capitalize">{{ str_replace('_', ' ', $task) }}</span>
                                 </label>
                             </div>
@@ -222,7 +224,7 @@
                                 <label class="label cursor-pointer">
                                     <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
                                            class="checkbox checkbox-primary" 
-                                           {{ old($task, $report->$task ?? false) ? 'checked' : '' }}>
+                                           {{ old($task, $report->$task) ? 'checked' : '' }}>
                                     <span class="label-text ml-2 capitalize">{{ str_replace('_', ' ', $task) }}</span>
                                 </label>
                             </div>
@@ -243,7 +245,7 @@
                                     Chemicals Used
                                 </label>
                                 <input type="text" name="chemicals_used" id="chemicals_used" 
-                                       value="{{ old('chemicals_used', $report->chemicals_used ?? '') }}" 
+                                       value="{{ old('chemicals_used', is_array($report->chemicals_used) ? implode(', ', $report->chemicals_used) : $report->chemicals_used) }}" 
                                        placeholder="e.g. Chlorine, Acid" 
                                        class="input input-bordered w-full @error('chemicals_used') input-error @enderror">
                                 @error('chemicals_used')
@@ -256,7 +258,7 @@
                                     Chemicals Cost <span class="text-xs text-base-content/60">(strikethrough if flat-rate client)</span>
                                 </label>
                                 <input type="number" step="0.01" name="chemicals_cost" id="chemicals_cost" 
-                                       value="{{ old('chemicals_cost', $report->chemicals_cost ?? '') }}" 
+                                       value="{{ old('chemicals_cost', $report->chemicals_cost) }}" 
                                        class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
                                 @error('chemicals_cost')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -270,7 +272,7 @@
                                     Other Services
                                 </label>
                                 <input type="text" name="other_services" id="other_services" 
-                                       value="{{ old('other_services', $report->other_services ?? '') }}" 
+                                       value="{{ old('other_services', is_array($report->other_services) ? implode(', ', $report->other_services) : $report->other_services) }}" 
                                        placeholder="e.g. Filter Clean" 
                                        class="input input-bordered w-full @error('other_services') input-error @enderror">
                                 @error('other_services')
@@ -283,7 +285,7 @@
                                     Other Costs
                                 </label>
                                 <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
-                                       value="{{ old('other_services_cost', $report->other_services_cost ?? '') }}" 
+                                       value="{{ old('other_services_cost', $report->other_services_cost) }}" 
                                        class="input input-bordered w-full @error('other_services_cost') input-error @enderror">
                                 @error('other_services_cost')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -306,7 +308,7 @@
                             </label>
                             <textarea name="notes_to_client" id="notes_to_client" rows="4" 
                                       class="textarea textarea-bordered w-full @error('notes_to_client') textarea-error @enderror"
-                                      placeholder="Notes visible to the client...">{{ old('notes_to_client', $report->notes_to_client ?? '') }}</textarea>
+                                      placeholder="Notes visible to the client...">{{ old('notes_to_client', $report->notes_to_client) }}</textarea>
                             @error('notes_to_client')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
@@ -318,7 +320,7 @@
                             </label>
                             <textarea name="notes_to_admin" id="notes_to_admin" rows="4" 
                                       class="textarea textarea-bordered w-full @error('notes_to_admin') textarea-error @enderror"
-                                      placeholder="Internal notes for admin...">{{ old('notes_to_admin', $report->notes_to_admin ?? '') }}</textarea>
+                                      placeholder="Internal notes for admin...">{{ old('notes_to_admin', $report->notes_to_admin) }}</textarea>
                             @error('notes_to_admin')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
@@ -343,7 +345,7 @@
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
                         
-                        @if(isset($report) && !empty($report->photos))
+                        @if(!empty($report->photos))
                             <div class="flex flex-wrap gap-2 mt-4">
                                 @foreach($report->photos as $photo)
                                     <img src="{{ asset('storage/' . $photo) }}" alt="Report Photo" 
@@ -354,30 +356,14 @@
                     </div>
                 </div>
 
-                <!-- Notification Settings -->
-                <div class="mt-8 space-y-6">
-                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                        Notification Settings
-                    </h3>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <input type="checkbox" name="notify_client" id="notify_client" 
-                                   class="checkbox checkbox-primary" 
-                                   {{ (isset($client) && $client->service_reports) ? 'checked' : '' }}>
-                            <span class="label-text ml-2">Notify client (pre-checked if client allows)</span>
-                        </label>
-                    </div>
-                </div>
-
                 <!-- Form Actions -->
                 <div class="mt-8 flex justify-end space-x-4">
-                    <a href="{{ route('reports.index') }}" class="btn btn-outline">Cancel</a>
+                    <a href="{{ route('reports.show', $report) }}" class="btn btn-outline">Cancel</a>
                     <button type="submit" class="btn btn-primary">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                         </svg>
-                        {{ isset($report) ? 'Save Changes' : 'Create Report' }}
+                        Update Report
                     </button>
                 </div>
             @else

@@ -48,33 +48,33 @@
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name, email, or phone" class="input input-bordered w-full">
-                    </div>
+                </div>
                     <!-- Status -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Status</label>
                         <select name="status" class="select select-bordered w-full">
                             <option value="">All Statuses</option>
-                            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                        </select>
-                    </div>
+                        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
                     <!-- Sort By -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort By</label>
                         <select name="sort_by" class="select select-bordered w-full">
-                            <option value="created_at" {{ request('sort_by', 'created_at') === 'created_at' ? 'selected' : '' }}>Created Date</option>
-                            <option value="first_name" {{ request('sort_by') === 'first_name' ? 'selected' : '' }}>First Name</option>
-                            <option value="last_name" {{ request('sort_by') === 'last_name' ? 'selected' : '' }}>Last Name</option>
-                            <option value="email" {{ request('sort_by') === 'email' ? 'selected' : '' }}>Email</option>
-                        </select>
-                    </div>
+                        <option value="created_at" {{ request('sort_by', 'created_at') === 'created_at' ? 'selected' : '' }}>Created Date</option>
+                        <option value="first_name" {{ request('sort_by') === 'first_name' ? 'selected' : '' }}>First Name</option>
+                        <option value="last_name" {{ request('sort_by') === 'last_name' ? 'selected' : '' }}>Last Name</option>
+                        <option value="email" {{ request('sort_by') === 'email' ? 'selected' : '' }}>Email</option>
+                    </select>
+                </div>
                     <!-- Sort Order -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort Order</label>
                         <select name="sort_order" class="select select-bordered w-full">
-                            <option value="desc" {{ request('sort_order', 'desc') === 'desc' ? 'selected' : '' }}>Descending</option>
-                            <option value="asc" {{ request('sort_order') === 'asc' ? 'selected' : '' }}>Ascending</option>
-                        </select>
+                        <option value="desc" {{ request('sort_order', 'desc') === 'desc' ? 'selected' : '' }}>Descending</option>
+                        <option value="asc" {{ request('sort_order') === 'asc' ? 'selected' : '' }}>Ascending</option>
+                    </select>
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-4">

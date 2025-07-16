@@ -77,11 +77,9 @@ class InvoiceController extends Controller
      */
     public function create()
     {
-        $clients = Client::where('is_active', true)->get();
-        $locations = Location::where('status', 'active')->get();
         $technicians = User::where('role', 'technician')->where('is_active', true)->get();
 
-        return view('invoices.create', compact('clients', 'locations', 'technicians'));
+        return view('invoices.create', compact('technicians'));
     }
 
     /**

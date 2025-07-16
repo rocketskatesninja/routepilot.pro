@@ -4,16 +4,9 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-        <div class="flex items-center space-x-4">
-            <a href="{{ route('clients.index') }}" class="btn btn-ghost btn-sm">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-            </a>
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $client->full_name }}</h1>
-                <p class="text-gray-600 dark:text-gray-400">{{ $client->email }}</p>
-            </div>
+        <div>
+            <h1 class="text-3xl font-bold text-base-content">{{ $client->full_name }}</h1>
+            <p class="text-base-content/70 mt-2">{{ $client->email }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
             <a href="{{ route('clients.edit', $client) }}" class="btn btn-outline">
@@ -22,22 +15,19 @@
                 </svg>
                 Edit Client
             </a>
-            <form action="{{ route('clients.toggle-status', $client) }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" class="btn btn-{{ $client->is_active ? 'warning' : 'success' }}">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
-                    </svg>
-                    {{ $client->is_active ? 'Deactivate' : 'Activate' }}
-                </button>
-            </form>
+            <a href="{{ route('clients.index') }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Clients
+            </a>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Client Profile -->
         <div class="lg:col-span-1">
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
                 <div class="text-center mb-6">
                     <div class="avatar mb-4">
                         <div class="mask mask-squircle w-24 h-24">
@@ -50,8 +40,8 @@
                             @endif
                         </div>
                     </div>
-                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{{ $client->full_name }}</h2>
-                    <p class="text-gray-600 dark:text-gray-400">{{ $client->role }}</p>
+                    <h2 class="text-xl font-semibold text-base-content">{{ $client->full_name }}</h2>
+                    <p class="text-base-content/70">{{ $client->role }}</p>
                 </div>
 
                 <!-- Status Badges -->
@@ -61,29 +51,29 @@
                     @else
                         <div class="badge badge-error">Inactive</div>
                     @endif
-                    <div class="badge badge-{{ $client->status == 'active' ? 'success' : ($client->status == 'pending' ? 'warning' : 'error') }}">
+                    <div class="badge badge-{{ $client->status == 'active' ? 'success' : 'error' }}">
                         {{ ucfirst($client->status) }}
                     </div>
                 </div>
 
                 <!-- Contact Information -->
                 <div class="space-y-4 mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Contact Information</h3>
+                    <h3 class="text-lg font-semibold text-base-content">Contact Information</h3>
                     
                     <div class="space-y-3">
                         <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
-                            <span class="text-gray-700 dark:text-gray-300">{{ $client->email }}</span>
+                            <span class="text-base-content">{{ $client->email }}</span>
                         </div>
                         
                         @if($client->phone)
                         <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                             </svg>
-                            <span class="text-gray-700 dark:text-gray-300">{{ $client->phone }}</span>
+                            <span class="text-base-content">{{ $client->phone }}</span>
                         </div>
                         @endif
                     </div>
@@ -92,13 +82,13 @@
                 <!-- Address -->
                 @if($client->street_address)
                 <div class="space-y-4 mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Address</h3>
+                    <h3 class="text-lg font-semibold text-base-content">Address</h3>
                     <div class="flex items-start space-x-3">
-                        <svg class="w-5 h-5 text-gray-400 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-base-content/50 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                        <div class="text-gray-700 dark:text-gray-300">
+                        <div class="text-base-content">
                             <div>{{ $client->street_address }}</div>
                             @if($client->street_address_2)
                                 <div>{{ $client->street_address_2 }}</div>
@@ -111,28 +101,28 @@
 
                 <!-- Preferences -->
                 <div class="space-y-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Preferences</h3>
+                    <h3 class="text-lg font-semibold text-base-content">Preferences</h3>
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Appointment Reminders</span>
+                            <span class="text-base-content/70">Appointment Reminders</span>
                             <div class="badge badge-{{ $client->appointment_reminders ? 'success' : 'error' }}">
                                 {{ $client->appointment_reminders ? 'Yes' : 'No' }}
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Mailing List</span>
+                            <span class="text-base-content/70">Mailing List</span>
                             <div class="badge badge-{{ $client->mailing_list ? 'success' : 'error' }}">
                                 {{ $client->mailing_list ? 'Yes' : 'No' }}
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Monthly Billing</span>
+                            <span class="text-base-content/70">Monthly Billing</span>
                             <div class="badge badge-{{ $client->monthly_billing ? 'success' : 'error' }}">
                                 {{ $client->monthly_billing ? 'Yes' : 'No' }}
                             </div>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Service Reports</span>
+                            <span class="text-base-content/70">Service Reports</span>
                             <div class="badge badge-info">{{ ucfirst(str_replace('_', ' ', $client->service_reports)) }}</div>
                         </div>
                     </div>
@@ -144,6 +134,7 @@
         <div class="lg:col-span-2 space-y-8">
             <!-- Statistics Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
                 <x-stat-card 
                     title="Locations" 
                     :value="$client->locations->count()" 
@@ -165,26 +156,21 @@
             </div>
 
             <!-- Tabs -->
-            <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+            <div class="bg-base-100 shadow-xl rounded-lg">
                 <div class="tabs tabs-boxed p-4">
-                    <a class="tab tab-active" onclick="showTab('locations')">Locations</a>
-                    <a class="tab" onclick="showTab('invoices')">Invoices</a>
-                    <a class="tab" onclick="showTab('reports')">Reports</a>
-                    <a class="tab" onclick="showTab('activities')">Activities</a>
+                    <a class="tab tab-active" onclick="showTab('locations', event)">Locations</a>
+                    <a class="tab" onclick="showTab('invoices', event)">Invoices</a>
+                    <a class="tab" onclick="showTab('reports', event)">Reports</a>
+                    <a class="tab" onclick="showTab('activities', event)">Activities</a>
                 </div>
 
                 <div class="p-6">
                     <!-- Locations Tab -->
-                    <div id="locations-tab" class="tab-content">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Locations</h3>
-                            <a href="#" class="btn btn-primary btn-sm">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Add Location
-                            </a>
-                        </div>
+                    <div id="locations-tab" class="tab-content" style="display: block !important;">
+                        
+
+                        
+
                         
                         @if($client->locations->count() > 0)
                             <div class="overflow-x-auto">
@@ -225,10 +211,10 @@
                             </div>
                         @else
                             <div class="text-center py-8">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-16 h-16 mx-auto mb-4 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
-                                <p class="text-gray-500">No locations found for this client.</p>
+                                <p class="text-base-content/70">No locations found for this client.</p>
                                 <a href="#" class="btn btn-primary mt-4">Add First Location</a>
                             </div>
                         @endif
@@ -236,10 +222,8 @@
 
                     <!-- Invoices Tab -->
                     <div id="invoices-tab" class="tab-content hidden">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Invoices</h3>
-                            <a href="#" class="btn btn-primary btn-sm">Create Invoice</a>
-                        </div>
+                        
+
                         
                         @if($client->invoices->count() > 0)
                             <div class="overflow-x-auto">
@@ -274,10 +258,10 @@
                             </div>
                         @else
                             <div class="text-center py-8">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-16 h-16 mx-auto mb-4 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                <p class="text-gray-500">No invoices found for this client.</p>
+                                <p class="text-base-content/70">No invoices found for this client.</p>
                                 <a href="#" class="btn btn-primary mt-4">Create First Invoice</a>
                             </div>
                         @endif
@@ -285,10 +269,8 @@
 
                     <!-- Reports Tab -->
                     <div id="reports-tab" class="tab-content hidden">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Service Reports</h3>
-                            <a href="#" class="btn btn-primary btn-sm">Create Report</a>
-                        </div>
+                        
+
                         
                         @if($client->reports->count() > 0)
                             <div class="overflow-x-auto">
@@ -321,10 +303,10 @@
                             </div>
                         @else
                             <div class="text-center py-8">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-16 h-16 mx-auto mb-4 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                <p class="text-gray-500">No service reports found for this client.</p>
+                                <p class="text-base-content/70">No service reports found for this client.</p>
                                 <a href="#" class="btn btn-primary mt-4">Create First Report</a>
                             </div>
                         @endif
@@ -332,12 +314,11 @@
 
                     <!-- Activities Tab -->
                     <div id="activities-tab" class="tab-content hidden">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activities</h3>
                         
                         @if($recentActivities->count() > 0)
                             <div class="space-y-4">
                                 @foreach($recentActivities as $activity)
-                                <div class="flex items-start space-x-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                <div class="flex items-start space-x-3 p-4 bg-base-200 rounded-lg">
                                     <div class="flex-shrink-0">
                                         <div class="w-8 h-8 bg-primary text-primary-content rounded-full flex items-center justify-center">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,18 +327,18 @@
                                         </div>
                                     </div>
                                     <div class="flex-1">
-                                        <p class="text-sm text-gray-900 dark:text-white">{{ $activity->description }}</p>
-                                        <p class="text-xs text-gray-500">{{ $activity->created_at->diffForHumans() }}</p>
+                                        <p class="text-sm text-base-content">{{ $activity->description }}</p>
+                                        <p class="text-xs text-base-content/50">{{ $activity->created_at->diffForHumans() }}</p>
                                     </div>
                                 </div>
                                 @endforeach
                             </div>
                         @else
                             <div class="text-center py-8">
-                                <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-16 h-16 mx-auto mb-4 text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <p class="text-gray-500">No recent activities found.</p>
+                                <p class="text-base-content/70">No recent activities found.</p>
                             </div>
                         @endif
                     </div>
@@ -368,10 +349,14 @@
 </div>
 
 <script>
-function showTab(tabName) {
+function showTab(tabName, event = null) {
+    console.log('Switching to tab:', tabName);
+    
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
+        content.style.display = 'none';
+        console.log('Hiding tab content:', content.id);
     });
     
     // Remove active class from all tabs
@@ -380,10 +365,25 @@ function showTab(tabName) {
     });
     
     // Show selected tab content
-    document.getElementById(tabName + '-tab').classList.remove('hidden');
+    const targetTab = document.getElementById(tabName + '-tab');
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+        targetTab.style.display = 'block';
+        console.log('Showing tab content:', targetTab.id);
+    } else {
+        console.error('Tab content not found:', tabName + '-tab');
+    }
     
-    // Add active class to clicked tab
-    event.target.classList.add('tab-active');
+    // Add active class to clicked tab (only if event is provided)
+    if (event && event.target) {
+        event.target.classList.add('tab-active');
+    }
 }
+
+// Initialize the first tab as active
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing tabs');
+    showTab('locations');
+});
 </script>
 @endsection 

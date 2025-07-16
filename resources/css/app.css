@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Force all checkboxes to use the most basic browser default style, overriding all custom styles */
+input[type="checkbox"], .checkbox {
+  all: revert !important;
+  appearance: checkbox !important;
+  -webkit-appearance: checkbox !important;
+  background: none !important;
+  border: initial !important;
+  box-shadow: none !important;
+  outline: none !important;
+  width: initial !important;
+  height: initial !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 8px 0 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  position: static !important;
+  transition: none !important;
+  filter: none !important;
+}

@@ -74,7 +74,7 @@ class LocationController extends Controller
             'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
             'installation' => ['required', Rule::in(['inground', 'above'])],
             'gallons' => 'nullable|integer|min:1',
-            'service_frequency' => ['required', Rule::in(['semi_weekly', 'weekly', 'bi_weekly', 'monthly'])],
+            'service_frequency' => ['required', Rule::in(['weekly', 'bi-weekly', 'monthly', 'as-needed'])],
             'service_day_1' => 'nullable|string|max:255',
             'service_day_2' => 'nullable|string|max:255',
             'rate_per_visit' => 'nullable|numeric|min:0',
@@ -82,16 +82,42 @@ class LocationController extends Controller
             'assigned_technician_id' => 'nullable|exists:users,id',
             'is_favorite' => 'boolean',
             'status' => ['required', Rule::in(['active', 'inactive'])],
+            'notes' => 'nullable|string',
+            // Cleaning tasks
+            'vacuumed' => 'boolean',
+            'brushed' => 'boolean',
+            'skimmed' => 'boolean',
+            'cleaned_skimmer_basket' => 'boolean',
+            'cleaned_pump_basket' => 'boolean',
+            'cleaned_pool_deck' => 'boolean',
+            // Maintenance tasks
+            'cleaned_filter_cartridge' => 'boolean',
+            'backwashed_sand_filter' => 'boolean',
+            'adjusted_water_level' => 'boolean',
+            'adjusted_auto_fill' => 'boolean',
+            'adjusted_pump_timer' => 'boolean',
+            'adjusted_heater' => 'boolean',
+            'checked_cover' => 'boolean',
+            'checked_lights' => 'boolean',
+            'checked_fountain' => 'boolean',
+            'checked_heater' => 'boolean',
+            // Other services
+            'other_services' => 'nullable|string',
+            'other_services_cost' => 'nullable|numeric|min:0',
         ]);
 
         // Handle photo uploads
         if ($request->hasFile('photos')) {
+            \Log::info('Photo upload detected', ['count' => count($request->file('photos'))]);
             $photoPaths = [];
             foreach ($request->file('photos') as $photo) {
                 $path = $photo->store('locations/photos', 'public');
                 $photoPaths[] = $path;
+                \Log::info('Photo stored', ['path' => $path]);
             }
             $validated['photos'] = $photoPaths;
+        } else {
+            \Log::info('No photos uploaded');
         }
 
         $location = Location::create($validated);
@@ -137,44 +163,90 @@ class LocationController extends Controller
      */
     public function update(Request $request, Location $location)
     {
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'nickname' => 'nullable|string|max:255',
-            'street_address' => 'required|string|max:255',
-            'street_address_2' => 'nullable|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:2',
-            'zip_code' => 'required|string|max:10',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            'access' => ['required', Rule::in(['residential', 'commercial'])],
-            'pool_type' => ['nullable', Rule::in(['fiberglass', 'vinyl_liner', 'concrete', 'gunite'])],
-            'water_type' => ['required', Rule::in(['chlorine', 'salt'])],
-            'filter_type' => 'nullable|string|max:255',
-            'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
-            'installation' => ['required', Rule::in(['inground', 'above'])],
-            'gallons' => 'nullable|integer|min:1',
-            'service_frequency' => ['required', Rule::in(['semi_weekly', 'weekly', 'bi_weekly', 'monthly'])],
-            'service_day_1' => 'nullable|string|max:255',
-            'service_day_2' => 'nullable|string|max:255',
-            'rate_per_visit' => 'nullable|numeric|min:0',
-            'chemicals_included' => 'boolean',
-            'assigned_technician_id' => 'nullable|exists:users,id',
-            'is_favorite' => 'boolean',
-            'status' => ['required', Rule::in(['active', 'inactive'])],
-        ]);
+        \Log::info('Location update request data', $request->all());
+        
+        try {
+            $validated = $request->validate([
+                'client_id' => 'required|exists:clients,id',
+                'nickname' => 'nullable|string|max:255',
+                'street_address' => 'required|string|max:255',
+                'street_address_2' => 'nullable|string|max:255',
+                'city' => 'required|string|max:255',
+                'state' => 'required|string|max:2',
+                'zip_code' => 'required|string|max:10',
+                'photos' => 'nullable|array',
+                'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+                'access' => ['required', Rule::in(['residential', 'commercial'])],
+                'pool_type' => ['nullable', Rule::in(['fiberglass', 'vinyl_liner', 'concrete', 'gunite'])],
+                'water_type' => ['required', Rule::in(['chlorine', 'salt'])],
+                'filter_type' => 'nullable|string|max:255',
+                'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
+                'installation' => ['required', Rule::in(['inground', 'above'])],
+                'gallons' => 'nullable|integer|min:1',
+                'service_frequency' => ['required', Rule::in(['weekly', 'bi-weekly', 'monthly', 'as-needed'])],
+                'service_day_1' => 'nullable|string|max:255',
+                'service_day_2' => 'nullable|string|max:255',
+                'rate_per_visit' => 'nullable|numeric|min:0',
+                'chemicals_included' => 'boolean',
+                'assigned_technician_id' => 'nullable|exists:users,id',
+                'is_favorite' => 'boolean',
+                'status' => ['required', Rule::in(['active', 'inactive'])],
+                'notes' => 'nullable|string',
+                // Cleaning tasks
+                'vacuumed' => 'boolean',
+                'brushed' => 'boolean',
+                'skimmed' => 'boolean',
+                'cleaned_skimmer_basket' => 'boolean',
+                'cleaned_pump_basket' => 'boolean',
+                'cleaned_pool_deck' => 'boolean',
+                // Maintenance tasks
+                'cleaned_filter_cartridge' => 'boolean',
+                'backwashed_sand_filter' => 'boolean',
+                'adjusted_water_level' => 'boolean',
+                'adjusted_auto_fill' => 'boolean',
+                'adjusted_pump_timer' => 'boolean',
+                'adjusted_heater' => 'boolean',
+                'checked_cover' => 'boolean',
+                'checked_lights' => 'boolean',
+                'checked_fountain' => 'boolean',
+                'checked_heater' => 'boolean',
+                // Other services
+                'other_services' => 'nullable|string',
+                'other_services_cost' => 'nullable|numeric|min:0',
+            ]);
+            \Log::info('Location update validated data', $validated);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Location update validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            throw $e;
+        }
 
         // Handle photo uploads
         if ($request->hasFile('photos')) {
-            $photoPaths = $location->photos ?: [];
+            // Delete old photos from storage
+            if ($location->photos) {
+                foreach ($location->photos as $oldPhoto) {
+                    \Storage::disk('public')->delete($oldPhoto);
+                }
+            }
+            $photoPaths = [];
             foreach ($request->file('photos') as $photo) {
                 $path = $photo->store('locations/photos', 'public');
                 $photoPaths[] = $path;
+                \Log::info('Photo stored in update', ['path' => $path]);
             }
             $validated['photos'] = $photoPaths;
+        } else {
+            \Log::info('No photos uploaded in update');
+            // Keep existing photos if no new ones are uploaded
+            $validated['photos'] = $location->photos;
         }
 
+        \Log::info('About to update location', ['location_id' => $location->id, 'data_to_update' => $validated]);
         $location->update($validated);
+        \Log::info('Location updated successfully', ['location_id' => $location->id]);
 
         // Log activity
         $locationName = $location->nickname ?: $location->street_address;

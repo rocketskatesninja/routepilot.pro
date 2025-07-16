@@ -33,6 +33,28 @@ class Location extends Model
         'assigned_technician_id',
         'is_favorite',
         'status',
+        'notes',
+        // Cleaning tasks
+        'vacuumed',
+        'brushed',
+        'skimmed',
+        'cleaned_skimmer_basket',
+        'cleaned_pump_basket',
+        'cleaned_pool_deck',
+        // Maintenance tasks
+        'cleaned_filter_cartridge',
+        'backwashed_sand_filter',
+        'adjusted_water_level',
+        'adjusted_auto_fill',
+        'adjusted_pump_timer',
+        'adjusted_heater',
+        'checked_cover',
+        'checked_lights',
+        'checked_fountain',
+        'checked_heater',
+        // Other services
+        'other_services',
+        'other_services_cost',
     ];
 
     protected $casts = [

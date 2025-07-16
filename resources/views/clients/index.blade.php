@@ -19,7 +19,7 @@
     </div>
 
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <x-stat-card 
             title="Total Clients" 
             :value="$stats['total']" 
@@ -33,12 +33,6 @@
             icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'></path>"
         />
         <x-stat-card 
-            title="Pending" 
-            :value="$stats['pending']" 
-            color="warning"
-            icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'></path>"
-        />
-        <x-stat-card 
             title="Inactive" 
             :value="$stats['inactive']" 
             color="error"
@@ -47,7 +41,7 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-8">
+    <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-6">
         <form method="GET" action="{{ route('clients.index') }}" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Search -->
@@ -63,7 +57,6 @@
                         <option value="">All Statuses</option>
                         <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
                     </select>
                 </div>
                 <!-- Active Filter -->
@@ -156,15 +149,8 @@
                             @endif
                         </td>
                         <td>
-                            <div class="flex items-center space-x-2">
-                                @if($client->is_active)
-                                    <div class="badge badge-success">Active</div>
-                                @else
-                                    <div class="badge badge-error">Inactive</div>
-                                @endif
-                                <div class="badge badge-{{ $client->status == 'active' ? 'success' : ($client->status == 'pending' ? 'warning' : 'error') }}">
-                                    {{ ucfirst($client->status) }}
-                                </div>
+                            <div class="badge badge-{{ $client->status == 'active' ? 'success' : 'error' }}">
+                                {{ ucfirst($client->status) }}
                             </div>
                         </td>
                         <td>

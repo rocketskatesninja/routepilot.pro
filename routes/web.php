@@ -24,6 +24,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('clients', ClientController::class);
     Route::get('/clients/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle-status');
     Route::get('/clients/export/csv', [ClientController::class, 'export'])->name('clients.export');
+    Route::get('/api/clients/search', [ClientController::class, 'search'])->name('api.clients.search');
+    Route::get('/api/clients/{client}/locations', [ClientController::class, 'getLocations'])->name('api.clients.locations');
     
     // Location Management Routes
     Route::resource('locations', LocationController::class);
@@ -46,7 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}/pdf/view', [InvoiceController::class, 'viewPdf'])->name('invoices.pdf.view');
 
     // Recurring Billing Profiles Management
-    Route::resource('recurring-billing-profiles', RecurringBillingProfileController::class);
+    // Route::resource('recurring-billing-profiles', RecurringBillingProfileController::class);
 
     // Reports Management
     Route::resource('reports', ReportController::class);

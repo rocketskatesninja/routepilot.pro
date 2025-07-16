@@ -1,102 +1,294 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                Service Report Details
-            </h2>
-            <a href="{{ route('reports.index') }}" class="btn btn-ghost">Back to Reports</a>
+@extends('layouts.app')
+
+@section('content')
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-base-content">Service Report</h1>
+            <p class="text-base-content/70 mt-2">{{ $report->service_date->format('M j, Y') }} - {{ $report->location->nickname ?? $report->location->name }}</p>
         </div>
-    </x-slot>
-    <div class="py-8">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg p-6">
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold mb-2">General Info</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><span class="font-semibold">Client:</span> {{ $report->client->full_name ?? '-' }}</div>
-                        <div><span class="font-semibold">Location:</span> {{ $report->location->name ?? '-' }}</div>
-                        <div><span class="font-semibold">Service Date:</span> {{ $report->service_date ? $report->service_date->format('M d, Y') : '-' }}</div>
-                        <div><span class="font-semibold">Service Time:</span> {{ $report->service_time ? date('g:i A', strtotime($report->service_time)) : '-' }}</div>
-                        <div><span class="font-semibold">Pool Gallons:</span> {{ $report->pool_gallons ?? '-' }}</div>
-                    </div>
-                </div>
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold mb-2">Chemistry Readings</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div><span class="font-semibold">FAC:</span> {{ $report->fac }}</div>
-                        <div><span class="font-semibold">CC:</span> {{ $report->cc }}</div>
-                        <div><span class="font-semibold">pH:</span> {{ $report->ph }}</div>
-                        <div><span class="font-semibold">Alkalinity:</span> {{ $report->alkalinity }}</div>
-                        <div><span class="font-semibold">Calcium:</span> {{ $report->calcium }}</div>
-                        <div><span class="font-semibold">Salt:</span> {{ $report->salt }}</div>
-                        <div><span class="font-semibold">CYA:</span> {{ $report->cya }}</div>
-                        <div><span class="font-semibold">TDS:</span> {{ $report->tds }}</div>
-                    </div>
-                </div>
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold mb-2">Cleaning Tasks</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach(['vacuumed','brushed','skimmed','cleaned_skimmer_basket','cleaned_pump_basket','cleaned_pool_deck'] as $task)
-                            <div>
-                                <span class="font-semibold">{{ str_replace('_', ' ', ucfirst($task)) }}:</span>
-                                <span>{{ $report->$task ? 'Yes' : 'No' }}</span>
+        <div class="mt-4 lg:mt-0 flex space-x-2">
+            <a href="{{ route('reports.edit', $report) }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit Report
+            </a>
+            <a href="{{ route('reports.index') }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Reports
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Report Summary -->
+        <div class="lg:col-span-1">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <div class="text-center mb-6">
+                    <div class="avatar mb-4">
+                        <div class="mask mask-squircle w-24 h-24">
+                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center text-3xl font-bold">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
                             </div>
-                        @endforeach
+                        </div>
                     </div>
+                    <h2 class="text-xl font-semibold text-base-content">Service Report</h2>
+                    <p class="text-base-content/70">{{ $report->service_date->format('M j, Y') }}</p>
                 </div>
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold mb-2">Maintenance Tasks</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach(['cleaned_filter_cartridge','backwashed_sand_filter','adjusted_water_level','adjusted_auto_fill','adjusted_pump_timer','adjusted_heater','checked_cover','checked_lights','checked_fountain','checked_heater'] as $task)
-                            <div>
-                                <span class="font-semibold">{{ str_replace('_', ' ', ucfirst($task)) }}:</span>
-                                <span>{{ $report->$task ? 'Yes' : 'No' }}</span>
+
+                <!-- Technician Information -->
+                <div class="space-y-4 mb-6">
+                    <h3 class="text-lg font-semibold text-base-content">Technician</h3>
+                    <div class="flex items-center space-x-3">
+                        <div class="avatar">
+                            <div class="mask mask-squircle w-12 h-12">
+                                @if($report->technician->profile_photo)
+                                    <img src="{{ Storage::url($report->technician->profile_photo) }}" alt="{{ $report->technician->full_name }}">
+                                @else
+                                    <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center">
+                                        <span class="text-sm font-semibold">{{ substr($report->technician->first_name, 0, 1) }}{{ substr($report->technician->last_name, 0, 1) }}</span>
+                                    </div>
+                                @endif
                             </div>
-                        @endforeach
+                        </div>
+                        <div>
+                            <div class="font-medium text-base-content">{{ $report->technician->full_name }}</div>
+                        </div>
                     </div>
                 </div>
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold mb-2">Chemicals & Other Services</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <span class="font-semibold">Chemicals Used:</span>
-                            <pre class="bg-base-200 p-2 rounded">{{ is_array($report->chemicals_used) ? json_encode($report->chemicals_used, JSON_PRETTY_PRINT) : $report->chemicals_used }}</pre>
+
+                <!-- Service Information -->
+                <div class="space-y-4 mb-6">
+                    <h3 class="text-lg font-semibold text-base-content">Service Information</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Client</span>
+                            <span class="text-base-content font-medium">{{ $report->client->full_name }}</span>
                         </div>
-                        <div><span class="font-semibold">Chemicals Cost:</span> ${{ number_format($report->chemicals_cost, 2) }}</div>
-                        <div>
-                            <span class="font-semibold">Other Services:</span>
-                            <pre class="bg-base-200 p-2 rounded">{{ is_array($report->other_services) ? json_encode($report->other_services, JSON_PRETTY_PRINT) : $report->other_services }}</pre>
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Location</span>
+                            <span class="text-base-content font-medium">{{ $report->location->nickname ?? $report->location->name }}</span>
                         </div>
-                        <div><span class="font-semibold">Other Services Cost:</span> ${{ number_format($report->other_services_cost, 2) }}</div>
-                        <div><span class="font-semibold">Total Cost:</span> ${{ number_format($report->total_cost, 2) }}</div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Service Date</span>
+                            <span class="text-base-content font-medium">{{ $report->service_date->format('M j, Y') }}</span>
+                        </div>
+                        @if($report->service_time)
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Service Time</span>
+                            <span class="text-base-content font-medium">{{ $report->service_time->format('g:i A') }}</span>
+                        </div>
+                        @endif
                     </div>
                 </div>
-                <div class="mb-6">
-                    <h3 class="text-lg font-bold mb-2">Notes & Photos</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <span class="font-semibold">Notes to Client:</span>
-                            <div class="bg-base-200 p-2 rounded">{{ $report->notes_to_client }}</div>
+
+                <!-- Billing Information -->
+                <div class="space-y-4 mb-6">
+                    <h3 class="text-lg font-semibold text-base-content">Billing Summary</h3>
+                    <div class="space-y-3">
+                        @if($report->location->rate_per_visit && $report->location->rate_per_visit > 0)
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Service Visit Cost</span>
+                            <span class="text-base-content font-medium">${{ number_format($report->location->rate_per_visit, 2) }}</span>
                         </div>
-                        <div>
-                            <span class="font-semibold">Notes to Admin:</span>
-                            <div class="bg-base-200 p-2 rounded">{{ $report->notes_to_admin }}</div>
+                        @else
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Service Visit Cost</span>
+                            <span class="text-base-content font-medium text-base-content/50">Not set</span>
                         </div>
-                        <div class="col-span-2">
-                            <span class="font-semibold">Photos:</span>
-                            @if(is_array($report->photos))
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    @foreach($report->photos as $photo)
-                                        <img src="{{ $photo }}" alt="Report Photo" class="w-32 h-32 object-cover rounded border">
-                                    @endforeach
+                        @endif
+                        @if($report->chemicals_cost > 0)
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Chemicals Cost</span>
+                            <span class="text-base-content font-medium">${{ number_format($report->chemicals_cost, 2) }}</span>
+                        </div>
+                        @endif
+                        @if($report->other_services_cost > 0)
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Other Services</span>
+                            <span class="text-base-content font-medium">${{ number_format($report->other_services_cost, 2) }}</span>
+                        </div>
+                        @endif
+                        <div class="flex items-center justify-between border-t border-base-300 pt-2">
+                            <span class="text-base-content font-semibold">Total Cost</span>
+                            <span class="text-base-content font-bold text-lg">${{ number_format($report->total_cost, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Related Invoice -->
+                @php
+                    $relatedInvoice = \App\Models\Invoice::where('location_id', $report->location_id)
+                        ->where('service_date', $report->service_date)
+                        ->first();
+                @endphp
+                @if($relatedInvoice)
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-base-content">Related Invoice</h3>
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-base-content/70">Invoice #</span>
+                                <span class="text-base-content font-medium">{{ $relatedInvoice->invoice_number }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-base-content/70">Status</span>
+                                <div class="badge badge-{{ $relatedInvoice->status == 'paid' ? 'success' : ($relatedInvoice->status == 'overdue' ? 'error' : 'warning') }}">
+                                    {{ ucfirst($relatedInvoice->status) }}
                                 </div>
-                            @else
-                                <div class="bg-base-200 p-2 rounded">{{ $report->photos }}</div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-base-content/70">Total Amount</span>
+                                <span class="text-base-content font-medium">${{ number_format($relatedInvoice->total_amount, 2) }}</span>
+                            </div>
+                            @if($relatedInvoice->balance > 0)
+                            <div class="flex items-center justify-between">
+                                <span class="text-base-content/70">Balance</span>
+                                <span class="text-base-content font-medium">${{ number_format($relatedInvoice->balance, 2) }}</span>
+                            </div>
                             @endif
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
         </div>
+
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Chemistry Readings -->
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-base-content mb-4">Chemistry Readings</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    @foreach($report->chemistryReadings as $reading => $value)
+                        @if($value !== null)
+                        <div class="bg-base-200 rounded-lg p-3">
+                            <div class="text-sm text-base-content/70 mb-1">{{ strtoupper($reading) }}</div>
+                            <div class="text-lg font-semibold text-base-content">{{ $value }}</div>
+                        </div>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Cleaning Tasks -->
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-base-content mb-4">Cleaning Tasks</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @foreach($report->cleaningTasks as $task => $completed)
+                        <div class="flex items-center space-x-3">
+                            <div class="badge badge-{{ $completed ? 'success' : 'error' }} badge-sm">
+                                {{ $completed ? '✓' : '✗' }}
+                            </div>
+                            <span class="text-base-content">{{ ucwords(str_replace('_', ' ', $task)) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Maintenance Tasks -->
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-base-content mb-4">Maintenance Tasks</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @foreach($report->maintenanceTasks as $task => $completed)
+                        <div class="flex items-center space-x-3">
+                            <div class="badge badge-{{ $completed ? 'success' : 'error' }} badge-sm">
+                                {{ $completed ? '✓' : '✗' }}
+                            </div>
+                            <span class="text-base-content">{{ ucwords(str_replace('_', ' ', $task)) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Chemicals & Services -->
+            @if($report->chemicals_used || $report->other_services)
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-base-content mb-4">Chemicals & Services</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    @if($report->chemicals_used)
+                    <div>
+                        <h4 class="font-semibold text-base-content mb-2">Chemicals Used</h4>
+                        <div class="bg-base-200 rounded-lg p-4">
+                            @if(is_array($report->chemicals_used))
+                                <ul class="space-y-1">
+                                    @foreach($report->chemicals_used as $chemical)
+                                        <li class="text-base-content">• {{ $chemical }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="text-base-content">{{ $report->chemicals_used }}</p>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($report->other_services)
+                    <div>
+                        <h4 class="font-semibold text-base-content mb-2">Other Services</h4>
+                        <div class="bg-base-200 rounded-lg p-4">
+                            @if(is_array($report->other_services))
+                                <ul class="space-y-1">
+                                    @foreach($report->other_services as $service)
+                                        <li class="text-base-content">• {{ $service }}</li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="text-base-content">{{ $report->other_services }}</p>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            <!-- Notes -->
+            @if($report->notes_to_client || $report->notes_to_admin)
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-base-content mb-4">Notes</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    @if($report->notes_to_client)
+                    <div>
+                        <h4 class="font-semibold text-base-content mb-2">Notes to Client</h4>
+                        <div class="bg-base-200 rounded-lg p-4">
+                            <p class="text-base-content">{{ $report->notes_to_client }}</p>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($report->notes_to_admin)
+                    <div>
+                        <h4 class="font-semibold text-base-content mb-2">Notes to Admin</h4>
+                        <div class="bg-base-200 rounded-lg p-4">
+                            <p class="text-base-content">{{ $report->notes_to_admin }}</p>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
+            <!-- Photos -->
+            @if($report->photos && is_array($report->photos) && count($report->photos) > 0)
+            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-base-content mb-4">Photos</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    @foreach($report->photos as $photo)
+                        <div class="aspect-square rounded-lg overflow-hidden">
+                            <img src="{{ $photo }}" alt="Report Photo" class="w-full h-full object-cover">
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
     </div>
-</x-app-layout> 
+</div>
+@endsection 

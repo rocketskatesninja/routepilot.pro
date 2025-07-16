@@ -50,7 +50,6 @@ class ClientController extends Controller
             'total' => Client::count(),
             'active' => Client::where('is_active', true)->count(),
             'inactive' => Client::where('is_active', false)->count(),
-            'pending' => Client::where('status', 'pending')->count(),
         ];
 
         return view('clients.index', compact('clients', 'stats'));
@@ -87,7 +86,7 @@ class ClientController extends Controller
             'mailing_list' => 'boolean',
             'monthly_billing' => 'boolean',
             'service_reports' => ['required', Rule::in(['full', 'invoice_only', 'none'])],
-            'status' => ['required', Rule::in(['active', 'inactive', 'pending'])],
+            'status' => ['required', Rule::in(['active', 'inactive'])],
             'is_active' => 'boolean',
         ]);
 
@@ -154,7 +153,7 @@ class ClientController extends Controller
             'mailing_list' => 'boolean',
             'monthly_billing' => 'boolean',
             'service_reports' => ['required', Rule::in(['full', 'invoice_only', 'none'])],
-            'status' => ['required', Rule::in(['active', 'inactive', 'pending'])],
+            'status' => ['required', Rule::in(['active', 'inactive'])],
             'is_active' => 'boolean',
         ]);
 
@@ -271,5 +270,56 @@ class ClientController extends Controller
         Activity::log('update', "{$status} client: {$client->full_name}", auth()->user(), $client);
 
         return back()->with('success', "Client {$status} successfully.");
+    }
+
+    /**
+     * Search clients for autocomplete.
+     */
+    public function search(Request $request)
+    {
+        $query = $request->get('q', '');
+        
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $clients = Client::where('is_active', true)
+            ->where(function ($q) use ($query) {
+                $q->where('first_name', 'like', "%{$query}%")
+                  ->orWhere('last_name', 'like', "%{$query}%")
+                  ->orWhere('email', 'like', "%{$query}%");
+            })
+            ->limit(10)
+            ->get(['id', 'first_name', 'last_name', 'email'])
+            ->map(function ($client) {
+                return [
+                    'id' => $client->id,
+                    'full_name' => $client->full_name,
+                    'email' => $client->email,
+                ];
+            });
+
+        return response()->json($clients);
+    }
+
+    /**
+     * Get locations for a specific client.
+     */
+    public function getLocations(Client $client)
+    {
+        $locations = $client->locations()
+            ->where('status', 'active')
+            ->get(['id', 'nickname', 'city', 'state'])
+            ->map(function ($location) {
+                return [
+                    'id' => $location->id,
+                    'name' => $location->nickname,
+                    'city' => $location->city,
+                    'state' => $location->state,
+                    'display_name' => "{$location->nickname} - {$location->city}, {$location->state}",
+                ];
+            });
+
+        return response()->json($locations);
     }
 } 

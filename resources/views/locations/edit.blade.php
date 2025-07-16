@@ -5,21 +5,31 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-base-content">Add New Location</h1>
-            <p class="text-base-content/70 mt-2">Create a new pool service location</p>
+            <h1 class="text-3xl font-bold text-base-content">Edit Location</h1>
+            <p class="text-base-content/70 mt-2">Update pool service location information</p>
         </div>
-        <a href="{{ route('locations.index') }}" class="btn btn-outline">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-            Back to Locations
-        </a>
+        <div class="flex space-x-2">
+            <a href="{{ route('locations.show', $location) }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                View Location
+            </a>
+            <a href="{{ route('locations.index') }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Locations
+            </a>
+        </div>
     </div>
 
     <!-- Location Form -->
     <div class="card bg-base-100 shadow-xl border border-base-300">
-        <form action="{{ route('locations.store') }}" method="POST" enctype="multipart/form-data" class="card-body p-6">
+        <form action="{{ route('locations.update', $location) }}" method="POST" enctype="multipart/form-data" class="card-body p-6">
             @csrf
+            @method('PUT')
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Basic Information -->
@@ -33,10 +43,10 @@
                             Client <span class="text-error">*</span>
                         </label>
                         <input type="text" name="client_search" id="client_search" 
-                               value="{{ old('client_search', $selectedClientName ?? '') }}" 
+                               value="{{ old('client_search', $location->client->full_name ?? '') }}" 
                                class="input input-bordered w-full @error('client_id') input-error @enderror" 
                                placeholder="Start typing client name..." required>
-                        <input type="hidden" name="client_id" id="client_id" value="{{ old('client_id', $selectedClientId ?? '') }}">
+                        <input type="hidden" name="client_id" id="client_id" value="{{ old('client_id', $location->client_id) }}">
                         <div id="client_suggestions" class="hidden absolute z-50 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
                         @error('client_id')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -47,7 +57,7 @@
                         <label for="nickname" class="block text-sm font-medium text-base-content mb-2">
                             Location Nickname
                         </label>
-                        <input type="text" name="nickname" id="nickname" value="{{ old('nickname') }}" 
+                        <input type="text" name="nickname" id="nickname" value="{{ old('nickname', $location->nickname) }}" 
                                class="input input-bordered w-full @error('nickname') input-error @enderror" 
                                placeholder="e.g., Main Pool, Backyard Pool">
                         @error('nickname')
@@ -59,7 +69,7 @@
                         <label for="street_address" class="block text-sm font-medium text-base-content mb-2">
                             Street Address <span class="text-error">*</span>
                         </label>
-                        <input type="text" name="street_address" id="street_address" value="{{ old('street_address') }}" 
+                        <input type="text" name="street_address" id="street_address" value="{{ old('street_address', $location->street_address) }}" 
                                class="input input-bordered w-full @error('street_address') input-error @enderror" required>
                         @error('street_address')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -70,7 +80,7 @@
                         <label for="street_address_2" class="block text-sm font-medium text-base-content mb-2">
                             Street Address 2
                         </label>
-                        <input type="text" name="street_address_2" id="street_address_2" value="{{ old('street_address_2') }}" 
+                        <input type="text" name="street_address_2" id="street_address_2" value="{{ old('street_address_2', $location->street_address_2) }}" 
                                class="input input-bordered w-full @error('street_address_2') input-error @enderror">
                         @error('street_address_2')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -82,7 +92,7 @@
                             <label for="city" class="block text-sm font-medium text-base-content mb-2">
                                 City <span class="text-error">*</span>
                             </label>
-                            <input type="text" name="city" id="city" value="{{ old('city') }}" 
+                            <input type="text" name="city" id="city" value="{{ old('city', $location->city) }}" 
                                    class="input input-bordered w-full @error('city') input-error @enderror" required>
                             @error('city')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -93,7 +103,7 @@
                             <label for="state" class="block text-sm font-medium text-base-content mb-2">
                                 State <span class="text-error">*</span>
                             </label>
-                            <input type="text" name="state" id="state" value="{{ old('state') }}" 
+                            <input type="text" name="state" id="state" value="{{ old('state', $location->state) }}" 
                                    class="input input-bordered w-full @error('state') input-error @enderror" maxlength="2" required>
                             @error('state')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -104,7 +114,7 @@
                             <label for="zip_code" class="block text-sm font-medium text-base-content mb-2">
                                 ZIP Code <span class="text-error">*</span>
                             </label>
-                            <input type="text" name="zip_code" id="zip_code" value="{{ old('zip_code') }}" 
+                            <input type="text" name="zip_code" id="zip_code" value="{{ old('zip_code', $location->zip_code) }}" 
                                    class="input input-bordered w-full @error('zip_code') input-error @enderror" required>
                             @error('zip_code')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -116,10 +126,20 @@
                         <label for="photos" class="block text-sm font-medium text-base-content mb-2">
                             Location Photos
                         </label>
+                        @if($location->photos)
+                            <div class="mb-2">
+                                <p class="text-sm text-base-content/70">Current photos:</p>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    @foreach(json_decode($location->photos) as $photo)
+                                        <img src="{{ Storage::url($photo) }}" alt="Location photo" class="w-16 h-16 rounded object-cover">
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                         <input type="file" name="photos[]" id="photos" 
                                class="file-input file-input-bordered w-full @error('photos') file-input-error @enderror"
                                accept="image/*" multiple>
-                        <p class="text-sm text-base-content/70 mt-1">Select one or more images (JPEG, PNG, JPG, GIF up to 2MB each)</p>
+                        <p class="text-sm text-base-content/70 mt-1">Select one or more images (JPEG, PNG, JPG, GIF up to 2MB each). Leave empty to keep existing photos.</p>
                         @error('photos')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -139,8 +159,8 @@
                             </label>
                             <select name="access" id="access" class="select select-bordered w-full @error('access') select-error @enderror" required>
                                 <option value="">Select Access Type</option>
-                                <option value="residential" {{ old('access') == 'residential' ? 'selected' : '' }}>Residential</option>
-                                <option value="commercial" {{ old('access') == 'commercial' ? 'selected' : '' }}>Commercial</option>
+                                <option value="residential" {{ old('access', $location->access) == 'residential' ? 'selected' : '' }}>Residential</option>
+                                <option value="commercial" {{ old('access', $location->access) == 'commercial' ? 'selected' : '' }}>Commercial</option>
                             </select>
                             @error('access')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -153,10 +173,10 @@
                             </label>
                             <select name="pool_type" id="pool_type" class="select select-bordered w-full @error('pool_type') select-error @enderror">
                                 <option value="">Select Pool Type</option>
-                                <option value="fiberglass" {{ old('pool_type') == 'fiberglass' ? 'selected' : '' }}>Fiberglass</option>
-                                <option value="vinyl_liner" {{ old('pool_type') == 'vinyl_liner' ? 'selected' : '' }}>Vinyl Liner</option>
-                                <option value="concrete" {{ old('pool_type') == 'concrete' ? 'selected' : '' }}>Concrete</option>
-                                <option value="gunite" {{ old('pool_type') == 'gunite' ? 'selected' : '' }}>Gunite</option>
+                                <option value="fiberglass" {{ old('pool_type', $location->pool_type) == 'fiberglass' ? 'selected' : '' }}>Fiberglass</option>
+                                <option value="vinyl_liner" {{ old('pool_type', $location->pool_type) == 'vinyl_liner' ? 'selected' : '' }}>Vinyl Liner</option>
+                                <option value="concrete" {{ old('pool_type', $location->pool_type) == 'concrete' ? 'selected' : '' }}>Concrete</option>
+                                <option value="gunite" {{ old('pool_type', $location->pool_type) == 'gunite' ? 'selected' : '' }}>Gunite</option>
                             </select>
                             @error('pool_type')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -171,8 +191,8 @@
                             </label>
                             <select name="water_type" id="water_type" class="select select-bordered w-full @error('water_type') select-error @enderror" required>
                                 <option value="">Select Water Type</option>
-                                <option value="chlorine" {{ old('water_type') == 'chlorine' ? 'selected' : '' }}>Chlorine</option>
-                                <option value="salt" {{ old('water_type') == 'salt' ? 'selected' : '' }}>Salt</option>
+                                <option value="chlorine" {{ old('water_type', $location->water_type) == 'chlorine' ? 'selected' : '' }}>Chlorine</option>
+                                <option value="salt" {{ old('water_type', $location->water_type) == 'salt' ? 'selected' : '' }}>Salt</option>
                             </select>
                             @error('water_type')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -185,10 +205,10 @@
                             </label>
                             <select name="filter_type" id="filter_type" class="select select-bordered w-full @error('filter_type') select-error @enderror">
                                 <option value="">Select Filter Type</option>
-                                <option value="sand" {{ old('filter_type') == 'sand' ? 'selected' : '' }}>Sand</option>
-                                <option value="cartridge" {{ old('filter_type') == 'cartridge' ? 'selected' : '' }}>Cartridge</option>
-                                <option value="de" {{ old('filter_type') == 'de' ? 'selected' : '' }}>DE (Diatomaceous Earth)</option>
-                                <option value="other" {{ old('filter_type') == 'other' ? 'selected' : '' }}>Other</option>
+                                <option value="sand" {{ old('filter_type', $location->filter_type) == 'sand' ? 'selected' : '' }}>Sand</option>
+                                <option value="cartridge" {{ old('filter_type', $location->filter_type) == 'cartridge' ? 'selected' : '' }}>Cartridge</option>
+                                <option value="de" {{ old('filter_type', $location->filter_type) == 'de' ? 'selected' : '' }}>DE (Diatomaceous Earth)</option>
+                                <option value="other" {{ old('filter_type', $location->filter_type) == 'other' ? 'selected' : '' }}>Other</option>
                             </select>
                             @error('filter_type')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -203,8 +223,8 @@
                             </label>
                             <select name="setting" id="setting" class="select select-bordered w-full @error('setting') select-error @enderror" required>
                                 <option value="">Select Setting</option>
-                                <option value="indoor" {{ old('setting') == 'indoor' ? 'selected' : '' }}>Indoor</option>
-                                <option value="outdoor" {{ old('setting') == 'outdoor' ? 'selected' : '' }}>Outdoor</option>
+                                <option value="indoor" {{ old('setting', $location->setting) == 'indoor' ? 'selected' : '' }}>Indoor</option>
+                                <option value="outdoor" {{ old('setting', $location->setting) == 'outdoor' ? 'selected' : '' }}>Outdoor</option>
                             </select>
                             @error('setting')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -217,8 +237,8 @@
                             </label>
                             <select name="installation" id="installation" class="select select-bordered w-full @error('installation') select-error @enderror" required>
                                 <option value="">Select Installation Type</option>
-                                <option value="inground" {{ old('installation') == 'inground' ? 'selected' : '' }}>In-Ground</option>
-                                <option value="above" {{ old('installation') == 'above' ? 'selected' : '' }}>Above Ground</option>
+                                <option value="inground" {{ old('installation', $location->installation) == 'inground' ? 'selected' : '' }}>In-Ground</option>
+                                <option value="above" {{ old('installation', $location->installation) == 'above' ? 'selected' : '' }}>Above Ground</option>
                             </select>
                             @error('installation')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -231,7 +251,7 @@
                             <label for="gallons" class="block text-sm font-medium text-base-content mb-2">
                                 Pool Size (Gallons)
                             </label>
-                            <input type="number" name="gallons" id="gallons" value="{{ old('gallons') }}" 
+                            <input type="number" name="gallons" id="gallons" value="{{ old('gallons', $location->gallons) }}" 
                                    class="input input-bordered w-full @error('gallons') input-error @enderror"
                                    placeholder="e.g., 15000">
                             @error('gallons')
@@ -256,10 +276,10 @@
                             </label>
                             <select name="service_frequency" id="service_frequency" class="select select-bordered w-full @error('service_frequency') select-error @enderror" required>
                                 <option value="">Select Frequency</option>
-                                <option value="weekly" {{ old('service_frequency') == 'weekly' ? 'selected' : '' }}>Weekly</option>
-                                <option value="bi-weekly" {{ old('service_frequency') == 'bi-weekly' ? 'selected' : '' }}>Bi-Weekly</option>
-                                <option value="monthly" {{ old('service_frequency') == 'monthly' ? 'selected' : '' }}>Monthly</option>
-                                <option value="as-needed" {{ old('service_frequency') == 'as-needed' ? 'selected' : '' }}>As Needed</option>
+                                <option value="weekly" {{ old('service_frequency', $location->service_frequency) == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                                <option value="bi-weekly" {{ old('service_frequency', $location->service_frequency) == 'bi-weekly' ? 'selected' : '' }}>Bi-Weekly</option>
+                                <option value="monthly" {{ old('service_frequency', $location->service_frequency) == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                                <option value="as-needed" {{ old('service_frequency', $location->service_frequency) == 'as-needed' ? 'selected' : '' }}>As Needed</option>
                             </select>
                             @error('service_frequency')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -272,13 +292,13 @@
                             </label>
                             <select name="service_day_1" id="service_day_1" class="select select-bordered w-full @error('service_day_1') select-error @enderror">
                                 <option value="">Select Day</option>
-                                <option value="monday" {{ old('service_day_1') == 'monday' ? 'selected' : '' }}>Monday</option>
-                                <option value="tuesday" {{ old('service_day_1') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
-                                <option value="wednesday" {{ old('service_day_1') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
-                                <option value="thursday" {{ old('service_day_1') == 'thursday' ? 'selected' : '' }}>Thursday</option>
-                                <option value="friday" {{ old('service_day_1') == 'friday' ? 'selected' : '' }}>Friday</option>
-                                <option value="saturday" {{ old('service_day_1') == 'saturday' ? 'selected' : '' }}>Saturday</option>
-                                <option value="sunday" {{ old('service_day_1') == 'sunday' ? 'selected' : '' }}>Sunday</option>
+                                <option value="monday" {{ old('service_day_1', $location->service_day_1) == 'monday' ? 'selected' : '' }}>Monday</option>
+                                <option value="tuesday" {{ old('service_day_1', $location->service_day_1) == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
+                                <option value="wednesday" {{ old('service_day_1', $location->service_day_1) == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
+                                <option value="thursday" {{ old('service_day_1', $location->service_day_1) == 'thursday' ? 'selected' : '' }}>Thursday</option>
+                                <option value="friday" {{ old('service_day_1', $location->service_day_1) == 'friday' ? 'selected' : '' }}>Friday</option>
+                                <option value="saturday" {{ old('service_day_1', $location->service_day_1) == 'saturday' ? 'selected' : '' }}>Saturday</option>
+                                <option value="sunday" {{ old('service_day_1', $location->service_day_1) == 'sunday' ? 'selected' : '' }}>Sunday</option>
                             </select>
                             @error('service_day_1')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -291,13 +311,13 @@
                             </label>
                             <select name="service_day_2" id="service_day_2" class="select select-bordered w-full @error('service_day_2') select-error @enderror">
                                 <option value="">Select Day (Optional)</option>
-                                <option value="monday" {{ old('service_day_2') == 'monday' ? 'selected' : '' }}>Monday</option>
-                                <option value="tuesday" {{ old('service_day_2') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
-                                <option value="wednesday" {{ old('service_day_2') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
-                                <option value="thursday" {{ old('service_day_2') == 'thursday' ? 'selected' : '' }}>Thursday</option>
-                                <option value="friday" {{ old('service_day_2') == 'friday' ? 'selected' : '' }}>Friday</option>
-                                <option value="saturday" {{ old('service_day_2') == 'saturday' ? 'selected' : '' }}>Saturday</option>
-                                <option value="sunday" {{ old('service_day_2') == 'sunday' ? 'selected' : '' }}>Sunday</option>
+                                <option value="monday" {{ old('service_day_2', $location->service_day_2) == 'monday' ? 'selected' : '' }}>Monday</option>
+                                <option value="tuesday" {{ old('service_day_2', $location->service_day_2) == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
+                                <option value="wednesday" {{ old('service_day_2', $location->service_day_2) == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
+                                <option value="thursday" {{ old('service_day_2', $location->service_day_2) == 'thursday' ? 'selected' : '' }}>Thursday</option>
+                                <option value="friday" {{ old('service_day_2', $location->service_day_2) == 'friday' ? 'selected' : '' }}>Friday</option>
+                                <option value="saturday" {{ old('service_day_2', $location->service_day_2) == 'saturday' ? 'selected' : '' }}>Saturday</option>
+                                <option value="sunday" {{ old('service_day_2', $location->service_day_2) == 'sunday' ? 'selected' : '' }}>Sunday</option>
                             </select>
                             @error('service_day_2')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -311,7 +331,7 @@
                                 <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
                                     Rate per Visit
                                 </label>
-                                <input type="number" name="rate_per_visit" id="rate_per_visit" value="{{ old('rate_per_visit') }}" 
+                                <input type="number" name="rate_per_visit" id="rate_per_visit" value="{{ old('rate_per_visit', $location->rate_per_visit) }}" 
                                        class="input input-bordered w-full @error('rate_per_visit') input-error @enderror"
                                        placeholder="e.g., 75.00" step="0.01" min="0">
                                 @error('rate_per_visit')
@@ -323,7 +343,7 @@
                                 <label class="label cursor-pointer">
                                     <span class="label-text">Chemicals Included</span>
                                     <input type="checkbox" name="chemicals_included" value="1" 
-                                           class="checkbox checkbox-primary" {{ old('chemicals_included', true) ? 'checked' : '' }}>
+                                           class="checkbox checkbox-primary" {{ old('chemicals_included', $location->chemicals_included) ? 'checked' : '' }}>
                                 </label>
                             </div>
                         </div>
@@ -335,7 +355,7 @@
                             <select name="assigned_technician_id" id="assigned_technician_id" class="select select-bordered w-full @error('assigned_technician_id') select-error @enderror">
                                 <option value="">Select Technician</option>
                                 @foreach($technicians as $technician)
-                                    <option value="{{ $technician->id }}" {{ old('assigned_technician_id') == $technician->id ? 'selected' : '' }}>
+                                    <option value="{{ $technician->id }}" {{ old('assigned_technician_id', $location->assigned_technician_id) == $technician->id ? 'selected' : '' }}>
                                         {{ $technician->full_name }}
                                     </option>
                                 @endforeach
@@ -351,15 +371,13 @@
                             </label>
                             <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
                                 <option value="">Select Status</option>
-                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                <option value="active" {{ old('status', $location->status) == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="inactive" {{ old('status', $location->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>
                             @error('status')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
-
-
                     </div>
                 </div>
             </div>
@@ -376,7 +394,7 @@
                     </label>
                     <textarea name="notes" id="notes" rows="4" 
                               class="textarea textarea-bordered w-full @error('notes') textarea-error @enderror"
-                              placeholder="Any additional notes about this location...">{{ old('notes') }}</textarea>
+                              placeholder="Any additional notes about this location...">{{ old('notes', $location->notes) }}</textarea>
                     @error('notes')
                         <p class="text-error text-sm mt-1">{{ $message }}</p>
                     @enderror
@@ -398,7 +416,7 @@
                                 <label class="label cursor-pointer">
                                     <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
                                            class="checkbox checkbox-primary" 
-                                           {{ old($task) ? 'checked' : '' }}>
+                                           {{ old($task, $location->$task) ? 'checked' : '' }}>
                                     <span class="label-text ml-2">{{ $label }}</span>
                                 </label>
                             </div>
@@ -415,7 +433,7 @@
                                 <label class="label cursor-pointer">
                                     <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
                                            class="checkbox checkbox-primary" 
-                                           {{ old($task) ? 'checked' : '' }}>
+                                           {{ old($task, $location->$task) ? 'checked' : '' }}>
                                     <span class="label-text ml-2">{{ $label }}</span>
                                 </label>
                             </div>
@@ -432,7 +450,7 @@
                                 Other Services
                             </label>
                             <input type="text" name="other_services" id="other_services" 
-                                   value="{{ old('other_services') }}" 
+                                   value="{{ old('other_services', is_array($location->other_services) ? implode(', ', $location->other_services) : $location->other_services) }}" 
                                    placeholder="e.g. Filter Clean, Equipment Repair" 
                                    class="input input-bordered w-full @error('other_services') input-error @enderror">
                             @error('other_services')
@@ -445,7 +463,7 @@
                                 Other Services Cost
                             </label>
                             <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
-                                   value="{{ old('other_services_cost') }}" 
+                                   value="{{ old('other_services_cost', $location->other_services_cost) }}" 
                                    class="input input-bordered w-full @error('other_services_cost') input-error @enderror">
                             @error('other_services_cost')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -460,9 +478,9 @@
                 <a href="{{ route('locations.index') }}" class="btn btn-outline">Cancel</a>
                 <button type="submit" class="btn btn-primary">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Create Location
+                    Update Location
                 </button>
             </div>
         </form>
