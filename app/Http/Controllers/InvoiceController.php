@@ -48,28 +48,32 @@ class InvoiceController extends Controller
             $query->where('service_date', '<=', $request->date_to);
         }
 
-        // Filter by client
-        if ($request->filled('client_id')) {
-            $query->where('client_id', $request->client_id);
-        }
 
-        // Filter by technician
-        if ($request->filled('technician_id')) {
-            $query->where('technician_id', $request->technician_id);
-        }
 
         // Sort functionality
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortBy = $request->get('sort_by', 'date_desc');
+        
+        switch ($sortBy) {
+            case 'date_desc':
+                $query->orderBy('service_date', 'desc');
+                break;
+            case 'date_asc':
+                $query->orderBy('service_date', 'asc');
+                break;
+            case 'status':
+                $query->orderBy('status', 'asc');
+                break;
+            case 'amount':
+                $query->orderBy('total_amount', 'desc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
 
         $invoices = $query->paginate(15);
 
-        // Get filter options
-        $clients = Client::where('is_active', true)->get();
-        $technicians = User::where('role', 'technician')->where('is_active', true)->get();
-
-        return view('invoices.index', compact('invoices', 'clients', 'technicians'));
+        return view('invoices.index', compact('invoices'));
     }
 
     /**

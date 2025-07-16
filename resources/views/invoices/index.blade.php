@@ -57,7 +57,7 @@
     <div class="card bg-base-100 shadow-xl mb-6">
         <div class="card-body">
             <form method="GET" action="{{ route('invoices.index') }}" class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <!-- Search -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
@@ -74,32 +74,6 @@
                             <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                     </div>
-                    <!-- Client -->
-                    <div>
-                        <label class="block text-sm font-medium text-base-content mb-2">Client</label>
-                        <select name="client_id" class="select select-bordered w-full">
-                            <option value="">All Clients</option>
-                            @foreach($clients as $client)
-                                <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
-                                    {{ $client->full_name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <!-- Technician -->
-                    <div>
-                        <label class="block text-sm font-medium text-base-content mb-2">Technician</label>
-                        <select name="technician_id" class="select select-bordered w-full">
-                            <option value="">All Technicians</option>
-                            @foreach($technicians as $technician)
-                                <option value="{{ $technician->id }}" {{ request('technician_id') == $technician->id ? 'selected' : '' }}>
-                                    {{ $technician->full_name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date From</label>
