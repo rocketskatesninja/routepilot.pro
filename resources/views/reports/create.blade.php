@@ -44,6 +44,9 @@
                                    autocomplete="off">
                             <input type="hidden" name="client_id" id="client_id" 
                                    value="{{ old('client_id', $report->client_id ?? '') }}" required>
+                            @if(isset($locationId))
+                                <input type="hidden" id="preset_location_id" value="{{ $locationId }}">
+                            @endif
                             <div id="client_suggestions" class="absolute z-50 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto" style="display: none;"></div>
                             @error('client_id')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -455,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
         locationSelect.innerHTML = '<option value="">Loading locations...</option>';
         locationSelect.disabled = true;
         
-        fetch(`/api/clients/${clientId}/locations`)
+        return fetch(`/api/clients/${clientId}/locations`)
             .then(response => response.json())
             .then(locations => {
                 locationSelect.innerHTML = '<option value="">Select Location</option>';
@@ -472,11 +475,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 locationSelect.disabled = false;
+                return locations;
             })
             .catch(error => {
                 console.error('Error fetching locations:', error);
                 locationSelect.innerHTML = '<option value="">Error loading locations</option>';
                 locationSelect.disabled = true;
+                throw error;
             });
     }
 
@@ -488,6 +493,29 @@ document.addEventListener('DOMContentLoaded', function() {
             locationSelect.disabled = true;
         }
     });
+
+    // Handle preset location_id if provided
+    const presetLocationId = document.getElementById('preset_location_id');
+    if (presetLocationId && presetLocationId.value) {
+        // Fetch location details to get client info
+        fetch(`/api/locations/${presetLocationId.value}`)
+            .then(response => response.json())
+            .then(location => {
+                if (location.client) {
+                    // Set client search and ID
+                    clientSearch.value = `${location.client.full_name} - ${location.client.email}`;
+                    clientId.value = location.client.id;
+                    
+                    // Load locations and select the preset one
+                    loadClientLocations(location.client.id).then(() => {
+                        locationSelect.value = presetLocationId.value;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching location details:', error);
+            });
+    }
 });
 </script>
 @endsection 

@@ -79,11 +79,12 @@ class InvoiceController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         $technicians = User::where('role', 'technician')->where('is_active', true)->get();
+        $locationId = $request->get('location_id');
 
-        return view('invoices.create', compact('technicians'));
+        return view('invoices.create', compact('technicians', 'locationId'));
     }
 
     /**

@@ -7,46 +7,90 @@ use App\Models\Client;
 use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         if ($user->role === 'admin' || $user->role === 'technician') {
-            $reports = Report::with(['client', 'location', 'technician'])
-                ->orderBy('service_date', 'desc')
-                ->paginate(15);
+            $query = Report::with(['client', 'location', 'technician']);
+
+            // Search functionality
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas('client', function ($clientQuery) use ($search) {
+                        $clientQuery->where('first_name', 'like', "%{$search}%")
+                                   ->orWhere('last_name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('location', function ($locationQuery) use ($search) {
+                        $locationQuery->where('nickname', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('technician', function ($technicianQuery) use ($search) {
+                        $technicianQuery->where('first_name', 'like', "%{$search}%")
+                                       ->orWhere('last_name', 'like', "%{$search}%");
+                    });
+                });
+            }
+
+            // Filter by date range
+            if ($request->filled('date_from')) {
+                $query->where('service_date', '>=', $request->date_from);
+            }
+            if ($request->filled('date_to')) {
+                $query->where('service_date', '<=', $request->date_to);
+            }
+
+            // Sort functionality
+            $sortBy = $request->get('sort_by', 'date_desc');
+            
+            switch ($sortBy) {
+                case 'date_desc':
+                    $query->orderBy('service_date', 'desc');
+                    break;
+                case 'date_asc':
+                    $query->orderBy('service_date', 'asc');
+                    break;
+                case 'status':
+                    $query->orderBy('created_at', 'desc');
+                    break;
+                default:
+                    $query->orderBy('service_date', 'desc');
+                    break;
+            }
+
+            $reports = $query->paginate(15);
             $clients = \App\Models\Client::orderBy('last_name')->get();
             $locations = \App\Models\Location::orderBy('nickname')->get();
             $technicians = \App\Models\User::where('role', 'technician')->orderBy('last_name')->get();
-        } elseif ($user->role === 'client') {
-            $locationIds = $user->locations()->pluck('id');
-            $reports = Report::with(['client', 'location', 'technician'])
-                ->whereIn('location_id', $locationIds)
-                ->orderBy('service_date', 'desc')
-                ->paginate(15);
-            $clients = collect([$user->client ?? null])->filter();
-            $locations = $user->locations;
-            $technicians = collect();
+            
+            // Calculate stats
+            $stats = [
+                'total' => Report::count(),
+                'this_month' => Report::where('service_date', '>=', Carbon::now()->startOfMonth())->count(),
+                'this_week' => Report::where('service_date', '>=', Carbon::now()->startOfWeek())->count(),
+            ];
         } else {
             abort(403);
         }
-        return view('reports.index', compact('reports', 'clients', 'locations', 'technicians'));
+        return view('reports.index', compact('reports', 'clients', 'locations', 'technicians', 'stats'));
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         $user = Auth::user();
         if ($user->role === 'admin' || $user->role === 'technician') {
             $technicians = \App\Models\User::where('role', 'technician')->orderBy('last_name')->get();
-            return view('reports.create', compact('technicians'));
+            $locationId = $request->get('location_id');
+            return view('reports.create', compact('technicians', 'locationId'));
         }
         abort(403);
     }
@@ -138,16 +182,8 @@ class ReportController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        $report = Report::with(['client', 'location', 'technician'])->findOrFail($id);
         if ($user->role === 'admin' || $user->role === 'technician') {
-            // Can view any report
-            return view('reports.show', compact('report'));
-        } elseif ($user->role === 'client') {
-            // Can only view reports for their locations
-            $locationIds = $user->locations()->pluck('id');
-            if (!in_array($report->location_id, $locationIds->toArray())) {
-                abort(403);
-            }
+            $report = Report::with(['client', 'location', 'technician'])->findOrFail($id);
             return view('reports.show', compact('report'));
         } else {
             abort(403);

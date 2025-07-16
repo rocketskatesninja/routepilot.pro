@@ -5,10 +5,22 @@
     <!-- Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-base-content">{{ $location->nickname ?? $location->name }}</h1>
+                            <h1 class="text-3xl font-bold text-base-content">{{ $location->nickname ?? 'Location' }}</h1>
             <p class="text-base-content/70 mt-2">{{ $location->client->full_name }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
+            <a href="{{ route('reports.create', ['location_id' => $location->id]) }}" class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                New Report
+            </a>
+            <a href="{{ route('invoices.create', ['location_id' => $location->id]) }}" class="btn btn-secondary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                </svg>
+                New Invoice
+            </a>
             <a href="{{ route('locations.edit', $location) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
