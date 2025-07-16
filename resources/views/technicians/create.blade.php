@@ -192,31 +192,6 @@
                             <input type="password" name="password_confirmation" id="password_confirmation" 
                                    class="input input-bordered w-full" required>
                         </div>
-
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-base-content mb-2">
-                                Status <span class="text-error">*</span>
-                            </label>
-                            <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
-                                <option value="">Select Status</option>
-                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                                <option value="pending" {{ old('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                            </select>
-                            @error('status')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="form-control">
-                            <label class="label cursor-pointer">
-                                <span class="label-text">Active Account</span>
-                                <input type="checkbox" name="is_active" value="1" 
-                                       class="checkbox checkbox-primary" {{ old('is_active', true) ? 'checked' : '' }}>
-                            </label>
-                        </div>
                     </div>
                 </div>
             </div>

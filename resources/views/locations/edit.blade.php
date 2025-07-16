@@ -130,7 +130,7 @@
                             <div class="mb-2">
                                 <p class="text-sm text-base-content/70">Current photos:</p>
                                 <div class="flex flex-wrap gap-2 mt-2">
-                                    @foreach(json_decode($location->photos) as $photo)
+                                    @foreach($location->photos as $photo)
                                         <img src="{{ Storage::url($photo) }}" alt="Location photo" class="w-16 h-16 rounded object-cover">
                                     @endforeach
                                 </div>
@@ -146,7 +146,7 @@
                     </div>
                 </div>
 
-                <!-- Pool Details -->
+                <!-- Pool Details and Requested Services (right column) -->
                 <div class="space-y-6">
                     <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
                         Pool Details
@@ -232,22 +232,6 @@
                         </div>
 
                         <div>
-                            <label for="installation" class="block text-sm font-medium text-base-content mb-2">
-                                Installation Type <span class="text-error">*</span>
-                            </label>
-                            <select name="installation" id="installation" class="select select-bordered w-full @error('installation') select-error @enderror" required>
-                                <option value="">Select Installation Type</option>
-                                <option value="inground" {{ old('installation', $location->installation) == 'inground' ? 'selected' : '' }}>In-Ground</option>
-                                <option value="above" {{ old('installation', $location->installation) == 'above' ? 'selected' : '' }}>Above Ground</option>
-                            </select>
-                            @error('installation')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
                             <label for="gallons" class="block text-sm font-medium text-base-content mb-2">
                                 Pool Size (Gallons)
                             </label>
@@ -257,6 +241,38 @@
                             @error('gallons')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
+                        </div>
+                    </div>
+
+                    <!-- Requested Services -->
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                            Requested Services
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach(['vacuum','brush','skim','clean_skimmer_basket','clean_pump_basket','clean_pool_deck'] as $task)
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
+                                               class="checkbox checkbox-primary" 
+                                               {{ old($task, $location->$task ?? false) ? 'checked' : '' }}>
+                                        <span class="label-text ml-2 capitalize">{{ str_replace('_', ' ', $task) }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <h4 class="text-md font-semibold text-base-content mt-6">Maintenance Tasks</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach(['clean_filter_cartridge','backwash_sand_filter','adjust_water_level','adjust_auto_fill','adjust_pump_timer','adjust_heater','check_cover','check_lights','check_fountain','check_heater'] as $task)
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
+                                               class="checkbox checkbox-primary" 
+                                               {{ old($task, $location->$task ?? false) ? 'checked' : '' }}>
+                                        <span class="label-text ml-2 capitalize">{{ str_replace('_', ' ', $task) }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>
@@ -398,78 +414,6 @@
                     @error('notes')
                         <p class="text-error text-sm mt-1">{{ $message }}</p>
                     @enderror
-                </div>
-            </div>
-
-            <!-- Services -->
-            <div class="mt-8 space-y-6">
-                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                    Services
-                </h3>
-                
-                <!-- Cleaning Tasks -->
-                <div class="space-y-4">
-                    <h4 class="text-md font-medium text-base-content">Cleaning Tasks</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach(['vacuumed'=>'Vacuum','brushed'=>'Brush','skimmed'=>'Skim','cleaned_skimmer_basket'=>'Clean Skimmer Basket','cleaned_pump_basket'=>'Clean Pump Basket','cleaned_pool_deck'=>'Clean Pool Deck'] as $task => $label)
-                            <div class="form-control">
-                                <label class="label cursor-pointer">
-                                    <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
-                                           class="checkbox checkbox-primary" 
-                                           {{ old($task, $location->$task) ? 'checked' : '' }}>
-                                    <span class="label-text ml-2">{{ $label }}</span>
-                                </label>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Maintenance Tasks -->
-                <div class="space-y-4">
-                    <h4 class="text-md font-medium text-base-content">Maintenance Tasks</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach(['cleaned_filter_cartridge'=>'Clean Filter Cartridge','backwashed_sand_filter'=>'Backwash Sand Filter','adjusted_water_level'=>'Adjust Water Level','adjusted_auto_fill'=>'Adjust Auto Fill','adjusted_pump_timer'=>'Adjust Pump Timer','adjusted_heater'=>'Adjust Heater','checked_cover'=>'Check Cover','checked_lights'=>'Check Lights','checked_fountain'=>'Check Fountain','checked_heater'=>'Check Heater'] as $task => $label)
-                            <div class="form-control">
-                                <label class="label cursor-pointer">
-                                    <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
-                                           class="checkbox checkbox-primary" 
-                                           {{ old($task, $location->$task) ? 'checked' : '' }}>
-                                    <span class="label-text ml-2">{{ $label }}</span>
-                                </label>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <!-- Other Services -->
-                <div class="space-y-4">
-                    <h4 class="text-md font-medium text-base-content">Additional Services & Costs</h4>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div>
-                            <label for="other_services" class="block text-sm font-medium text-base-content mb-2">
-                                Other Services
-                            </label>
-                            <input type="text" name="other_services" id="other_services" 
-                                   value="{{ old('other_services', is_array($location->other_services) ? implode(', ', $location->other_services) : $location->other_services) }}" 
-                                   placeholder="e.g. Filter Clean, Equipment Repair" 
-                                   class="input input-bordered w-full @error('other_services') input-error @enderror">
-                            @error('other_services')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        
-                        <div>
-                            <label for="other_services_cost" class="block text-sm font-medium text-base-content mb-2">
-                                Other Services Cost
-                            </label>
-                            <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
-                                   value="{{ old('other_services_cost', $location->other_services_cost) }}" 
-                                   class="input input-bordered w-full @error('other_services_cost') input-error @enderror">
-                            @error('other_services_cost')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
                 </div>
             </div>
 

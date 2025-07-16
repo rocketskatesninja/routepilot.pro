@@ -126,7 +126,7 @@
                     </div>
                 </div>
 
-                <!-- Pool Details -->
+                <!-- Pool Details and Requested Services (right column) -->
                 <div class="space-y-6">
                     <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
                         Pool Details
@@ -239,231 +239,264 @@
                             @enderror
                         </div>
                     </div>
+
+                    <!-- Requested Services -->
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                            Requested Services
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach(['vacuum','brush','skim','clean_skimmer_basket','clean_pump_basket','clean_pool_deck'] as $task)
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
+                                               class="checkbox checkbox-primary" 
+                                               {{ old($task) ? 'checked' : '' }}>
+                                        <span class="label-text ml-2 capitalize">{{ str_replace('_', ' ', $task) }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <h4 class="text-md font-semibold text-base-content mt-6">Maintenance Tasks</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach(['clean_filter_cartridge','backwash_sand_filter','adjust_water_level','adjust_auto_fill','adjust_pump_timer','adjust_heater','check_cover','check_lights','check_fountain','check_heater'] as $task)
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
+                                               class="checkbox checkbox-primary" 
+                                               {{ old($task) ? 'checked' : '' }}>
+                                        <span class="label-text ml-2 capitalize">{{ str_replace('_', ' ', $task) }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Service Information -->
-            <div class="mt-8 space-y-6">
-                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                    Service Information
-                </h3>
-                
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div>
-                            <label for="service_frequency" class="block text-sm font-medium text-base-content mb-2">
-                                Service Frequency <span class="text-error">*</span>
-                            </label>
-                            <select name="service_frequency" id="service_frequency" class="select select-bordered w-full @error('service_frequency') select-error @enderror" required>
-                                <option value="">Select Frequency</option>
-                                <option value="weekly" {{ old('service_frequency') == 'weekly' ? 'selected' : '' }}>Weekly</option>
-                                <option value="bi-weekly" {{ old('service_frequency') == 'bi-weekly' ? 'selected' : '' }}>Bi-Weekly</option>
-                                <option value="monthly" {{ old('service_frequency') == 'monthly' ? 'selected' : '' }}>Monthly</option>
-                                <option value="as-needed" {{ old('service_frequency') == 'as-needed' ? 'selected' : '' }}>As Needed</option>
-                            </select>
-                            @error('service_frequency')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="service_day_1" class="block text-sm font-medium text-base-content mb-2">
-                                Primary Service Day
-                            </label>
-                            <select name="service_day_1" id="service_day_1" class="select select-bordered w-full @error('service_day_1') select-error @enderror">
-                                <option value="">Select Day</option>
-                                <option value="monday" {{ old('service_day_1') == 'monday' ? 'selected' : '' }}>Monday</option>
-                                <option value="tuesday" {{ old('service_day_1') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
-                                <option value="wednesday" {{ old('service_day_1') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
-                                <option value="thursday" {{ old('service_day_1') == 'thursday' ? 'selected' : '' }}>Thursday</option>
-                                <option value="friday" {{ old('service_day_1') == 'friday' ? 'selected' : '' }}>Friday</option>
-                                <option value="saturday" {{ old('service_day_1') == 'saturday' ? 'selected' : '' }}>Saturday</option>
-                                <option value="sunday" {{ old('service_day_1') == 'sunday' ? 'selected' : '' }}>Sunday</option>
-                            </select>
-                            @error('service_day_1')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <div>
-                            <label for="service_day_2" class="block text-sm font-medium text-base-content mb-2">
-                                Secondary Service Day
-                            </label>
-                            <select name="service_day_2" id="service_day_2" class="select select-bordered w-full @error('service_day_2') select-error @enderror">
-                                <option value="">Select Day (Optional)</option>
-                                <option value="monday" {{ old('service_day_2') == 'monday' ? 'selected' : '' }}>Monday</option>
-                                <option value="tuesday" {{ old('service_day_2') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
-                                <option value="wednesday" {{ old('service_day_2') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
-                                <option value="thursday" {{ old('service_day_2') == 'thursday' ? 'selected' : '' }}>Thursday</option>
-                                <option value="friday" {{ old('service_day_2') == 'friday' ? 'selected' : '' }}>Friday</option>
-                                <option value="saturday" {{ old('service_day_2') == 'saturday' ? 'selected' : '' }}>Saturday</option>
-                                <option value="sunday" {{ old('service_day_2') == 'sunday' ? 'selected' : '' }}>Sunday</option>
-                            </select>
-                            @error('service_day_2')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="flex items-end space-x-4">
-                            <div class="flex-1">
-                                <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
-                                    Rate per Visit
+                <!-- Service Information -->
+                <div class="mt-8 space-y-6">
+                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                        Service Information
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="service_frequency" class="block text-sm font-medium text-base-content mb-2">
+                                    Service Frequency <span class="text-error">*</span>
                                 </label>
-                                <input type="number" name="rate_per_visit" id="rate_per_visit" value="{{ old('rate_per_visit') }}" 
-                                       class="input input-bordered w-full @error('rate_per_visit') input-error @enderror"
-                                       placeholder="e.g., 75.00" step="0.01" min="0">
-                                @error('rate_per_visit')
+                                <select name="service_frequency" id="service_frequency" class="select select-bordered w-full @error('service_frequency') select-error @enderror" required>
+                                    <option value="">Select Frequency</option>
+                                    <option value="weekly" {{ old('service_frequency') == 'weekly' ? 'selected' : '' }}>Weekly</option>
+                                    <option value="bi-weekly" {{ old('service_frequency') == 'bi-weekly' ? 'selected' : '' }}>Bi-Weekly</option>
+                                    <option value="monthly" {{ old('service_frequency') == 'monthly' ? 'selected' : '' }}>Monthly</option>
+                                    <option value="as-needed" {{ old('service_frequency') == 'as-needed' ? 'selected' : '' }}>As Needed</option>
+                                </select>
+                                @error('service_frequency')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
 
-                            <div class="form-control mt-6">
-                                <label class="label cursor-pointer">
-                                    <span class="label-text">Chemicals Included</span>
-                                    <input type="checkbox" name="chemicals_included" value="1" 
-                                           class="checkbox checkbox-primary" {{ old('chemicals_included', true) ? 'checked' : '' }}>
+                            <div>
+                                <label for="service_day_1" class="block text-sm font-medium text-base-content mb-2">
+                                    Primary Service Day
                                 </label>
+                                <select name="service_day_1" id="service_day_1" class="select select-bordered w-full @error('service_day_1') select-error @enderror">
+                                    <option value="">Select Day</option>
+                                    <option value="monday" {{ old('service_day_1') == 'monday' ? 'selected' : '' }}>Monday</option>
+                                    <option value="tuesday" {{ old('service_day_1') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
+                                    <option value="wednesday" {{ old('service_day_1') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
+                                    <option value="thursday" {{ old('service_day_1') == 'thursday' ? 'selected' : '' }}>Thursday</option>
+                                    <option value="friday" {{ old('service_day_1') == 'friday' ? 'selected' : '' }}>Friday</option>
+                                    <option value="saturday" {{ old('service_day_1') == 'saturday' ? 'selected' : '' }}>Saturday</option>
+                                    <option value="sunday" {{ old('service_day_1') == 'sunday' ? 'selected' : '' }}>Sunday</option>
+                                </select>
+                                @error('service_day_1')
+                                    <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="service_day_2" class="block text-sm font-medium text-base-content mb-2">
+                                    Secondary Service Day
+                                </label>
+                                <select name="service_day_2" id="service_day_2" class="select select-bordered w-full @error('service_day_2') select-error @enderror">
+                                    <option value="">Select Day (Optional)</option>
+                                    <option value="monday" {{ old('service_day_2') == 'monday' ? 'selected' : '' }}>Monday</option>
+                                    <option value="tuesday" {{ old('service_day_2') == 'tuesday' ? 'selected' : '' }}>Tuesday</option>
+                                    <option value="wednesday" {{ old('service_day_2') == 'wednesday' ? 'selected' : '' }}>Wednesday</option>
+                                    <option value="thursday" {{ old('service_day_2') == 'thursday' ? 'selected' : '' }}>Thursday</option>
+                                    <option value="friday" {{ old('service_day_2') == 'friday' ? 'selected' : '' }}>Friday</option>
+                                    <option value="saturday" {{ old('service_day_2') == 'saturday' ? 'selected' : '' }}>Saturday</option>
+                                    <option value="sunday" {{ old('service_day_2') == 'sunday' ? 'selected' : '' }}>Sunday</option>
+                                </select>
+                                @error('service_day_2')
+                                    <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
 
-                        <div>
-                            <label for="assigned_technician_id" class="block text-sm font-medium text-base-content mb-2">
-                                Assigned Technician
-                            </label>
-                            <select name="assigned_technician_id" id="assigned_technician_id" class="select select-bordered w-full @error('assigned_technician_id') select-error @enderror">
-                                <option value="">Select Technician</option>
-                                @foreach($technicians as $technician)
-                                    <option value="{{ $technician->id }}" {{ old('assigned_technician_id') == $technician->id ? 'selected' : '' }}>
-                                        {{ $technician->full_name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('assigned_technician_id')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-end space-x-4">
+                                <div class="flex-1">
+                                    <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
+                                        Rate per Visit
+                                    </label>
+                                    <input type="number" name="rate_per_visit" id="rate_per_visit" value="{{ old('rate_per_visit') }}" 
+                                           class="input input-bordered w-full @error('rate_per_visit') input-error @enderror"
+                                           placeholder="e.g., 75.00" step="0.01" min="0">
+                                    @error('rate_per_visit')
+                                        <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                    @enderror
+                                </div>
 
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-base-content mb-2">
-                                Status <span class="text-error">*</span>
-                            </label>
-                            <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
-                                <option value="">Select Status</option>
-                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                            @error('status')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notes -->
-            <div class="mt-8 space-y-6">
-                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                    Notes
-                </h3>
-                
-                <div>
-                    <label for="notes" class="block text-sm font-medium text-base-content mb-2">
-                        Additional Notes
-                    </label>
-                    <textarea name="notes" id="notes" rows="4" 
-                              class="textarea textarea-bordered w-full @error('notes') textarea-error @enderror"
-                              placeholder="Any additional notes about this location...">{{ old('notes') }}</textarea>
-                    @error('notes')
-                        <p class="text-error text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-            </div>
-
-            <!-- Services -->
-            <div class="mt-8 space-y-6">
-                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                    Services
-                </h3>
-                
-                <!-- Cleaning Tasks -->
-                <div class="space-y-4">
-                    <h4 class="text-md font-medium text-base-content">Cleaning Tasks</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach(['vacuumed'=>'Vacuum','brushed'=>'Brush','skimmed'=>'Skim','cleaned_skimmer_basket'=>'Clean Skimmer Basket','cleaned_pump_basket'=>'Clean Pump Basket','cleaned_pool_deck'=>'Clean Pool Deck'] as $task => $label)
-                            <div class="form-control">
-                                <label class="label cursor-pointer">
-                                    <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
-                                           class="checkbox checkbox-primary" 
-                                           {{ old($task) ? 'checked' : '' }}>
-                                    <span class="label-text ml-2">{{ $label }}</span>
-                                </label>
+                                <div class="form-control mt-6">
+                                    <label class="label cursor-pointer">
+                                        <span class="label-text">Chemicals Included</span>
+                                        <input type="checkbox" name="chemicals_included" value="1" 
+                                               class="checkbox checkbox-primary" {{ old('chemicals_included', true) ? 'checked' : '' }}>
+                                    </label>
+                                </div>
                             </div>
-                        @endforeach
-                    </div>
-                </div>
 
-                <!-- Maintenance Tasks -->
-                <div class="space-y-4">
-                    <h4 class="text-md font-medium text-base-content">Maintenance Tasks</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        @foreach(['cleaned_filter_cartridge'=>'Clean Filter Cartridge','backwashed_sand_filter'=>'Backwash Sand Filter','adjusted_water_level'=>'Adjust Water Level','adjusted_auto_fill'=>'Adjust Auto Fill','adjusted_pump_timer'=>'Adjust Pump Timer','adjusted_heater'=>'Adjust Heater','checked_cover'=>'Check Cover','checked_lights'=>'Check Lights','checked_fountain'=>'Check Fountain','checked_heater'=>'Check Heater'] as $task => $label)
-                            <div class="form-control">
-                                <label class="label cursor-pointer">
-                                    <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
-                                           class="checkbox checkbox-primary" 
-                                           {{ old($task) ? 'checked' : '' }}>
-                                    <span class="label-text ml-2">{{ $label }}</span>
+                            <div>
+                                <label for="assigned_technician_id" class="block text-sm font-medium text-base-content mb-2">
+                                    Assigned Technician
                                 </label>
+                                <select name="assigned_technician_id" id="assigned_technician_id" class="select select-bordered w-full @error('assigned_technician_id') select-error @enderror">
+                                    <option value="">Select Technician</option>
+                                    @foreach($technicians as $technician)
+                                        <option value="{{ $technician->id }}" {{ old('assigned_technician_id') == $technician->id ? 'selected' : '' }}>
+                                            {{ $technician->full_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('assigned_technician_id')
+                                    <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                @enderror
                             </div>
-                        @endforeach
-                    </div>
-                </div>
 
-                <!-- Other Services -->
-                <div class="space-y-4">
-                    <h4 class="text-md font-medium text-base-content">Additional Services & Costs</h4>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div>
-                            <label for="other_services" class="block text-sm font-medium text-base-content mb-2">
-                                Other Services
-                            </label>
-                            <input type="text" name="other_services" id="other_services" 
-                                   value="{{ old('other_services') }}" 
-                                   placeholder="e.g. Filter Clean, Equipment Repair" 
-                                   class="input input-bordered w-full @error('other_services') input-error @enderror">
-                            @error('other_services')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        
-                        <div>
-                            <label for="other_services_cost" class="block text-sm font-medium text-base-content mb-2">
-                                Other Services Cost
-                            </label>
-                            <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
-                                   value="{{ old('other_services_cost') }}" 
-                                   class="input input-bordered w-full @error('other_services_cost') input-error @enderror">
-                            @error('other_services_cost')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
+                            <div>
+                                <label for="status" class="block text-sm font-medium text-base-content mb-2">
+                                    Status <span class="text-error">*</span>
+                                </label>
+                                <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
+                                    <option value="">Select Status</option>
+                                    <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                                    <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                </select>
+                                @error('status')
+                                    <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Form Actions -->
-            <div class="mt-8 flex justify-end space-x-4">
-                <a href="{{ route('locations.index') }}" class="btn btn-outline">Cancel</a>
-                <button type="submit" class="btn btn-primary">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                    </svg>
-                    Create Location
-                </button>
+                <!-- Notes -->
+                <div class="mt-8 space-y-6">
+                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                        Notes
+                    </h3>
+                    
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-base-content mb-2">
+                            Additional Notes
+                        </label>
+                        <textarea name="notes" id="notes" rows="4" 
+                                  class="textarea textarea-bordered w-full @error('notes') textarea-error @enderror"
+                                  placeholder="Any additional notes about this location...">{{ old('notes') }}</textarea>
+                        @error('notes')
+                            <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <!-- Services -->
+                <div class="mt-8 space-y-6">
+                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                        Services
+                    </h3>
+                    
+                    <!-- Cleaning Tasks -->
+                    <div class="space-y-4">
+                        <h4 class="text-md font-medium text-base-content">Cleaning Tasks</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach(['vacuumed'=>'Vacuum','brushed'=>'Brush','skimmed'=>'Skim','cleaned_skimmer_basket'=>'Clean Skimmer Basket','cleaned_pump_basket'=>'Clean Pump Basket','cleaned_pool_deck'=>'Clean Pool Deck'] as $task => $label)
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
+                                               class="checkbox checkbox-primary" 
+                                               {{ old($task) ? 'checked' : '' }}>
+                                        <span class="label-text ml-2">{{ $label }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Maintenance Tasks -->
+                    <div class="space-y-4">
+                        <h4 class="text-md font-medium text-base-content">Maintenance Tasks</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach(['cleaned_filter_cartridge'=>'Clean Filter Cartridge','backwashed_sand_filter'=>'Backwash Sand Filter','adjusted_water_level'=>'Adjust Water Level','adjusted_auto_fill'=>'Adjust Auto Fill','adjusted_pump_timer'=>'Adjust Pump Timer','adjusted_heater'=>'Adjust Heater','checked_cover'=>'Check Cover','checked_lights'=>'Check Lights','checked_fountain'=>'Check Fountain','checked_heater'=>'Check Heater'] as $task => $label)
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <input type="checkbox" name="{{ $task }}" id="{{ $task }}" 
+                                               class="checkbox checkbox-primary" 
+                                               {{ old($task) ? 'checked' : '' }}>
+                                        <span class="label-text ml-2">{{ $label }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Other Services -->
+                    <div class="space-y-4">
+                        <h4 class="text-md font-medium text-base-content">Additional Services & Costs</h4>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <label for="other_services" class="block text-sm font-medium text-base-content mb-2">
+                                    Other Services
+                                </label>
+                                <input type="text" name="other_services" id="other_services" 
+                                       value="{{ old('other_services') }}" 
+                                       placeholder="e.g. Filter Clean, Equipment Repair" 
+                                       class="input input-bordered w-full @error('other_services') input-error @enderror">
+                                @error('other_services')
+                                    <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            
+                            <div>
+                                <label for="other_services_cost" class="block text-sm font-medium text-base-content mb-2">
+                                    Other Services Cost
+                                </label>
+                                <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
+                                       value="{{ old('other_services_cost') }}" 
+                                       class="input input-bordered w-full @error('other_services_cost') input-error @enderror">
+                                @error('other_services_cost')
+                                    <p class="text-error text-sm mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="mt-8 flex justify-end space-x-4">
+                    <a href="{{ route('locations.index') }}" class="btn btn-outline">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create Location
+                    </button>
+                </div>
             </div>
         </form>
     </div>

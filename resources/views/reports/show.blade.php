@@ -282,7 +282,7 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     @foreach($report->photos as $photo)
                         <div class="aspect-square rounded-lg overflow-hidden">
-                            <img src="{{ $photo }}" alt="Report Photo" class="w-full h-full object-cover">
+                            <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-full h-full object-cover">
                         </div>
                     @endforeach
                 </div>

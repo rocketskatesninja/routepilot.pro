@@ -28,22 +28,48 @@
         <!-- Location Profile -->
         <div class="lg:col-span-1">
             <div class="bg-base-100 shadow-xl rounded-lg p-6">
-                <div class="text-center mb-6">
-                    <div class="avatar mb-4">
-                        <div class="mask mask-squircle w-24 h-24">
-                            @if($location->photos && count($location->photos) > 0)
-                                <img src="{{ Storage::url($location->photos[0]) }}" alt="{{ $location->nickname ?? $location->name }}">
-                            @else
-                                <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center text-3xl font-bold">
-                                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                    </svg>
+                <!-- Location Photos Slideshow -->
+                <div class="mb-6">
+                    @if($location->photos && count($location->photos) > 0)
+                        <div class="carousel w-full h-80 rounded-lg overflow-hidden">
+                            @foreach($location->photos as $index => $photo)
+                                <div id="slide-{{ $index }}" class="carousel-item relative w-full">
+                                    <img src="{{ Storage::url($photo) }}" alt="Location Photo {{ $index + 1 }}" class="w-full h-full object-cover">
+                                    @if(count($location->photos) > 1)
+                                        <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
+                                            <a href="#slide-{{ $index == 0 ? count($location->photos) - 1 : $index - 1 }}" class="btn btn-circle btn-sm bg-base-100/50 hover:bg-base-100/80">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                                </svg>
+                                            </a> 
+                                            <a href="#slide-{{ $index == count($location->photos) - 1 ? 0 : $index + 1 }}" class="btn btn-circle btn-sm bg-base-100/50 hover:bg-base-100/80">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                                </svg>
+                                            </a>
+                                        </div>
+                                    @endif
                                 </div>
-                            @endif
+                            @endforeach
                         </div>
-                    </div>
-                    <h2 class="text-xl font-semibold text-base-content">{{ $location->nickname ?? $location->name }}</h2>
-                    <p class="text-base-content/70">{{ ucfirst($location->access) }}</p>
+                        @if(count($location->photos) > 1)
+                            <div class="flex justify-center w-full py-2 gap-2">
+                                @foreach($location->photos as $index => $photo)
+                                    <a href="#slide-{{ $index }}" class="btn btn-xs">{{ $index + 1 }}</a>
+                                @endforeach
+                            </div>
+                        @endif
+                    @else
+                        <!-- Fallback Icon when no photos -->
+                        <div class="w-full h-80 bg-base-200 rounded-lg flex items-center justify-center">
+                            <div class="text-center">
+                                <svg class="w-24 h-24 mx-auto text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                <p class="text-base-content/50 mt-2">No photos available</p>
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Status Badges -->
@@ -109,6 +135,10 @@
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Installation</span>
                             <div class="badge badge-outline">{{ ucfirst($location->installation) }}</div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Access Type</span>
+                            <div class="badge badge-outline">{{ ucfirst($location->access) }}</div>
                         </div>
                     </div>
                 </div>

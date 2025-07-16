@@ -248,13 +248,13 @@
                 </h3>
                 
                 <div>
-                    <label for="notes" class="block text-sm font-medium text-base-content mb-2">
+                    <label for="notes_by_admin" class="block text-sm font-medium text-base-content mb-2">
                         Additional Notes
                     </label>
-                    <textarea name="notes" id="notes" rows="4" 
-                              class="textarea textarea-bordered w-full @error('notes') textarea-error @enderror"
-                              placeholder="Any additional notes about this client...">{{ old('notes') }}</textarea>
-                    @error('notes')
+                    <textarea name="notes_by_admin" id="notes_by_admin" rows="4" 
+                              class="textarea textarea-bordered w-full @error('notes_by_admin') textarea-error @enderror"
+                              placeholder="Any additional notes about this client...">{{ old('notes_by_admin') }}</textarea>
+                    @error('notes_by_admin')
                         <p class="text-error text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>

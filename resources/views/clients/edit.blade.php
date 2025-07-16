@@ -269,13 +269,13 @@
                 </h3>
                 
                 <div>
-                    <label for="notes" class="block text-sm font-medium text-base-content mb-2">
+                    <label for="notes_by_admin" class="block text-sm font-medium text-base-content mb-2">
                         Additional Notes
                     </label>
-                    <textarea name="notes" id="notes" rows="4"
-                              class="textarea textarea-bordered w-full @error('notes') textarea-error @enderror"
-                              placeholder="Any additional notes about this client...">{{ old('notes', $client->notes) }}</textarea>
-                    @error('notes')
+                    <textarea name="notes_by_admin" id="notes_by_admin" rows="4"
+                              class="textarea textarea-bordered w-full @error('notes_by_admin') textarea-error @enderror"
+                              placeholder="Any additional notes about this client...">{{ old('notes_by_admin', $client->notes_by_admin) }}</textarea>
+                    @error('notes_by_admin')
                         <p class="text-error text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -286,28 +286,30 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="mt-8 flex justify-between">
-                <form action="{{ route('clients.destroy', $client) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this client? This action cannot be undone.')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white border-red-600">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Delete Client
-                    </button>
-                </form>
-                <div class="flex space-x-4">
-                    <a href="{{ route('clients.index') }}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        Update Client
-                    </button>
-                </div>
+            <div class="mt-8 flex justify-end space-x-4">
+                <a href="{{ route('clients.index') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Update Client
+                </button>
             </div>
         </form>
     </div>
+
+    <!-- Hidden delete form -->
+    <form id="deleteForm" action="{{ route('clients.destroy', $client) }}" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
+
+    <script>
+        function deleteClient() {
+            if (confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
+                document.getElementById('deleteForm').submit();
+            }
+        }
+    </script>
 </div>
 @endsection 

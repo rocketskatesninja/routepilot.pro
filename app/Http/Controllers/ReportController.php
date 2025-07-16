@@ -103,11 +103,24 @@ class ReportController extends Controller
             'notes_to_client' => 'nullable|string',
             'notes_to_admin' => 'nullable|string',
             'photos' => 'nullable|array',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
         $validated['technician_id'] = $user->id;
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
-        $validated['photos'] = $request->input('photos', []);
+        
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            $photoPaths = [];
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('reports/photos', 'public');
+                $photoPaths[] = $path;
+            }
+            $validated['photos'] = $photoPaths;
+        } else {
+            $validated['photos'] = [];
+        }
+        
         // Checkbox booleans
         foreach ([
             'vacuumed','brushed','skimmed','cleaned_skimmer_basket','cleaned_pump_basket','cleaned_pool_deck',
@@ -210,11 +223,27 @@ class ReportController extends Controller
             'notes_to_client' => 'nullable|string',
             'notes_to_admin' => 'nullable|string',
             'photos' => 'nullable|array',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
-        $validated['photos'] = $request->input('photos', []);
+        
+        // Handle photo uploads
+        if ($request->hasFile('photos')) {
+            // Delete old photos from storage
+            if ($report->photos) {
+                foreach ($report->photos as $oldPhoto) {
+                    \Storage::disk('public')->delete($oldPhoto);
+                }
+            }
+            $photoPaths = [];
+            foreach ($request->file('photos') as $photo) {
+                $path = $photo->store('reports/photos', 'public');
+                $photoPaths[] = $path;
+            }
+            $validated['photos'] = $photoPaths;
+        }
         
         // Checkbox booleans
         foreach ([
@@ -233,7 +262,21 @@ class ReportController extends Controller
      */
     public function destroy($id)
     {
-        // Optional: Implement if you want technicians to delete reports
-        abort(404);
+        $user = Auth::user();
+        if (!($user->role === 'admin' || $user->role === 'technician')) {
+            abort(403);
+        }
+
+        $report = Report::findOrFail($id);
+        
+        // Delete photos from storage
+        if ($report->photos) {
+            foreach ($report->photos as $photo) {
+                \Storage::disk('public')->delete($photo);
+            }
+        }
+        
+        $report->delete();
+        return redirect()->route('reports.index')->with('success', 'Report deleted successfully.');
     }
 }

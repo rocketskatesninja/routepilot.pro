@@ -73,7 +73,6 @@ class TechnicianController extends Controller
             'notes_by_admin' => 'nullable|string',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'password' => 'required|string|min:8|confirmed',
-            'is_active' => 'boolean',
         ]);
 
         // Handle profile photo upload
@@ -85,7 +84,6 @@ class TechnicianController extends Controller
         // Set default values
         $validated['role'] = 'technician';
         $validated['password'] = Hash::make($validated['password']);
-        $validated['is_active'] = $request->has('is_active');
 
         User::create($validated);
 
@@ -150,7 +148,6 @@ class TechnicianController extends Controller
             'notes_by_admin' => 'nullable|string',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'password' => 'nullable|string|min:8|confirmed',
-            'is_active' => 'boolean',
         ]);
 
         // Handle profile photo upload
@@ -169,8 +166,6 @@ class TechnicianController extends Controller
         } else {
             unset($validated['password']);
         }
-
-        $validated['is_active'] = $request->has('is_active');
 
         $technician->update($validated);
 
