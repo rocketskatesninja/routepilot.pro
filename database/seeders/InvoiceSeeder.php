@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Location;
 use App\Models\User;
 use Carbon\Carbon;
+use Faker\Factory as Faker;
 
 class InvoiceSeeder extends Seeder
 {
@@ -26,154 +27,171 @@ class InvoiceSeeder extends Seeder
             return;
         }
 
-        $invoiceData = [
-            [
-                'client_id' => $clients->first()->id,
-                'location_id' => $locations->first()->id,
-                'technician_id' => $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(30),
-                'due_date' => Carbon::now()->subDays(15),
-                'rate_per_visit' => 75.00,
-                'chemicals_cost' => 25.00,
-                'chemicals_included' => true,
-                'extras_cost' => 0.00,
-                'total_amount' => 100.00,
-                'balance' => 0.00,
-                'status' => 'paid',
-                'notes' => 'Regular weekly pool maintenance service. Water chemistry balanced, pool cleaned.',
-                'paid_at' => Carbon::now()->subDays(20),
-            ],
-            [
-                'client_id' => $clients->first()->id,
-                'location_id' => $locations->first()->id,
-                'technician_id' => $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(15),
-                'due_date' => Carbon::now()->subDays(5),
-                'rate_per_visit' => 75.00,
-                'chemicals_cost' => 30.00,
-                'chemicals_included' => true,
-                'extras_cost' => 15.00,
-                'total_amount' => 120.00,
-                'balance' => 120.00,
-                'status' => 'overdue',
-                'notes' => 'Weekly service with extra chemical treatment for algae prevention.',
-            ],
-            [
-                'client_id' => $clients->count() > 1 ? $clients[1]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 1 ? $locations[1]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 1 ? $technicians[1]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(10),
-                'due_date' => Carbon::now()->addDays(5),
-                'rate_per_visit' => 85.00,
-                'chemicals_cost' => 0.00,
-                'chemicals_included' => false,
-                'extras_cost' => 0.00,
-                'total_amount' => 85.00,
-                'balance' => 85.00,
-                'status' => 'sent',
-                'notes' => 'Standard pool cleaning service. No chemicals needed this week.',
-            ],
-            [
-                'client_id' => $clients->count() > 2 ? $clients[2]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 2 ? $locations[2]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 2 ? $technicians[2]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(5),
-                'due_date' => Carbon::now()->addDays(10),
-                'rate_per_visit' => 90.00,
-                'chemicals_cost' => 35.00,
-                'chemicals_included' => true,
-                'extras_cost' => 25.00,
-                'total_amount' => 150.00,
-                'balance' => 150.00,
-                'status' => 'sent',
-                'notes' => 'Premium service with extra chemical treatment and equipment inspection.',
-            ],
-            [
-                'client_id' => $clients->count() > 3 ? $clients[3]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 3 ? $locations[3]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 3 ? $technicians[3]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(2),
-                'due_date' => Carbon::now()->addDays(13),
-                'rate_per_visit' => 70.00,
-                'chemicals_cost' => 20.00,
-                'chemicals_included' => true,
-                'extras_cost' => 0.00,
-                'total_amount' => 90.00,
-                'balance' => 90.00,
-                'status' => 'sent',
-                'notes' => 'Regular maintenance service. Pool in good condition.',
-            ],
-            [
-                'client_id' => $clients->count() > 4 ? $clients[4]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 4 ? $locations[4]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 4 ? $technicians[4]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(25),
-                'due_date' => Carbon::now()->subDays(10),
-                'rate_per_visit' => 80.00,
-                'chemicals_cost' => 25.00,
-                'chemicals_included' => true,
-                'extras_cost' => 10.00,
-                'total_amount' => 115.00,
-                'balance' => 0.00,
-                'status' => 'paid',
-                'notes' => 'Weekly service with minor repairs to pool equipment.',
-                'paid_at' => Carbon::now()->subDays(12),
-            ],
-            [
-                'client_id' => $clients->count() > 5 ? $clients[5]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 5 ? $locations[5]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 5 ? $technicians[5]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(20),
-                'due_date' => Carbon::now()->subDays(5),
-                'rate_per_visit' => 75.00,
-                'chemicals_cost' => 0.00,
-                'chemicals_included' => false,
-                'extras_cost' => 0.00,
-                'total_amount' => 75.00,
-                'balance' => 75.00,
-                'status' => 'overdue',
-                'notes' => 'Basic pool cleaning service. No chemicals required.',
-            ],
-            [
-                'client_id' => $clients->count() > 6 ? $clients[6]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 6 ? $locations[6]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 6 ? $technicians[6]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(1),
-                'due_date' => Carbon::now()->addDays(14),
-                'rate_per_visit' => 85.00,
-                'chemicals_cost' => 30.00,
-                'chemicals_included' => true,
-                'extras_cost' => 20.00,
-                'total_amount' => 135.00,
-                'balance' => 135.00,
-                'status' => 'sent',
-                'notes' => 'Comprehensive service including chemical treatment and equipment maintenance.',
-            ],
+        $faker = Faker::create();
+        
+        // Statuses with weighted probabilities
+        $statuses = [
+            'paid' => 0.4,      // 40% paid
+            'sent' => 0.35,     // 35% sent
+            'overdue' => 0.15,  // 15% overdue
+            'draft' => 0.1,     // 10% draft
         ];
 
-        foreach ($invoiceData as $index => $invoice) {
+        // Service types with different rate ranges
+        $serviceTypes = [
+            'basic' => ['min' => 60, 'max' => 80],
+            'standard' => ['min' => 75, 'max' => 95],
+            'premium' => ['min' => 90, 'max' => 120],
+            'deluxe' => ['min' => 110, 'max' => 150],
+        ];
+
+        $this->command->info('Generating 500 invoices...');
+
+        for ($i = 1; $i <= 500; $i++) {
+            // Random selection
+            $client = $clients->random();
+            $location = $locations->random();
+            $technician = $technicians->random();
+            
+            // Random service date (within last 2 years)
+            $serviceDate = Carbon::now()->subDays(rand(1, 730));
+            
+            // Due date (7-30 days after service date)
+            $dueDate = $serviceDate->copy()->addDays(rand(7, 30));
+            
+            // Random service type
+            $serviceType = array_rand($serviceTypes);
+            $ratePerVisit = $faker->randomFloat(2, $serviceTypes[$serviceType]['min'], $serviceTypes[$serviceType]['max']);
+            
+            // Chemicals cost (0-50% of rate)
+            $chemicalsCost = $faker->optional(0.7)->randomFloat(2, 0, $ratePerVisit * 0.5);
+            $chemicalsIncluded = $faker->boolean(70); // 70% chance chemicals are included
+            
+            // Extras cost (0-30% of rate)
+            $extrasCost = $faker->optional(0.4)->randomFloat(2, 0, $ratePerVisit * 0.3);
+            
+            $totalAmount = $ratePerVisit + ($chemicalsCost ?? 0) + ($extrasCost ?? 0);
+            
+            // Determine status with weighted probability
+            $status = $this->getWeightedRandomStatus($statuses);
+            
+            // Balance and paid_at logic
+            $balance = $totalAmount;
+            $paidAt = null;
+            
+            if ($status === 'paid') {
+                $balance = 0;
+                $paidAt = $faker->dateTimeBetween($serviceDate, min($dueDate, Carbon::now()));
+            } elseif ($status === 'overdue') {
+                // Ensure overdue invoices are past due date
+                $dueDate = Carbon::now()->subDays(rand(1, 60));
+            }
+            
             // Generate invoice number
-            $invoiceNumber = 'INV-' . str_pad($index + 1, 6, '0', STR_PAD_LEFT);
+            $invoiceNumber = 'INV-' . str_pad($i, 6, '0', STR_PAD_LEFT);
+            
+            // Generate realistic notes
+            $notes = $this->generateNotes($serviceType, $chemicalsCost, $extrasCost);
             
             Invoice::create([
                 'invoice_number' => $invoiceNumber,
-                'client_id' => $invoice['client_id'],
-                'location_id' => $invoice['location_id'],
-                'technician_id' => $invoice['technician_id'],
-                'service_date' => $invoice['service_date'],
-                'due_date' => $invoice['due_date'],
-                'rate_per_visit' => $invoice['rate_per_visit'],
-                'chemicals_cost' => $invoice['chemicals_cost'],
-                'chemicals_included' => $invoice['chemicals_included'],
-                'extras_cost' => $invoice['extras_cost'],
-                'total_amount' => $invoice['total_amount'],
-                'balance' => $invoice['balance'],
-                'status' => $invoice['status'],
-                'notes' => $invoice['notes'],
-                'paid_at' => $invoice['paid_at'] ?? null,
+                'client_id' => $client->id,
+                'location_id' => $location->id,
+                'technician_id' => $technician->id,
+                'service_date' => $serviceDate,
+                'due_date' => $dueDate,
+                'rate_per_visit' => $ratePerVisit,
+                'chemicals_cost' => $chemicalsCost ?? 0,
+                'chemicals_included' => $chemicalsIncluded,
+                'extras_cost' => $extrasCost ?? 0,
+                'total_amount' => $totalAmount,
+                'balance' => $balance,
+                'status' => $status,
+                'notes' => $notes,
+                'paid_at' => $paidAt,
+                'notification_sent' => $faker->boolean(80), // 80% chance notification was sent
             ]);
+            
+            // Progress indicator every 50 invoices
+            if ($i % 50 === 0) {
+                $this->command->info("Generated {$i} invoices...");
+            }
         }
 
-        $this->command->info('Created ' . count($invoiceData) . ' sample invoices.');
+        $this->command->info('Successfully created 500 invoices.');
+    }
+    
+    /**
+     * Get weighted random status
+     */
+    private function getWeightedRandomStatus($statuses)
+    {
+        $rand = mt_rand() / mt_getrandmax();
+        $cumulative = 0;
+        
+        foreach ($statuses as $status => $weight) {
+            $cumulative += $weight;
+            if ($rand <= $cumulative) {
+                return $status;
+            }
+        }
+        
+        return 'sent'; // fallback
+    }
+    
+    /**
+     * Generate realistic service notes
+     */
+    private function generateNotes($serviceType, $chemicalsCost, $extrasCost)
+    {
+        $notes = [];
+        
+        // Base service notes
+        $baseNotes = [
+            'Pool cleaned and skimmed. Water chemistry balanced.',
+            'Regular weekly maintenance completed. Equipment checked.',
+            'Pool vacuumed and brushed. Chemical levels adjusted.',
+            'Standard cleaning service performed. Water clarity excellent.',
+            'Routine maintenance completed. Pool equipment functioning properly.',
+        ];
+        
+        $notes[] = $baseNotes[array_rand($baseNotes)];
+        
+        // Add chemical notes if applicable
+        if ($chemicalsCost > 0) {
+            $chemicalNotes = [
+                'Additional chlorine treatment applied.',
+                'pH levels corrected with chemical treatment.',
+                'Algae prevention chemicals added.',
+                'Water balance chemicals administered.',
+                'Shock treatment applied for water clarity.',
+            ];
+            $notes[] = $chemicalNotes[array_rand($chemicalNotes)];
+        }
+        
+        // Add extra service notes if applicable
+        if ($extrasCost > 0) {
+            $extraNotes = [
+                'Equipment inspection and minor repairs completed.',
+                'Pool filter cleaned and backwashed.',
+                'Additional equipment maintenance performed.',
+                'Emergency repair work completed.',
+                'Special cleaning treatment applied.',
+            ];
+            $notes[] = $extraNotes[array_rand($extraNotes)];
+        }
+        
+        // Add service type specific notes
+        if ($serviceType === 'premium' || $serviceType === 'deluxe') {
+            $premiumNotes = [
+                'Premium service includes detailed equipment inspection.',
+                'Comprehensive water testing and treatment performed.',
+                'Deluxe service with enhanced cleaning procedures.',
+                'Thorough equipment maintenance and water treatment.',
+            ];
+            $notes[] = $premiumNotes[array_rand($premiumNotes)];
+        }
+        
+        return implode(' ', $notes);
     }
 }

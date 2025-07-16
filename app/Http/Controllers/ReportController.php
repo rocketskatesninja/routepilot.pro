@@ -90,7 +90,18 @@ class ReportController extends Controller
         if ($user->role === 'admin' || $user->role === 'technician') {
             $technicians = \App\Models\User::where('role', 'technician')->orderBy('last_name')->get();
             $locationId = $request->get('location_id');
-            return view('reports.create', compact('technicians', 'locationId'));
+            
+            // If location_id is provided, get the location and client data for auto-population
+            $location = null;
+            $client = null;
+            if ($locationId) {
+                $location = \App\Models\Location::with('client')->find($locationId);
+                if ($location) {
+                    $client = $location->client;
+                }
+            }
+            
+            return view('reports.create', compact('technicians', 'locationId', 'location', 'client'));
         }
         abort(403);
     }
@@ -153,6 +164,11 @@ class ReportController extends Controller
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
         
+        // Handle NULL values for cost fields
+        $validated['chemicals_cost'] = $validated['chemicals_cost'] ?? 0.00;
+        $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0.00;
+        $validated['total_cost'] = $validated['total_cost'] ?? 0.00;
+        
         // Handle photo uploads
         if ($request->hasFile('photos')) {
             $photoPaths = [];
@@ -173,6 +189,13 @@ class ReportController extends Controller
             $validated[$field] = $request->has($field);
         }
         $report = Report::create($validated);
+        
+        // Generate invoice if requested
+        if ($request->has('generate_invoice')) {
+            $invoice = $this->generateInvoiceFromReport($report);
+            $report->update(['invoice_id' => $invoice->id]);
+        }
+        
         return redirect()->route('reports.show', $report)->with('success', 'Report submitted.');
     }
 
@@ -183,7 +206,7 @@ class ReportController extends Controller
     {
         $user = Auth::user();
         if ($user->role === 'admin' || $user->role === 'technician') {
-            $report = Report::with(['client', 'location', 'technician'])->findOrFail($id);
+            $report = Report::with(['client', 'location', 'technician', 'invoice'])->findOrFail($id);
             return view('reports.show', compact('report'));
         } else {
             abort(403);
@@ -265,6 +288,11 @@ class ReportController extends Controller
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
         
+        // Handle NULL values for cost fields
+        $validated['chemicals_cost'] = $validated['chemicals_cost'] ?? 0.00;
+        $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0.00;
+        $validated['total_cost'] = $validated['total_cost'] ?? 0.00;
+        
         // Handle photo uploads
         if ($request->hasFile('photos')) {
             // Delete old photos from storage
@@ -290,6 +318,13 @@ class ReportController extends Controller
         }
 
         $report->update($validated);
+        
+        // Generate invoice if requested and no invoice exists yet
+        if ($request->has('generate_invoice') && !$report->invoice_id) {
+            $invoice = $this->generateInvoiceFromReport($report);
+            $report->update(['invoice_id' => $invoice->id]);
+        }
+        
         return redirect()->route('reports.show', $report)->with('success', 'Report updated successfully.');
     }
 
@@ -314,5 +349,43 @@ class ReportController extends Controller
         
         $report->delete();
         return redirect()->route('reports.index')->with('success', 'Report deleted successfully.');
+    }
+
+    /**
+     * Generate an invoice from a report.
+     */
+    private function generateInvoiceFromReport(Report $report)
+    {
+        // Generate invoice number
+        $lastInvoice = \App\Models\Invoice::orderBy('id', 'desc')->first();
+        $invoiceNumber = $lastInvoice ? $lastInvoice->id + 1 : 1;
+        $formattedInvoiceNumber = 'INV-' . str_pad($invoiceNumber, 6, '0', STR_PAD_LEFT);
+
+        // Calculate total amount
+        $totalAmount = $report->total_cost ?? 0.00;
+
+        // Get rate per visit from location or use 0
+        $ratePerVisit = $report->location->rate_per_visit ?? 0.00;
+
+        // Create the invoice
+        $invoice = \App\Models\Invoice::create([
+            'invoice_number' => $formattedInvoiceNumber,
+            'client_id' => $report->client_id,
+            'location_id' => $report->location_id,
+            'technician_id' => $report->technician_id,
+            'service_date' => $report->service_date,
+            'due_date' => now()->addDays(30), // 30 days from now
+            'rate_per_visit' => $ratePerVisit,
+            'chemicals_cost' => $report->chemicals_cost ?? 0.00,
+            'chemicals_included' => false,
+            'extras_cost' => $report->other_services_cost ?? 0.00,
+            'total_amount' => $totalAmount,
+            'balance' => $totalAmount,
+            'status' => 'draft',
+            'notes' => "Invoice generated from service report #{$report->id}",
+            'notification_sent' => false,
+        ]);
+
+        return $invoice;
     }
 }

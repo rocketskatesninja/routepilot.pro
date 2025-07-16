@@ -28,18 +28,25 @@
         <!-- Client Profile -->
         <div class="lg:col-span-1">
             <div class="bg-base-100 shadow-xl rounded-lg p-6">
-                <div class="text-center mb-6">
-                    <div class="avatar mb-4">
-                        <div class="mask mask-squircle w-24 h-24">
-                            @if($client->profile_photo)
-                                <img src="{{ Storage::url($client->profile_photo) }}" alt="{{ $client->full_name }}">
-                            @else
-                                <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center text-3xl font-bold">
+                <!-- Client Photo -->
+                <div class="mb-6">
+                    @if($client->profile_photo)
+                        <div class="w-full h-80 rounded-lg overflow-hidden">
+                            <img src="{{ Storage::url($client->profile_photo) }}" alt="{{ $client->full_name }}" class="w-full h-full object-cover">
+                        </div>
+                    @else
+                        <div class="w-full h-80 bg-base-200 rounded-lg flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="bg-primary text-primary-content rounded-full w-32 h-32 flex items-center justify-center text-6xl font-bold mb-4">
                                     {{ substr($client->first_name, 0, 1) }}{{ substr($client->last_name, 0, 1) }}
                                 </div>
-                            @endif
+                                <p class="text-base-content/50">No photo available</p>
+                            </div>
                         </div>
-                    </div>
+                    @endif
+                </div>
+
+                <div class="text-center mb-6">
                     <h2 class="text-xl font-semibold text-base-content">{{ $client->full_name }}</h2>
                     <p class="text-base-content/70">{{ $client->role }}</p>
                 </div>
@@ -65,7 +72,7 @@
                             <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
-                            <span class="text-base-content">{{ $client->email }}</span>
+                            <a href="mailto:{{ $client->email }}" class="text-base-content hover:text-primary hover:underline">{{ $client->email }}</a>
                         </div>
                         
                         @if($client->phone)
@@ -73,7 +80,7 @@
                             <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                             </svg>
-                            <span class="text-base-content">{{ $client->phone }}</span>
+                            <a href="tel:{{ $client->phone }}" class="text-base-content hover:text-primary hover:underline">{{ $client->phone }}</a>
                         </div>
                         @endif
                     </div>
@@ -124,6 +131,40 @@
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Service Reports</span>
                             <div class="badge badge-info">{{ ucfirst(str_replace('_', ' ', $client->service_reports)) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add extra space before Billing Information -->
+                <div class="mt-8"></div>
+
+                <!-- Billing Information -->
+                <div class="space-y-4 mb-8">
+                    <h3 class="text-lg font-semibold text-base-content">Billing Information</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Current Balance</span>
+                            <span class="font-semibold">${{ number_format($client->total_balance, 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Last Payment</span>
+                            <span>
+                                @if($client->last_payment_date)
+                                    {{ $client->last_payment_date->format('M j, Y') }}
+                                @else
+                                    <span class="text-base-content/50">Never</span>
+                                @endif
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-base-content/70">Last Invoice Total</span>
+                            <span>
+                                @if($client->last_invoice_total)
+                                    ${{ number_format($client->last_invoice_total, 2) }}
+                                @else
+                                    <span class="text-base-content/50">N/A</span>
+                                @endif
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -289,7 +330,15 @@
                                         <tr>
                                             <td>{{ $report->service_date->format('M j, Y') }}</td>
                                             <td>{{ $report->location->nickname ?: 'Main Location' }}</td>
-                                            <td>{{ $report->technician->full_name }}</td>
+                                            <td>
+                                                @if($report->technician)
+                                                    <a href="{{ route('technicians.show', $report->technician) }}" class="hover:text-primary hover:underline">
+                                                        {{ $report->technician->full_name }}
+                                                    </a>
+                                                @else
+                                                    -
+                                                @endif
+                                            </td>
                                             <td>
                                                 <div class="badge badge-success">Completed</div>
                                             </td>

@@ -8,6 +8,7 @@ use App\Http\Controllers\TechnicianController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return view('welcome');
@@ -32,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/locations/{location}/toggle-favorite', [LocationController::class, 'toggleFavorite'])->name('locations.toggle-favorite');
     Route::get('/locations/{location}/toggle-status', [LocationController::class, 'toggleStatus'])->name('locations.toggle-status');
     Route::get('/locations/export/csv', [LocationController::class, 'export'])->name('locations.export');
+    Route::get('/api/locations/{location}', [LocationController::class, 'showApi'])->name('api.locations.show');
     
     // Technician Management Routes
     Route::resource('technicians', TechnicianController::class);

@@ -6,6 +6,8 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Location;
 use App\Models\Client;
+use App\Models\User;
+use Faker\Factory as Faker;
 
 class LocationSeeder extends Seeder
 {
@@ -14,214 +16,161 @@ class LocationSeeder extends Seeder
      */
     public function run(): void
     {
-        $clients = Client::all();
+        $faker = Faker::create();
+        
+        $clients = Client::where('is_active', true)->get();
+        $technicians = User::where('role', 'technician')->where('is_active', true)->get();
 
         if ($clients->isEmpty()) {
             $this->command->info('No clients found. Please run ClientSeeder first.');
             return;
         }
 
-        $locations = [
-            [
-                'client_id' => $clients->first()->id,
-                'nickname' => 'Main Pool',
-                'street_address' => '123 Main Street',
-                'city' => 'Phoenix',
-                'state' => 'AZ',
-                'zip_code' => '85001',
-                'access' => 'residential',
-                'pool_type' => 'concrete',
-                'water_type' => 'chlorine',
-                'filter_type' => 'Sand Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 25000,
-                'service_frequency' => 'weekly',
-                'service_day_1' => 'Monday',
-                'rate_per_visit' => 85.00,
-                'chemicals_included' => true,
-                'is_favorite' => true,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->first()->id,
-                'nickname' => 'Backyard Oasis',
-                'street_address' => '456 Oak Avenue',
-                'street_address_2' => 'Unit 2B',
-                'city' => 'Scottsdale',
-                'state' => 'AZ',
-                'zip_code' => '85250',
-                'access' => 'residential',
-                'pool_type' => 'fiberglass',
-                'water_type' => 'salt',
-                'filter_type' => 'Cartridge Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 18000,
-                'service_frequency' => 'bi_weekly',
-                'service_day_1' => 'Wednesday',
-                'rate_per_visit' => 75.00,
-                'chemicals_included' => true,
-                'is_favorite' => false,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->skip(1)->first()->id,
-                'nickname' => 'Community Pool',
-                'street_address' => '789 Pine Road',
-                'city' => 'Tempe',
-                'state' => 'AZ',
-                'zip_code' => '85281',
-                'access' => 'commercial',
-                'pool_type' => 'concrete',
-                'water_type' => 'chlorine',
-                'filter_type' => 'DE Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 50000,
-                'service_frequency' => 'semi_weekly',
-                'service_day_1' => 'Monday',
-                'service_day_2' => 'Thursday',
-                'rate_per_visit' => 120.00,
-                'chemicals_included' => true,
-                'is_favorite' => true,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->skip(2)->first()->id,
-                'nickname' => 'Family Pool',
-                'street_address' => '321 Elm Street',
-                'city' => 'Mesa',
-                'state' => 'AZ',
-                'zip_code' => '85201',
-                'access' => 'residential',
-                'pool_type' => 'vinyl_liner',
-                'water_type' => 'salt',
-                'filter_type' => 'Sand Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 22000,
-                'service_frequency' => 'weekly',
-                'service_day_1' => 'Tuesday',
-                'rate_per_visit' => 80.00,
-                'chemicals_included' => true,
-                'is_favorite' => false,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->skip(3)->first()->id,
-                'nickname' => 'Hotel Pool',
-                'street_address' => '654 Maple Drive',
-                'city' => 'Gilbert',
-                'state' => 'AZ',
-                'zip_code' => '85233',
-                'access' => 'commercial',
-                'pool_type' => 'concrete',
-                'water_type' => 'chlorine',
-                'filter_type' => 'Cartridge Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 75000,
-                'service_frequency' => 'semi_weekly',
-                'service_day_1' => 'Monday',
-                'service_day_2' => 'Thursday',
-                'rate_per_visit' => 150.00,
-                'chemicals_included' => true,
-                'is_favorite' => true,
-                'status' => 'inactive',
-            ],
-            [
-                'client_id' => $clients->skip(4)->first()->id,
-                'nickname' => 'Spa Pool',
-                'street_address' => '987 Cedar Lane',
-                'city' => 'Chandler',
-                'state' => 'AZ',
-                'zip_code' => '85224',
-                'access' => 'residential',
-                'pool_type' => 'fiberglass',
-                'water_type' => 'salt',
-                'filter_type' => 'Cartridge Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 15000,
-                'service_frequency' => 'weekly',
-                'service_day_1' => 'Friday',
-                'rate_per_visit' => 70.00,
-                'chemicals_included' => false,
-                'is_favorite' => false,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->skip(5)->first()->id,
-                'nickname' => 'Resort Pool 1',
-                'street_address' => '147 Birch Court',
-                'city' => 'Peoria',
-                'state' => 'AZ',
-                'zip_code' => '85345',
-                'access' => 'commercial',
-                'pool_type' => 'concrete',
-                'water_type' => 'chlorine',
-                'filter_type' => 'DE Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 100000,
-                'service_frequency' => 'semi_weekly',
-                'service_day_1' => 'Monday',
-                'service_day_2' => 'Thursday',
-                'rate_per_visit' => 200.00,
-                'chemicals_included' => true,
-                'is_favorite' => true,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->skip(6)->first()->id,
-                'nickname' => 'Resort Pool 2',
-                'street_address' => '147 Birch Court',
-                'city' => 'Peoria',
-                'state' => 'AZ',
-                'zip_code' => '85345',
-                'access' => 'commercial',
-                'pool_type' => 'concrete',
-                'water_type' => 'chlorine',
-                'filter_type' => 'DE Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 80000,
-                'service_frequency' => 'semi_weekly',
-                'service_day_1' => 'Tuesday',
-                'service_day_2' => 'Friday',
-                'rate_per_visit' => 180.00,
-                'chemicals_included' => true,
-                'is_favorite' => false,
-                'status' => 'active',
-            ],
-            [
-                'client_id' => $clients->skip(7)->first()->id,
-                'nickname' => 'Home Pool',
-                'street_address' => '258 Spruce Way',
-                'city' => 'Surprise',
-                'state' => 'AZ',
-                'zip_code' => '85374',
-                'access' => 'residential',
-                'pool_type' => 'vinyl_liner',
-                'water_type' => 'chlorine',
-                'filter_type' => 'Sand Filter',
-                'setting' => 'outdoor',
-                'installation' => 'inground',
-                'gallons' => 20000,
-                'service_frequency' => 'weekly',
-                'service_day_1' => 'Wednesday',
-                'rate_per_visit' => 75.00,
-                'chemicals_included' => true,
-                'is_favorite' => false,
-                'status' => 'active',
-            ],
-        ];
-
-        foreach ($locations as $locationData) {
-            Location::create($locationData);
+        if ($technicians->isEmpty()) {
+            $this->command->info('No technicians found. Please run UserSeeder first.');
+            return;
         }
 
-        $this->command->info('Sample locations created successfully!');
+        $this->command->info('Starting to seed 500 locations...');
+
+        // Arizona cities and zip codes for realistic data
+        $arizonaCities = [
+            ['city' => 'Phoenix', 'state' => 'AZ', 'zip' => '85001'],
+            ['city' => 'Scottsdale', 'state' => 'AZ', 'zip' => '85250'],
+            ['city' => 'Tempe', 'state' => 'AZ', 'zip' => '85281'],
+            ['city' => 'Mesa', 'state' => 'AZ', 'zip' => '85201'],
+            ['city' => 'Gilbert', 'state' => 'AZ', 'zip' => '85233'],
+            ['city' => 'Chandler', 'state' => 'AZ', 'zip' => '85224'],
+            ['city' => 'Peoria', 'state' => 'AZ', 'zip' => '85345'],
+            ['city' => 'Surprise', 'state' => 'AZ', 'zip' => '85374'],
+            ['city' => 'Glendale', 'state' => 'AZ', 'zip' => '85301'],
+            ['city' => 'Avondale', 'state' => 'AZ', 'zip' => '85323'],
+            ['city' => 'Goodyear', 'state' => 'AZ', 'zip' => '85338'],
+            ['city' => 'Buckeye', 'state' => 'AZ', 'zip' => '85326'],
+            ['city' => 'Queen Creek', 'state' => 'AZ', 'zip' => '85142'],
+            ['city' => 'Maricopa', 'state' => 'AZ', 'zip' => '85138'],
+            ['city' => 'Casa Grande', 'state' => 'AZ', 'zip' => '85122'],
+        ];
+
+        $poolTypes = ['concrete', 'fiberglass', 'vinyl_liner'];
+        $waterTypes = ['chlorine', 'salt'];
+        $filterTypes = ['Sand Filter', 'Cartridge Filter', 'DE Filter'];
+        $serviceFrequencies = ['weekly', 'bi_weekly', 'semi_weekly'];
+        $serviceDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        $accessTypes = ['residential', 'commercial'];
+        $settings = ['outdoor', 'indoor'];
+        $installations = ['inground', 'above'];
+
+        $nicknamePrefixes = [
+            'Main', 'Backyard', 'Family', 'Community', 'Hotel', 'Resort', 'Spa', 'Home',
+            'Private', 'Public', 'Club', 'Villa', 'Estate', 'Oasis', 'Paradise', 'Retreat',
+            'Luxury', 'Premium', 'Standard', 'Deluxe', 'Executive', 'Presidential'
+        ];
+
+        $nicknameSuffixes = [
+            'Pool', 'Swimming Pool', 'Oasis', 'Retreat', 'Haven', 'Escape', 'Getaway',
+            'Water Feature', 'Aquatic Center', 'Swim Center', 'Pool Area', 'Water Park'
+        ];
+
+        for ($i = 0; $i < 500; $i++) {
+            $client = $clients->random();
+            $technician = $technicians->random();
+            $cityData = $faker->randomElement($arizonaCities);
+            
+            // Generate realistic address
+            $streetNumber = $faker->numberBetween(100, 9999);
+            $streetName = $faker->randomElement(['Street', 'Avenue', 'Road', 'Drive', 'Lane', 'Court', 'Way', 'Boulevard', 'Place', 'Circle']);
+            $streetPrefix = $faker->randomElement(['Main', 'Oak', 'Pine', 'Elm', 'Maple', 'Cedar', 'Birch', 'Spruce', 'Willow', 'Cypress', 'Juniper', 'Aspen']);
+            
+            $streetAddress = $streetNumber . ' ' . $streetPrefix . ' ' . $streetName;
+            
+            // 20% chance of having a second address line
+            $streetAddress2 = $faker->optional(0.2)->randomElement(['Unit ' . $faker->numberBetween(1, 999), 'Apt ' . $faker->numberBetween(1, 999), 'Suite ' . $faker->numberBetween(1, 999)]);
+            
+            // Generate realistic nickname
+            $prefix = $faker->randomElement($nicknamePrefixes);
+            $suffix = $faker->randomElement($nicknameSuffixes);
+            $nickname = $prefix . ' ' . $suffix;
+            
+            // Generate realistic pool specifications
+            $poolType = $faker->randomElement($poolTypes);
+            $waterType = $faker->randomElement($waterTypes);
+            $filterType = $faker->randomElement($filterTypes);
+            $access = $faker->randomElement($accessTypes);
+            $setting = $faker->randomElement($settings);
+            $installation = $faker->randomElement($installations);
+            
+            // Generate realistic pool size based on type
+            $gallons = match($poolType) {
+                'concrete' => $faker->numberBetween(15000, 100000),
+                'fiberglass' => $faker->numberBetween(10000, 30000),
+                'vinyl_liner' => $faker->numberBetween(12000, 25000),
+                default => $faker->numberBetween(15000, 50000)
+            };
+            
+            // Generate service frequency and days
+            $serviceFrequency = $faker->randomElement($serviceFrequencies);
+            $serviceDay1 = $faker->randomElement($serviceDays);
+            $serviceDay2 = null;
+            
+            if ($serviceFrequency === 'semi_weekly') {
+                $serviceDay2 = $faker->randomElement(array_diff($serviceDays, [$serviceDay1]));
+            }
+            
+            // Generate realistic pricing based on pool type and size
+            $baseRate = match($poolType) {
+                'concrete' => $faker->numberBetween(80, 200),
+                'fiberglass' => $faker->numberBetween(70, 150),
+                'vinyl_liner' => $faker->numberBetween(65, 120),
+                default => $faker->numberBetween(70, 150)
+            };
+            
+            // Adjust rate based on size and access type
+            if ($gallons > 50000) $baseRate += 20;
+            if ($access === 'commercial') $baseRate += 30;
+            
+            $ratePerVisit = $baseRate;
+            
+            // Generate status (90% active, 10% inactive)
+            $status = $faker->boolean(90) ? 'active' : 'inactive';
+            
+            // Generate favorite status (20% chance)
+            $isFavorite = $faker->boolean(20);
+            
+            // Generate chemicals included (80% chance)
+            $chemicalsIncluded = $faker->boolean(80);
+            
+            Location::create([
+                'client_id' => $client->id,
+                'nickname' => $nickname,
+                'street_address' => $streetAddress,
+                'street_address_2' => $streetAddress2,
+                'city' => $cityData['city'],
+                'state' => $cityData['state'],
+                'zip_code' => $cityData['zip'],
+                'access' => $access,
+                'pool_type' => $poolType,
+                'water_type' => $waterType,
+                'filter_type' => $filterType,
+                'setting' => $setting,
+                'installation' => $installation,
+                'gallons' => $gallons,
+                'service_frequency' => $serviceFrequency,
+                'service_day_1' => $serviceDay1,
+                'service_day_2' => $serviceDay2,
+                'rate_per_visit' => $ratePerVisit,
+                'chemicals_included' => $chemicalsIncluded,
+                'is_favorite' => $isFavorite,
+                'status' => $status,
+                'assigned_technician_id' => $technician->id,
+                'notes' => $faker->optional(0.3)->sentence(),
+            ]);
+            
+            if (($i + 1) % 50 === 0) {
+                $this->command->info('Created ' . ($i + 1) . ' locations...');
+            }
+        }
+
+        $this->command->info('Successfully created 500 locations!');
     }
 } 

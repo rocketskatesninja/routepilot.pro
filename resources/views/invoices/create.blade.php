@@ -427,6 +427,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Load locations and select the preset one
                     loadClientLocations(location.client.id).then(() => {
                         locationSelect.value = presetLocationId.value;
+                        
+                        // Auto-populate technician if location has an assigned technician
+                        if (location.assigned_technician) {
+                            const technicianSelect = document.getElementById('technician_id');
+                            if (technicianSelect) {
+                                technicianSelect.value = location.assigned_technician.id;
+                            }
+                        }
                     });
                 }
             })

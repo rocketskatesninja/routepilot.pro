@@ -77,14 +77,19 @@
                     </select>
                     </div>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button type="submit" class="btn btn-primary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search
-                    </button>
-                    <a href="{{ route('technicians.index') }}" class="btn btn-outline">Clear Filters</a>
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button type="submit" class="btn btn-primary">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Search
+                        </button>
+                        <a href="{{ route('technicians.index') }}" class="btn btn-outline">Clear Filters</a>
+                    </div>
+                    <div class="text-sm text-base-content/70">
+                        {{ $technicians->total() }} result{{ $technicians->total() != 1 ? 's' : '' }}
+                    </div>
                 </div>
             </form>
         </div>
@@ -110,18 +115,22 @@
                         <td>
                             <div class="flex items-center space-x-3">
                                 <div class="avatar">
-                                    <div class="mask mask-squircle w-12 h-12">
+                                    <div class="mask mask-squircle w-10 h-10">
                                         @if($technician->profile_photo)
                                             <img src="{{ Storage::url($technician->profile_photo) }}" alt="{{ $technician->full_name }}">
                                         @else
-                                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center">
-                                                <span class="text-lg font-semibold">{{ strtoupper(substr($technician->first_name, 0, 1) . substr($technician->last_name, 0, 1)) }}</span>
+                                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
+                                                <span class="text-sm font-semibold">{{ strtoupper(substr($technician->first_name, 0, 1) . substr($technician->last_name, 0, 1)) }}</span>
                                             </div>
                                         @endif
                                     </div>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-base-content">{{ $technician->full_name }}</div>
+                                    <div class="font-bold text-base-content">
+                                        <a href="{{ route('technicians.show', $technician) }}" class="hover:text-primary hover:underline">
+                                            {{ $technician->full_name }}
+                                        </a>
+                                    </div>
                                     <div class="text-sm opacity-50">ID: {{ $technician->id }}</div>
                                 </div>
                             </div>
@@ -137,7 +146,11 @@
                         <td>
                             @if($technician->city && $technician->state)
                                 <div class="text-sm">
-                                    <div class="text-base-content">{{ $technician->city }}, {{ $technician->state }}</div>
+                                    <a href="https://maps.google.com/?q={{ urlencode($technician->street_address . ', ' . $technician->city . ', ' . $technician->state . ' ' . $technician->zip_code) }}" 
+                                       target="_blank" 
+                                       class="text-base-content hover:text-primary hover:underline">
+                                        {{ $technician->city }}, {{ $technician->state }}
+                                    </a>
                                     @if($technician->zip_code)
                                         <div class="text-base-content/70">{{ $technician->zip_code }}</div>
                                     @endif

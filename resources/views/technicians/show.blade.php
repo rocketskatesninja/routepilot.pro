@@ -6,25 +6,9 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-        <div class="flex items-center space-x-4">
-            <div class="avatar">
-                <div class="mask mask-squircle w-20 h-20">
-                    @if($technician->profile_photo)
-                        <img src="{{ Storage::url($technician->profile_photo) }}" 
-                             alt="{{ $technician->full_name }}">
-                    @else
-                        <div class="bg-primary text-primary-content rounded-full w-20 h-20 flex items-center justify-center">
-                            <span class="text-2xl font-bold">
-                                {{ strtoupper(substr($technician->first_name, 0, 1) . substr($technician->last_name, 0, 1)) }}
-                            </span>
-                        </div>
-                    @endif
-                </div>
-            </div>
-            <div>
-                <h1 class="text-3xl font-bold text-base-content">{{ $technician->full_name }}</h1>
-                <p class="text-base-content/70 mt-2">{{ $technician->email }}</p>
-            </div>
+        <div>
+            <h1 class="text-3xl font-bold text-base-content">{{ $technician->full_name }}</h1>
+            <p class="text-base-content/70 mt-2">{{ $technician->email }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
             <a href="{{ route('technicians.edit', $technician) }}" class="btn btn-outline">
@@ -46,30 +30,22 @@
         <!-- Technician Profile -->
         <div class="lg:col-span-1">
             <div class="bg-base-100 shadow-xl rounded-lg p-6">
-                <div class="text-center mb-6">
-                    <div class="avatar mb-4">
-                        <div class="mask mask-squircle w-24 h-24">
-                            @if($technician->profile_photo)
-                                <img src="{{ Storage::url($technician->profile_photo) }}" alt="{{ $technician->full_name }}">
-                            @else
-                                <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center text-3xl font-bold">
+                <!-- Technician Photo -->
+                <div class="mb-6">
+                    @if($technician->profile_photo)
+                        <div class="w-full h-80 rounded-lg overflow-hidden">
+                            <img src="{{ Storage::url($technician->profile_photo) }}" alt="{{ $technician->full_name }}" class="w-full h-full object-cover">
+                        </div>
+                    @else
+                        <div class="w-full h-80 bg-base-200 rounded-lg flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="bg-primary text-primary-content rounded-full w-32 h-32 flex items-center justify-center text-6xl font-bold mb-4">
                                     {{ strtoupper(substr($technician->first_name, 0, 1) . substr($technician->last_name, 0, 1)) }}
                                 </div>
-                            @endif
+                                <p class="text-base-content/50">No photo available</p>
+                            </div>
                         </div>
-                    </div>
-                    <h2 class="text-xl font-semibold text-base-content">{{ $technician->full_name }}</h2>
-                    <p class="text-base-content/70">Technician</p>
-                </div>
-
-                <!-- Status Badges -->
-                <div class="flex flex-wrap gap-2 mb-6">
-                    @if($technician->is_active)
-                        <div class="badge badge-success">Active</div>
-                    @else
-                        <div class="badge badge-error">Inactive</div>
                     @endif
-                    <div class="badge badge-info">Technician</div>
                 </div>
 
                 <!-- Contact Information -->
@@ -81,7 +57,7 @@
                             <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                             </svg>
-                            <span class="text-base-content">{{ $technician->email }}</span>
+                            <a href="mailto:{{ $technician->email }}" class="text-base-content hover:text-primary hover:underline">{{ $technician->email }}</a>
                         </div>
                         
                         @if($technician->phone)
@@ -89,7 +65,7 @@
                             <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
                             </svg>
-                            <span class="text-base-content">{{ $technician->phone }}</span>
+                            <a href="tel:{{ $technician->phone }}" class="text-base-content hover:text-primary hover:underline">{{ $technician->phone }}</a>
                         </div>
                         @endif
                     </div>

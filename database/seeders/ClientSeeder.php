@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Client;
+use Faker\Factory as Faker;
 
 class ClientSeeder extends Seeder
 {
@@ -13,7 +14,37 @@ class ClientSeeder extends Seeder
      */
     public function run(): void
     {
-        $clients = [
+        $faker = Faker::create();
+
+        // Create 500 clients
+        for ($i = 0; $i < 500; $i++) {
+            $firstName = $faker->firstName();
+            $lastName = $faker->lastName();
+            
+            Client::create([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $faker->unique()->safeEmail(),
+                'phone' => $faker->phoneNumber(),
+                'street_address' => $faker->streetAddress(),
+                'street_address_2' => $faker->optional(0.3)->secondaryAddress(),
+                'city' => $faker->city(),
+                'state' => $faker->stateAbbr(),
+                'zip_code' => $faker->postcode(),
+                'role' => $faker->randomElement(['client', 'tech', 'admin']),
+                'status' => $faker->randomElement(['active', 'inactive']),
+                'is_active' => $faker->boolean(80), // 80% chance of being active
+                'appointment_reminders' => $faker->boolean(85),
+                'mailing_list' => $faker->boolean(70),
+                'monthly_billing' => $faker->boolean(75),
+                'service_reports' => $faker->randomElement(['full', 'invoice_only', 'none']),
+                'notes_by_client' => $faker->optional(0.4)->sentence(),
+                'notes_by_admin' => $faker->optional(0.3)->sentence(),
+            ]);
+        }
+
+        // Also create the original 8 clients for consistency
+        $originalClients = [
             [
                 'first_name' => 'John',
                 'last_name' => 'Smith',
@@ -161,7 +192,7 @@ class ClientSeeder extends Seeder
             ],
         ];
 
-        foreach ($clients as $clientData) {
+        foreach ($originalClients as $clientData) {
             Client::create($clientData);
         }
     }

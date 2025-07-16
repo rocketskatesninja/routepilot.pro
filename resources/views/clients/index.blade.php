@@ -43,7 +43,7 @@
     <!-- Search and Filters -->
     <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-6">
         <form method="GET" action="{{ route('clients.index') }}" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Search -->
                 <div>
                     <label for="search" class="block text-sm font-medium text-base-content mb-2">Search</label>
@@ -59,35 +59,30 @@
                         <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
-                <!-- Active Filter -->
-                <div>
-                    <label for="active" class="block text-sm font-medium text-base-content mb-2">Active Status</label>
-                    <select name="active" id="active" class="select select-bordered w-full">
-                        <option value="">All</option>
-                        <option value="1" {{ request('active') == '1' ? 'selected' : '' }}>Active Only</option>
-                        <option value="0" {{ request('active') == '0' ? 'selected' : '' }}>Inactive Only</option>
-                    </select>
-                </div>
                 <!-- Sort -->
                 <div>
                     <label for="sort_by" class="block text-sm font-medium text-base-content mb-2">Sort By</label>
                     <select name="sort_by" id="sort_by" class="select select-bordered w-full">
-                        <option value="created_at" {{ request('sort_by') == 'created_at' ? 'selected' : '' }}>Date Created</option>
-                        <option value="first_name" {{ request('sort_by') == 'first_name' ? 'selected' : '' }}>First Name</option>
-                        <option value="last_name" {{ request('sort_by') == 'last_name' ? 'selected' : '' }}>Last Name</option>
-                        <option value="email" {{ request('sort_by') == 'email' ? 'selected' : '' }}>Email</option>
+                        <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date Created (Newest)</option>
+                        <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date Created (Oldest)</option>
+                        <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Name</option>
                         <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
                     </select>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-4">
-                <button type="submit" class="btn btn-primary">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    Search
-                </button>
-                <a href="{{ route('clients.index') }}" class="btn btn-outline">Clear Filters</a>
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </button>
+                    <a href="{{ route('clients.index') }}" class="btn btn-outline">Clear Filters</a>
+                </div>
+                <div class="text-sm text-base-content/70">
+                    {{ $clients->total() }} result{{ $clients->total() != 1 ? 's' : '' }}
+                </div>
             </div>
         </form>
     </div>
@@ -123,7 +118,11 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-base-content">{{ $client->full_name }}</div>
+                                    <div class="font-bold text-base-content">
+                                        <a href="{{ route('clients.show', $client) }}" class="hover:text-primary hover:underline">
+                                            {{ $client->full_name }}
+                                        </a>
+                                    </div>
                                     <div class="text-sm opacity-50">{{ $client->role }}</div>
                                 </div>
                             </div>
@@ -139,7 +138,11 @@
                         <td>
                             @if($client->city && $client->state)
                                 <div class="text-sm">
-                                    <div class="text-base-content">{{ $client->city }}, {{ $client->state }}</div>
+                                    <a href="https://maps.google.com/?q={{ urlencode($client->street_address . ', ' . $client->city . ', ' . $client->state . ' ' . $client->zip_code) }}" 
+                                       target="_blank" 
+                                       class="text-base-content hover:text-primary hover:underline">
+                                        {{ $client->city }}, {{ $client->state }}
+                                    </a>
                                     @if($client->zip_code)
                                         <div class="text-base-content/70">{{ $client->zip_code }}</div>
                                     @endif

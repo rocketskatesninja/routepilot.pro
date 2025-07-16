@@ -6,7 +6,7 @@
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div>
             <h1 class="text-3xl font-bold text-base-content">Service Report</h1>
-            <p class="text-base-content/70 mt-2">{{ $report->service_date->format('M j, Y') }} - {{ $report->location->nickname ?? $report->location->name }}</p>
+            <p class="text-base-content/70 mt-2">{{ $report->service_date->format('M j, Y') }} - {{ $report->location->nickname ?? 'Location' }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
             <a href="{{ route('reports.edit', $report) }}" class="btn btn-outline">
@@ -58,7 +58,13 @@
                             </div>
                         </div>
                         <div>
-                            <div class="font-medium text-base-content">{{ $report->technician->full_name }}</div>
+                            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
+                                <a href="{{ route('technicians.show', $report->technician) }}" class="font-medium text-base-content hover:text-primary hover:underline transition-colors">
+                                    {{ $report->technician->full_name }}
+                                </a>
+                            @else
+                                <div class="font-medium text-base-content">{{ $report->technician->full_name }}</div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -69,11 +75,23 @@
                     <div class="space-y-3">
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Client</span>
-                            <span class="text-base-content font-medium">{{ $report->client->full_name }}</span>
+                            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
+                                <a href="{{ route('clients.show', $report->client) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                    {{ $report->client->full_name }}
+                                </a>
+                            @else
+                                <span class="text-base-content font-medium">{{ $report->client->full_name }}</span>
+                            @endif
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Location</span>
-                            <span class="text-base-content font-medium">{{ $report->location->nickname ?? $report->location->name }}</span>
+                            @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
+                                <a href="{{ route('locations.show', $report->location) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                    {{ $report->location->nickname ?? 'Location' }}
+                                </a>
+                            @else
+                                <span class="text-base-content font-medium">{{ $report->location->nickname ?? 'Location' }}</span>
+                            @endif
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Service Date</span>
@@ -123,34 +141,31 @@
                 </div>
 
                 <!-- Related Invoice -->
-                @php
-                    $relatedInvoice = \App\Models\Invoice::where('location_id', $report->location_id)
-                        ->where('service_date', $report->service_date)
-                        ->first();
-                @endphp
-                @if($relatedInvoice)
+                @if($report->invoice)
                 <div class="space-y-4">
                     <h3 class="text-lg font-semibold text-base-content">Related Invoice</h3>
                     <div class="bg-base-200 rounded-lg p-4">
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base-content/70">Invoice #</span>
-                                <span class="text-base-content font-medium">{{ $relatedInvoice->invoice_number }}</span>
+                                <a href="{{ route('invoices.show', $report->invoice) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                    {{ $report->invoice->invoice_number }}
+                                </a>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-base-content/70">Status</span>
-                                <div class="badge badge-{{ $relatedInvoice->status == 'paid' ? 'success' : ($relatedInvoice->status == 'overdue' ? 'error' : 'warning') }}">
-                                    {{ ucfirst($relatedInvoice->status) }}
+                                <div class="badge badge-{{ $report->invoice->status == 'paid' ? 'success' : ($report->invoice->status == 'overdue' ? 'error' : 'warning') }}">
+                                    {{ ucfirst($report->invoice->status) }}
                                 </div>
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-base-content/70">Total Amount</span>
-                                <span class="text-base-content font-medium">${{ number_format($relatedInvoice->total_amount, 2) }}</span>
+                                <span class="text-base-content font-medium">${{ number_format($report->invoice->total_amount, 2) }}</span>
                             </div>
-                            @if($relatedInvoice->balance > 0)
+                            @if($report->invoice->balance > 0)
                             <div class="flex items-center justify-between">
                                 <span class="text-base-content/70">Balance</span>
-                                <span class="text-base-content font-medium">${{ number_format($relatedInvoice->balance, 2) }}</span>
+                                <span class="text-base-content font-medium">${{ number_format($report->invoice->balance, 2) }}</span>
                             </div>
                             @endif
                         </div>
@@ -282,7 +297,9 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     @foreach($report->photos as $photo)
                         <div class="aspect-square rounded-lg overflow-hidden">
-                            <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-full h-full object-cover">
+                            <a href="{{ Storage::url($photo) }}" target="_blank" class="block w-full h-full">
+                                <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-full h-full object-cover hover:opacity-80 transition-opacity">
+                            </a>
                         </div>
                     @endforeach
                 </div>

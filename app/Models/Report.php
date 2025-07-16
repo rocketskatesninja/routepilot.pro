@@ -13,6 +13,7 @@ class Report extends Model
         'client_id',
         'location_id',
         'technician_id',
+        'invoice_id',
         'service_date',
         'service_time',
         'pool_gallons',
@@ -96,6 +97,14 @@ class Report extends Model
     public function technician()
     {
         return $this->belongsTo(User::class, 'technician_id');
+    }
+
+    /**
+     * Get the invoice for this report.
+     */
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class);
     }
 
     /**

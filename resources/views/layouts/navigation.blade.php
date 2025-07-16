@@ -18,9 +18,11 @@
                     <x-nav-link :href="route('locations.index')" :active="request()->routeIs('locations.*')">
                         {{ __('Locations') }}
                     </x-nav-link>
+                    @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                     <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                         {{ __('Reports') }}
                     </x-nav-link>
+                    @endif
                     @if(auth()->user()->isAdmin())
                     <x-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
                         {{ __('Clients') }}
@@ -120,9 +122,11 @@
             <x-responsive-nav-link :href="route('locations.index')" :active="request()->routeIs('locations.*')">
                 {{ __('Locations') }}
             </x-responsive-nav-link>
+            @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
             <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                 {{ __('Reports') }}
             </x-responsive-nav-link>
+            @endif
             @if(auth()->user()->isAdmin())
                 <x-responsive-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
                     {{ __('Clients') }}

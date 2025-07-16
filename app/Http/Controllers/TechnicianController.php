@@ -38,9 +38,25 @@ class TechnicianController extends Controller
         }
 
         // Sort functionality
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortBy = $request->get('sort_by', 'date_desc');
+        
+        switch ($sortBy) {
+            case 'date_desc':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'date_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'status':
+                $query->orderBy('is_active', 'desc');
+                break;
+            case 'name':
+                $query->orderBy('last_name', 'asc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
 
         $technicians = $query->paginate(15);
 
@@ -73,6 +89,8 @@ class TechnicianController extends Controller
             'notes_by_admin' => 'nullable|string',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|in:admin,technician',
+            'is_active' => 'required|in:0,1',
         ]);
 
         // Handle profile photo upload
@@ -82,8 +100,10 @@ class TechnicianController extends Controller
         }
 
         // Set default values
-        $validated['role'] = 'technician';
         $validated['password'] = Hash::make($validated['password']);
+        
+        // Convert is_active to boolean
+        $validated['is_active'] = (bool) $validated['is_active'];
 
         User::create($validated);
 
@@ -148,6 +168,8 @@ class TechnicianController extends Controller
             'notes_by_admin' => 'nullable|string',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'password' => 'nullable|string|min:8|confirmed',
+            'role' => 'required|in:admin,technician',
+            'is_active' => 'required|in:0,1',
         ]);
 
         // Handle profile photo upload
@@ -166,6 +188,9 @@ class TechnicianController extends Controller
         } else {
             unset($validated['password']);
         }
+
+        // Convert is_active to boolean
+        $validated['is_active'] = (bool) $validated['is_active'];
 
         $technician->update($validated);
 

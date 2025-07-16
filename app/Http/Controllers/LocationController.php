@@ -18,24 +18,75 @@ class LocationController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
+        
         if ($user->role === 'admin' || $user->role === 'technician') {
-            $locations = Location::with(['client', 'assignedTechnician'])
-                ->orderBy('nickname')
-                ->paginate(15);
+            $query = Location::with(['client', 'assignedTechnician']);
         } elseif ($user->role === 'client') {
-            $locations = $user->locations()->with(['client', 'assignedTechnician'])
-                ->orderBy('nickname')
-                ->paginate(15);
+            $query = $user->locations()->with(['client', 'assignedTechnician']);
         } else {
             abort(403);
         }
+
+        // Search functionality
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nickname', 'like', "%{$search}%")
+                  ->orWhere('street_address', 'like', "%{$search}%")
+                  ->orWhere('city', 'like', "%{$search}%")
+                  ->orWhereHas('client', function ($clientQuery) use ($search) {
+                      $clientQuery->where('first_name', 'like', "%{$search}%")
+                                 ->orWhere('last_name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by pool type
+        if ($request->filled('pool_type')) {
+            $query->where('pool_type', $request->pool_type);
+        }
+
+        // Filter by water type
+        if ($request->filled('water_type')) {
+            $query->where('water_type', $request->water_type);
+        }
+
+        // Sort functionality
+        $sortBy = $request->get('sort_by', 'date_desc');
+        
+        switch ($sortBy) {
+            case 'date_desc':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'date_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'status':
+                $query->orderBy('status', 'asc');
+                break;
+            case 'name':
+                $query->orderBy('nickname', 'asc');
+                break;
+            default:
+                $query->orderBy('nickname', 'asc');
+                break;
+        }
+
+        $locations = $query->paginate(15);
+        
         $stats = [
-            'total' => $locations->count(),
+            'total' => $locations->total(),
             'active' => $locations->where('status', 'active')->count(),
             'favorite' => $locations->where('is_favorite', true)->count(),
             'residential' => $locations->where('access', 'residential')->count(),
             'commercial' => $locations->where('access', 'commercial')->count(),
         ];
+        
         $clients = \App\Models\Client::orderBy('last_name')->get();
         return view('locations.index', compact('locations', 'stats', 'clients'));
     }
@@ -120,6 +171,11 @@ class LocationController extends Controller
             \Log::info('No photos uploaded');
         }
 
+        // Ensure numeric fields are not null
+        $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0;
+        $validated['rate_per_visit'] = $validated['rate_per_visit'] ?? null;
+        $validated['gallons'] = $validated['gallons'] ?? null;
+
         $location = Location::create($validated);
 
         // Log activity
@@ -145,6 +201,33 @@ class LocationController extends Controller
                                   ->get();
 
         return view('locations.show', compact('location', 'recentActivities'));
+    }
+
+    /**
+     * Return location details as JSON for API consumption.
+     */
+    public function showApi(Location $location)
+    {
+        $location->load(['client', 'assignedTechnician']);
+        
+        return response()->json([
+            'id' => $location->id,
+            'nickname' => $location->nickname,
+            'street_address' => $location->street_address,
+            'city' => $location->city,
+            'state' => $location->state,
+            'zip_code' => $location->zip_code,
+            'client' => [
+                'id' => $location->client->id,
+                'full_name' => $location->client->full_name,
+                'email' => $location->client->email,
+            ],
+            'assigned_technician' => $location->assignedTechnician ? [
+                'id' => $location->assignedTechnician->id,
+                'full_name' => $location->assignedTechnician->full_name,
+                'email' => $location->assignedTechnician->email,
+            ] : null,
+        ]);
     }
 
     /**
@@ -243,6 +326,11 @@ class LocationController extends Controller
             // Keep existing photos if no new ones are uploaded
             $validated['photos'] = $location->photos;
         }
+
+        // Ensure numeric fields are not null
+        $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0;
+        $validated['rate_per_visit'] = $validated['rate_per_visit'] ?? null;
+        $validated['gallons'] = $validated['gallons'] ?? null;
 
         \Log::info('About to update location', ['location_id' => $location->id, 'data_to_update' => $validated]);
         $location->update($validated);

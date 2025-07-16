@@ -73,7 +73,7 @@
                                     Service Date <span class="text-error">*</span>
                                 </label>
                                 <input type="date" name="service_date" id="service_date" 
-                                       value="{{ old('service_date', $report->service_date ?? '') }}" 
+                                       value="{{ old('service_date', $report->service_date ?? date('Y-m-d')) }}" 
                                        class="input input-bordered w-full @error('service_date') input-error @enderror" required>
                                 @error('service_date')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -85,7 +85,7 @@
                                     Service Time <span class="text-error">*</span>
                                 </label>
                                 <input type="time" name="service_time" id="service_time" 
-                                       value="{{ old('service_time', $report->service_time ?? '') }}" 
+                                       value="{{ old('service_time', $report->service_time ?? date('H:i')) }}" 
                                        class="input input-bordered w-full @error('service_time') input-error @enderror" required>
                                 @error('service_time')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -373,6 +373,25 @@
                     </div>
                 </div>
 
+                <!-- Invoice Generation -->
+                <div class="mt-8 space-y-6">
+                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                        Invoice Generation
+                    </h3>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <input type="checkbox" name="generate_invoice" id="generate_invoice" 
+                                   class="checkbox checkbox-primary" 
+                                   {{ old('generate_invoice') ? 'checked' : '' }}>
+                            <span class="label-text ml-2">Automatically generate invoice for this report</span>
+                        </label>
+                        <p class="text-sm text-base-content/70 mt-2">
+                            When checked, an invoice will be created automatically using the service details and costs from this report.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Form Actions -->
                 <div class="mt-8 flex justify-end space-x-4">
                     <a href="{{ route('reports.index') }}" class="btn btn-outline">Cancel</a>
@@ -509,6 +528,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Load locations and select the preset one
                     loadClientLocations(location.client.id).then(() => {
                         locationSelect.value = presetLocationId.value;
+                        
+                        // Auto-populate technician if location has an assigned technician
+                        if (location.assigned_technician) {
+                            const technicianSelect = document.getElementById('technician_id');
+                            if (technicianSelect) {
+                                technicianSelect.value = location.assigned_technician.id;
+                            }
+                        }
                     });
                 }
             })

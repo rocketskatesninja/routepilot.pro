@@ -110,6 +110,22 @@ class Client extends Model
     }
 
     /**
+     * Get the last payment date for this client.
+     */
+    public function getLastPaymentDateAttribute()
+    {
+        return $this->invoices()->whereNotNull('paid_at')->latest('paid_at')->first()?->paid_at;
+    }
+
+    /**
+     * Get the total of the last invoice for this client.
+     */
+    public function getLastInvoiceTotalAttribute()
+    {
+        return $this->invoices()->latest('service_date')->first()?->total_amount;
+    }
+
+    /**
      * Scope for active clients.
      */
     public function scopeActive($query)

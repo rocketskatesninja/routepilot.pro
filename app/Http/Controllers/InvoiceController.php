@@ -83,8 +83,18 @@ class InvoiceController extends Controller
     {
         $technicians = User::where('role', 'technician')->where('is_active', true)->get();
         $locationId = $request->get('location_id');
+        
+        // If location_id is provided, get the location and client data for auto-population
+        $location = null;
+        $client = null;
+        if ($locationId) {
+            $location = Location::with('client')->find($locationId);
+            if ($location) {
+                $client = $location->client;
+            }
+        }
 
-        return view('invoices.create', compact('technicians', 'locationId'));
+        return view('invoices.create', compact('technicians', 'locationId', 'location', 'client'));
     }
 
     /**

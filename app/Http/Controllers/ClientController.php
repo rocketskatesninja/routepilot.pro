@@ -39,9 +39,25 @@ class ClientController extends Controller
         }
 
         // Sort functionality
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        $sortBy = $request->get('sort_by', 'date_desc');
+        
+        switch ($sortBy) {
+            case 'date_desc':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'date_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'status':
+                $query->orderBy('status', 'asc');
+                break;
+            case 'name':
+                $query->orderBy('last_name', 'asc');
+                break;
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
 
         $clients = $query->paginate(15);
 

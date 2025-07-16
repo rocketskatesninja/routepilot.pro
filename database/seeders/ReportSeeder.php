@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Location;
 use App\Models\User;
 use Carbon\Carbon;
+use Faker\Factory as Faker;
 
 class ReportSeeder extends Seeder
 {
@@ -17,6 +18,8 @@ class ReportSeeder extends Seeder
      */
     public function run(): void
     {
+        $faker = Faker::create();
+        
         $clients = Client::where('is_active', true)->get();
         $locations = Location::where('status', 'active')->get();
         $technicians = User::where('role', 'technician')->where('is_active', true)->get();
@@ -26,208 +29,193 @@ class ReportSeeder extends Seeder
             return;
         }
 
-        $reportData = [
-            [
-                'client_id' => $clients->first()->id,
-                'location_id' => $locations->first()->id,
-                'technician_id' => $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(7),
-                'service_time' => '10:00:00',
-                'pool_gallons' => 25000,
-                'fac' => 2.5,
-                'cc' => 0.0,
-                'ph' => 7.4,
-                'alkalinity' => 120,
-                'calcium' => 250,
-                'salt' => null,
-                'cya' => 50,
-                'tds' => 800,
-                'vacuumed' => true,
-                'brushed' => true,
-                'skimmed' => true,
-                'cleaned_skimmer_basket' => true,
-                'cleaned_pump_basket' => false,
-                'cleaned_pool_deck' => true,
-                'cleaned_filter_cartridge' => false,
-                'backwashed_sand_filter' => false,
-                'adjusted_water_level' => true,
-                'adjusted_auto_fill' => false,
-                'adjusted_pump_timer' => false,
-                'adjusted_heater' => false,
-                'checked_cover' => false,
-                'checked_lights' => true,
-                'checked_fountain' => false,
-                'checked_heater' => false,
-                'chemicals_used' => ['chlorine' => '2 lbs', 'shock' => '1 lb'],
-                'chemicals_cost' => 25.00,
-                'other_services' => [],
-                'other_services_cost' => 0.00,
-                'total_cost' => 25.00,
-                'notes_to_client' => 'Pool chemistry balanced. Water is clear and clean. No issues found.',
-                'notes_to_admin' => 'Standard weekly service completed successfully.',
-            ],
-            [
-                'client_id' => $clients->count() > 1 ? $clients[1]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 1 ? $locations[1]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 1 ? $technicians[1]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(14),
-                'service_time' => '11:30:00',
-                'pool_gallons' => 18000,
-                'fac' => 1.8,
-                'cc' => 0.2,
-                'ph' => 7.2,
-                'alkalinity' => 110,
-                'calcium' => 220,
-                'salt' => 3200,
-                'cya' => 60,
-                'tds' => 1200,
-                'vacuumed' => true,
-                'brushed' => true,
-                'skimmed' => true,
-                'cleaned_skimmer_basket' => true,
-                'cleaned_pump_basket' => true,
-                'cleaned_pool_deck' => false,
-                'cleaned_filter_cartridge' => true,
-                'backwashed_sand_filter' => false,
-                'adjusted_water_level' => true,
-                'adjusted_auto_fill' => true,
-                'adjusted_pump_timer' => false,
-                'adjusted_heater' => false,
-                'checked_cover' => false,
-                'checked_lights' => false,
-                'checked_fountain' => true,
-                'checked_heater' => false,
-                'chemicals_used' => ['salt' => '5 lbs', 'stabilizer' => '2 lbs'],
-                'chemicals_cost' => 35.00,
-                'other_services' => ['filter_cleaning' => 'Filter cartridge replaced'],
-                'other_services_cost' => 15.00,
-                'total_cost' => 50.00,
-                'notes_to_client' => 'Salt levels adjusted. Filter cartridge cleaned and replaced. Pool is in excellent condition.',
-                'notes_to_admin' => 'Saltwater pool maintenance completed. Filter replacement needed.',
-            ],
-            [
-                'client_id' => $clients->count() > 2 ? $clients[2]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 2 ? $locations[2]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 2 ? $technicians[2]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(21),
-                'service_time' => '09:15:00',
-                'pool_gallons' => 50000,
-                'fac' => 3.0,
-                'cc' => 0.0,
-                'ph' => 7.6,
-                'alkalinity' => 130,
-                'calcium' => 280,
-                'salt' => null,
-                'cya' => 40,
-                'tds' => 900,
-                'vacuumed' => true,
-                'brushed' => true,
-                'skimmed' => true,
-                'cleaned_skimmer_basket' => true,
-                'cleaned_pump_basket' => true,
-                'cleaned_pool_deck' => true,
-                'cleaned_filter_cartridge' => false,
-                'backwashed_sand_filter' => true,
-                'adjusted_water_level' => true,
-                'adjusted_auto_fill' => false,
-                'adjusted_pump_timer' => true,
-                'adjusted_heater' => false,
-                'checked_cover' => true,
-                'checked_lights' => true,
-                'checked_fountain' => false,
-                'checked_heater' => false,
-                'chemicals_used' => ['chlorine' => '3 lbs', 'algaecide' => '1 qt'],
-                'chemicals_cost' => 45.00,
-                'other_services' => ['backwash' => 'Sand filter backwashed'],
-                'other_services_cost' => 10.00,
-                'total_cost' => 55.00,
-                'notes_to_client' => 'Commercial pool service completed. All systems functioning properly. Pool cover inspected.',
-                'notes_to_admin' => 'Large commercial pool. All maintenance tasks completed successfully.',
-            ],
-            [
-                'client_id' => $clients->count() > 3 ? $clients[3]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 3 ? $locations[3]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 3 ? $technicians[3]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(28),
-                'service_time' => '14:00:00',
-                'pool_gallons' => 22000,
-                'fac' => 2.2,
-                'cc' => 0.1,
-                'ph' => 7.3,
-                'alkalinity' => 115,
-                'calcium' => 240,
-                'salt' => 3000,
-                'cya' => 55,
-                'tds' => 1100,
-                'vacuumed' => true,
-                'brushed' => false,
-                'skimmed' => true,
-                'cleaned_skimmer_basket' => true,
-                'cleaned_pump_basket' => false,
-                'cleaned_pool_deck' => false,
-                'cleaned_filter_cartridge' => false,
-                'backwashed_sand_filter' => false,
-                'adjusted_water_level' => true,
-                'adjusted_auto_fill' => false,
-                'adjusted_pump_timer' => false,
-                'adjusted_heater' => true,
-                'checked_cover' => false,
-                'checked_lights' => true,
-                'checked_fountain' => false,
-                'checked_heater' => true,
-                'chemicals_used' => ['salt' => '3 lbs'],
-                'chemicals_cost' => 20.00,
-                'other_services' => ['heater_check' => 'Heater settings verified'],
-                'other_services_cost' => 5.00,
-                'total_cost' => 25.00,
-                'notes_to_client' => 'Pool chemistry balanced. Heater settings checked and adjusted. Pool is ready for use.',
-                'notes_to_admin' => 'Standard service with heater maintenance.',
-            ],
-            [
-                'client_id' => $clients->count() > 4 ? $clients[4]->id : $clients->first()->id,
-                'location_id' => $locations->count() > 4 ? $locations[4]->id : $locations->first()->id,
-                'technician_id' => $technicians->count() > 4 ? $technicians[4]->id : $technicians->first()->id,
-                'service_date' => Carbon::now()->subDays(35),
-                'service_time' => '08:45:00',
-                'pool_gallons' => 15000,
-                'fac' => 2.8,
-                'cc' => 0.0,
-                'ph' => 7.5,
-                'alkalinity' => 125,
-                'calcium' => 260,
-                'salt' => 3400,
-                'cya' => 65,
-                'tds' => 1300,
-                'vacuumed' => true,
-                'brushed' => true,
-                'skimmed' => true,
-                'cleaned_skimmer_basket' => true,
-                'cleaned_pump_basket' => true,
-                'cleaned_pool_deck' => true,
-                'cleaned_filter_cartridge' => true,
-                'backwashed_sand_filter' => false,
-                'adjusted_water_level' => true,
-                'adjusted_auto_fill' => true,
-                'adjusted_pump_timer' => true,
-                'adjusted_heater' => false,
-                'checked_cover' => false,
-                'checked_lights' => false,
-                'checked_fountain' => false,
-                'checked_heater' => false,
-                'chemicals_used' => ['salt' => '4 lbs', 'stabilizer' => '1 lb'],
-                'chemicals_cost' => 30.00,
-                'other_services' => ['filter_cleaning' => 'Filter cartridge cleaned'],
-                'other_services_cost' => 10.00,
-                'total_cost' => 40.00,
-                'notes_to_client' => 'Comprehensive pool service completed. All systems checked and maintained.',
-                'notes_to_admin' => 'Full service including filter cleaning and timer adjustment.',
-            ],
-        ];
+        $this->command->info('Starting to seed 500 reports...');
 
-        foreach ($reportData as $report) {
-            Report::create($report);
+        for ($i = 0; $i < 500; $i++) {
+            $client = $clients->random();
+            $location = $locations->random();
+            $technician = $technicians->random();
+            
+            // Generate realistic pool chemistry values
+            $fac = $faker->randomFloat(1, 1.0, 5.0);
+            $cc = $faker->randomFloat(1, 0.0, 1.0);
+            $ph = $faker->randomFloat(1, 7.0, 8.0);
+            $alkalinity = $faker->numberBetween(80, 150);
+            $calcium = $faker->numberBetween(200, 400);
+            $salt = $faker->optional(0.3)->numberBetween(2500, 4000); // 30% chance of salt pool
+            $cya = $faker->numberBetween(30, 80);
+            $tds = $faker->numberBetween(500, 2000);
+            
+            // Generate pool size
+            $poolGallons = $faker->randomElement([15000, 18000, 22000, 25000, 30000, 35000, 40000, 50000]);
+            
+            // Generate service time
+            $serviceTime = $faker->time('H:i:s', '18:00:00');
+            
+            // Generate service date (within last 2 years)
+            $serviceDate = $faker->dateTimeBetween('-2 years', 'now');
+            
+            // Generate chemicals used
+            $chemicalsUsed = [];
+            $chemicalsCost = 0;
+            
+            $chemicalTypes = [
+                'chlorine' => ['amount' => $faker->numberBetween(1, 5), 'unit' => 'lbs', 'cost' => 8],
+                'shock' => ['amount' => $faker->numberBetween(1, 3), 'unit' => 'lbs', 'cost' => 12],
+                'algaecide' => ['amount' => $faker->numberBetween(1, 2), 'unit' => 'qt', 'cost' => 15],
+                'ph_plus' => ['amount' => $faker->numberBetween(1, 3), 'unit' => 'lbs', 'cost' => 10],
+                'ph_minus' => ['amount' => $faker->numberBetween(1, 3), 'unit' => 'lbs', 'cost' => 10],
+                'stabilizer' => ['amount' => $faker->numberBetween(1, 3), 'unit' => 'lbs', 'cost' => 12],
+            ];
+            
+            if ($salt) {
+                $chemicalsUsed['salt'] = $faker->numberBetween(2, 8) . ' lbs';
+                $chemicalsCost += 20;
+            }
+            
+            // Add 2-4 random chemicals
+            $selectedChemicals = $faker->randomElements(array_keys($chemicalTypes), $faker->numberBetween(2, 4));
+            foreach ($selectedChemicals as $chemical) {
+                $amount = $chemicalTypes[$chemical]['amount'];
+                $unit = $chemicalTypes[$chemical]['unit'];
+                $chemicalsUsed[$chemical] = $amount . ' ' . $unit;
+                $chemicalsCost += $amount * $chemicalTypes[$chemical]['cost'];
+            }
+            
+            // Generate other services
+            $otherServices = [];
+            $otherServicesCost = 0;
+            
+            $serviceTypes = [
+                'filter_cleaning' => ['description' => 'Filter cartridge cleaned', 'cost' => 15],
+                'backwash' => ['description' => 'Sand filter backwashed', 'cost' => 10],
+                'heater_check' => ['description' => 'Heater settings verified', 'cost' => 5],
+                'timer_adjustment' => ['description' => 'Pump timer adjusted', 'cost' => 5],
+                'deck_cleaning' => ['description' => 'Pool deck pressure washed', 'cost' => 25],
+                'cover_repair' => ['description' => 'Pool cover repaired', 'cost' => 30],
+            ];
+            
+            // 20% chance of additional services
+            if ($faker->boolean(20)) {
+                $selectedServices = $faker->randomElements(array_keys($serviceTypes), $faker->numberBetween(1, 2));
+                foreach ($selectedServices as $service) {
+                    $otherServices[$service] = $serviceTypes[$service]['description'];
+                    $otherServicesCost += $serviceTypes[$service]['cost'];
+                }
+            }
+            
+            $totalCost = $chemicalsCost + $otherServicesCost;
+            
+            // Generate realistic notes
+            $notesToClient = $this->generateClientNotes($faker, $fac, $ph, $alkalinity);
+            $notesToAdmin = $this->generateAdminNotes($faker, $totalCost, $otherServices);
+            
+            Report::create([
+                'client_id' => $client->id,
+                'location_id' => $location->id,
+                'technician_id' => $technician->id,
+                'service_date' => $serviceDate,
+                'service_time' => $serviceTime,
+                'pool_gallons' => $poolGallons,
+                'fac' => $fac,
+                'cc' => $cc,
+                'ph' => $ph,
+                'alkalinity' => $alkalinity,
+                'calcium' => $calcium,
+                'salt' => $salt,
+                'cya' => $cya,
+                'tds' => $tds,
+                'vacuumed' => $faker->boolean(90),
+                'brushed' => $faker->boolean(85),
+                'skimmed' => $faker->boolean(95),
+                'cleaned_skimmer_basket' => $faker->boolean(80),
+                'cleaned_pump_basket' => $faker->boolean(70),
+                'cleaned_pool_deck' => $faker->boolean(60),
+                'cleaned_filter_cartridge' => $faker->boolean(30),
+                'backwashed_sand_filter' => $faker->boolean(25),
+                'adjusted_water_level' => $faker->boolean(75),
+                'adjusted_auto_fill' => $faker->boolean(40),
+                'adjusted_pump_timer' => $faker->boolean(35),
+                'adjusted_heater' => $faker->boolean(20),
+                'checked_cover' => $faker->boolean(50),
+                'checked_lights' => $faker->boolean(80),
+                'checked_fountain' => $faker->boolean(30),
+                'checked_heater' => $faker->boolean(25),
+                'chemicals_used' => $chemicalsUsed,
+                'chemicals_cost' => $chemicalsCost,
+                'other_services' => $otherServices,
+                'other_services_cost' => $otherServicesCost,
+                'total_cost' => $totalCost,
+                'notes_to_client' => $notesToClient,
+                'notes_to_admin' => $notesToAdmin,
+            ]);
+            
+            if (($i + 1) % 50 === 0) {
+                $this->command->info('Created ' . ($i + 1) . ' reports...');
+            }
         }
 
-        $this->command->info('Created ' . count($reportData) . ' sample reports.');
+        $this->command->info('Successfully created 500 reports!');
+    }
+    
+    private function generateClientNotes($faker, $fac, $ph, $alkalinity)
+    {
+        $notes = [];
+        
+        if ($fac >= 3.0) {
+            $notes[] = 'Chlorine levels are excellent';
+        } elseif ($fac >= 1.0) {
+            $notes[] = 'Chlorine levels are within normal range';
+        } else {
+            $notes[] = 'Chlorine levels were low and have been adjusted';
+        }
+        
+        if ($ph >= 7.2 && $ph <= 7.8) {
+            $notes[] = 'pH is perfectly balanced';
+        } elseif ($ph < 7.2) {
+            $notes[] = 'pH was low and has been raised to optimal levels';
+        } else {
+            $notes[] = 'pH was high and has been lowered to optimal levels';
+        }
+        
+        if ($alkalinity >= 80 && $alkalinity <= 150) {
+            $notes[] = 'Alkalinity is stable';
+        } else {
+            $notes[] = 'Alkalinity has been adjusted for better water balance';
+        }
+        
+        $notes[] = 'Pool water is clear and clean';
+        $notes[] = 'All equipment is functioning properly';
+        
+        if ($faker->boolean(80)) {
+            $notes[] = 'Pool is ready for use';
+        }
+        
+        return implode('. ', $notes) . '.';
+    }
+    
+    private function generateAdminNotes($faker, $totalCost, $otherServices)
+    {
+        $notes = [];
+        
+        if ($totalCost > 50) {
+            $notes[] = 'Higher than average service cost due to additional chemicals/services';
+        } else {
+            $notes[] = 'Standard service completed';
+        }
+        
+        if (!empty($otherServices)) {
+            $notes[] = 'Additional services provided as requested';
+        }
+        
+        if ($faker->boolean(90)) {
+            $notes[] = 'No issues reported';
+        } else {
+            $notes[] = 'Minor issues noted and addressed';
+        }
+        
+        $notes[] = 'Client satisfied with service';
+        
+        return implode('. ', $notes) . '.';
     }
 } 

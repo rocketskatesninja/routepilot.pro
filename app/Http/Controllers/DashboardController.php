@@ -127,7 +127,6 @@ class DashboardController extends Controller
             'total_locations' => $client->locations()->count(),
             'total_invoices' => $client->invoices()->count(),
             'unpaid_invoices' => $client->invoices()->where('status', '!=', 'paid')->count(),
-            'total_reports' => $client->reports()->count(),
         ];
 
         // Upcoming Appointments
@@ -146,18 +145,10 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Recent Reports
-        $recentReports = $client->reports()
-            ->with('location', 'technician')
-            ->latest()
-            ->take(5)
-            ->get();
-
         return view('dashboard.customer', compact(
             'stats',
             'upcomingAppointments',
             'recentInvoices',
-            'recentReports',
             'client'
         ));
     }

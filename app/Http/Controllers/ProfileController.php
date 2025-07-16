@@ -29,18 +29,22 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         
+        // Get validated data
+        $validated = $request->validated();
+        
         // Handle profile photo upload
         if ($request->hasFile('profile_photo')) {
             // Delete old photo if exists
             if ($user->profile_photo) {
                 Storage::disk('public')->delete($user->profile_photo);
             }
+            
             $path = $request->file('profile_photo')->store('profile-photos', 'public');
-            $user->profile_photo = $path;
+            $validated['profile_photo'] = $path;
         }
         
-        // Update other fields
-        $user->fill($request->validated());
+        // Update user with all validated data including profile_photo
+        $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;

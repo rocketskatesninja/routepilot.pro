@@ -16,7 +16,8 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
@@ -25,8 +26,6 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'street_address' => ['nullable', 'string', 'max:255'],
             'street_address_2' => ['nullable', 'string', 'max:255'],
@@ -35,10 +34,25 @@ class ProfileUpdateRequest extends FormRequest
             'zip_code' => ['nullable', 'string', 'max:10'],
             'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'notes_by_client' => ['nullable', 'string'],
-            'monthly_billing' => ['boolean'],
-            'service_reports' => ['boolean'],
-            'mailing_list' => ['boolean'],
-            'service_reminders' => ['boolean'],
+            'monthly_billing' => ['nullable', 'boolean'],
+            'service_reports' => ['nullable', 'boolean'],
+            'mailing_list' => ['nullable', 'boolean'],
+            'service_reminders' => ['nullable', 'boolean'],
+            'appointment_reminders' => ['nullable', 'boolean'],
         ];
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'monthly_billing' => $this->boolean('monthly_billing'),
+            'service_reports' => $this->boolean('service_reports'),
+            'mailing_list' => $this->boolean('mailing_list'),
+            'service_reminders' => $this->boolean('service_reminders'),
+            'appointment_reminders' => $this->boolean('appointment_reminders'),
+        ]);
     }
 }

@@ -62,40 +62,27 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-base-content mb-2">
-                            Email <span class="text-error">*</span>
-                        </label>
-                        <input type="email" name="email" id="email" value="{{ old('email', $technician->email) }}" 
-                               class="input input-bordered w-full @error('email') input-error @enderror" required>
-                        @error('email')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-base-content mb-2">
-                            Phone Number
-                        </label>
-                        <input type="tel" name="phone" id="phone" value="{{ old('phone', $technician->phone) }}" 
-                               class="input input-bordered w-full @error('phone') input-error @enderror">
-                        @error('phone')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label for="role" class="block text-sm font-medium text-base-content mb-2">
-                            Role <span class="text-error">*</span>
-                        </label>
-                        <select name="role" id="role" class="select select-bordered w-full @error('role') select-error @enderror" required>
-                            <option value="">Select Role</option>
-                            <option value="tech" {{ old('role', $technician->role) == 'tech' ? 'selected' : '' }}>Technician</option>
-                            <option value="admin" {{ old('role', $technician->role) == 'admin' ? 'selected' : '' }}>Admin</option>
-                        </select>
-                        @error('role')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-base-content mb-2">
+                                Email <span class="text-error">*</span>
+                            </label>
+                            <input type="email" name="email" id="email" value="{{ old('email', $technician->email) }}" 
+                                   class="input input-bordered w-full @error('email') input-error @enderror" required>
+                            @error('email')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-base-content mb-2">
+                                Phone Number
+                            </label>
+                            <input type="tel" name="phone" id="phone" value="{{ old('phone', $technician->phone) }}" 
+                                   class="input input-bordered w-full @error('phone') input-error @enderror">
+                            @error('phone')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
 
                     <div>
@@ -186,20 +173,36 @@
                 <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
                     Account Information
                 </h3>
-                
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div class="space-y-4">
                         <div>
-                            <label for="current_password" class="block text-sm font-medium text-base-content mb-2">
-                                Current Password
+                            <label for="role" class="block text-sm font-medium text-base-content mb-2">
+                                Role <span class="text-error">*</span>
                             </label>
-                            <input type="password" name="current_password" id="current_password" 
-                                   class="input input-bordered w-full @error('current_password') input-error @enderror">
-                            @error('current_password')
+                            <select name="role" id="role" class="select select-bordered w-full @error('role') select-error @enderror" required>
+                                <option value="">Select Role</option>
+                                <option value="technician" {{ old('role', $technician->role) == 'technician' ? 'selected' : '' }}>Technician</option>
+                                <option value="admin" {{ old('role', $technician->role) == 'admin' ? 'selected' : '' }}>Admin</option>
+                            </select>
+                            @error('role')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
-
+                        <div>
+                            <label for="is_active" class="block text-sm font-medium text-base-content mb-2">
+                                Status <span class="text-error">*</span>
+                            </label>
+                            <select name="is_active" id="is_active" class="select select-bordered w-full @error('is_active') select-error @enderror" required>
+                                <option value="">Select Status</option>
+                                <option value="1" {{ old('is_active', $technician->is_active) == 1 ? 'selected' : '' }}>Active</option>
+                                <option value="0" {{ old('is_active', $technician->is_active) == 0 ? 'selected' : '' }}>Inactive</option>
+                            </select>
+                            @error('is_active')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="space-y-4">
                         <div>
                             <label for="password" class="block text-sm font-medium text-base-content mb-2">
                                 New Password
@@ -210,7 +213,6 @@
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
-
                         <div>
                             <label for="password_confirmation" class="block text-sm font-medium text-base-content mb-2">
                                 Confirm New Password

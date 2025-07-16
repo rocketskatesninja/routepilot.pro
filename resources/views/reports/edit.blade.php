@@ -58,7 +58,7 @@
                                     required>
                                 <option value="">Select Location</option>
                                 <option value="{{ $report->location->id }}" selected>
-                                    {{ $report->location->nickname ?? $report->location->name }} - {{ $report->location->city }}, {{ $report->location->state }}
+                                    {{ $report->location->nickname ?? 'Location' }} - {{ $report->location->full_address }}
                                 </option>
                             </select>
                             @error('location_id')
@@ -72,7 +72,7 @@
                                     Service Date <span class="text-error">*</span>
                                 </label>
                                 <input type="date" name="service_date" id="service_date" 
-                                       value="{{ old('service_date', $report->service_date) }}" 
+                                       value="{{ old('service_date', $report->service_date ? $report->service_date->format('Y-m-d') : '') }}" 
                                        class="input input-bordered w-full @error('service_date') input-error @enderror" required>
                                 @error('service_date')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -84,7 +84,7 @@
                                     Service Time <span class="text-error">*</span>
                                 </label>
                                 <input type="time" name="service_time" id="service_time" 
-                                       value="{{ old('service_time', $report->service_time) }}" 
+                                       value="{{ old('service_time', $report->service_time ? $report->service_time->format('H:i') : '') }}" 
                                        class="input input-bordered w-full @error('service_time') input-error @enderror" required>
                                 @error('service_time')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -351,6 +351,36 @@
                                     <img src="{{ Storage::url($photo) }}" alt="Report Photo" 
                                          class="w-24 h-24 object-cover rounded border border-base-300">
                                 @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Invoice Generation -->
+                <div class="mt-8 space-y-6">
+                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                        Invoice Generation
+                    </h3>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <input type="checkbox" name="generate_invoice" id="generate_invoice" 
+                                   class="checkbox checkbox-primary" 
+                                   {{ old('generate_invoice') ? 'checked' : '' }}>
+                            <span class="label-text ml-2">Automatically generate invoice for this report</span>
+                        </label>
+                        <p class="text-sm text-base-content/70 mt-2">
+                            When checked, an invoice will be created automatically using the service details and costs from this report.
+                        </p>
+                        @if($report->invoice)
+                            <div class="alert alert-info mt-4">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                This report already has an associated invoice: 
+                                <a href="{{ route('invoices.show', $report->invoice) }}" class="font-medium hover:underline">
+                                    {{ $report->invoice->invoice_number }}
+                                </a>
                             </div>
                         @endif
                     </div>

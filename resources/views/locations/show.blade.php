@@ -9,13 +9,13 @@
             <p class="text-base-content/70 mt-2">{{ $location->client->full_name }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
-            <a href="{{ route('reports.create', ['location_id' => $location->id]) }}" class="btn btn-primary">
+            <a href="{{ route('reports.create', ['location_id' => $location->id]) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
                 New Report
             </a>
-            <a href="{{ route('invoices.create', ['location_id' => $location->id]) }}" class="btn btn-secondary">
+            <a href="{{ route('invoices.create', ['location_id' => $location->id]) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
                 </svg>

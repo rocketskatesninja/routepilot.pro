@@ -232,6 +232,22 @@
                         </div>
 
                         <div>
+                            <label for="installation" class="block text-sm font-medium text-base-content mb-2">
+                                Installation Type <span class="text-error">*</span>
+                            </label>
+                            <select name="installation" id="installation" class="select select-bordered w-full @error('installation') select-error @enderror" required>
+                                <option value="">Select Installation Type</option>
+                                <option value="inground" {{ old('installation', $location->installation) == 'inground' ? 'selected' : '' }}>In-Ground</option>
+                                <option value="above" {{ old('installation', $location->installation) == 'above' ? 'selected' : '' }}>Above Ground</option>
+                            </select>
+                            @error('installation')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
                             <label for="gallons" class="block text-sm font-medium text-base-content mb-2">
                                 Pool Size (Gallons)
                             </label>

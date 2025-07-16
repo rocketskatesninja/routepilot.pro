@@ -101,14 +101,19 @@
                     </select>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-4">
-                <button type="submit" class="btn btn-primary">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    Search
-                </button>
-                <a href="{{ route('locations.index') }}" class="btn btn-outline">Clear Filters</a>
+            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </button>
+                    <a href="{{ route('locations.index') }}" class="btn btn-outline">Clear Filters</a>
+                </div>
+                <div class="text-sm text-base-content/70">
+                    {{ $locations->total() }} result{{ $locations->total() != 1 ? 's' : '' }}
+                </div>
             </div>
         </form>
     </div>
@@ -134,12 +139,12 @@
                         <td>
                             <div class="flex items-center space-x-3">
                                 <div class="avatar">
-                                    <div class="mask mask-squircle w-12 h-12">
+                                    <div class="mask mask-squircle w-10 h-10">
                                         @if($location->photos && count($location->photos) > 0)
-                                            <img src="{{ Storage::url($location->photos[0]) }}" alt="{{ $location->nickname ?? $location->name }}">
+                                            <img src="{{ Storage::url($location->photos[0]) }}" alt="{{ $location->nickname ?? 'Location' }}">
                                         @else
-                                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center">
-                                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                                 </svg>
                                             </div>
@@ -147,24 +152,36 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <div class="font-bold text-base-content">{{ $location->nickname ?? $location->name }}</div>
+                                    <div class="font-bold text-base-content">
+                                        <a href="{{ route('locations.show', $location) }}" class="hover:text-primary hover:underline">
+                                            {{ $location->nickname ?? 'Location' }}
+                                        </a>
+                                    </div>
                                     <div class="text-sm opacity-50">{{ $location->access }}</div>
                                 </div>
                             </div>
                         </td>
                         <td>
                             <div class="text-sm">
-                                <div class="text-base-content">{{ $location->client->full_name }}</div>
+                                <div class="text-base-content">
+                                    <a href="{{ route('clients.show', $location->client) }}" class="hover:text-primary hover:underline">
+                                        {{ $location->client->full_name }}
+                                    </a>
+                                </div>
                                 <div class="text-base-content/70">{{ $location->client->email }}</div>
                             </div>
                         </td>
                         <td>
                             <div class="text-sm">
-                                <div class="text-base-content">{{ $location->street_address }}</div>
-                                @if($location->street_address_2)
-                                    <div class="text-base-content/70">{{ $location->street_address_2 }}</div>
-                                @endif
-                                <div class="text-base-content/70">{{ $location->city }}, {{ $location->state }} {{ $location->zip_code }}</div>
+                                <a href="https://maps.google.com/?q={{ urlencode($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code) }}" 
+                                   target="_blank" 
+                                   class="hover:text-primary hover:underline">
+                                    <div class="text-base-content">{{ $location->street_address }}</div>
+                                    @if($location->street_address_2)
+                                        <div class="text-base-content/70">{{ $location->street_address_2 }}</div>
+                                    @endif
+                                    <div class="text-base-content/70">{{ $location->city }}, {{ $location->state }} {{ $location->zip_code }}</div>
+                                </a>
                             </div>
                         </td>
                         <td>
@@ -180,7 +197,11 @@
                         <td>
                             <div class="text-sm">
                                 @if($location->assignedTechnician)
-                                    <div class="text-base-content">{{ $location->assignedTechnician->full_name }}</div>
+                                    <div class="text-base-content">
+                                        <a href="{{ route('technicians.show', $location->assignedTechnician) }}" class="hover:text-primary hover:underline">
+                                            {{ $location->assignedTechnician->full_name }}
+                                        </a>
+                                    </div>
                                     <div class="text-base-content/70">{{ $location->assignedTechnician->email }}</div>
                                 @else
                                     <span class="text-base-content/50">Unassigned</span>

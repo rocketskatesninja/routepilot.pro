@@ -194,7 +194,7 @@
                 <tr>
                     <td>Pool Service Visit</td>
                     <td>
-                        <strong>Location:</strong> {{ $invoice->location->name }}<br>
+                        <strong>Location:</strong> {{ $invoice->location->nickname ?? 'Location' }}<br>
                         <strong>Technician:</strong> {{ $invoice->technician->full_name }}<br>
                         <strong>Service Date:</strong> {{ $invoice->service_date->format('M d, Y') }}
                     </td>
