@@ -118,7 +118,7 @@
                             Chemistry Readings
                         </h3>
                         
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                                 <label for="fac" class="block text-sm font-medium text-base-content mb-2">Chlorine</label>
                                 <input type="number" step="0.01" name="fac" id="fac" 
@@ -155,13 +155,6 @@
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
-                        </div>
-
-                        <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('secondary-chemistry').classList.toggle('hidden')">
-                            Secondary Measurements
-                        </button>
-                        
-                        <div id="secondary-chemistry" class="grid grid-cols-2 gap-4 hidden">
                             <div>
                                 <label for="calcium" class="block text-sm font-medium text-base-content mb-2">Calcium</label>
                                 <input type="number" name="calcium" id="calcium" 
@@ -239,9 +232,9 @@
                         Service Details
                     </h3>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="space-y-4">
-                            <div>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <div class="flex-1">
                                 <label for="chemicals_used" class="block text-sm font-medium text-base-content mb-2">
                                     Chemicals Used
                                 </label>
@@ -254,12 +247,12 @@
                                 @enderror
                             </div>
                             
-                            <div>
+                            <div class="w-24">
                                 <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
-                                    Chemicals Cost <span class="text-xs text-base-content/60">(strikethrough if flat-rate client)</span>
+                                    Cost
                                 </label>
                                 <input type="number" step="0.01" name="chemicals_cost" id="chemicals_cost" 
-                                       value="{{ old('chemicals_cost', $report->chemicals_cost ?? '') }}" 
+                                       value="{{ old('chemicals_cost', '') }}" 
                                        class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
                                 @error('chemicals_cost')
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
@@ -267,8 +260,8 @@
                             </div>
                         </div>
                         
-                        <div class="space-y-4">
-                            <div>
+                        <div class="flex gap-4">
+                            <div class="flex-1">
                                 <label for="other_services" class="block text-sm font-medium text-base-content mb-2">
                                     Other Services
                                 </label>
@@ -281,9 +274,9 @@
                                 @enderror
                             </div>
                             
-                            <div>
+                            <div class="w-24">
                                 <label for="other_services_cost" class="block text-sm font-medium text-base-content mb-2">
-                                    Other Costs
+                                    Cost
                                 </label>
                                 <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
                                        value="{{ old('other_services_cost', $report->other_services_cost ?? '') }}" 
@@ -542,6 +535,63 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error fetching location details:', error);
             });
+    }
+
+    // Disable chemicals_cost field if flat-rate location
+    const chemicalsCostInput = document.getElementById('chemicals_cost');
+    const locationIdInput = document.getElementById('location_id');
+
+    if (chemicalsCostInput && locationIdInput) {
+        locationIdInput.addEventListener('change', function() {
+            if (this.value) {
+                // Fetch location details to check if chemicals are included
+                fetch(`/api/locations/${this.value}`)
+                    .then(response => response.json())
+                    .then(location => {
+                        if (location.chemicals_included) {
+                            chemicalsCostInput.disabled = true;
+                            chemicalsCostInput.value = '0.00';
+                            chemicalsCostInput.classList.add('opacity-50');
+                        } else {
+                            chemicalsCostInput.disabled = false;
+                            chemicalsCostInput.classList.remove('opacity-50');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching location details:', error);
+                        chemicalsCostInput.disabled = false;
+                        chemicalsCostInput.classList.remove('opacity-50');
+                    });
+            } else {
+                chemicalsCostInput.disabled = true;
+                chemicalsCostInput.value = '';
+                chemicalsCostInput.classList.add('opacity-50');
+            }
+        });
+
+        // Initial check on page load
+        if (locationIdInput.value) {
+            fetch(`/api/locations/${locationIdInput.value}`)
+                .then(response => response.json())
+                .then(location => {
+                    if (location.chemicals_included) {
+                        chemicalsCostInput.disabled = true;
+                        chemicalsCostInput.value = '0.00';
+                        chemicalsCostInput.classList.add('opacity-50');
+                    } else {
+                        chemicalsCostInput.disabled = false;
+                        chemicalsCostInput.classList.remove('opacity-50');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching location details:', error);
+                    chemicalsCostInput.disabled = false;
+                    chemicalsCostInput.classList.remove('opacity-50');
+                });
+        } else {
+            chemicalsCostInput.disabled = true;
+            chemicalsCostInput.classList.add('opacity-50');
+        }
     }
 });
 </script>

@@ -10,12 +10,31 @@
             <h1 class="text-3xl font-bold text-base-content">Edit Service Report</h1>
             <p class="text-base-content/70 mt-2">Update service report details</p>
         </div>
-        <a href="{{ route('reports.index') }}" class="btn btn-outline">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-            </svg>
-            Back to Reports
-        </a>
+        <div class="flex space-x-2">
+            <a href="{{ route('reports.show', $report) }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                View Report
+            </a>
+            <form action="{{ route('reports.destroy', $report) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this report? This action cannot be undone.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white border-red-600">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete Report
+                </button>
+            </form>
+            <a href="{{ route('reports.index') }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Reports
+            </a>
+        </div>
     </div>
 
     <!-- Service Report Form -->
@@ -117,7 +136,7 @@
                             Chemistry Readings
                         </h3>
                         
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                                 <label for="fac" class="block text-sm font-medium text-base-content mb-2">Chlorine</label>
                                 <input type="number" step="0.01" name="fac" id="fac" 
@@ -154,13 +173,6 @@
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
-                        </div>
-
-                        <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('secondary-chemistry').classList.toggle('hidden')">
-                            Secondary Measurements
-                        </button>
-                        
-                        <div id="secondary-chemistry" class="grid grid-cols-2 gap-4 {{ $report->calcium || $report->tds || $report->cya ? '' : 'hidden' }}">
                             <div>
                                 <label for="calcium" class="block text-sm font-medium text-base-content mb-2">Calcium</label>
                                 <input type="number" name="calcium" id="calcium" 
@@ -238,9 +250,9 @@
                         Service Details
                     </h3>
                     
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="space-y-4">
-                            <div>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <div class="flex-1">
                                 <label for="chemicals_used" class="block text-sm font-medium text-base-content mb-2">
                                     Chemicals Used
                                 </label>
@@ -253,9 +265,9 @@
                                 @enderror
                             </div>
                             
-                            <div>
+                            <div class="w-24">
                                 <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
-                                    Chemicals Cost <span class="text-xs text-base-content/60">(strikethrough if flat-rate client)</span>
+                                    Cost
                                 </label>
                                 <input type="number" step="0.01" name="chemicals_cost" id="chemicals_cost" 
                                        value="{{ old('chemicals_cost', $report->chemicals_cost) }}" 
@@ -266,8 +278,8 @@
                             </div>
                         </div>
                         
-                        <div class="space-y-4">
-                            <div>
+                        <div class="flex gap-4">
+                            <div class="flex-1">
                                 <label for="other_services" class="block text-sm font-medium text-base-content mb-2">
                                     Other Services
                                 </label>
@@ -280,9 +292,9 @@
                                 @enderror
                             </div>
                             
-                            <div>
+                            <div class="w-24">
                                 <label for="other_services_cost" class="block text-sm font-medium text-base-content mb-2">
-                                    Other Costs
+                                    Cost
                                 </label>
                                 <input type="number" step="0.01" name="other_services_cost" id="other_services_cost" 
                                        value="{{ old('other_services_cost', $report->other_services_cost) }}" 
