@@ -217,6 +217,7 @@ class LocationController extends Controller
             'city' => $location->city,
             'state' => $location->state,
             'zip_code' => $location->zip_code,
+            'chemicals_included' => $location->chemicals_included,
             'client' => [
                 'id' => $location->client->id,
                 'full_name' => $location->client->full_name,

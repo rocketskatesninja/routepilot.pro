@@ -72,26 +72,27 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-base-content mb-2">
-                            Email <span class="text-error">*</span>
-                        </label>
-                        <input type="email" name="email" id="email" value="{{ old('email', $client->email) }}" 
-                               class="input input-bordered w-full @error('email') input-error @enderror" required>
-                        @error('email')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-base-content mb-2">
-                            Phone Number
-                        </label>
-                        <input type="tel" name="phone" id="phone" value="{{ old('phone', $client->phone) }}" 
-                               class="input input-bordered w-full @error('phone') input-error @enderror">
-                        @error('phone')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-base-content mb-2">
+                                Email <span class="text-error">*</span>
+                            </label>
+                            <input type="email" name="email" id="email" value="{{ old('email', $client->email) }}" 
+                                   class="input input-bordered w-full @error('email') input-error @enderror" required>
+                            @error('email')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-base-content mb-2">
+                                Phone Number
+                            </label>
+                            <input type="tel" name="phone" id="phone" value="{{ old('phone', $client->phone) }}" 
+                                   class="input input-bordered w-full @error('phone') input-error @enderror">
+                            @error('phone')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
 
                     <div>

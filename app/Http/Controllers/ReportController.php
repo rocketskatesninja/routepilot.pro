@@ -149,9 +149,9 @@ class ReportController extends Controller
             'checked_fountain' => 'nullable|boolean',
             'checked_heater' => 'nullable|boolean',
             // Chemicals/services
-            'chemicals_used' => 'nullable|array',
+            'chemicals_used' => 'nullable|string',
             'chemicals_cost' => 'nullable|numeric',
-            'other_services' => 'nullable|array',
+            'other_services' => 'nullable|string',
             'other_services_cost' => 'nullable|numeric',
             'total_cost' => 'nullable|numeric',
             // Notes/photos
@@ -163,6 +163,14 @@ class ReportController extends Controller
         $validated['technician_id'] = $user->id;
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
+        
+        // Convert single string values to arrays
+        if (!empty($validated['chemicals_used']) && is_string($validated['chemicals_used'])) {
+            $validated['chemicals_used'] = [$validated['chemicals_used']];
+        }
+        if (!empty($validated['other_services']) && is_string($validated['other_services'])) {
+            $validated['other_services'] = [$validated['other_services']];
+        }
         
         // Handle NULL values for cost fields
         $validated['chemicals_cost'] = $validated['chemicals_cost'] ?? 0.00;
@@ -188,6 +196,11 @@ class ReportController extends Controller
         ] as $field) {
             $validated[$field] = $request->has($field);
         }
+
+        // Get rate per visit from location or use 0
+        $ratePerVisit = \App\Models\Location::find($validated['location_id'])->rate_per_visit ?? 0.00;
+        $validated['total_cost'] = ($ratePerVisit ?? 0) + ($validated['chemicals_cost'] ?? 0) + ($validated['other_services_cost'] ?? 0);
+
         $report = Report::create($validated);
         
         // Generate invoice if requested
@@ -273,9 +286,9 @@ class ReportController extends Controller
             'checked_fountain' => 'nullable|boolean',
             'checked_heater' => 'nullable|boolean',
             // Chemicals/services
-            'chemicals_used' => 'nullable|array',
+            'chemicals_used' => 'nullable|string',
             'chemicals_cost' => 'nullable|numeric',
-            'other_services' => 'nullable|array',
+            'other_services' => 'nullable|string',
             'other_services_cost' => 'nullable|numeric',
             'total_cost' => 'nullable|numeric',
             // Notes/photos
@@ -287,6 +300,14 @@ class ReportController extends Controller
 
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
+        
+        // Convert single string values to arrays
+        if (!empty($validated['chemicals_used']) && is_string($validated['chemicals_used'])) {
+            $validated['chemicals_used'] = [$validated['chemicals_used']];
+        }
+        if (!empty($validated['other_services']) && is_string($validated['other_services'])) {
+            $validated['other_services'] = [$validated['other_services']];
+        }
         
         // Handle NULL values for cost fields
         $validated['chemicals_cost'] = $validated['chemicals_cost'] ?? 0.00;
@@ -316,6 +337,10 @@ class ReportController extends Controller
         ] as $field) {
             $validated[$field] = $request->has($field);
         }
+
+        // Get rate per visit from location or use 0
+        $ratePerVisit = \App\Models\Location::find($validated['location_id'])->rate_per_visit ?? 0.00;
+        $validated['total_cost'] = ($ratePerVisit ?? 0) + ($validated['chemicals_cost'] ?? 0) + ($validated['other_services_cost'] ?? 0);
 
         $report->update($validated);
         
@@ -361,11 +386,11 @@ class ReportController extends Controller
         $invoiceNumber = $lastInvoice ? $lastInvoice->id + 1 : 1;
         $formattedInvoiceNumber = 'INV-' . str_pad($invoiceNumber, 6, '0', STR_PAD_LEFT);
 
-        // Calculate total amount
-        $totalAmount = $report->total_cost ?? 0.00;
-
         // Get rate per visit from location or use 0
         $ratePerVisit = $report->location->rate_per_visit ?? 0.00;
+
+        // Calculate total amount correctly
+        $totalAmount = ($ratePerVisit ?? 0) + ($report->chemicals_cost ?? 0) + ($report->other_services_cost ?? 0);
 
         // Create the invoice
         $invoice = \App\Models\Invoice::create([
