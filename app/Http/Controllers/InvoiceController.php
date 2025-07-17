@@ -116,11 +116,7 @@ class InvoiceController extends Controller
         ]);
 
         // Calculate total amount
-        $total = $validated['rate_per_visit'];
-        if ($validated['chemicals_included']) {
-            $total += $validated['chemicals_cost'] ?? 0;
-        }
-        $total += $validated['extras_cost'] ?? 0;
+        $total = ($validated['rate_per_visit'] ?? 0) + ($validated['chemicals_cost'] ?? 0) + ($validated['extras_cost'] ?? 0);
 
         // Generate invoice number
         $lastInvoice = Invoice::orderBy('id', 'desc')->first();
@@ -192,11 +188,7 @@ class InvoiceController extends Controller
         ]);
 
         // Calculate total amount
-        $total = $validated['rate_per_visit'];
-        if ($validated['chemicals_included']) {
-            $total += $validated['chemicals_cost'] ?? 0;
-        }
-        $total += $validated['extras_cost'] ?? 0;
+        $total = ($validated['rate_per_visit'] ?? 0) + ($validated['chemicals_cost'] ?? 0) + ($validated['extras_cost'] ?? 0);
 
         // Update paid_at if status changed to paid
         if ($validated['status'] === 'paid' && $invoice->status !== 'paid') {
