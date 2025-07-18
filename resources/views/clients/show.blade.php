@@ -46,20 +46,12 @@
                     @endif
                 </div>
 
-                <div class="text-center mb-6">
-                    <h2 class="text-xl font-semibold text-base-content">{{ $client->full_name }}</h2>
-                    <p class="text-base-content/70">{{ $client->role }}</p>
-                </div>
 
-                <!-- Status Badges -->
+
+                <!-- Status Badge -->
                 <div class="flex flex-wrap gap-2 mb-6">
-                    @if($client->is_active)
-                        <div class="badge badge-success">Active</div>
-                    @else
-                        <div class="badge badge-error">Inactive</div>
-                    @endif
-                    <div class="badge badge-{{ $client->status == 'active' ? 'success' : 'error' }}">
-                        {{ ucfirst($client->status) }}
+                    <div class="badge badge-{{ $client->is_active ? 'success' : 'error' }}">
+                        {{ $client->is_active ? 'Active' : 'Inactive' }}
                     </div>
                 </div>
 

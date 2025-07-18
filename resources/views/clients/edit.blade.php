@@ -215,20 +215,7 @@
                             @enderror
                         </div>
 
-                        <div>
-                            <label for="service_reports" class="block text-sm font-medium text-base-content mb-2">
-                                Service Reports <span class="text-error">*</span>
-                            </label>
-                            <select name="service_reports" id="service_reports" class="select select-bordered w-full @error('service_reports') select-error @enderror" required>
-                                <option value="">Select Report Type</option>
-                                <option value="full" {{ old('service_reports', $client->service_reports) == 'full' ? 'selected' : '' }}>Full Reports</option>
-                                <option value="invoice_only" {{ old('service_reports', $client->service_reports) == 'invoice_only' ? 'selected' : '' }}>Invoice Only</option>
-                                <option value="none" {{ old('service_reports', $client->service_reports) == 'none' ? 'selected' : '' }}>No Reports</option>
-                            </select>
-                            @error('service_reports')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
+
                     </div>
 
                     <!-- Notification Preferences -->
@@ -254,9 +241,16 @@
                             </div>
 
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
-                                <span class="text-base-content">Active Account</span>
-                                <input type="checkbox" name="is_active" value="1" 
-                                       class="checkbox checkbox-primary" {{ old('is_active', $client->is_active) ? 'checked' : '' }}>
+                                <span class="text-base-content">Service Reports</span>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" name="service_reports_enabled" id="service_reports_enabled" value="1" 
+                                           class="checkbox checkbox-primary" {{ old('service_reports_enabled', $client->service_reports !== 'none') ? 'checked' : '' }}>
+                                    <select name="service_reports" id="service_reports" class="select select-bordered select-sm">
+                                        <option value="full" {{ old('service_reports', $client->service_reports) == 'full' ? 'selected' : '' }}>Full Reports</option>
+                                        <option value="invoice_only" {{ old('service_reports', $client->service_reports) == 'invoice_only' ? 'selected' : '' }}>Invoice Only</option>
+                                        <option value="services_only" {{ old('service_reports', $client->service_reports) == 'services_only' ? 'selected' : '' }}>Services Only</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -311,6 +305,25 @@
                 document.getElementById('deleteForm').submit();
             }
         }
+
+        // Service reports checkbox behavior
+        document.addEventListener('DOMContentLoaded', function() {
+            const serviceReportsCheckbox = document.getElementById('service_reports_enabled');
+            const serviceReportsSelect = document.getElementById('service_reports');
+
+            function toggleServiceReports() {
+                serviceReportsSelect.disabled = !serviceReportsCheckbox.checked;
+                if (!serviceReportsCheckbox.checked) {
+                    serviceReportsSelect.value = '';
+                }
+            }
+
+            // Initial state
+            toggleServiceReports();
+
+            // Event listener
+            serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
+        });
     </script>
 </div>
 @endsection 

@@ -5,66 +5,54 @@ namespace App\Http\Controllers;
 use App\Models\Report;
 use App\Models\Client;
 use App\Models\Location;
+use App\Http\Requests\ReportRequest;
+use App\Services\PhotoUploadService;
+use App\Traits\HasSearchable;
+use App\Traits\HasSortable;
+use App\Traits\HasExportable;
+use App\Constants\AppConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class ReportController extends Controller
 {
+    use HasSearchable, HasSortable, HasExportable;
+
+    protected $photoUploadService;
+
+    public function __construct(PhotoUploadService $photoUploadService)
+    {
+        $this->photoUploadService = $photoUploadService;
+    }
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         $user = Auth::user();
-        if ($user->role === 'admin' || $user->role === 'technician') {
+        if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
             $query = Report::with(['client', 'location', 'technician']);
 
-            // Search functionality
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->whereHas('client', function ($clientQuery) use ($search) {
-                        $clientQuery->where('first_name', 'like', "%{$search}%")
-                                   ->orWhere('last_name', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('location', function ($locationQuery) use ($search) {
-                        $locationQuery->where('nickname', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('technician', function ($technicianQuery) use ($search) {
-                        $technicianQuery->where('first_name', 'like', "%{$search}%")
-                                       ->orWhere('last_name', 'like', "%{$search}%");
-                    });
-                });
-            }
+            // Apply search
+            $searchTerm = $this->getSearchTerm($request);
+            $this->applySearch($query, ['client.first_name', 'client.last_name', 'location.nickname', 'technician.first_name', 'technician.last_name'], $searchTerm);
 
-            // Filter by date range
-            if ($request->filled('date_from')) {
-                $query->where('service_date', '>=', $request->date_from);
-            }
-            if ($request->filled('date_to')) {
-                $query->where('service_date', '<=', $request->date_to);
-            }
+            // Apply filters
+            $this->applyFilters($query, $request, [
+                'date_from' => ['column' => 'service_date', 'operator' => '>='],
+                'date_to' => ['column' => 'service_date', 'operator' => '<='],
+            ]);
 
-            // Sort functionality
-            $sortBy = $request->get('sort_by', 'date_desc');
-            
-            switch ($sortBy) {
-                case 'date_desc':
-                    $query->orderBy('service_date', 'desc');
-                    break;
-                case 'date_asc':
-                    $query->orderBy('service_date', 'asc');
-                    break;
-                case 'status':
-                    $query->orderBy('created_at', 'desc');
-                    break;
-                default:
-                    $query->orderBy('service_date', 'desc');
-                    break;
-            }
+            // Apply sorting
+            $sortOptions = [
+                'date_desc' => ['column' => 'service_date', 'direction' => 'desc'],
+                'date_asc' => ['column' => 'service_date', 'direction' => 'asc'],
+                'status' => ['column' => 'created_at', 'direction' => 'desc'],
+            ];
+            $this->applySorting($query, $sortOptions, 'service_date');
 
-            $reports = $query->paginate(15);
+            $reports = $query->paginate(AppConstants::DEFAULT_PAGINATION);
             $clients = \App\Models\Client::orderBy('last_name')->get();
             $locations = \App\Models\Location::orderBy('nickname')->get();
             $technicians = \App\Models\User::where('role', 'technician')->orderBy('last_name')->get();
@@ -109,58 +97,17 @@ class ReportController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ReportRequest $request)
     {
         $user = Auth::user();
-        if (!($user->role === 'admin' || $user->role === 'technician')) {
+        if (!($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN)) {
             abort(403);
         }
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'location_id' => 'required|exists:locations,id',
-            'service_date' => 'required|date',
-            'service_time' => 'required',
-            'pool_gallons' => 'nullable|integer',
-            // Chemistry
-            'fac' => 'nullable|numeric',
-            'cc' => 'nullable|numeric',
-            'ph' => 'nullable|numeric',
-            'alkalinity' => 'nullable|integer',
-            'calcium' => 'nullable|integer',
-            'salt' => 'nullable|integer',
-            'cya' => 'nullable|integer',
-            'tds' => 'nullable|integer',
-            // Cleaning
-            'vacuumed' => 'nullable|boolean',
-            'brushed' => 'nullable|boolean',
-            'skimmed' => 'nullable|boolean',
-            'cleaned_skimmer_basket' => 'nullable|boolean',
-            'cleaned_pump_basket' => 'nullable|boolean',
-            'cleaned_pool_deck' => 'nullable|boolean',
-            // Maintenance
-            'cleaned_filter_cartridge' => 'nullable|boolean',
-            'backwashed_sand_filter' => 'nullable|boolean',
-            'adjusted_water_level' => 'nullable|boolean',
-            'adjusted_auto_fill' => 'nullable|boolean',
-            'adjusted_pump_timer' => 'nullable|boolean',
-            'adjusted_heater' => 'nullable|boolean',
-            'checked_cover' => 'nullable|boolean',
-            'checked_lights' => 'nullable|boolean',
-            'checked_fountain' => 'nullable|boolean',
-            'checked_heater' => 'nullable|boolean',
-            // Chemicals/services
-            'chemicals_used' => 'nullable|string',
-            'chemicals_cost' => 'nullable|numeric',
-            'other_services' => 'nullable|string',
-            'other_services_cost' => 'nullable|numeric',
-            'total_cost' => 'nullable|numeric',
-            // Notes/photos
-            'notes_to_client' => 'nullable|string',
-            'notes_to_admin' => 'nullable|string',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        
+        $validated = $request->validated();
         $validated['technician_id'] = $user->id;
+        
+        // Handle arrays
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
         
@@ -178,16 +125,10 @@ class ReportController extends Controller
         $validated['total_cost'] = $validated['total_cost'] ?? 0.00;
         
         // Handle photo uploads
-        if ($request->hasFile('photos')) {
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('reports/photos', 'public');
-                $photoPaths[] = $path;
-            }
-            $validated['photos'] = $photoPaths;
-        } else {
-            $validated['photos'] = [];
-        }
+        $validated['photos'] = $this->photoUploadService->handlePhotoUploads(
+            $request, 
+            'reports/photos'
+        );
         
         // Checkbox booleans
         foreach ([
@@ -243,61 +184,18 @@ class ReportController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(ReportRequest $request, $id)
     {
         $user = Auth::user();
-        if (!($user->role === 'admin' || $user->role === 'technician')) {
+        if (!($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN)) {
             abort(403);
         }
 
         $report = Report::findOrFail($id);
         
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'location_id' => 'required|exists:locations,id',
-            'service_date' => 'required|date',
-            'service_time' => 'required',
-            'pool_gallons' => 'nullable|integer',
-            // Chemistry
-            'fac' => 'nullable|numeric',
-            'cc' => 'nullable|numeric',
-            'ph' => 'nullable|numeric',
-            'alkalinity' => 'nullable|integer',
-            'calcium' => 'nullable|integer',
-            'salt' => 'nullable|integer',
-            'cya' => 'nullable|integer',
-            'tds' => 'nullable|integer',
-            // Cleaning
-            'vacuumed' => 'nullable|boolean',
-            'brushed' => 'nullable|boolean',
-            'skimmed' => 'nullable|boolean',
-            'cleaned_skimmer_basket' => 'nullable|boolean',
-            'cleaned_pump_basket' => 'nullable|boolean',
-            'cleaned_pool_deck' => 'nullable|boolean',
-            // Maintenance
-            'cleaned_filter_cartridge' => 'nullable|boolean',
-            'backwashed_sand_filter' => 'nullable|boolean',
-            'adjusted_water_level' => 'nullable|boolean',
-            'adjusted_auto_fill' => 'nullable|boolean',
-            'adjusted_pump_timer' => 'nullable|boolean',
-            'adjusted_heater' => 'nullable|boolean',
-            'checked_cover' => 'nullable|boolean',
-            'checked_lights' => 'nullable|boolean',
-            'checked_fountain' => 'nullable|boolean',
-            'checked_heater' => 'nullable|boolean',
-            // Chemicals/services
-            'chemicals_used' => 'nullable|string',
-            'chemicals_cost' => 'nullable|numeric',
-            'other_services' => 'nullable|string',
-            'other_services_cost' => 'nullable|numeric',
-            'total_cost' => 'nullable|numeric',
-            // Notes/photos
-            'notes_to_client' => 'nullable|string',
-            'notes_to_admin' => 'nullable|string',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        $validated = $request->validated();
 
+        // Handle arrays
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
         $validated['other_services'] = $request->input('other_services', []);
         
@@ -315,20 +213,11 @@ class ReportController extends Controller
         $validated['total_cost'] = $validated['total_cost'] ?? 0.00;
         
         // Handle photo uploads
-        if ($request->hasFile('photos')) {
-            // Delete old photos from storage
-            if ($report->photos) {
-                foreach ($report->photos as $oldPhoto) {
-                    \Storage::disk('public')->delete($oldPhoto);
-                }
-            }
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('reports/photos', 'public');
-                $photoPaths[] = $path;
-            }
-            $validated['photos'] = $photoPaths;
-        }
+        $validated['photos'] = $this->photoUploadService->handlePhotoUploads(
+            $request, 
+            'reports/photos',
+            $report->photos ?? []
+        );
         
         // Checkbox booleans
         foreach ([

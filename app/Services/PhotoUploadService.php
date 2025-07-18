@@ -2,95 +2,68 @@
 
 namespace App\Services;
 
-use Illuminate\Http\UploadedFile;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class PhotoUploadService
 {
     /**
-     * Upload a single photo
+     * Handle photo uploads for a request.
      */
-    public static function uploadPhoto(UploadedFile $file, string $directory): string
+    public function handlePhotoUploads(Request $request, string $directory, array $oldPhotos = []): array
     {
-        return $file->store($directory, 'public');
-    }
-
-    /**
-     * Upload multiple photos
-     */
-    public static function uploadPhotos(array $files, string $directory): array
-    {
-        $paths = [];
-        foreach ($files as $file) {
-            $paths[] = $file->store($directory, 'public');
+        if (!$request->hasFile('photos')) {
+            return $oldPhotos;
         }
-        return $paths;
-    }
 
-    /**
-     * Delete a photo from storage
-     */
-    public static function deletePhoto(?string $path): bool
-    {
-        if ($path) {
-            return Storage::disk('public')->delete($path);
+        // Delete old photos if updating
+        if (!empty($oldPhotos)) {
+            $this->deletePhotos($oldPhotos);
         }
-        return false;
-    }
 
-    /**
-     * Delete multiple photos from storage
-     */
-    public static function deletePhotos(?array $paths): bool
-    {
-        if ($paths) {
-            foreach ($paths as $path) {
-                Storage::disk('public')->delete($path);
-            }
-            return true;
+        $photoPaths = [];
+        foreach ($request->file('photos') as $photo) {
+            $path = $photo->store($directory, 'public');
+            $photoPaths[] = $path;
         }
-        return false;
+
+        return $photoPaths;
     }
 
     /**
-     * Get the storage URL for a photo
+     * Handle single photo upload.
      */
-    public static function getPhotoUrl(?string $path): ?string
+    public function handleSinglePhotoUpload(Request $request, string $directory, ?string $oldPhoto = null): ?string
     {
-        return $path ? Storage::url($path) : null;
-    }
-
-    /**
-     * Get storage URLs for multiple photos
-     */
-    public static function getPhotoUrls(?array $paths): array
-    {
-        if (!$paths) {
-            return [];
+        if (!$request->hasFile('profile_photo')) {
+            return $oldPhoto;
         }
-        
-        return array_map(function ($path) {
-            return Storage::url($path);
-        }, $paths);
+
+        // Delete old photo if exists
+        if ($oldPhoto) {
+            $this->deletePhoto($oldPhoto);
+        }
+
+        return $request->file('profile_photo')->store($directory, 'public');
     }
 
     /**
-     * Generate a unique filename
+     * Delete multiple photos from storage.
      */
-    public static function generateFilename(UploadedFile $file): string
+    private function deletePhotos(array $photos): void
     {
-        return Str::uuid() . '.' . $file->getClientOriginalExtension();
+        foreach ($photos as $photo) {
+            $this->deletePhoto($photo);
+        }
     }
 
     /**
-     * Validate photo file
+     * Delete a single photo from storage.
      */
-    public static function validatePhoto(UploadedFile $file): bool
+    private function deletePhoto(?string $photo): void
     {
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
-        $maxSize = 2 * 1024 * 1024; // 2MB
-
-        return in_array($file->getMimeType(), $allowedMimes) && $file->getSize() <= $maxSize;
+        if ($photo) {
+            Storage::disk('public')->delete($photo);
+        }
     }
 } 

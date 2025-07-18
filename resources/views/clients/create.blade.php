@@ -166,49 +166,10 @@
                             </label>
                             <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
                                 <option value="">Select Status</option>
-                                <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
+                                <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>
                             @error('status')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="role" class="block text-sm font-medium text-base-content mb-2">
-                                Role <span class="text-error">*</span>
-                            </label>
-                            <select name="role" id="role" class="select select-bordered w-full @error('role') select-error @enderror" required>
-                                <option value="">Select Role</option>
-                                <option value="client" {{ old('role') == 'client' ? 'selected' : '' }}>Client</option>
-                                <option value="tech" {{ old('role') == 'tech' ? 'selected' : '' }}>Technician</option>
-                                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                            </select>
-                            @error('role')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="service_reports" class="block text-sm font-medium text-base-content mb-2">
-                                Service Reports <span class="text-error">*</span>
-                            </label>
-                            <select name="service_reports" id="service_reports" class="select select-bordered w-full @error('service_reports') select-error @enderror" required>
-                                <option value="">Select Report Type</option>
-                                <option value="full" {{ old('service_reports') == 'full' ? 'selected' : '' }}>Full Reports</option>
-                                <option value="invoice_only" {{ old('service_reports') == 'invoice_only' ? 'selected' : '' }}>Invoice Only</option>
-                                <option value="none" {{ old('service_reports') == 'none' ? 'selected' : '' }}>No Reports</option>
-                            </select>
-                            @error('service_reports')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-                        <div>
-                            <label for="password" class="block text-sm font-medium text-base-content mb-2">
-                                Password <span class="text-error">*</span>
-                            </label>
-                            <input type="text" name="password" id="password" 
-                                   class="input input-bordered w-full @error('password') input-error @enderror" required>
-                            <button type="button" id="generate-password" class="btn btn-secondary mt-2">Generate</button>
-                            @error('password')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
                         </div>
@@ -234,9 +195,16 @@
                                        class="checkbox checkbox-primary" {{ old('monthly_billing', true) ? 'checked' : '' }}>
                             </div>
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
-                                <span class="text-base-content">Active Account</span>
-                                <input type="checkbox" name="is_active" value="1" 
-                                       class="checkbox checkbox-primary" {{ old('is_active', true) ? 'checked' : '' }}>
+                                <span class="text-base-content">Service Reports</span>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" name="service_reports_enabled" id="service_reports_enabled" value="1" 
+                                           class="checkbox checkbox-primary" {{ old('service_reports_enabled', true) ? 'checked' : '' }}>
+                                    <select name="service_reports" id="service_reports" class="select select-bordered select-sm">
+                                        <option value="full" {{ old('service_reports', 'full') == 'full' ? 'selected' : '' }}>Full Reports</option>
+                                        <option value="invoice_only" {{ old('service_reports', 'full') == 'invoice_only' ? 'selected' : '' }}>Invoice Only</option>
+                                        <option value="services_only" {{ old('service_reports', 'full') == 'services_only' ? 'selected' : '' }}>Services Only</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -264,9 +232,13 @@
 
             <!-- Form Actions -->
             <div class="mt-8 flex justify-between items-center">
-                <div>
+                <div class="flex space-x-8">
                     <label class="inline-flex items-center">
-                        <input type="checkbox" name="send_welcome_email" class="checkbox checkbox-primary">
+                        <input type="checkbox" name="create_first_location" class="checkbox checkbox-primary" checked>
+                        <span class="ml-2">Use this address for the first location</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="send_welcome_email" class="checkbox checkbox-primary" checked>
                         <span class="ml-2">Send welcome email with login information</span>
                     </label>
                 </div>
@@ -281,16 +253,23 @@
                 </div>
             </div>
             <script>
-            document.getElementById('generate-password').addEventListener('click', function() {
-                function randomPassword(length = 12) {
-                    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
-                    let pass = '';
-                    for (let i = 0; i < length; i++) {
-                        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            // Service reports checkbox behavior
+            document.addEventListener('DOMContentLoaded', function() {
+                const serviceReportsCheckbox = document.getElementById('service_reports_enabled');
+                const serviceReportsSelect = document.getElementById('service_reports');
+
+                function toggleServiceReports() {
+                    serviceReportsSelect.disabled = !serviceReportsCheckbox.checked;
+                    if (!serviceReportsCheckbox.checked) {
+                        serviceReportsSelect.value = '';
                     }
-                    return pass;
                 }
-                document.getElementById('password').value = randomPassword();
+
+                // Initial state
+                toggleServiceReports();
+
+                // Event listener
+                serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
             });
             </script>
         </form>

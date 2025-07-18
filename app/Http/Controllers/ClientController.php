@@ -4,12 +4,25 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use App\Models\Activity;
+use App\Http\Requests\ClientRequest;
+use App\Services\PhotoUploadService;
+use App\Traits\HasSearchable;
+use App\Traits\HasSortable;
+use App\Traits\HasExportable;
+use App\Constants\AppConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
+    use HasSearchable, HasSortable, HasExportable;
+
+    protected $photoUploadService;
+
+    public function __construct(PhotoUploadService $photoUploadService)
+    {
+        $this->photoUploadService = $photoUploadService;
+    }
     /**
      * Display a listing of clients.
      */
@@ -17,49 +30,26 @@ class ClientController extends Controller
     {
         $query = Client::query();
 
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%{$search}%")
-                  ->orWhere('last_name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-            });
-        }
+        // Apply search
+        $searchTerm = $this->getSearchTerm($request);
+        $this->applySearch($query, ['first_name', 'last_name', 'email', 'phone'], $searchTerm);
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+        // Apply filters
+        $this->applyFilters($query, $request, [
+            'status' => ['type' => 'string'],
+            'active' => ['type' => 'boolean', 'column' => 'is_active'],
+        ]);
 
-        // Filter by active status
-        if ($request->filled('active')) {
-            $query->where('is_active', $request->boolean('active'));
-        }
+        // Apply sorting
+        $sortOptions = [
+            'date_desc' => ['column' => 'created_at', 'direction' => 'desc'],
+            'date_asc' => ['column' => 'created_at', 'direction' => 'asc'],
+            'status' => ['column' => 'status', 'direction' => 'asc'],
+            'name' => ['column' => 'last_name', 'direction' => 'asc'],
+        ];
+        $this->applySorting($query, $sortOptions, 'created_at');
 
-        // Sort functionality
-        $sortBy = $request->get('sort_by', 'date_desc');
-        
-        switch ($sortBy) {
-            case 'date_desc':
-                $query->orderBy('created_at', 'desc');
-                break;
-            case 'date_asc':
-                $query->orderBy('created_at', 'asc');
-                break;
-            case 'status':
-                $query->orderBy('status', 'asc');
-                break;
-            case 'name':
-                $query->orderBy('last_name', 'asc');
-                break;
-            default:
-                $query->orderBy('created_at', 'desc');
-                break;
-        }
-
-        $clients = $query->paginate(15);
+        $clients = $query->paginate(AppConstants::DEFAULT_PAGINATION);
 
         // Get statistics
         $stats = [
@@ -82,37 +72,38 @@ class ClientController extends Controller
     /**
      * Store a newly created client in storage.
      */
-    public function store(Request $request)
+    public function store(ClientRequest $request)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:clients,email',
-            'phone' => 'nullable|string|max:20',
-            'street_address' => 'nullable|string|max:255',
-            'street_address_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'state' => 'nullable|string|max:2',
-            'zip_code' => 'nullable|string|max:10',
-            'notes_by_client' => 'nullable|string',
-            'notes_by_admin' => 'nullable|string',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'role' => ['required', Rule::in(['client', 'tech', 'admin'])],
-            'appointment_reminders' => 'boolean',
-            'mailing_list' => 'boolean',
-            'monthly_billing' => 'boolean',
-            'service_reports' => ['required', Rule::in(['full', 'invoice_only', 'none'])],
-            'status' => ['required', Rule::in(['active', 'inactive'])],
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
+
+        // Handle service reports logic
+        if (!$validated['service_reports_enabled']) {
+            $validated['service_reports'] = 'none';
+        }
+        unset($validated['service_reports_enabled']);
 
         // Handle profile photo upload
-        if ($request->hasFile('profile_photo')) {
-            $path = $request->file('profile_photo')->store('clients/photos', 'public');
-            $validated['profile_photo'] = $path;
-        }
+        $validated['profile_photo'] = $this->photoUploadService->handleSinglePhotoUpload(
+            $request, 
+            'clients/photos'
+        );
 
         $client = Client::create($validated);
+
+        // If requested, create a location using the client's address
+        if ($request->has('create_first_location')) {
+            $locationData = [
+                'client_id' => $client->id,
+                'nickname' => $client->street_address,
+                'street_address' => $client->street_address,
+                'street_address_2' => $client->street_address_2,
+                'city' => $client->city,
+                'state' => $client->state,
+                'zip_code' => $client->zip_code,
+                // All other fields will be null by default
+            ];
+            \App\Models\Location::create($locationData);
+        }
 
         // Log activity
         Activity::log('create', "Created new client: {$client->full_name}", auth()->user(), $client);
@@ -149,39 +140,22 @@ class ClientController extends Controller
     /**
      * Update the specified client in storage.
      */
-    public function update(Request $request, Client $client)
+    public function update(ClientRequest $request, Client $client)
     {
-        $validated = $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('clients')->ignore($client->id)],
-            'phone' => 'nullable|string|max:20',
-            'street_address' => 'nullable|string|max:255',
-            'street_address_2' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'state' => 'nullable|string|max:2',
-            'zip_code' => 'nullable|string|max:10',
-            'notes_by_client' => 'nullable|string',
-            'notes_by_admin' => 'nullable|string',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'role' => ['required', Rule::in(['client', 'tech', 'admin'])],
-            'appointment_reminders' => 'boolean',
-            'mailing_list' => 'boolean',
-            'monthly_billing' => 'boolean',
-            'service_reports' => ['required', Rule::in(['full', 'invoice_only', 'none'])],
-            'status' => ['required', Rule::in(['active', 'inactive'])],
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
+
+        // Handle service reports logic
+        if (!$validated['service_reports_enabled']) {
+            $validated['service_reports'] = 'none';
+        }
+        unset($validated['service_reports_enabled']);
 
         // Handle profile photo upload
-        if ($request->hasFile('profile_photo')) {
-            // Delete old photo if exists
-            if ($client->profile_photo) {
-                Storage::disk('public')->delete($client->profile_photo);
-            }
-            $path = $request->file('profile_photo')->store('clients/photos', 'public');
-            $validated['profile_photo'] = $path;
-        }
+        $validated['profile_photo'] = $this->photoUploadService->handleSinglePhotoUpload(
+            $request, 
+            'clients/photos',
+            $client->profile_photo
+        );
 
         $client->update($validated);
 
@@ -225,54 +199,37 @@ class ClientController extends Controller
         $query = Client::query();
 
         // Apply filters
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('active')) {
-            $query->where('is_active', $request->boolean('active'));
-        }
+        $this->applyFilters($query, $request, [
+            'status' => ['type' => 'string'],
+            'active' => ['type' => 'boolean', 'column' => 'is_active'],
+        ]);
 
         $clients = $query->get();
 
-        $filename = 'clients_' . now()->format('Y-m-d_H-i-s') . '.csv';
-        
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename={$filename}",
+            'ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip',
+            'Status', 'Active', 'Role', 'Created At'
         ];
 
-        $callback = function() use ($clients) {
-            $file = fopen('php://output', 'w');
-            
-            // CSV headers
-            fputcsv($file, [
-                'ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Address', 'City', 'State', 'Zip',
-                'Status', 'Active', 'Role', 'Created At'
-            ]);
+        $data = $clients->map(function ($client) {
+            return [
+                $client->id,
+                $client->first_name,
+                $client->last_name,
+                $client->email,
+                $client->phone,
+                $client->street_address,
+                $client->city,
+                $client->state,
+                $client->zip_code,
+                $client->status,
+                $client->is_active ? 'Yes' : 'No',
+                $client->role,
+                $client->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
 
-            foreach ($clients as $client) {
-                fputcsv($file, [
-                    $client->id,
-                    $client->first_name,
-                    $client->last_name,
-                    $client->email,
-                    $client->phone,
-                    $client->street_address,
-                    $client->city,
-                    $client->state,
-                    $client->zip_code,
-                    $client->status,
-                    $client->is_active ? 'Yes' : 'No',
-                    $client->role,
-                    $client->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $this->exportToCsv($data, $headers, 'clients');
     }
 
     /**
@@ -295,17 +252,17 @@ class ClientController extends Controller
     {
         $query = $request->get('q', '');
         
-        if (strlen($query) < 2) {
+        if (strlen($query) < 1) {
             return response()->json([]);
         }
-
+        $queryLower = strtolower($query);
         $clients = Client::where('is_active', true)
-            ->where(function ($q) use ($query) {
-                $q->where('first_name', 'like', "%{$query}%")
-                  ->orWhere('last_name', 'like', "%{$query}%")
-                  ->orWhere('email', 'like', "%{$query}%");
+            ->where(function ($q) use ($queryLower) {
+                $q->whereRaw('LOWER(first_name) LIKE ?', ["{$queryLower}%"])
+                  ->orWhereRaw('LOWER(last_name) LIKE ?', ["{$queryLower}%"])
+                  ->orWhereRaw('LOWER(email) LIKE ?', ["{$queryLower}%"]);
             })
-            ->limit(10)
+            ->limit(AppConstants::SEARCH_RESULT_LIMIT)
             ->get(['id', 'first_name', 'last_name', 'email'])
             ->map(function ($client) {
                 return [

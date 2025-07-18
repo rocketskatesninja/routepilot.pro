@@ -6,12 +6,25 @@ use App\Models\Location;
 use App\Models\Client;
 use App\Models\User;
 use App\Models\Activity;
+use App\Http\Requests\LocationRequest;
+use App\Services\PhotoUploadService;
+use App\Traits\HasSearchable;
+use App\Traits\HasSortable;
+use App\Traits\HasExportable;
+use App\Constants\AppConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 
 class LocationController extends Controller
 {
+    use HasSearchable, HasSortable, HasExportable;
+
+    protected $photoUploadService;
+
+    public function __construct(PhotoUploadService $photoUploadService)
+    {
+        $this->photoUploadService = $photoUploadService;
+    }
     /**
      * Display a listing of locations.
      */
@@ -19,65 +32,35 @@ class LocationController extends Controller
     {
         $user = auth()->user();
         
-        if ($user->role === 'admin' || $user->role === 'technician') {
+        if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
             $query = Location::with(['client', 'assignedTechnician']);
-        } elseif ($user->role === 'client') {
+        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
             $query = $user->locations()->with(['client', 'assignedTechnician']);
         } else {
             abort(403);
         }
 
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('nickname', 'like', "%{$search}%")
-                  ->orWhere('street_address', 'like', "%{$search}%")
-                  ->orWhere('city', 'like', "%{$search}%")
-                  ->orWhereHas('client', function ($clientQuery) use ($search) {
-                      $clientQuery->where('first_name', 'like', "%{$search}%")
-                                 ->orWhere('last_name', 'like', "%{$search}%");
-                  });
-            });
-        }
+        // Apply search
+        $searchTerm = $this->getSearchTerm($request);
+        $this->applySearch($query, ['nickname', 'street_address', 'city', 'client.first_name', 'client.last_name'], $searchTerm);
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+        // Apply filters
+        $this->applyFilters($query, $request, [
+            'status' => ['type' => 'string'],
+            'pool_type' => ['type' => 'string'],
+            'water_type' => ['type' => 'string'],
+        ]);
 
-        // Filter by pool type
-        if ($request->filled('pool_type')) {
-            $query->where('pool_type', $request->pool_type);
-        }
+        // Apply sorting
+        $sortOptions = [
+            'date_desc' => ['column' => 'created_at', 'direction' => 'desc'],
+            'date_asc' => ['column' => 'created_at', 'direction' => 'asc'],
+            'status' => ['column' => 'status', 'direction' => 'asc'],
+            'name' => ['column' => 'nickname', 'direction' => 'asc'],
+        ];
+        $this->applySorting($query, $sortOptions, 'nickname');
 
-        // Filter by water type
-        if ($request->filled('water_type')) {
-            $query->where('water_type', $request->water_type);
-        }
-
-        // Sort functionality
-        $sortBy = $request->get('sort_by', 'date_desc');
-        
-        switch ($sortBy) {
-            case 'date_desc':
-                $query->orderBy('created_at', 'desc');
-                break;
-            case 'date_asc':
-                $query->orderBy('created_at', 'asc');
-                break;
-            case 'status':
-                $query->orderBy('status', 'asc');
-                break;
-            case 'name':
-                $query->orderBy('nickname', 'asc');
-                break;
-            default:
-                $query->orderBy('nickname', 'asc');
-                break;
-        }
-
-        $locations = $query->paginate(15);
+        $locations = $query->paginate(AppConstants::DEFAULT_PAGINATION);
         
         $stats = [
             'total' => $locations->total(),
@@ -106,70 +89,15 @@ class LocationController extends Controller
     /**
      * Store a newly created location in storage.
      */
-    public function store(Request $request)
+    public function store(LocationRequest $request)
     {
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'nickname' => 'nullable|string|max:255',
-            'street_address' => 'required|string|max:255',
-            'street_address_2' => 'nullable|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:2',
-            'zip_code' => 'required|string|max:10',
-            'photos' => 'nullable|array',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-            'access' => ['required', Rule::in(['residential', 'commercial'])],
-            'pool_type' => ['nullable', Rule::in(['fiberglass', 'vinyl_liner', 'concrete', 'gunite'])],
-            'water_type' => ['required', Rule::in(['chlorine', 'salt'])],
-            'filter_type' => 'nullable|string|max:255',
-            'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
-            'installation' => ['required', Rule::in(['inground', 'above'])],
-            'gallons' => 'nullable|integer|min:1',
-            'service_frequency' => ['required', Rule::in(['weekly', 'bi-weekly', 'monthly', 'as-needed'])],
-            'service_day_1' => 'nullable|string|max:255',
-            'service_day_2' => 'nullable|string|max:255',
-            'rate_per_visit' => 'nullable|numeric|min:0',
-            'chemicals_included' => 'boolean',
-            'assigned_technician_id' => 'nullable|exists:users,id',
-            'is_favorite' => 'boolean',
-            'status' => ['required', Rule::in(['active', 'inactive'])],
-            'notes' => 'nullable|string',
-            // Cleaning tasks
-            'vacuumed' => 'boolean',
-            'brushed' => 'boolean',
-            'skimmed' => 'boolean',
-            'cleaned_skimmer_basket' => 'boolean',
-            'cleaned_pump_basket' => 'boolean',
-            'cleaned_pool_deck' => 'boolean',
-            // Maintenance tasks
-            'cleaned_filter_cartridge' => 'boolean',
-            'backwashed_sand_filter' => 'boolean',
-            'adjusted_water_level' => 'boolean',
-            'adjusted_auto_fill' => 'boolean',
-            'adjusted_pump_timer' => 'boolean',
-            'adjusted_heater' => 'boolean',
-            'checked_cover' => 'boolean',
-            'checked_lights' => 'boolean',
-            'checked_fountain' => 'boolean',
-            'checked_heater' => 'boolean',
-            // Other services
-            'other_services' => 'nullable|string',
-            'other_services_cost' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validated();
 
         // Handle photo uploads
-        if ($request->hasFile('photos')) {
-            \Log::info('Photo upload detected', ['count' => count($request->file('photos'))]);
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('locations/photos', 'public');
-                $photoPaths[] = $path;
-                \Log::info('Photo stored', ['path' => $path]);
-            }
-            $validated['photos'] = $photoPaths;
-        } else {
-            \Log::info('No photos uploaded');
-        }
+        $validated['photos'] = $this->photoUploadService->handlePhotoUploads(
+            $request, 
+            'locations/photos'
+        );
 
         // Ensure numeric fields are not null
         $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0;
@@ -245,97 +173,23 @@ class LocationController extends Controller
     /**
      * Update the specified location in storage.
      */
-    public function update(Request $request, Location $location)
+    public function update(LocationRequest $request, Location $location)
     {
-        \Log::info('Location update request data', $request->all());
-        
-        try {
-            $validated = $request->validate([
-                'client_id' => 'required|exists:clients,id',
-                'nickname' => 'nullable|string|max:255',
-                'street_address' => 'required|string|max:255',
-                'street_address_2' => 'nullable|string|max:255',
-                'city' => 'required|string|max:255',
-                'state' => 'required|string|max:2',
-                'zip_code' => 'required|string|max:10',
-                'photos' => 'nullable|array',
-                'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-                'access' => ['required', Rule::in(['residential', 'commercial'])],
-                'pool_type' => ['nullable', Rule::in(['fiberglass', 'vinyl_liner', 'concrete', 'gunite'])],
-                'water_type' => ['required', Rule::in(['chlorine', 'salt'])],
-                'filter_type' => 'nullable|string|max:255',
-                'setting' => ['required', Rule::in(['indoor', 'outdoor'])],
-                'installation' => ['required', Rule::in(['inground', 'above'])],
-                'gallons' => 'nullable|integer|min:1',
-                'service_frequency' => ['required', Rule::in(['weekly', 'bi-weekly', 'monthly', 'as-needed'])],
-                'service_day_1' => 'nullable|string|max:255',
-                'service_day_2' => 'nullable|string|max:255',
-                'rate_per_visit' => 'nullable|numeric|min:0',
-                'chemicals_included' => 'boolean',
-                'assigned_technician_id' => 'nullable|exists:users,id',
-                'is_favorite' => 'boolean',
-                'status' => ['required', Rule::in(['active', 'inactive'])],
-                'notes' => 'nullable|string',
-                // Cleaning tasks
-                'vacuumed' => 'boolean',
-                'brushed' => 'boolean',
-                'skimmed' => 'boolean',
-                'cleaned_skimmer_basket' => 'boolean',
-                'cleaned_pump_basket' => 'boolean',
-                'cleaned_pool_deck' => 'boolean',
-                // Maintenance tasks
-                'cleaned_filter_cartridge' => 'boolean',
-                'backwashed_sand_filter' => 'boolean',
-                'adjusted_water_level' => 'boolean',
-                'adjusted_auto_fill' => 'boolean',
-                'adjusted_pump_timer' => 'boolean',
-                'adjusted_heater' => 'boolean',
-                'checked_cover' => 'boolean',
-                'checked_lights' => 'boolean',
-                'checked_fountain' => 'boolean',
-                'checked_heater' => 'boolean',
-                // Other services
-                'other_services' => 'nullable|string',
-                'other_services_cost' => 'nullable|numeric|min:0',
-            ]);
-            \Log::info('Location update validated data', $validated);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Location update validation failed', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all()
-            ]);
-            throw $e;
-        }
+        $validated = $request->validated();
 
         // Handle photo uploads
-        if ($request->hasFile('photos')) {
-            // Delete old photos from storage
-            if ($location->photos) {
-                foreach ($location->photos as $oldPhoto) {
-                    \Storage::disk('public')->delete($oldPhoto);
-                }
-            }
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $path = $photo->store('locations/photos', 'public');
-                $photoPaths[] = $path;
-                \Log::info('Photo stored in update', ['path' => $path]);
-            }
-            $validated['photos'] = $photoPaths;
-        } else {
-            \Log::info('No photos uploaded in update');
-            // Keep existing photos if no new ones are uploaded
-            $validated['photos'] = $location->photos;
-        }
+        $validated['photos'] = $this->photoUploadService->handlePhotoUploads(
+            $request, 
+            'locations/photos',
+            $location->photos ?? []
+        );
 
         // Ensure numeric fields are not null
         $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0;
         $validated['rate_per_visit'] = $validated['rate_per_visit'] ?? null;
         $validated['gallons'] = $validated['gallons'] ?? null;
 
-        \Log::info('About to update location', ['location_id' => $location->id, 'data_to_update' => $validated]);
         $location->update($validated);
-        \Log::info('Location updated successfully', ['location_id' => $location->id]);
 
         // Log activity
         $locationName = $location->nickname ?: $location->street_address;
@@ -380,58 +234,38 @@ class LocationController extends Controller
         $query = Location::with(['client', 'assignedTechnician']);
 
         // Apply filters
-        if ($request->filled('client_id')) {
-            $query->where('client_id', $request->client_id);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('pool_type')) {
-            $query->where('pool_type', $request->pool_type);
-        }
+        $this->applyFilters($query, $request, [
+            'client_id' => ['type' => 'integer'],
+            'status' => ['type' => 'string'],
+            'pool_type' => ['type' => 'string'],
+        ]);
 
         $locations = $query->get();
 
-        $filename = 'locations_' . now()->format('Y-m-d_H-i-s') . '.csv';
-        
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename={$filename}",
+            'ID', 'Client', 'Nickname', 'Address', 'City', 'State', 'Zip',
+            'Pool Type', 'Water Type', 'Gallons', 'Status', 'Technician', 'Created At'
         ];
 
-        $callback = function() use ($locations) {
-            $file = fopen('php://output', 'w');
-            
-            // CSV headers
-            fputcsv($file, [
-                'ID', 'Client', 'Nickname', 'Address', 'City', 'State', 'Zip',
-                'Pool Type', 'Water Type', 'Gallons', 'Status', 'Technician', 'Created At'
-            ]);
+        $data = $locations->map(function ($location) {
+            return [
+                $location->id,
+                $location->client->full_name,
+                $location->nickname,
+                $location->street_address,
+                $location->city,
+                $location->state,
+                $location->zip_code,
+                $location->pool_type ?? 'Unknown',
+                $location->water_type,
+                $location->gallons,
+                $location->status,
+                $location->assignedTechnician ? $location->assignedTechnician->full_name : 'Unassigned',
+                $location->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
 
-            foreach ($locations as $location) {
-                fputcsv($file, [
-                    $location->id,
-                    $location->client->full_name,
-                    $location->nickname,
-                    $location->street_address,
-                    $location->city,
-                    $location->state,
-                    $location->zip_code,
-                    $location->pool_type ?? 'Unknown',
-                    $location->water_type,
-                    $location->gallons,
-                    $location->status,
-                    $location->assignedTechnician ? $location->assignedTechnician->full_name : 'Unassigned',
-                    $location->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $this->exportToCsv($data, $headers, 'locations');
     }
 
     /**

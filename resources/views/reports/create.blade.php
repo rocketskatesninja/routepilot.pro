@@ -41,7 +41,7 @@
                             <input type="text" id="client_search" 
                                    class="input input-bordered w-full @error('client_id') input-error @enderror" 
                                    placeholder="Start typing client name..." 
-                                   autocomplete="off">
+                                   autocomplete="off" autocorrect="off" spellcheck="false">
                             <input type="hidden" name="client_id" id="client_id" 
                                    value="{{ old('client_id', $report->client_id ?? '') }}" required>
                             @if(isset($locationId))
@@ -415,41 +415,57 @@ document.addEventListener('DOMContentLoaded', function() {
     const clientSuggestions = document.getElementById('client_suggestions');
     const locationSelect = document.getElementById('location_id');
     let searchTimeout;
+    let clientsList = [];
+    let activeIndex = -1;
+    let lastValue = '';
+
+    // Prevent browser autofill
+    clientSearch.setAttribute('autocomplete', 'off');
+    clientSearch.setAttribute('autocorrect', 'off');
+    clientSearch.setAttribute('spellcheck', 'false');
 
     clientSearch.addEventListener('input', function() {
         clearTimeout(searchTimeout);
         const query = this.value.trim();
-        
+        lastValue = query;
+        activeIndex = -1;
         if (query.length < 2) {
             clientSuggestions.style.display = 'none';
             return;
         }
-        
         searchTimeout = setTimeout(() => {
             fetch(`/api/clients/search?q=${encodeURIComponent(query)}`)
                 .then(response => response.json())
                 .then(data => {
+                    clientsList = data;
                     clientSuggestions.innerHTML = '';
-                    
                     if (data.length === 0) {
                         clientSuggestions.innerHTML = '<div class="p-3 text-base-content/70">No clients found</div>';
+                        clientId.value = '';
                     } else {
-                        data.forEach(client => {
+                        data.forEach((client, idx) => {
                             const div = document.createElement('div');
                             div.className = 'p-3 hover:bg-base-200 cursor-pointer border-b border-base-300 last:border-b-0';
                             div.textContent = `${client.full_name} - ${client.email}`;
-                            div.addEventListener('click', () => {
-                                clientSearch.value = `${client.full_name} - ${client.email}`;
+                            div.addEventListener('mousedown', () => {
+                                clientSearch.value = client.full_name;
                                 clientId.value = client.id;
                                 clientSuggestions.style.display = 'none';
-                                
-                                // Load locations for selected client
+                                clientSearch.setSelectionRange(client.full_name.length, client.full_name.length);
                                 loadClientLocations(client.id);
                             });
                             clientSuggestions.appendChild(div);
                         });
+                        // Inline autocomplete: if top suggestion starts with input, fill it
+                        const top = data[0];
+                        if (top && top.full_name.toLowerCase().startsWith(query.toLowerCase()) && top.full_name.length > query.length) {
+                            clientSearch.value = top.full_name;
+                            clientSearch.setSelectionRange(query.length, top.full_name.length);
+                            clientId.value = top.id;
+                        } else {
+                            clientId.value = '';
+                        }
                     }
-                    
                     clientSuggestions.style.display = 'block';
                 })
                 .catch(error => {
@@ -458,8 +474,50 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
+    // Accept autocomplete with Tab or Right Arrow
+    clientSearch.addEventListener('keydown', function(e) {
+        if ((e.key === 'Tab' || e.key === 'ArrowRight') && this.selectionEnd > this.value.length - 1) {
+            this.setSelectionRange(this.value.length, this.value.length);
+            clientSuggestions.style.display = 'none';
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+            const items = clientSuggestions.querySelectorAll('div');
+            if (items.length > 0) {
+                activeIndex = (activeIndex + 1) % items.length;
+                items.forEach((el, idx) => el.classList.toggle('bg-base-200', idx === activeIndex));
+                if (activeIndex >= 0) {
+                    clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                    clientId.value = clientsList[activeIndex].id;
+                }
+            }
+            e.preventDefault();
+        } else if (e.key === 'ArrowUp') {
+            const items = clientSuggestions.querySelectorAll('div');
+            if (items.length > 0) {
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                items.forEach((el, idx) => el.classList.toggle('bg-base-200', idx === activeIndex));
+                if (activeIndex >= 0) {
+                    clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                    clientId.value = clientsList[activeIndex].id;
+                }
+            }
+            e.preventDefault();
+        } else if (e.key === 'Enter') {
+            const items = clientSuggestions.querySelectorAll('div');
+            if (activeIndex >= 0 && items[activeIndex]) {
+                clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                clientId.value = clientsList[activeIndex].id;
+                clientSuggestions.style.display = 'none';
+                this.setSelectionRange(this.value.length, this.value.length);
+                e.preventDefault();
+            }
+        } else if (e.key === 'Escape') {
+            clientSuggestions.style.display = 'none';
+        }
+    });
+
     // Hide suggestions when clicking outside
-    document.addEventListener('click', function(e) {
+    document.addEventListener('mousedown', function(e) {
         if (!clientSearch.contains(e.target) && !clientSuggestions.contains(e.target)) {
             clientSuggestions.style.display = 'none';
         }
@@ -467,14 +525,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load locations for selected client
     function loadClientLocations(clientId) {
+        if (!locationSelect) return;
         locationSelect.innerHTML = '<option value="">Loading locations...</option>';
         locationSelect.disabled = true;
-        
         return fetch(`/api/clients/${clientId}/locations`)
             .then(response => response.json())
             .then(locations => {
                 locationSelect.innerHTML = '<option value="">Select Location</option>';
-                
                 if (locations.length === 0) {
                     locationSelect.innerHTML = '<option value="">No locations found for this client</option>';
                 } else {
@@ -485,7 +542,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         locationSelect.appendChild(option);
                     });
                 }
-                
                 locationSelect.disabled = false;
                 return locations;
             })
@@ -501,8 +557,10 @@ document.addEventListener('DOMContentLoaded', function() {
     clientSearch.addEventListener('input', function() {
         if (this.value.trim() === '') {
             clientId.value = '';
+            if (locationSelect) {
             locationSelect.innerHTML = '<option value="">Select a client first</option>';
             locationSelect.disabled = true;
+            }
         }
     });
 

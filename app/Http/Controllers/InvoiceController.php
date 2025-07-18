@@ -6,6 +6,11 @@ use App\Models\Invoice;
 use App\Models\Client;
 use App\Models\Location;
 use App\Models\User;
+use App\Http\Requests\InvoiceRequest;
+use App\Traits\HasSearchable;
+use App\Traits\HasSortable;
+use App\Traits\HasExportable;
+use App\Constants\AppConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -13,6 +18,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class InvoiceController extends Controller
 {
+    use HasSearchable, HasSortable, HasExportable;
     /**
      * Display a listing of the resource.
      */
@@ -20,58 +26,27 @@ class InvoiceController extends Controller
     {
         $query = Invoice::with(['client', 'location', 'technician']);
 
-        // Search functionality
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('invoice_number', 'like', "%{$search}%")
-                  ->orWhereHas('client', function ($clientQuery) use ($search) {
-                      $clientQuery->where('first_name', 'like', "%{$search}%")
-                                 ->orWhere('last_name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('location', function ($locationQuery) use ($search) {
-                      $locationQuery->where('name', 'like', "%{$search}%");
-                  });
-            });
-        }
+        // Apply search
+        $searchTerm = $this->getSearchTerm($request);
+        $this->applySearch($query, ['invoice_number', 'client.first_name', 'client.last_name', 'location.nickname'], $searchTerm);
 
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+        // Apply filters
+        $this->applyFilters($query, $request, [
+            'status' => ['type' => 'string'],
+            'date_from' => ['column' => 'service_date', 'operator' => '>='],
+            'date_to' => ['column' => 'service_date', 'operator' => '<='],
+        ]);
 
-        // Filter by date range
-        if ($request->filled('date_from')) {
-            $query->where('service_date', '>=', $request->date_from);
-        }
-        if ($request->filled('date_to')) {
-            $query->where('service_date', '<=', $request->date_to);
-        }
+        // Apply sorting
+        $sortOptions = [
+            'date_desc' => ['column' => 'service_date', 'direction' => 'desc'],
+            'date_asc' => ['column' => 'service_date', 'direction' => 'asc'],
+            'status' => ['column' => 'status', 'direction' => 'asc'],
+            'amount' => ['column' => 'total_amount', 'direction' => 'desc'],
+        ];
+        $this->applySorting($query, $sortOptions, 'created_at');
 
-
-
-        // Sort functionality
-        $sortBy = $request->get('sort_by', 'date_desc');
-        
-        switch ($sortBy) {
-            case 'date_desc':
-                $query->orderBy('service_date', 'desc');
-                break;
-            case 'date_asc':
-                $query->orderBy('service_date', 'asc');
-                break;
-            case 'status':
-                $query->orderBy('status', 'asc');
-                break;
-            case 'amount':
-                $query->orderBy('total_amount', 'desc');
-                break;
-            default:
-                $query->orderBy('created_at', 'desc');
-                break;
-        }
-
-        $invoices = $query->paginate(15);
+        $invoices = $query->paginate(AppConstants::DEFAULT_PAGINATION);
 
         return view('invoices.index', compact('invoices'));
     }
@@ -100,20 +75,9 @@ class InvoiceController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(InvoiceRequest $request)
     {
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'location_id' => 'required|exists:locations,id',
-            'technician_id' => 'required|exists:users,id',
-            'service_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:service_date',
-            'rate_per_visit' => 'required|numeric|min:0',
-            'chemicals_cost' => 'nullable|numeric|min:0',
-            'chemicals_included' => 'boolean',
-            'extras_cost' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         // Calculate total amount
         $total = $validated['rate_per_visit'];
@@ -173,23 +137,11 @@ class InvoiceController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(InvoiceRequest $request, string $id)
     {
         $invoice = Invoice::findOrFail($id);
 
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'location_id' => 'required|exists:locations,id',
-            'technician_id' => 'required|exists:users,id',
-            'service_date' => 'required|date',
-            'due_date' => 'required|date|after_or_equal:service_date',
-            'rate_per_visit' => 'required|numeric|min:0',
-            'chemicals_cost' => 'nullable|numeric|min:0',
-            'chemicals_included' => 'boolean',
-            'extras_cost' => 'nullable|numeric|min:0',
-            'status' => 'required|in:draft,sent,paid,overdue,cancelled',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         // Calculate total amount
         $total = $validated['rate_per_visit'];
@@ -276,72 +228,44 @@ class InvoiceController extends Controller
     {
         $query = Invoice::with(['client', 'location', 'technician']);
 
+        // Apply search
+        $searchTerm = $this->getSearchTerm($request);
+        $this->applySearch($query, ['invoice_number', 'client.first_name', 'client.last_name'], $searchTerm);
+
         // Apply filters
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('invoice_number', 'like', "%{$search}%")
-                  ->orWhereHas('client', function ($clientQuery) use ($search) {
-                      $clientQuery->where('first_name', 'like', "%{$search}%")
-                                 ->orWhere('last_name', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('date_from')) {
-            $query->where('service_date', '>=', $request->date_from);
-        }
-
-        if ($request->filled('date_to')) {
-            $query->where('service_date', '<=', $request->date_to);
-        }
+        $this->applyFilters($query, $request, [
+            'status' => ['type' => 'string'],
+            'date_from' => ['column' => 'service_date', 'operator' => '>='],
+            'date_to' => ['column' => 'service_date', 'operator' => '<='],
+        ]);
 
         $invoices = $query->get();
 
-        $filename = 'invoices_' . date('Y-m-d_H-i-s') . '.csv';
-        
         $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename={$filename}",
+            'Invoice Number', 'Client', 'Location', 'Technician', 'Service Date', 
+            'Due Date', 'Rate', 'Chemicals Cost', 'Extras Cost', 'Total Amount', 
+            'Balance', 'Status', 'Created At'
         ];
 
-        $callback = function() use ($invoices) {
-            $file = fopen('php://output', 'w');
-            
-            // CSV headers
-            fputcsv($file, [
-                'Invoice Number', 'Client', 'Location', 'Technician', 'Service Date', 
-                'Due Date', 'Rate', 'Chemicals Cost', 'Extras Cost', 'Total Amount', 
-                'Balance', 'Status', 'Created At'
-            ]);
+        $data = $invoices->map(function ($invoice) {
+            return [
+                $invoice->invoice_number,
+                $invoice->client->full_name,
+                $invoice->location->nickname,
+                $invoice->technician->full_name,
+                $invoice->service_date->format('Y-m-d'),
+                $invoice->due_date->format('Y-m-d'),
+                $invoice->rate_per_visit,
+                $invoice->chemicals_cost,
+                $invoice->extras_cost,
+                $invoice->total_amount,
+                $invoice->balance,
+                $invoice->status,
+                $invoice->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
 
-            // CSV data
-            foreach ($invoices as $invoice) {
-                fputcsv($file, [
-                    $invoice->invoice_number,
-                    $invoice->client->full_name,
-                    $invoice->location->name,
-                    $invoice->technician->full_name,
-                    $invoice->service_date->format('Y-m-d'),
-                    $invoice->due_date->format('Y-m-d'),
-                    $invoice->rate_per_visit,
-                    $invoice->chemicals_cost,
-                    $invoice->extras_cost,
-                    $invoice->total_amount,
-                    $invoice->balance,
-                    $invoice->status,
-                    $invoice->created_at->format('Y-m-d H:i:s'),
-                ]);
-            }
-
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return $this->exportToCsv($data, $headers, 'invoices');
     }
 
     /**
