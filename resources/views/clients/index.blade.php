@@ -41,50 +41,89 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-6">
-        <form method="GET" action="{{ route('clients.index') }}" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Search -->
-                <div>
-                    <label for="search" class="block text-sm font-medium text-base-content mb-2">Search</label>
-                    <input type="text" name="search" id="search" value="{{ request('search') }}" 
-                           class="input input-bordered w-full" placeholder="Name, email, phone...">
+    <div class="bg-base-100 shadow-xl rounded-lg mb-6" x-data="{ filtersOpen: false }">
+        <!-- Filter Header -->
+        <div class="p-4 border-b border-base-200">
+            <button 
+                @click="filtersOpen = !filtersOpen" 
+                class="flex items-center justify-between w-full text-left hover:bg-base-200 p-2 rounded transition-colors"
+            >
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                    </svg>
+                    <span class="font-medium text-base-content">Filters</span>
+                    @if(request('search') || request('status') || request('sort_by'))
+                        <span class="badge badge-primary badge-sm">{{ collect([request('search'), request('status'), request('sort_by')])->filter()->count() }}</span>
+                    @endif
                 </div>
-                <!-- Status Filter -->
-                <div>
-                    <label for="status" class="block text-sm font-medium text-base-content mb-2">Status</label>
-                    <select name="status" id="status" class="select select-bordered w-full">
-                        <option value="">All Statuses</option>
-                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    </select>
+                <svg 
+                    class="w-5 h-5 text-base-content/70 transition-transform duration-200" 
+                    :class="{ 'rotate-180': filtersOpen }"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Filter Content -->
+        <div 
+            x-show="filtersOpen" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-2"
+            class="p-4"
+        >
+            <form method="GET" action="{{ route('clients.index') }}" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Search -->
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-base-content mb-2">Search</label>
+                        <input type="text" name="search" id="search" value="{{ request('search') }}" 
+                               class="input input-bordered w-full" placeholder="Name, email, phone...">
+                    </div>
+                    <!-- Status Filter -->
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-base-content mb-2">Status</label>
+                        <select name="status" id="status" class="select select-bordered w-full">
+                            <option value="">All Statuses</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
+                    <!-- Sort -->
+                    <div>
+                        <label for="sort_by" class="block text-sm font-medium text-base-content mb-2">Sort By</label>
+                        <select name="sort_by" id="sort_by" class="select select-bordered w-full">
+                            <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date Created (Newest)</option>
+                            <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date Created (Oldest)</option>
+                            <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Name</option>
+                            <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
+                        </select>
+                    </div>
                 </div>
-                <!-- Sort -->
-                <div>
-                    <label for="sort_by" class="block text-sm font-medium text-base-content mb-2">Sort By</label>
-                    <select name="sort_by" id="sort_by" class="select select-bordered w-full">
-                        <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date Created (Newest)</option>
-                        <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date Created (Oldest)</option>
-                        <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Name</option>
-                        <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
-                    </select>
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button type="submit" class="btn btn-primary">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Search
+                        </button>
+                        <a href="{{ route('clients.index') }}" class="btn btn-outline">Clear Filters</a>
+                    </div>
+                    <div class="text-sm text-base-content/70">
+                        {{ $clients->total() }} result{{ $clients->total() != 1 ? 's' : '' }}
+                    </div>
                 </div>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button type="submit" class="btn btn-primary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search
-                    </button>
-                    <a href="{{ route('clients.index') }}" class="btn btn-outline">Clear Filters</a>
-                </div>
-                <div class="text-sm text-base-content/70">
-                    {{ $clients->total() }} result{{ $clients->total() != 1 ? 's' : '' }}
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
     <!-- Clients Table -->

@@ -31,6 +31,7 @@ class ReportController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
+        
         if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
             $query = Report::with(['client', 'location', 'technician']);
 
@@ -63,9 +64,54 @@ class ReportController extends Controller
                 'this_month' => Report::where('service_date', '>=', Carbon::now()->startOfMonth())->count(),
                 'this_week' => Report::where('service_date', '>=', Carbon::now()->startOfWeek())->count(),
             ];
+        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
+            // For customers, get reports through their client record
+            $client = Client::where('email', $user->email)->first();
+            if ($client) {
+                $query = Report::where('client_id', $client->id)->with(['client', 'location', 'technician']);
+                
+                // Apply search
+                $searchTerm = $this->getSearchTerm($request);
+                $this->applySearch($query, ['client.first_name', 'client.last_name', 'location.nickname', 'technician.first_name', 'technician.last_name'], $searchTerm);
+
+                // Apply filters
+                $this->applyFilters($query, $request, [
+                    'date_from' => ['column' => 'service_date', 'operator' => '>='],
+                    'date_to' => ['column' => 'service_date', 'operator' => '<='],
+                ]);
+
+                // Apply sorting
+                $sortOptions = [
+                    'date_desc' => ['column' => 'service_date', 'direction' => 'desc'],
+                    'date_asc' => ['column' => 'service_date', 'direction' => 'asc'],
+                    'status' => ['column' => 'created_at', 'direction' => 'desc'],
+                ];
+                $this->applySorting($query, $sortOptions, 'service_date');
+
+                $reports = $query->paginate(AppConstants::DEFAULT_PAGINATION);
+                
+                // Calculate stats for customer's reports only
+                $stats = [
+                    'total' => $client->reports()->count(),
+                    'this_month' => $client->reports()->where('service_date', '>=', Carbon::now()->startOfMonth())->count(),
+                    'this_week' => $client->reports()->where('service_date', '>=', Carbon::now()->startOfWeek())->count(),
+                ];
+                
+                $clients = collect([$client]); // Only show their own client record
+                $locations = $client->locations()->orderBy('nickname')->get();
+                $technicians = collect(); // Empty collection for customers
+            } else {
+                $query = Report::where('id', 0); // Empty query if no client found
+                $reports = $query->paginate(AppConstants::DEFAULT_PAGINATION);
+                $stats = ['total' => 0, 'this_month' => 0, 'this_week' => 0];
+                $clients = collect();
+                $locations = collect();
+                $technicians = collect();
+            }
         } else {
             abort(403);
         }
+        
         return view('reports.index', compact('reports', 'clients', 'locations', 'technicians', 'stats'));
     }
 
@@ -159,9 +205,18 @@ class ReportController extends Controller
     public function show($id)
     {
         $user = Auth::user();
+        $report = Report::with(['client', 'location', 'technician', 'invoice'])->findOrFail($id);
+        
         if ($user->role === 'admin' || $user->role === 'technician') {
-            $report = Report::with(['client', 'location', 'technician', 'invoice'])->findOrFail($id);
             return view('reports.show', compact('report'));
+        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
+            // Check if this report belongs to the customer
+            $client = Client::where('email', $user->email)->first();
+            if ($client && $report->client_id === $client->id) {
+                return view('reports.show', compact('report'));
+            } else {
+                abort(403, 'You can only view your own reports.');
+            }
         } else {
             abort(403);
         }

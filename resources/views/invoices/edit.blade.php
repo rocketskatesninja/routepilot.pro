@@ -18,6 +18,7 @@
                 </svg>
                 View Invoice
             </a>
+            @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
             <form action="{{ route('invoices.destroy', $invoice) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this invoice? This action cannot be undone.')">
                 @csrf
                 @method('DELETE')
@@ -28,6 +29,7 @@
                     Delete Invoice
                 </button>
             </form>
+            @endif
             <a href="{{ route('invoices.index') }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>

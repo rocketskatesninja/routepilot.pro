@@ -24,7 +24,21 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Invoice::with(['client', 'location', 'technician']);
+        $user = auth()->user();
+        
+        if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
+            $query = Invoice::with(['client', 'location', 'technician']);
+        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
+            // For customers, get invoices through their client record
+            $client = Client::where('email', $user->email)->first();
+            if ($client) {
+                $query = Invoice::where('client_id', $client->id)->with(['client', 'location', 'technician']);
+            } else {
+                $query = Invoice::where('id', 0); // Empty query if no client found
+            }
+        } else {
+            abort(403);
+        }
 
         // Apply search
         $searchTerm = $this->getSearchTerm($request);
@@ -48,7 +62,10 @@ class InvoiceController extends Controller
 
         $invoices = $query->paginate(AppConstants::DEFAULT_PAGINATION);
 
-        return view('invoices.index', compact('invoices'));
+        // Calculate current balance (sum of all unpaid balances)
+        $currentBalance = $query->where('status', '!=', 'paid')->sum('balance');
+
+        return view('invoices.index', compact('invoices', 'currentBalance'));
     }
 
     /**
@@ -56,6 +73,13 @@ class InvoiceController extends Controller
      */
     public function create(Request $request)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can create invoices
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot create invoices.');
+        }
+        
         $technicians = User::where('role', 'technician')->where('is_active', true)->get();
         $locationId = $request->get('location_id');
         
@@ -77,6 +101,13 @@ class InvoiceController extends Controller
      */
     public function store(InvoiceRequest $request)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can create invoices
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot create invoices.');
+        }
+        
         $validated = $request->validated();
 
         // Calculate total amount
@@ -116,7 +147,16 @@ class InvoiceController extends Controller
      */
     public function show(string $id)
     {
+        $user = auth()->user();
         $invoice = Invoice::with(['client', 'location', 'technician'])->findOrFail($id);
+        
+        // Check if customer can view this invoice
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            $client = Client::where('email', $user->email)->first();
+            if (!$client || $invoice->client_id !== $client->id) {
+                abort(403, 'You can only view your own invoices.');
+            }
+        }
         
         return view('invoices.show', compact('invoice'));
     }

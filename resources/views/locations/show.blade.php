@@ -9,6 +9,7 @@
             <p class="text-base-content/70 mt-2">{{ $location->client->full_name }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
+            @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
             <a href="{{ route('reports.create', ['location_id' => $location->id]) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -21,6 +22,7 @@
                 </svg>
                 New Invoice
             </a>
+            @endif
             <a href="{{ route('locations.edit', $location) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -286,7 +288,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                                 <p class="text-base-content/70">No invoices found for this location.</p>
+                                @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                                 <a href="#" class="btn btn-primary mt-4">Create First Invoice</a>
+                                @endif
                             </div>
                         @endif
                     </div>
@@ -326,7 +330,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                                 <p class="text-base-content/70">No service reports found for this location.</p>
+                                @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                                 <a href="#" class="btn btn-primary mt-4">Create First Report</a>
+                                @endif
                             </div>
                         @endif
                     </div>

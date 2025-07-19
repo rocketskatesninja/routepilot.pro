@@ -22,6 +22,17 @@
                     <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                         {{ __('Reports') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('invoices.index')" :active="request()->routeIs('invoices.*')">
+                        {{ __('Invoices') }}
+                    </x-nav-link>
+                    @endif
+                    @if(auth()->user()->isCustomer())
+                    <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                        {{ __('Reports') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('invoices.index')" :active="request()->routeIs('invoices.*')">
+                        {{ __('Invoices') }}
+                    </x-nav-link>
                     @endif
                     @if(auth()->user()->isAdmin())
                     <x-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
@@ -29,9 +40,6 @@
                     </x-nav-link>
                     <x-nav-link :href="route('technicians.index')" :active="request()->routeIs('technicians.*')">
                         {{ __('Technicians') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('invoices.index')" :active="request()->routeIs('invoices.*')">
-                        {{ __('Invoices') }}
                     </x-nav-link>
                     @endif
                 </div>
@@ -42,12 +50,18 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-base-content bg-base-100 hover:text-base-content/70 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
-
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
+                            <div class="flex items-center space-x-2">
+                                <!-- User Avatar -->
+                                <div class="w-8 h-8 rounded-full overflow-hidden">
+                                    @if(Auth::user()->profile_photo)
+                                        <img src="{{ Storage::url(Auth::user()->profile_photo) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        <div class="w-full h-full bg-primary text-primary-content flex items-center justify-center text-sm font-semibold">
+                                            {{ substr(Auth::user()->first_name, 0, 1) }}{{ substr(Auth::user()->last_name, 0, 1) }}
+                                        </div>
+                                    @endif
+                                </div>
+                                <span>{{ Auth::user()->name }}</span>
                             </div>
                         </button>
                     </x-slot>
@@ -126,6 +140,17 @@
             <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                 {{ __('Reports') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('invoices.index')" :active="request()->routeIs('invoices.*')">
+                {{ __('Invoices') }}
+            </x-responsive-nav-link>
+            @endif
+            @if(auth()->user()->isCustomer())
+            <x-responsive-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
+                {{ __('Reports') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('invoices.index')" :active="request()->routeIs('invoices.*')">
+                {{ __('Invoices') }}
+            </x-responsive-nav-link>
             @endif
             @if(auth()->user()->isAdmin())
                 <x-responsive-nav-link :href="route('clients.index')" :active="request()->routeIs('clients.*')">
@@ -133,9 +158,6 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('technicians.index')" :active="request()->routeIs('technicians.*')">
                     {{ __('Technicians') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('invoices.index')" :active="request()->routeIs('invoices.*')">
-                    {{ __('Invoices') }}
                 </x-responsive-nav-link>
             @endif
         </div>

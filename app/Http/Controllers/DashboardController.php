@@ -127,6 +127,7 @@ class DashboardController extends Controller
             'total_locations' => $client->locations()->count(),
             'total_invoices' => $client->invoices()->count(),
             'unpaid_invoices' => $client->invoices()->where('status', '!=', 'paid')->count(),
+            'total_reports' => $client->reports()->count(),
         ];
 
         // Upcoming Appointments

@@ -45,6 +45,13 @@ class ClientRequest extends FormRequest
             'is_active' => 'boolean',
         ];
 
+        // Password validation - required for new clients, optional for updates
+        if ($this->isMethod('POST')) {
+            $rules['password'] = 'required|string|min:8';
+        } else {
+            $rules['password'] = 'nullable|string|min:8';
+        }
+
         // Email validation with unique rule
         $emailRule = ['required', 'email'];
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {

@@ -102,6 +102,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a client.
+     */
+    public function isClient(): bool
+    {
+        return $this->role === 'customer';
+    }
+
+    /**
      * Get the locations assigned to this technician.
      */
     public function assignedLocations()

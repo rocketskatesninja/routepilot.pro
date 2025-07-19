@@ -19,7 +19,7 @@ class AppConstants
     // Roles
     public const ROLE_ADMIN = 'admin';
     public const ROLE_TECHNICIAN = 'technician';
-    public const ROLE_CLIENT = 'client';
+    public const ROLE_CLIENT = 'customer';
     
     // Service frequencies
     public const FREQUENCY_WEEKLY = 'weekly';

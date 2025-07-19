@@ -10,6 +10,7 @@
             <p class="text-base-content/70 mt-2">Manage your pool service invoices and payments</p>
         </div>
         <div class="flex space-x-2">
+            @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
             <a href="{{ route('invoices.statistics') }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
@@ -22,16 +23,17 @@
                 </svg>
                 New Invoice
             </a>
+            @endif
         </div>
     </div>
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-8">
         <x-stat-card 
-            title="Total Invoices" 
-            :value="$invoices->total()" 
+            title="Current Balance" 
+            :value="'$' . number_format($currentBalance, 2)" 
             color="primary"
-            icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'></path>"
+            icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'></path>"
         />
         <x-stat-card 
             title="Pending" 
@@ -54,8 +56,45 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="card bg-base-100 shadow-xl mb-6">
-        <div class="card-body">
+    <div class="bg-base-100 shadow-xl rounded-lg mb-6" x-data="{ filtersOpen: false }">
+        <!-- Filter Header -->
+        <div class="p-4 border-b border-base-200">
+            <button 
+                @click="filtersOpen = !filtersOpen" 
+                class="flex items-center justify-between w-full text-left hover:bg-base-200 p-2 rounded transition-colors"
+            >
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                    </svg>
+                    <span class="font-medium text-base-content">Filters</span>
+                    @if(request('search') || request('status') || request('date_from') || request('date_to') || request('sort_by'))
+                        <span class="badge badge-primary badge-sm">{{ collect([request('search'), request('status'), request('date_from'), request('date_to'), request('sort_by')])->filter()->count() }}</span>
+                    @endif
+                </div>
+                <svg 
+                    class="w-5 h-5 text-base-content/70 transition-transform duration-200" 
+                    :class="{ 'rotate-180': filtersOpen }"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Filter Content -->
+        <div 
+            x-show="filtersOpen" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-2"
+            class="p-4"
+        >
             <form method="GET" action="{{ route('invoices.index') }}" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     <!-- Search -->
@@ -126,14 +165,18 @@
                 <thead class="bg-base-200 text-base-content">
                     <tr>
                         <th>Invoice</th>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th>Client</th>
+                        @endif
                         <th>Location</th>
                         <th>Service Date</th>
                         <th>Due Date</th>
                         <th>Amount</th>
                         <th>Balance</th>
                         <th>Status</th>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th class="text-right">Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -155,6 +198,7 @@
                                 @endif
                             </div>
                         </td>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td>
                             <div class="flex items-center space-x-3">
                                 <div class="avatar">
@@ -182,6 +226,7 @@
                                 </div>
                             </div>
                         </td>
+                        @endif
                         <td>
                             <div class="text-sm">
                                 <div class="text-base-content">
@@ -235,6 +280,7 @@
                                 <span class="badge badge-neutral">{{ ucfirst($invoice->status) }}</span>
                             @endif
                         </td>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td class="text-right">
                             <div class="flex gap-2 justify-end">
                                 <a href="{{ route('invoices.edit', $invoice) }}" class="btn btn-sm btn-square btn-ghost btn-outline" title="Edit">
@@ -253,17 +299,22 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center py-8">
+                        <td colspan="{{ auth()->user()->isAdmin() || auth()->user()->isTechnician() ? 9 : 7 }}" class="text-center py-8">
                             <div class="text-base-content/70">
                                 <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                 </svg>
                                 <p class="text-lg font-medium">No invoices found</p>
+                                @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                                 <p class="text-sm">Get started by adding your first invoice.</p>
                                 <a href="{{ route('invoices.create') }}" class="btn btn-primary mt-4">Add First Invoice</a>
+                                @else
+                                <p class="text-sm">No invoices have been created yet.</p>
+                                @endif
                             </div>
                         </td>
                     </tr>

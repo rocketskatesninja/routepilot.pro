@@ -53,69 +53,108 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-base-100 shadow-xl rounded-lg p-6 mb-6">
-        <form method="GET" action="{{ route('locations.index') }}" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <!-- Search -->
-                <div>
-                    <label for="search" class="block text-sm font-medium text-base-content mb-2">Search</label>
-                    <input type="text" name="search" id="search" value="{{ request('search') }}" class="input input-bordered w-full" placeholder="Location, address, client...">
+    <div class="bg-base-100 shadow-xl rounded-lg mb-6" x-data="{ filtersOpen: false }">
+        <!-- Filter Header -->
+        <div class="p-4 border-b border-base-200">
+            <button 
+                @click="filtersOpen = !filtersOpen" 
+                class="flex items-center justify-between w-full text-left hover:bg-base-200 p-2 rounded transition-colors"
+            >
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                    </svg>
+                    <span class="font-medium text-base-content">Filters</span>
+                    @if(request('search') || request('status') || request('pool_type') || request('water_type') || request('sort_by'))
+                        <span class="badge badge-primary badge-sm">{{ collect([request('search'), request('status'), request('pool_type'), request('water_type'), request('sort_by')])->filter()->count() }}</span>
+                    @endif
                 </div>
-                <!-- Status Filter -->
-                <div>
-                    <label for="status" class="block text-sm font-medium text-base-content mb-2">Status</label>
-                    <select name="status" id="status" class="select select-bordered w-full">
-                        <option value="">All Statuses</option>
-                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    </select>
+                <svg 
+                    class="w-5 h-5 text-base-content/70 transition-transform duration-200" 
+                    :class="{ 'rotate-180': filtersOpen }"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Filter Content -->
+        <div 
+            x-show="filtersOpen" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-2"
+            class="p-4"
+        >
+            <form method="GET" action="{{ route('locations.index') }}" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- Search -->
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-base-content mb-2">Search</label>
+                        <input type="text" name="search" id="search" value="{{ request('search') }}" class="input input-bordered w-full" placeholder="Location, address, client...">
+                    </div>
+                    <!-- Status Filter -->
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-base-content mb-2">Status</label>
+                        <select name="status" id="status" class="select select-bordered w-full">
+                            <option value="">All Statuses</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
+                    <!-- Pool Type Filter -->
+                    <div>
+                        <label for="pool_type" class="block text-sm font-medium text-base-content mb-2">Pool Type</label>
+                        <select name="pool_type" id="pool_type" class="select select-bordered w-full">
+                            <option value="">All Types</option>
+                            <option value="fiberglass" {{ request('pool_type') == 'fiberglass' ? 'selected' : '' }}>Fiberglass</option>
+                            <option value="vinyl_liner" {{ request('pool_type') == 'vinyl_liner' ? 'selected' : '' }}>Vinyl Liner</option>
+                            <option value="concrete" {{ request('pool_type') == 'concrete' ? 'selected' : '' }}>Concrete</option>
+                            <option value="gunite" {{ request('pool_type') == 'gunite' ? 'selected' : '' }}>Gunite</option>
+                        </select>
+                    </div>
+                    <!-- Water Type Filter -->
+                    <div>
+                        <label for="water_type" class="block text-sm font-medium text-base-content mb-2">Water Type</label>
+                        <select name="water_type" id="water_type" class="select select-bordered w-full">
+                            <option value="">All Types</option>
+                            <option value="chlorine" {{ request('water_type') == 'chlorine' ? 'selected' : '' }}>Chlorine</option>
+                            <option value="salt" {{ request('water_type') == 'salt' ? 'selected' : '' }}>Salt</option>
+                        </select>
+                    </div>
+                    <!-- Sort By -->
+                    <div>
+                        <label for="sort_by" class="block text-sm font-medium text-base-content mb-2">Sort By</label>
+                        <select name="sort_by" id="sort_by" class="select select-bordered w-full">
+                            <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date Created (Newest)</option>
+                            <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date Created (Oldest)</option>
+                            <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
+                            <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Name</option>
+                        </select>
+                    </div>
                 </div>
-                <!-- Pool Type Filter -->
-                <div>
-                    <label for="pool_type" class="block text-sm font-medium text-base-content mb-2">Pool Type</label>
-                    <select name="pool_type" id="pool_type" class="select select-bordered w-full">
-                        <option value="">All Types</option>
-                        <option value="fiberglass" {{ request('pool_type') == 'fiberglass' ? 'selected' : '' }}>Fiberglass</option>
-                        <option value="vinyl_liner" {{ request('pool_type') == 'vinyl_liner' ? 'selected' : '' }}>Vinyl Liner</option>
-                        <option value="concrete" {{ request('pool_type') == 'concrete' ? 'selected' : '' }}>Concrete</option>
-                        <option value="gunite" {{ request('pool_type') == 'gunite' ? 'selected' : '' }}>Gunite</option>
-                    </select>
+                <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button type="submit" class="btn btn-primary">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Search
+                        </button>
+                        <a href="{{ route('locations.index') }}" class="btn btn-outline">Clear Filters</a>
+                    </div>
+                    <div class="text-sm text-base-content/70">
+                        {{ $locations->total() }} result{{ $locations->total() != 1 ? 's' : '' }}
+                    </div>
                 </div>
-                <!-- Water Type Filter -->
-                <div>
-                    <label for="water_type" class="block text-sm font-medium text-base-content mb-2">Water Type</label>
-                    <select name="water_type" id="water_type" class="select select-bordered w-full">
-                        <option value="">All Types</option>
-                        <option value="chlorine" {{ request('water_type') == 'chlorine' ? 'selected' : '' }}>Chlorine</option>
-                        <option value="salt" {{ request('water_type') == 'salt' ? 'selected' : '' }}>Salt</option>
-                    </select>
-                </div>
-                <!-- Sort By -->
-                <div>
-                    <label for="sort_by" class="block text-sm font-medium text-base-content mb-2">Sort By</label>
-                    <select name="sort_by" id="sort_by" class="select select-bordered w-full">
-                        <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date Created (Newest)</option>
-                        <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date Created (Oldest)</option>
-                        <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
-                        <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Name</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button type="submit" class="btn btn-primary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                        Search
-                    </button>
-                    <a href="{{ route('locations.index') }}" class="btn btn-outline">Clear Filters</a>
-                </div>
-                <div class="text-sm text-base-content/70">
-                    {{ $locations->total() }} result{{ $locations->total() != 1 ? 's' : '' }}
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
     <!-- Locations Table -->
@@ -125,12 +164,21 @@
                 <thead class="bg-base-200 text-base-content">
                     <tr>
                         <th>Location</th>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th>Client</th>
+                        @endif
                         <th>Address</th>
                         <th>Pool Details</th>
+                        @if(auth()->user()->isCustomer())
+                        <th>Rate per Visit</th>
+                        @endif
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th>Technician</th>
+                        @endif
                         <th>Status</th>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th class="text-right">Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -161,6 +209,7 @@
                                 </div>
                             </div>
                         </td>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td>
                             <div class="text-sm">
                                 <div class="text-base-content">
@@ -171,6 +220,7 @@
                                 <div class="text-base-content/70">{{ $location->client->email }}</div>
                             </div>
                         </td>
+                        @endif
                         <td>
                             <div class="text-sm">
                                 <a href="https://maps.google.com/?q={{ urlencode($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code) }}" 
@@ -194,6 +244,18 @@
                                 @endif
                             </div>
                         </td>
+                        @if(auth()->user()->isCustomer())
+                        <td>
+                            <div class="text-sm">
+                                @if($location->rate_per_visit)
+                                    <span class="text-base-content font-medium">${{ number_format($location->rate_per_visit, 2) }}</span>
+                                @else
+                                    <span class="text-base-content/50">Not set</span>
+                                @endif
+                            </div>
+                        </td>
+                        @endif
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td>
                             <div class="text-sm">
                                 @if($location->assignedTechnician)
@@ -208,6 +270,7 @@
                                 @endif
                             </div>
                         </td>
+                        @endif
                         <td>
                             <div class="flex items-center space-x-2">
                                 @if($location->is_favorite)
@@ -218,6 +281,7 @@
                                 </span>
                             </div>
                         </td>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td class="text-right">
                             <div class="flex gap-2 justify-end">
                                 <a href="{{ route('locations.edit', $location) }}" class="btn btn-sm btn-square btn-ghost btn-outline" title="Edit">
@@ -236,10 +300,11 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center py-8">
+                        <td colspan="{{ auth()->user()->isAdmin() || auth()->user()->isTechnician() ? 7 : (auth()->user()->isCustomer() ? 5 : 4) }}" class="text-center py-8">
                             <div class="text-base-content/70">
                                 <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>

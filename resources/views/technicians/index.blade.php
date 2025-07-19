@@ -40,41 +40,78 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="card bg-base-100 shadow-xl mb-6">
-        <div class="card-body">
+    <div class="bg-base-100 shadow-xl rounded-lg mb-6" x-data="{ filtersOpen: false }">
+        <!-- Filter Header -->
+        <div class="p-4 border-b border-base-200">
+            <button 
+                @click="filtersOpen = !filtersOpen" 
+                class="flex items-center justify-between w-full text-left hover:bg-base-200 p-2 rounded transition-colors"
+            >
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                    </svg>
+                    <span class="font-medium text-base-content">Filters</span>
+                    @if(request('search') || request('status') || request('sort_by') || request('sort_order'))
+                        <span class="badge badge-primary badge-sm">{{ collect([request('search'), request('status'), request('sort_by'), request('sort_order')])->filter()->count() }}</span>
+                    @endif
+                </div>
+                <svg 
+                    class="w-5 h-5 text-base-content/70 transition-transform duration-200" 
+                    :class="{ 'rotate-180': filtersOpen }"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Filter Content -->
+        <div 
+            x-show="filtersOpen" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-2"
+            class="p-4"
+        >
             <form method="GET" action="{{ route('technicians.index') }}" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Search -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name, email, or phone" class="input input-bordered w-full">
-                </div>
+                    </div>
                     <!-- Status -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Status</label>
                         <select name="status" class="select select-bordered w-full">
                             <option value="">All Statuses</option>
-                        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    </select>
-                </div>
+                            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
                     <!-- Sort By -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort By</label>
                         <select name="sort_by" class="select select-bordered w-full">
-                        <option value="created_at" {{ request('sort_by', 'created_at') === 'created_at' ? 'selected' : '' }}>Created Date</option>
-                        <option value="first_name" {{ request('sort_by') === 'first_name' ? 'selected' : '' }}>First Name</option>
-                        <option value="last_name" {{ request('sort_by') === 'last_name' ? 'selected' : '' }}>Last Name</option>
-                        <option value="email" {{ request('sort_by') === 'email' ? 'selected' : '' }}>Email</option>
-                    </select>
-                </div>
+                            <option value="created_at" {{ request('sort_by', 'created_at') === 'created_at' ? 'selected' : '' }}>Created Date</option>
+                            <option value="first_name" {{ request('sort_by') === 'first_name' ? 'selected' : '' }}>First Name</option>
+                            <option value="last_name" {{ request('sort_by') === 'last_name' ? 'selected' : '' }}>Last Name</option>
+                            <option value="email" {{ request('sort_by') === 'email' ? 'selected' : '' }}>Email</option>
+                        </select>
+                    </div>
                     <!-- Sort Order -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort Order</label>
                         <select name="sort_order" class="select select-bordered w-full">
-                        <option value="desc" {{ request('sort_order', 'desc') === 'desc' ? 'selected' : '' }}>Descending</option>
-                        <option value="asc" {{ request('sort_order') === 'asc' ? 'selected' : '' }}>Ascending</option>
-                    </select>
+                            <option value="desc" {{ request('sort_order', 'desc') === 'desc' ? 'selected' : '' }}>Descending</option>
+                            <option value="asc" {{ request('sort_order') === 'asc' ? 'selected' : '' }}>Ascending</option>
+                        </select>
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">

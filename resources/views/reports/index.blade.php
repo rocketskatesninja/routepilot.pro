@@ -42,33 +42,70 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-base-100 shadow-xl mb-6">
-        <div class="card-body">
+    <div class="bg-base-100 shadow-xl rounded-lg mb-6" x-data="{ filtersOpen: false }">
+        <!-- Filter Header -->
+        <div class="p-4 border-b border-base-200">
+            <button 
+                @click="filtersOpen = !filtersOpen" 
+                class="flex items-center justify-between w-full text-left hover:bg-base-200 p-2 rounded transition-colors"
+            >
+                <div class="flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-base-content/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+                    </svg>
+                    <span class="font-medium text-base-content">Filters</span>
+                    @if(request('search') || request('date_from') || request('date_to') || request('sort_by'))
+                        <span class="badge badge-primary badge-sm">{{ collect([request('search'), request('date_from'), request('date_to'), request('sort_by')])->filter()->count() }}</span>
+                    @endif
+                </div>
+                <svg 
+                    class="w-5 h-5 text-base-content/70 transition-transform duration-200" 
+                    :class="{ 'rotate-180': filtersOpen }"
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Filter Content -->
+        <div 
+            x-show="filtersOpen" 
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform -translate-y-2"
+            class="p-4"
+        >
             <form method="GET" action="{{ route('reports.index') }}" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Search -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Search</label>
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Client, location, tech..." class="input input-bordered w-full">
-                </div>
+                    </div>
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date From</label>
                         <input type="date" name="date_from" value="{{ request('date_from') }}" class="input input-bordered w-full">
-                </div>
+                    </div>
                     <!-- Date To -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Date To</label>
                         <input type="date" name="date_to" value="{{ request('date_to') }}" class="input input-bordered w-full">
-                </div>
+                    </div>
                     <!-- Sort By -->
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Sort By</label>
                         <select name="sort_by" class="select select-bordered w-full">
                             <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date (Newest)</option>
                             <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date (Oldest)</option>
-                    </select>
-                </div>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-4 items-center justify-between">
                     <div class="flex flex-col sm:flex-row gap-4">
@@ -96,12 +133,16 @@
                     <tr>
                         <th>Report #</th>
                         <th>Service Date</th>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th>Client</th>
+                        @endif
                         <th>Location</th>
                         @if(auth()->user()->role === 'admin')
                             <th>Technician</th>
                         @endif
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th class="text-right">Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -113,6 +154,7 @@
                             </a>
                         </td>
                         <td>{{ $report->service_date ? $report->service_date->format('M d, Y') : '-' }}</td>
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td>
                             <div class="flex items-center space-x-3">
                                 <div class="avatar">
@@ -140,6 +182,7 @@
                                 </div>
                             </div>
                         </td>
+                        @endif
                         <td>
                             <div class="text-sm">
                                 <div class="text-base-content">
@@ -191,6 +234,7 @@
                             </div>
                         </td>
                         @endif
+                        @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td class="text-right">
                             <div class="flex gap-2 justify-end">
                                 <a href="{{ route('reports.edit', $report) }}" class="btn btn-sm btn-square btn-ghost btn-outline" title="Edit">
@@ -209,18 +253,21 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ auth()->user()->role === 'admin' ? 6 : 5 }}" class="text-center py-8">
+                        <td colspan="{{ auth()->user()->isAdmin() || auth()->user()->isTechnician() ? (auth()->user()->role === 'admin' ? 6 : 5) : 3 }}" class="text-center py-8">
                             <div class="text-base-content/70">
                                 <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 014-4h2a4 4 0 014 4v2M7 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
                                 <p class="text-lg font-medium">No reports found</p>
-                                <p class="text-sm">Get started by adding your first report.</p>
                                 @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
+                                <p class="text-sm">Get started by adding your first report.</p>
                                 <a href="{{ route('reports.create') }}" class="btn btn-primary mt-4">Add First Report</a>
+                                @else
+                                <p class="text-sm">No service reports have been created yet.</p>
                                 @endif
                             </div>
                         </td>

@@ -30,12 +30,12 @@
                     
                     <div>
                         <label for="client_search" class="block text-sm font-medium text-base-content mb-2">
-                            Client <span class="text-error">*</span>
+                            Client
                         </label>
                         <input type="text" name="client_search" id="client_search" 
                                value="{{ old('client_search', $selectedClientName ?? '') }}" 
                                class="input input-bordered w-full @error('client_id') input-error @enderror" 
-                               placeholder="Start typing client name..." required
+                               placeholder="Start typing client name..."
                                autocomplete="off" autocorrect="off" spellcheck="false">
                         <input type="hidden" name="client_id" id="client_id" value="{{ old('client_id', $selectedClientId ?? '') }}">
                         <div id="client_suggestions" class="hidden absolute z-50 min-w-full max-w-md w-auto left-0 bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
@@ -136,9 +136,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="access" class="block text-sm font-medium text-base-content mb-2">
-                                Access Type <span class="text-error">*</span>
+                                Access Type
                             </label>
-                            <select name="access" id="access" class="select select-bordered w-full @error('access') select-error @enderror" required>
+                            <select name="access" id="access" class="select select-bordered w-full @error('access') select-error @enderror">
                                 <option value="">Select Access Type</option>
                                 <option value="residential" {{ old('access') == 'residential' ? 'selected' : '' }}>Residential</option>
                                 <option value="commercial" {{ old('access') == 'commercial' ? 'selected' : '' }}>Commercial</option>
@@ -168,9 +168,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="water_type" class="block text-sm font-medium text-base-content mb-2">
-                                Water Type <span class="text-error">*</span>
+                                Water Type
                             </label>
-                            <select name="water_type" id="water_type" class="select select-bordered w-full @error('water_type') select-error @enderror" required>
+                            <select name="water_type" id="water_type" class="select select-bordered w-full @error('water_type') select-error @enderror">
                                 <option value="">Select Water Type</option>
                                 <option value="chlorine" {{ old('water_type') == 'chlorine' ? 'selected' : '' }}>Chlorine</option>
                                 <option value="salt" {{ old('water_type') == 'salt' ? 'selected' : '' }}>Salt</option>
@@ -200,9 +200,9 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label for="setting" class="block text-sm font-medium text-base-content mb-2">
-                                Setting <span class="text-error">*</span>
+                                Setting
                             </label>
-                            <select name="setting" id="setting" class="select select-bordered w-full @error('setting') select-error @enderror" required>
+                            <select name="setting" id="setting" class="select select-bordered w-full @error('setting') select-error @enderror">
                                 <option value="">Select Setting</option>
                                 <option value="indoor" {{ old('setting') == 'indoor' ? 'selected' : '' }}>Indoor</option>
                                 <option value="outdoor" {{ old('setting') == 'outdoor' ? 'selected' : '' }}>Outdoor</option>
@@ -214,9 +214,9 @@
 
                         <div>
                             <label for="installation" class="block text-sm font-medium text-base-content mb-2">
-                                Installation Type <span class="text-error">*</span>
+                                Installation Type
                             </label>
-                            <select name="installation" id="installation" class="select select-bordered w-full @error('installation') select-error @enderror" required>
+                            <select name="installation" id="installation" class="select select-bordered w-full @error('installation') select-error @enderror">
                                 <option value="">Select Installation Type</option>
                                 <option value="inground" {{ old('installation') == 'inground' ? 'selected' : '' }}>In-Ground</option>
                                 <option value="above" {{ old('installation') == 'above' ? 'selected' : '' }}>Above Ground</option>
@@ -380,9 +380,9 @@
 
                             <div>
                                 <label for="status" class="block text-sm font-medium text-base-content mb-2">
-                                    Status <span class="text-error">*</span>
+                                    Status
                                 </label>
-                                <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
+                                <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror">
                                     <option value="">Select Status</option>
                                     <option value="active" {{ old('status') == 'active' ? 'selected' : '' }}>Active</option>
                                     <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>

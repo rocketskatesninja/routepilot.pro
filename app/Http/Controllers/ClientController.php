@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\User;
 use App\Models\Activity;
 use App\Http\Requests\ClientRequest;
 use App\Services\PhotoUploadService;
@@ -12,6 +13,7 @@ use App\Traits\HasExportable;
 use App\Constants\AppConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 
 class ClientController extends Controller
 {
@@ -88,7 +90,36 @@ class ClientController extends Controller
             'clients/photos'
         );
 
+        // Handle password creation if provided
+        $password = null;
+        if (!empty($validated['password'])) {
+            $password = $validated['password'];
+        }
+        unset($validated['password']); // Remove password from client creation
+
         $client = Client::create($validated);
+
+        // Create corresponding user account if password was provided
+        if ($password) {
+            User::create([
+                'first_name' => $client->first_name,
+                'last_name' => $client->last_name,
+                'email' => $client->email,
+                'phone' => $client->phone,
+                'street_address' => $client->street_address,
+                'street_address_2' => $client->street_address_2,
+                'city' => $client->city,
+                'state' => $client->state,
+                'zip_code' => $client->zip_code,
+                'role' => 'customer',
+                'password' => Hash::make($password),
+                'appointment_reminders' => $client->appointment_reminders,
+                'mailing_list' => $client->mailing_list,
+                'monthly_billing' => $client->monthly_billing,
+                'service_reports' => $client->service_reports,
+                'is_active' => $client->is_active,
+            ]);
+        }
 
         // If requested, create a location using the client's address
         if ($request->has('create_first_location')) {
@@ -157,13 +188,53 @@ class ClientController extends Controller
             $client->profile_photo
         );
 
+        // Handle password update if provided
+        $passwordUpdated = false;
+        if (!empty($validated['password'])) {
+            // Find the corresponding user record
+            $user = User::where('email', $client->email)->first();
+            if ($user) {
+                $user->update([
+                    'password' => Hash::make($validated['password'])
+                ]);
+                $passwordUpdated = true;
+            } else {
+                // Create a user account for this client
+                User::create([
+                    'first_name' => $client->first_name,
+                    'last_name' => $client->last_name,
+                    'email' => $client->email,
+                    'phone' => $client->phone,
+                    'street_address' => $client->street_address,
+                    'street_address_2' => $client->street_address_2,
+                    'city' => $client->city,
+                    'state' => $client->state,
+                    'zip_code' => $client->zip_code,
+                    'role' => 'customer',
+                    'password' => Hash::make($validated['password']),
+                    'appointment_reminders' => $client->appointment_reminders,
+                    'mailing_list' => $client->mailing_list,
+                    'monthly_billing' => $client->monthly_billing,
+                    'service_reports' => $client->service_reports,
+                    'is_active' => $client->is_active,
+                ]);
+                $passwordUpdated = true;
+            }
+        }
+        unset($validated['password']); // Remove password from client update
+
         $client->update($validated);
 
         // Log activity
         Activity::log('update', "Updated client: {$client->full_name}", auth()->user(), $client);
 
+        $message = 'Client updated successfully.';
+        if ($passwordUpdated) {
+            $message .= ' Password has been updated.';
+        }
+
         return redirect()->route('clients.show', $client)
-                        ->with('success', 'Client updated successfully.');
+                        ->with('success', $message);
     }
 
     /**
