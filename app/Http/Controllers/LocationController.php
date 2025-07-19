@@ -105,33 +105,6 @@ class LocationController extends Controller
             'locations/photos'
         );
 
-        // Map form field names to database column names
-        $fieldMapping = [
-            'vacuum' => 'vacuumed',
-            'brush' => 'brushed',
-            'skim' => 'skimmed',
-            'clean_skimmer_basket' => 'cleaned_skimmer_basket',
-            'clean_pump_basket' => 'cleaned_pump_basket',
-            'clean_pool_deck' => 'cleaned_pool_deck',
-            'clean_filter_cartridge' => 'cleaned_filter_cartridge',
-            'backwash_sand_filter' => 'backwashed_sand_filter',
-            'adjust_water_level' => 'adjusted_water_level',
-            'adjust_auto_fill' => 'adjusted_auto_fill',
-            'adjust_pump_timer' => 'adjusted_pump_timer',
-            'adjust_heater' => 'adjusted_heater',
-            'check_cover' => 'checked_cover',
-            'check_lights' => 'checked_lights',
-            'check_fountain' => 'checked_fountain',
-            'check_heater' => 'checked_heater',
-        ];
-
-        foreach ($fieldMapping as $formField => $dbField) {
-            if (isset($validated[$formField])) {
-                $validated[$dbField] = $validated[$formField];
-                unset($validated[$formField]);
-            }
-        }
-
         // Ensure numeric fields are not null
         $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0;
         $validated['rate_per_visit'] = $validated['rate_per_visit'] ?? null;
@@ -226,33 +199,6 @@ class LocationController extends Controller
             'locations/photos',
             $location->photos ?? []
         );
-
-        // Map form field names to database column names
-        $fieldMapping = [
-            'vacuum' => 'vacuumed',
-            'brush' => 'brushed',
-            'skim' => 'skimmed',
-            'clean_skimmer_basket' => 'cleaned_skimmer_basket',
-            'clean_pump_basket' => 'cleaned_pump_basket',
-            'clean_pool_deck' => 'cleaned_pool_deck',
-            'clean_filter_cartridge' => 'cleaned_filter_cartridge',
-            'backwash_sand_filter' => 'backwashed_sand_filter',
-            'adjust_water_level' => 'adjusted_water_level',
-            'adjust_auto_fill' => 'adjusted_auto_fill',
-            'adjust_pump_timer' => 'adjusted_pump_timer',
-            'adjust_heater' => 'adjusted_heater',
-            'check_cover' => 'checked_cover',
-            'check_lights' => 'checked_lights',
-            'check_fountain' => 'checked_fountain',
-            'check_heater' => 'checked_heater',
-        ];
-
-        foreach ($fieldMapping as $formField => $dbField) {
-            if (isset($validated[$formField])) {
-                $validated[$dbField] = $validated[$formField];
-                unset($validated[$formField]);
-            }
-        }
 
         // Ensure numeric fields are not null
         $validated['other_services_cost'] = $validated['other_services_cost'] ?? 0;

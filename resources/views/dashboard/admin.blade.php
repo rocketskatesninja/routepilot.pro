@@ -10,20 +10,6 @@
             <h1 class="text-3xl font-bold text-base-content">Admin Dashboard</h1>
             <p class="text-base-content/70 mt-2">Overview of your pool service business</p>
         </div>
-        <div class="flex space-x-3">
-            <a href="{{ route('clients.create') }}" class="btn btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                New Client
-            </a>
-            {{-- <a href="{{ route('reports.create') }}" class="btn-secondary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                </svg>
-                New Report
-            </a> --}}
-        </div>
     </div>
 
     <div class="space-y-6">

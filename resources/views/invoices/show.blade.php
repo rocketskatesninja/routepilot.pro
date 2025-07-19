@@ -9,12 +9,14 @@
             <p class="text-base-content/70 mt-2">{{ $invoice->client->full_name }} - {{ $invoice->service_date->format('M j, Y') }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
+            @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
             <a href="{{ route('invoices.edit', $invoice) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 Edit Invoice
             </a>
+            @endif
             <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -33,7 +35,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Invoice Profile -->
         <div class="lg:col-span-1">
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <div class="text-center mb-6">
                     <div class="avatar mb-4">
                         <div class="mask mask-squircle w-24 h-24">
@@ -149,10 +151,10 @@
                             <span class="text-base-content font-semibold">Total Amount</span>
                             <span class="text-base-content font-bold text-lg">${{ number_format($invoice->total_amount, 2) }}</span>
                         </div>
-                        @if($invoice->balance > 0)
+                        @if($totalClientBalance > 0)
                         <div class="flex items-center justify-between">
                             <span class="text-base-content font-semibold">Balance Due</span>
-                            <span class="text-base-content font-bold text-lg text-error">${{ number_format($invoice->balance, 2) }}</span>
+                            <span class="text-base-content font-bold text-lg text-error">${{ number_format($totalClientBalance, 2) }}</span>
                         </div>
                         @endif
                     </div>
@@ -192,45 +194,25 @@
         <div class="lg:col-span-2 space-y-8">
             <!-- Statistics Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="stat bg-base-100 shadow-xl rounded-lg">
-                    <div class="stat-figure text-primary">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Total Amount</div>
-                    <div class="stat-value text-primary">${{ number_format($invoice->total_amount, 2) }}</div>
-                </div>
-                
-                <div class="stat bg-base-100 shadow-xl rounded-lg">
-                    <div class="stat-figure text-{{ $invoice->balance > 0 ? 'error' : 'success' }}">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Balance Due</div>
-                    <div class="stat-value text-{{ $invoice->balance > 0 ? 'error' : 'success' }}">${{ number_format($invoice->balance, 2) }}</div>
-                </div>
-                
-                <div class="stat bg-base-100 shadow-xl rounded-lg">
-                    <div class="stat-figure text-info">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>
-                    <div class="stat-title">Days Overdue</div>
-                    <div class="stat-value text-info">
-                        @if($invoice->due_date->isPast() && $invoice->status !== 'paid')
-                            {{ $invoice->due_date->diffInDays(now()) }}
-                        @else
-                            0
-                        @endif
-                    </div>
-                </div>
+                <x-stat-card 
+                    title="Total Amount" 
+                    value="${{ number_format($invoice->total_amount, 2) }}" 
+                    color="primary"
+                    icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'></path>"/>
+                <x-stat-card 
+                    title="Balance Due" 
+                    value="${{ number_format($totalClientBalance, 2) }}" 
+                    color="{{ $totalClientBalance > 0 ? 'error' : 'success' }}"
+                    icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'></path>"/>
+                <x-stat-card 
+                    title="Days Overdue" 
+                    value="{{ $invoice->due_date->isPast() && $invoice->status !== 'paid' ? $invoice->due_date->diffInDays(now()) : 0 }}" 
+                    color="info"
+                    icon="<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'></path>"/>
             </div>
 
             <!-- Tabs -->
-            <div class="bg-base-100 shadow-xl rounded-lg">
+            <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
                     <a class="tab tab-active" onclick="showTab('details')">Invoice Details</a>
                     <a class="tab" onclick="showTab('payment')">Payment History</a>
@@ -319,7 +301,7 @@
                                 </svg>
                                 <div>
                                     <h4 class="font-bold">Payment Pending</h4>
-                                    <p>This invoice is still awaiting payment. Balance due: ${{ number_format($invoice->balance, 2) }}</p>
+                                    <p>This invoice is still awaiting payment. Total balance due: ${{ number_format($totalClientBalance, 2) }}</p>
                                 </div>
                             </div>
                             @endif
@@ -342,8 +324,8 @@
                                                 <label class="label">
                                                     <span class="label-text">Payment Amount</span>
                                                 </label>
-                                                <input type="number" name="payment_amount" step="0.01" min="0.01" max="{{ $invoice->balance }}" 
-                                                       value="{{ $invoice->balance }}" class="input input-bordered" required>
+                                                <input type="number" name="payment_amount" step="0.01" min="0.01" max="{{ $totalClientBalance }}" 
+                                                       value="{{ $totalClientBalance }}" class="input input-bordered" required>
                                             </div>
                                             <div class="form-control">
                                                 <label class="label">

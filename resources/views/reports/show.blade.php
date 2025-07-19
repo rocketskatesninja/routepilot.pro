@@ -9,12 +9,14 @@
             <p class="text-base-content/70 mt-2">{{ $report->service_date->format('M j, Y') }} - {{ $report->location->nickname ?? 'Location' }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
+            @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
             <a href="{{ route('reports.edit', $report) }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 Edit Report
             </a>
+            @endif
             <a href="{{ route('reports.index') }}" class="btn btn-outline">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
@@ -27,7 +29,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Report Summary -->
         <div class="lg:col-span-1">
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <div class="text-center mb-6">
                     <div class="avatar mb-4">
                         <div class="mask mask-squircle w-24 h-24">
@@ -178,7 +180,7 @@
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
             <!-- Chemistry Readings -->
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <h3 class="text-lg font-semibold text-base-content mb-4">Chemistry Readings</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     @foreach($report->chemistryReadings as $reading => $value)
@@ -193,7 +195,7 @@
             </div>
 
             <!-- Cleaning Tasks -->
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <h3 class="text-lg font-semibold text-base-content mb-4">Cleaning Tasks</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     @foreach($report->cleaningTasks as $task => $completed)
@@ -208,7 +210,7 @@
             </div>
 
             <!-- Maintenance Tasks -->
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <h3 class="text-lg font-semibold text-base-content mb-4">Maintenance Tasks</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     @foreach($report->maintenanceTasks as $task => $completed)
@@ -224,7 +226,7 @@
 
             <!-- Chemicals & Services -->
             @if($report->chemicals_used || $report->other_services)
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <h3 class="text-lg font-semibold text-base-content mb-4">Chemicals & Services</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @if($report->chemicals_used)
@@ -266,7 +268,7 @@
 
             <!-- Notes -->
             @if($report->notes_to_client || $report->notes_to_admin)
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <h3 class="text-lg font-semibold text-base-content mb-4">Notes</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @if($report->notes_to_client)
@@ -292,7 +294,7 @@
 
             <!-- Photos -->
             @if($report->photos && is_array($report->photos) && count($report->photos) > 0)
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <h3 class="text-lg font-semibold text-base-content mb-4">Photos</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     @foreach($report->photos as $photo)

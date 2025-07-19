@@ -56,7 +56,7 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-base-100 shadow-xl rounded-lg mb-6" x-data="{ filtersOpen: false }">
+    <div class="bg-base-100 shadow-xl rounded-lg mb-6 border border-base-300" x-data="{ filtersOpen: false }">
         <!-- Filter Header -->
         <div class="p-4 border-b border-base-200">
             <button 
@@ -159,7 +159,7 @@
     </div>
 
     <!-- Invoices Table -->
-    <div class="bg-base-100 shadow-xl rounded-lg overflow-hidden">
+    <div class="bg-base-100 shadow-xl rounded-lg overflow-hidden border border-base-300">
         <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
                 <thead class="bg-base-200 text-base-content">

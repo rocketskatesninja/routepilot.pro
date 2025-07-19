@@ -27,7 +27,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Client Profile -->
         <div class="lg:col-span-1">
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <!-- Client Photo -->
                 <div class="mb-6">
                     @if($client->profile_photo)
@@ -189,7 +189,7 @@
             </div>
 
             <!-- Tabs -->
-            <div class="bg-base-100 shadow-xl rounded-lg">
+            <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
                     <a class="tab tab-active" onclick="showTab('locations', event)">Locations</a>
                     <a class="tab" onclick="showTab('invoices', event)">Invoices</a>

@@ -29,10 +29,12 @@ class InvoiceController extends Controller
         if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
             $query = Invoice::with(['client', 'location', 'technician']);
         } elseif ($user->role === AppConstants::ROLE_CLIENT) {
-            // For customers, get invoices through their client record
+            // For customers, get invoices through their client record (excluding drafts)
             $client = Client::where('email', $user->email)->first();
             if ($client) {
-                $query = Invoice::where('client_id', $client->id)->with(['client', 'location', 'technician']);
+                $query = Invoice::where('client_id', $client->id)
+                    ->where('status', '!=', 'draft')
+                    ->with(['client', 'location', 'technician']);
             } else {
                 $query = Invoice::where('id', 0); // Empty query if no client found
             }
@@ -62,8 +64,8 @@ class InvoiceController extends Controller
 
         $invoices = $query->paginate(AppConstants::DEFAULT_PAGINATION);
 
-        // Calculate current balance (sum of all unpaid balances)
-        $currentBalance = $query->where('status', '!=', 'paid')->sum('balance');
+        // Calculate current balance (sum of all unpaid balances, excluding drafts)
+        $currentBalance = $query->where('status', '!=', 'paid')->where('status', '!=', 'draft')->sum('balance');
 
         return view('invoices.index', compact('invoices', 'currentBalance'));
     }
@@ -156,9 +158,19 @@ class InvoiceController extends Controller
             if (!$client || $invoice->client_id !== $client->id) {
                 abort(403, 'You can only view your own invoices.');
             }
+            // Clients cannot view draft invoices
+            if ($invoice->status === 'draft') {
+                abort(403, 'Draft invoices are not visible to customers.');
+            }
         }
         
-        return view('invoices.show', compact('invoice'));
+        // Calculate total balance across all invoices for this client (excluding drafts)
+        $totalClientBalance = Invoice::where('client_id', $invoice->client_id)
+            ->where('status', '!=', 'paid')
+            ->where('status', '!=', 'draft')
+            ->sum('balance');
+        
+        return view('invoices.show', compact('invoice', 'totalClientBalance'));
     }
 
     /**
@@ -166,6 +178,13 @@ class InvoiceController extends Controller
      */
     public function edit(string $id)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can edit invoices
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot edit invoices.');
+        }
+        
         $invoice = Invoice::findOrFail($id);
         $clients = Client::where('is_active', true)->get();
         $locations = Location::where('status', 'active')->get();
@@ -179,6 +198,13 @@ class InvoiceController extends Controller
      */
     public function update(InvoiceRequest $request, string $id)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can update invoices
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot update invoices.');
+        }
+        
         $invoice = Invoice::findOrFail($id);
 
         $validated = $request->validated();
@@ -209,6 +235,13 @@ class InvoiceController extends Controller
      */
     public function destroy(string $id)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can delete invoices
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot delete invoices.');
+        }
+        
         $invoice = Invoice::findOrFail($id);
         $invoice->delete();
 
@@ -221,6 +254,13 @@ class InvoiceController extends Controller
      */
     public function markAsPaid(string $id)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can mark invoices as paid
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot mark invoices as paid.');
+        }
+        
         $invoice = Invoice::findOrFail($id);
         $invoice->update([
             'status' => 'paid',
@@ -236,6 +276,13 @@ class InvoiceController extends Controller
      */
     public function recordPayment(Request $request, string $id)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can record payments
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot record payments.');
+        }
+        
         $request->validate([
             'payment_amount' => 'required|numeric|min:0.01',
             'payment_notes' => 'nullable|string',
@@ -266,6 +313,13 @@ class InvoiceController extends Controller
      */
     public function export(Request $request)
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can export invoices
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot export invoices.');
+        }
+        
         $query = Invoice::with(['client', 'location', 'technician']);
 
         // Apply search
@@ -313,6 +367,13 @@ class InvoiceController extends Controller
      */
     public function statistics()
     {
+        $user = auth()->user();
+        
+        // Only admins and technicians can view statistics
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            abort(403, 'Customers cannot view invoice statistics.');
+        }
+        
         $stats = [
             'total_invoices' => Invoice::count(),
             'paid_invoices' => Invoice::where('status', 'paid')->count(),
@@ -331,7 +392,20 @@ class InvoiceController extends Controller
      */
     public function generatePdf(string $id)
     {
+        $user = auth()->user();
         $invoice = Invoice::with(['client', 'location', 'technician'])->findOrFail($id);
+        
+        // Check if customer can download this invoice PDF
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            $client = Client::where('email', $user->email)->first();
+            if (!$client || $invoice->client_id !== $client->id) {
+                abort(403, 'You can only download your own invoice PDFs.');
+            }
+            // Clients cannot download draft invoice PDFs
+            if ($invoice->status === 'draft') {
+                abort(403, 'Draft invoices are not visible to customers.');
+            }
+        }
         
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         
@@ -343,7 +417,20 @@ class InvoiceController extends Controller
      */
     public function viewPdf(string $id)
     {
+        $user = auth()->user();
         $invoice = Invoice::with(['client', 'location', 'technician'])->findOrFail($id);
+        
+        // Check if customer can view this invoice PDF
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            $client = Client::where('email', $user->email)->first();
+            if (!$client || $invoice->client_id !== $client->id) {
+                abort(403, 'You can only view your own invoice PDFs.');
+            }
+            // Clients cannot view draft invoice PDFs
+            if ($invoice->status === 'draft') {
+                abort(403, 'Draft invoices are not visible to customers.');
+            }
+        }
         
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         

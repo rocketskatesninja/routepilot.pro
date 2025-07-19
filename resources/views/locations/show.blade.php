@@ -41,7 +41,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Location Profile -->
         <div class="lg:col-span-1">
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <!-- Location Photos Slideshow -->
                 <div class="mb-6">
                     @if($location->photos && count($location->photos) > 0)
@@ -174,7 +174,15 @@
                             </div>
                         </div>
                         <div>
-                            <div class="font-medium text-base-content">{{ $location->assignedTechnician->full_name }}</div>
+                            <div class="font-medium text-base-content">
+                                @if(auth()->user()->isAdmin())
+                                    <a href="{{ route('technicians.show', $location->assignedTechnician) }}" class="hover:text-primary hover:underline">
+                                        {{ $location->assignedTechnician->full_name }}
+                                    </a>
+                                @else
+                                    {{ $location->assignedTechnician->full_name }}
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -212,12 +220,6 @@
                                 {{ $location->chemicals_included ? 'Yes' : 'No' }}
                             </div>
                         </div>
-                        @if($location->assignedTechnician)
-                        <div class="flex items-center justify-between">
-                            <span class="text-base-content/70">Assigned Technician</span>
-                            <span class="text-base-content">{{ $location->assignedTechnician->full_name }}</span>
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -242,7 +244,7 @@
             </div>
 
             <!-- Tabs -->
-            <div class="bg-base-100 shadow-xl rounded-lg">
+            <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
                     <a class="tab tab-active" onclick="showTab('invoices', event)">Invoices</a>
                     <a class="tab" onclick="showTab('reports', event)">Reports</a>
