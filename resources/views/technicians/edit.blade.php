@@ -190,7 +190,6 @@
                                 Role <span class="text-error">*</span>
                             </label>
                             <select name="role" id="role" class="select select-bordered w-full @error('role') select-error @enderror" required>
-                                <option value="">Select Role</option>
                                 <option value="technician" {{ old('role', $technician->role) == 'technician' ? 'selected' : '' }}>Technician</option>
                                 <option value="admin" {{ old('role', $technician->role) == 'admin' ? 'selected' : '' }}>Admin</option>
                             </select>
@@ -203,7 +202,6 @@
                                 Status <span class="text-error">*</span>
                             </label>
                             <select name="is_active" id="is_active" class="select select-bordered w-full @error('is_active') select-error @enderror" required>
-                                <option value="">Select Status</option>
                                 <option value="1" {{ old('is_active', $technician->is_active) == 1 ? 'selected' : '' }}>Active</option>
                                 <option value="0" {{ old('is_active', $technician->is_active) == 0 ? 'selected' : '' }}>Inactive</option>
                             </select>
@@ -215,20 +213,17 @@
                     <div class="space-y-4">
                         <div>
                             <label for="password" class="block text-sm font-medium text-base-content mb-2">
-                                New Password
+                                Password
                             </label>
-                            <input type="password" name="password" id="password" 
-                                   class="input input-bordered w-full @error('password') input-error @enderror">
+                            <div class="flex gap-2">
+                                <input type="text" name="password" id="password" 
+                                       class="input input-bordered flex-1 @error('password') input-error @enderror" 
+                                       placeholder="Leave blank to keep current password">
+                                <button type="button" id="generate-password" class="btn btn-secondary">Generate</button>
+                            </div>
                             @error('password')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
-                        </div>
-                        <div>
-                            <label for="password_confirmation" class="block text-sm font-medium text-base-content mb-2">
-                                Confirm New Password
-                            </label>
-                            <input type="password" name="password_confirmation" id="password_confirmation" 
-                                   class="input input-bordered w-full">
                         </div>
                     </div>
                 </div>
@@ -266,4 +261,20 @@
         </form>
     </div>
 </div>
+
+<script>
+function randomPassword(length = 12) {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+    let pass = '';
+    for (let i = 0; i < length; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pass;
+}
+
+// Generate password button functionality
+document.getElementById('generate-password').addEventListener('click', function() {
+    document.getElementById('password').value = randomPassword();
+});
+</script>
 @endsection 

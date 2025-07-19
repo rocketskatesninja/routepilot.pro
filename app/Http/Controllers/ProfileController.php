@@ -32,6 +32,12 @@ class ProfileController extends Controller
         // Get validated data
         $validated = $request->validated();
         
+        // Handle service reports logic
+        if (!$validated['service_reports_enabled']) {
+            $validated['service_reports'] = 'none';
+        }
+        unset($validated['service_reports_enabled']);
+        
         // Handle profile photo upload
         if ($request->hasFile('profile_photo')) {
             // Delete old photo if exists

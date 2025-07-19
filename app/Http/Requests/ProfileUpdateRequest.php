@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\User;
+use App\Constants\AppConstants;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +36,8 @@ class ProfileUpdateRequest extends FormRequest
             'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
             'notes_by_client' => ['nullable', 'string'],
             'monthly_billing' => ['nullable', 'boolean'],
-            'service_reports' => ['nullable', 'boolean'],
+            'service_reports' => ['nullable', Rule::in([AppConstants::REPORT_TYPE_FULL, AppConstants::REPORT_TYPE_INVOICE_ONLY, AppConstants::REPORT_TYPE_SERVICES_ONLY, AppConstants::REPORT_TYPE_NONE])],
+            'service_reports_enabled' => ['nullable', 'boolean'],
             'mailing_list' => ['nullable', 'boolean'],
             'service_reminders' => ['nullable', 'boolean'],
             'appointment_reminders' => ['nullable', 'boolean'],
@@ -49,10 +51,10 @@ class ProfileUpdateRequest extends FormRequest
     {
         $this->merge([
             'monthly_billing' => $this->boolean('monthly_billing'),
-            'service_reports' => $this->boolean('service_reports'),
             'mailing_list' => $this->boolean('mailing_list'),
             'service_reminders' => $this->boolean('service_reminders'),
             'appointment_reminders' => $this->boolean('appointment_reminders'),
+            'service_reports_enabled' => $this->boolean('service_reports_enabled'),
         ]);
     }
 }

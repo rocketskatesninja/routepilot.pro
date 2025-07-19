@@ -73,13 +73,15 @@
                             <input type="text" name="zip_code" value="{{ old('zip_code', $user->zip_code) }}" class="input input-bordered w-full">
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-base-content mb-2">Email Address</label>
-                        <input type="email" name="email" value="{{ $user->email }}" class="input input-bordered w-full" readonly>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-base-content mb-2">Phone Number</label>
-                        <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="input input-bordered w-full">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-base-content mb-2">Email Address</label>
+                            <input type="email" name="email" value="{{ $user->email }}" class="input input-bordered w-full" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-base-content mb-2">Phone Number</label>
+                            <input type="tel" name="phone" value="{{ old('phone', $user->phone) }}" class="input input-bordered w-full">
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Profile Photo</label>
@@ -119,20 +121,31 @@
                         <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">Notification Preferences</h3>
                         <div class="space-y-4">
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
-                                <span class="text-base-content">Monthly Billing</span>
-                                <input type="checkbox" name="monthly_billing" class="checkbox checkbox-primary" {{ old('monthly_billing', $user->monthly_billing) ? 'checked' : '' }}>
-                            </div>
-                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
-                                <span class="text-base-content">Service Reports</span>
-                                <input type="checkbox" name="service_reports" class="checkbox checkbox-primary" {{ old('service_reports', $user->service_reports) ? 'checked' : '' }}>
+                                <span class="text-base-content">Appointment Reminders</span>
+                                <input type="checkbox" name="appointment_reminders" value="1" 
+                                       class="checkbox checkbox-primary" {{ old('appointment_reminders', $user->appointment_reminders) ? 'checked' : '' }}>
                             </div>
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
                                 <span class="text-base-content">Mailing List</span>
-                                <input type="checkbox" name="mailing_list" class="checkbox checkbox-primary" {{ old('mailing_list', $user->mailing_list) ? 'checked' : '' }}>
+                                <input type="checkbox" name="mailing_list" value="1" 
+                                       class="checkbox checkbox-primary" {{ old('mailing_list', $user->mailing_list) ? 'checked' : '' }}>
                             </div>
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
-                                <span class="text-base-content">Service Reminders</span>
-                                <input type="checkbox" name="service_reminders" class="checkbox checkbox-primary" {{ old('service_reminders', $user->service_reminders) ? 'checked' : '' }}>
+                                <span class="text-base-content">Monthly Billing</span>
+                                <input type="checkbox" name="monthly_billing" value="1" 
+                                       class="checkbox checkbox-primary" {{ old('monthly_billing', $user->monthly_billing) ? 'checked' : '' }}>
+                            </div>
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                                <span class="text-base-content">Service Reports</span>
+                                <div class="flex items-center space-x-4">
+                                    <input type="checkbox" name="service_reports_enabled" id="service_reports_enabled" value="1" 
+                                           class="checkbox checkbox-primary" {{ old('service_reports_enabled', $user->service_reports !== 'none') ? 'checked' : '' }}>
+                                    <select name="service_reports" id="service_reports" class="select select-bordered select-sm">
+                                        <option value="full" {{ old('service_reports', $user->service_reports) == 'full' ? 'selected' : '' }}>Full Reports</option>
+                                        <option value="invoice_only" {{ old('service_reports', $user->service_reports) == 'invoice_only' ? 'selected' : '' }}>Invoice Only</option>
+                                        <option value="services_only" {{ old('service_reports', $user->service_reports) == 'services_only' ? 'selected' : '' }}>Services Only</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -162,5 +175,26 @@
         </form>
     </div>
 </div>
+
+<script>
+// Service reports checkbox behavior
+document.addEventListener('DOMContentLoaded', function() {
+    const serviceReportsCheckbox = document.getElementById('service_reports_enabled');
+    const serviceReportsSelect = document.getElementById('service_reports');
+
+    function toggleServiceReports() {
+        serviceReportsSelect.disabled = !serviceReportsCheckbox.checked;
+        if (!serviceReportsCheckbox.checked) {
+            serviceReportsSelect.value = '';
+        }
+    }
+
+    // Initial state
+    toggleServiceReports();
+
+    // Event listener
+    serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
+});
+</script>
 @endsection
 

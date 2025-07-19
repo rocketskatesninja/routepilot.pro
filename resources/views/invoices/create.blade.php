@@ -121,13 +121,10 @@
                         <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
                             Rate per Visit <span class="text-error">*</span>
                         </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" name="rate_per_visit" id="rate_per_visit" 
-                                   value="{{ old('rate_per_visit', '75.00') }}" step="0.01" min="0" 
-                                   class="input input-bordered w-full @error('rate_per_visit') input-error @enderror" 
-                                   required>
-                        </div>
+                        <input type="number" name="rate_per_visit" id="rate_per_visit" 
+                               value="{{ old('rate_per_visit', '75.00') }}" step="0.01" min="0" 
+                               class="input input-bordered w-full @error('rate_per_visit') input-error @enderror" 
+                               required>
                         @error('rate_per_visit')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -146,12 +143,9 @@
                         <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
                             Chemicals Cost
                         </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" name="chemicals_cost" id="chemicals_cost" 
-                                   value="{{ old('chemicals_cost', '25.00') }}" step="0.01" min="0" 
-                                   class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
-                        </div>
+                        <input type="number" name="chemicals_cost" id="chemicals_cost" 
+                               value="{{ old('chemicals_cost', '25.00') }}" step="0.01" min="0" 
+                               class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
                         @error('chemicals_cost')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -161,12 +155,9 @@
                         <label for="extras_cost" class="block text-sm font-medium text-base-content mb-2">
                             Extras Cost
                         </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" name="extras_cost" id="extras_cost" 
-                                   value="{{ old('extras_cost', '0.00') }}" step="0.01" min="0" 
-                                   class="input input-bordered w-full @error('extras_cost') input-error @enderror">
-                        </div>
+                        <input type="number" name="extras_cost" id="extras_cost" 
+                               value="{{ old('extras_cost', '0.00') }}" step="0.01" min="0" 
+                               class="input input-bordered w-full @error('extras_cost') input-error @enderror">
                         @error('extras_cost')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror

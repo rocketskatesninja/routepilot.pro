@@ -96,21 +96,6 @@
                     </div>
 
                     <div>
-                        <label for="role" class="block text-sm font-medium text-base-content mb-2">
-                            Role <span class="text-error">*</span>
-                        </label>
-                        <select name="role" id="role" class="select select-bordered w-full @error('role') select-error @enderror" required>
-                            <option value="">Select Role</option>
-                            <option value="client" {{ old('role', $client->role) == 'client' ? 'selected' : '' }}>Client</option>
-                            <option value="tech" {{ old('role', $client->role) == 'tech' ? 'selected' : '' }}>Technician</option>
-                            <option value="admin" {{ old('role', $client->role) == 'admin' ? 'selected' : '' }}>Admin</option>
-                        </select>
-                        @error('role')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
                         <label for="profile_photo" class="block text-sm font-medium text-base-content mb-2">
                             Profile Photo
                         </label>
@@ -193,34 +178,51 @@
                 </div>
             </div>
 
-            <!-- Preferences and Settings -->
+            <!-- Account Information -->
             <div class="mt-8 space-y-6">
                 <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                    Preferences & Settings
+                    Account Information
                 </h3>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-base-content mb-2">
-                                Status <span class="text-error">*</span>
-                            </label>
-                            <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
-                                <option value="">Select Status</option>
-                                <option value="active" {{ old('status', $client->status) == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status', $client->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                            @error('status')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-base-content mb-2">
+                            Status <span class="text-error">*</span>
+                        </label>
+                        <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
+                            <option value="active" {{ old('status', $client->status) == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ old('status', $client->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                        @error('status')
+                            <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-base-content mb-2">
+                            Password
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" name="password" id="password" 
+                                   class="input input-bordered flex-1 @error('password') input-error @enderror" 
+                                   placeholder="Leave blank to keep current password">
+                            <button type="button" id="generate-password" class="btn btn-secondary">Generate</button>
+                        </div>
+                        @error('password')
+                            <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Notification Preferences -->
-                    <div class="space-y-6">
-                        <h4 class="text-md font-semibold text-base-content">Notification Preferences</h4>
+            <!-- Notification Preferences -->
+            <div class="mt-8 space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                            Notification Preferences
+                        </h3>
+                        
                         <div class="space-y-4">
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
                                 <span class="text-base-content">Appointment Reminders</span>
@@ -323,6 +325,21 @@
 
             // Event listener
             serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
+        });
+
+        // Generate password functionality
+        function randomPassword(length = 12) {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+            let pass = '';
+            for (let i = 0; i < length; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return pass;
+        }
+
+        // Generate password button functionality
+        document.getElementById('generate-password').addEventListener('click', function() {
+            document.getElementById('password').value = randomPassword();
         });
     </script>
 </div>
