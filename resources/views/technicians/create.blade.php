@@ -166,7 +166,7 @@
                             </label>
                             <select name="role" id="role" class="select select-bordered w-full @error('role') select-error @enderror" required>
                                 <option value="">Select Role</option>
-                                <option value="technician" {{ old('role') == 'technician' ? 'selected' : '' }}>Technician</option>
+                                <option value="technician" {{ old('role', 'technician') == 'technician' ? 'selected' : '' }}>Technician</option>
                                 <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                             </select>
                             @error('role')
@@ -178,8 +178,7 @@
                                 Status <span class="text-error">*</span>
                             </label>
                             <select name="is_active" id="is_active" class="select select-bordered w-full @error('is_active') select-error @enderror" required>
-                                <option value="">Select Status</option>
-                                <option value="1" {{ old('is_active') == 1 ? 'selected' : '' }}>Active</option>
+                                <option value="1" {{ old('is_active', 1) == 1 ? 'selected' : '' }}>Active</option>
                                 <option value="0" {{ old('is_active') == 0 ? 'selected' : '' }}>Inactive</option>
                             </select>
                             @error('is_active')
@@ -192,12 +191,31 @@
                             <label for="password" class="block text-sm font-medium text-base-content mb-2">
                                 Password <span class="text-error">*</span>
                             </label>
-                            <input type="text" name="password" id="password" 
-                                   class="input input-bordered w-full @error('password') input-error @enderror" required>
-                            <button type="button" id="generate-password" class="btn btn-secondary mt-2">Generate</button>
+                            <div class="flex gap-2">
+                                <input type="text" name="password" id="password" 
+                                       class="input input-bordered flex-1 @error('password') input-error @enderror" required>
+                                <button type="button" id="generate-password" class="btn btn-secondary">Generate</button>
+                            </div>
                             @error('password')
                                 <p class="text-error text-sm mt-1">{{ $message }}</p>
                             @enderror
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferences & Settings -->
+            <div class="mt-8 space-y-6">
+                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                    Preferences & Settings
+                </h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                            <span class="text-base-content">Send welcome email with login information</span>
+                            <input type="checkbox" name="send_welcome_email" class="checkbox checkbox-primary" checked>
                         </div>
                     </div>
                 </div>
@@ -223,33 +241,30 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="mt-8 flex justify-between items-center">
-                <div>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="send_welcome_email" class="checkbox checkbox-primary">
-                        <span class="ml-2">Send welcome email with login information</span>
-                    </label>
-                </div>
-                <div class="flex space-x-4">
-                    <a href="{{ route('technicians.index') }}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
-                        Create Technician
-                    </button>
-                </div>
+            <div class="mt-8 flex justify-end space-x-4">
+                <a href="{{ route('technicians.index') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Create Technician
+                </button>
             </div>
             <script>
-            document.getElementById('generate-password').addEventListener('click', function() {
-                function randomPassword(length = 12) {
-                    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
-                    let pass = '';
-                    for (let i = 0; i < length; i++) {
-                        pass += chars.charAt(Math.floor(Math.random() * chars.length));
-                    }
-                    return pass;
+            function randomPassword(length = 12) {
+                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+                let pass = '';
+                for (let i = 0; i < length; i++) {
+                    pass += chars.charAt(Math.floor(Math.random() * chars.length));
                 }
+                return pass;
+            }
+
+            // Auto-generate password on page load
+            document.getElementById('password').value = randomPassword();
+
+            // Generate password button functionality
+            document.getElementById('generate-password').addEventListener('click', function() {
                 document.getElementById('password').value = randomPassword();
             });
             </script>

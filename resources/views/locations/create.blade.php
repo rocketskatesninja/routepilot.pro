@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
     clientSearch.addEventListener('keydown', function(e) {
         lastKey = e.key;
     });
-
+    
     clientSearch.addEventListener('input', function(e) {
         const query = this.value.trim();
         lastValue = query;

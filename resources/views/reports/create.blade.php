@@ -350,38 +350,38 @@
                     </div>
                 </div>
 
-                <!-- Notification Settings -->
+                <!-- Notification Settings and Invoice Generation -->
                 <div class="mt-8 space-y-6">
-                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                        Notification Settings
-                    </h3>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <input type="checkbox" name="notify_client" id="notify_client" 
-                                   class="checkbox checkbox-primary" 
-                                   {{ (isset($client) && $client->service_reports) ? 'checked' : '' }}>
-                            <span class="label-text ml-2">Notify client (pre-checked if client allows)</span>
-                        </label>
-                    </div>
-                </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="space-y-6">
+                            <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                                Notification Settings
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                                    <span class="text-base-content">Notify client (pre-checked if client allows)</span>
+                                    <input type="checkbox" name="notify_client" id="notify_client" 
+                                           class="checkbox checkbox-primary" 
+                                           {{ (isset($client) && $client->service_reports) ? 'checked' : '' }}>
+                                </div>
+                            </div>
+                        </div>
 
-                <!-- Invoice Generation -->
-                <div class="mt-8 space-y-6">
-                    <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                        Invoice Generation
-                    </h3>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <input type="checkbox" name="generate_invoice" id="generate_invoice" 
-                                   class="checkbox checkbox-primary" 
-                                   {{ old('generate_invoice') ? 'checked' : '' }}>
-                            <span class="label-text ml-2">Automatically generate invoice for this report</span>
-                        </label>
-                        <p class="text-sm text-base-content/70 mt-2">
-                            When checked, an invoice will be created automatically using the service details and costs from this report.
-                        </p>
+                        <div class="space-y-6">
+                            <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                                Invoice Generation
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                                    <span class="text-base-content">Automatically generate invoice for this report</span>
+                                    <input type="checkbox" name="generate_invoice" id="generate_invoice" 
+                                           class="checkbox checkbox-primary" 
+                                           {{ old('generate_invoice', true) ? 'checked' : '' }}>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

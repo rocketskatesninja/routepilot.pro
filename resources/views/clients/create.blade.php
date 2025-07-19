@@ -152,32 +152,67 @@
                 </div>
             </div>
 
-            <!-- Preferences and Settings -->
+            <!-- Account Information -->
             <div class="mt-8 space-y-6">
                 <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
-                    Preferences & Settings
+                    Account Information
                 </h3>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div class="space-y-4">
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-base-content mb-2">
-                                Status <span class="text-error">*</span>
-                            </label>
-                            <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
-                                <option value="">Select Status</option>
-                                <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                            @error('status')
-                                <p class="text-error text-sm mt-1">{{ $message }}</p>
-                            @enderror
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-base-content mb-2">
+                            Status <span class="text-error">*</span>
+                        </label>
+                        <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
+                            <option value="active" {{ old('status', 'active') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                        @error('status')
+                            <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-base-content mb-2">
+                            Password <span class="text-error">*</span>
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" name="password" id="password" 
+                                   class="input input-bordered flex-1 @error('password') input-error @enderror" required>
+                            <button type="button" id="generate-password" class="btn btn-secondary">Generate</button>
+                        </div>
+                        @error('password')
+                            <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preferences and Settings -->
+            <div class="mt-8 space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-6">
+                        <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                            Preferences & Settings
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                                <span class="text-base-content">Use this address for the first location</span>
+                                <input type="checkbox" name="create_first_location" class="checkbox checkbox-primary" checked>
+                            </div>
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                                <span class="text-base-content">Send welcome email with login information</span>
+                                <input type="checkbox" name="send_welcome_email" class="checkbox checkbox-primary" checked>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Notification Preferences -->
                     <div class="space-y-6">
-                        <h4 class="text-md font-semibold text-base-content">Notification Preferences</h4>
+                        <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                            Notification Preferences
+                        </h3>
+                        
                         <div class="space-y-4">
                             <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
                                 <span class="text-base-content">Appointment Reminders</span>
@@ -231,17 +266,7 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="mt-8 flex justify-between items-center">
-                <div class="flex space-x-8">
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="create_first_location" class="checkbox checkbox-primary" checked>
-                        <span class="ml-2">Use this address for the first location</span>
-                    </label>
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" name="send_welcome_email" class="checkbox checkbox-primary" checked>
-                        <span class="ml-2">Send welcome email with login information</span>
-                    </label>
-                </div>
+            <div class="mt-8 flex justify-end items-center">
                 <div class="flex space-x-4">
                     <a href="{{ route('clients.index') }}" class="btn btn-outline">Cancel</a>
                     <button type="submit" class="btn btn-primary">
@@ -270,6 +295,24 @@
 
                 // Event listener
                 serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
+            });
+
+            // Generate password functionality
+            function randomPassword(length = 12) {
+                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
+                let pass = '';
+                for (let i = 0; i < length; i++) {
+                    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return pass;
+            }
+
+            // Auto-generate password on page load
+            document.getElementById('password').value = randomPassword();
+
+            // Generate password button functionality
+            document.getElementById('generate-password').addEventListener('click', function() {
+                document.getElementById('password').value = randomPassword();
             });
             </script>
         </form>
