@@ -10,28 +10,7 @@
         </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    @if(session('status') === 'profile-updated')
-        <div class="alert alert-success mb-6">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
-            Profile updated successfully!
-        </div>
-    @endif
 
-    @if($errors->any())
-        <div class="alert alert-error mb-6">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-            </svg>
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
 
     <div class="card bg-base-100 shadow-xl border border-base-300">
         <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" class="card-body p-6">
