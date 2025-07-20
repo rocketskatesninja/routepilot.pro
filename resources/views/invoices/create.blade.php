@@ -30,7 +30,7 @@
                         Service Information
                     </h3>
                     
-                    <div>
+                    <div class="relative">
                         <label for="client_search" class="block text-sm font-medium text-base-content mb-2">
                             Client <span class="text-error">*</span>
                         </label>
@@ -117,50 +117,54 @@
                         Cost Information
                     </h3>
                     
-                    <div>
-                        <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
-                            Rate per Visit <span class="text-error">*</span>
-                        </label>
-                        <input type="number" name="rate_per_visit" id="rate_per_visit" 
-                               value="{{ old('rate_per_visit', '75.00') }}" step="0.01" min="0" 
-                               class="input input-bordered w-full @error('rate_per_visit') input-error @enderror" 
-                               required>
-                        @error('rate_per_visit')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
+                                Rate per Visit <span class="text-error">*</span>
+                            </label>
+                            <input type="number" name="rate_per_visit" id="rate_per_visit" 
+                                   value="{{ old('rate_per_visit', '75.00') }}" step="0.01" min="0" 
+                                   class="input input-bordered w-full @error('rate_per_visit') input-error @enderror" 
+                                   required>
+                            @error('rate_per_visit')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        
+                        <div>
+                            <label for="extras_cost" class="block text-sm font-medium text-base-content mb-2">
+                                Extras Cost
+                            </label>
+                            <input type="number" name="extras_cost" id="extras_cost" 
+                                   value="{{ old('extras_cost', '0.00') }}" step="0.01" min="0" 
+                                   class="input input-bordered w-full @error('extras_cost') input-error @enderror">
+                            @error('extras_cost')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                     
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <span class="label-text">Include Chemicals</span>
-                            <input type="checkbox" name="chemicals_included" id="chemicals_included" 
-                                   value="1" {{ old('chemicals_included') ? 'checked' : '' }} 
-                                   class="checkbox checkbox-primary">
-                        </label>
-                    </div>
-                    
-                    <div id="chemicals_cost_group" style="display: none;">
-                        <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
-                            Chemicals Cost
-                        </label>
-                        <input type="number" name="chemicals_cost" id="chemicals_cost" 
-                               value="{{ old('chemicals_cost', '25.00') }}" step="0.01" min="0" 
-                               class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
-                        @error('chemicals_cost')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    
-                    <div>
-                        <label for="extras_cost" class="block text-sm font-medium text-base-content mb-2">
-                            Extras Cost
-                        </label>
-                        <input type="number" name="extras_cost" id="extras_cost" 
-                               value="{{ old('extras_cost', '0.00') }}" step="0.01" min="0" 
-                               class="input input-bordered w-full @error('extras_cost') input-error @enderror">
-                        @error('extras_cost')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-end">
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3 w-full">
+                                <span class="text-base-content">Include Chemicals</span>
+                                <input type="checkbox" name="chemicals_included" id="chemicals_included" 
+                                       value="1" {{ old('chemicals_included') ? 'checked' : '' }} 
+                                       class="checkbox checkbox-primary">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
+                                Chemicals Cost
+                            </label>
+                            <input type="number" name="chemicals_cost" id="chemicals_cost" 
+                                   value="{{ old('chemicals_cost', '25.00') }}" step="0.01" min="0" 
+                                   class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
+                            @error('chemicals_cost')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                     
                     <!-- Total Calculation -->
@@ -245,6 +249,24 @@
                     @error('service_notes')
                         <p class="text-error text-sm mt-1">{{ $message }}</p>
                     @enderror
+                </div>
+            </div>
+            
+            <!-- Notification Settings -->
+            <div class="mt-8 space-y-6">
+                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                    Notification Settings
+                </h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                            <span class="text-base-content">Send notification to client</span>
+                            <input type="checkbox" name="notification_sent" id="notification_sent" 
+                                   value="1" {{ old('notification_sent') ? 'checked' : '' }} 
+                                   class="checkbox checkbox-primary">
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -421,29 +443,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Chemicals calculation functionality
     const chemicalsCheckbox = document.getElementById('chemicals_included');
-    const chemicalsGroup = document.getElementById('chemicals_cost_group');
     const chemicalsDisplay = document.getElementById('chemicals_display');
     const rateInput = document.getElementById('rate_per_visit');
     const chemicalsInput = document.getElementById('chemicals_cost');
     const extrasInput = document.getElementById('extras_cost');
     
-    // Toggle chemicals cost field
-    chemicalsCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            chemicalsGroup.style.display = 'block';
-            chemicalsDisplay.style.display = 'flex';
-        } else {
-            chemicalsGroup.style.display = 'none';
-            chemicalsDisplay.style.display = 'none';
-            chemicalsInput.value = '0.00';
-        }
-        updateTotal();
-    });
-    
     // Update total calculation
     function updateTotal() {
         const rate = parseFloat(rateInput.value) || 0;
-        const chemicals = chemicalsCheckbox.checked ? (parseFloat(chemicalsInput.value) || 0) : 0;
+        const chemicals = chemicalsCheckbox.checked ? 0 : (parseFloat(chemicalsInput.value) || 0);
         const extras = parseFloat(extrasInput.value) || 0;
         const total = rate + chemicals + extras;
         
@@ -451,7 +459,25 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('chemicals_display_amount').textContent = '$' + chemicals.toFixed(2);
         document.getElementById('extras_display').textContent = '$' + extras.toFixed(2);
         document.getElementById('total_display').textContent = '$' + total.toFixed(2);
+        
+        // Show/hide chemicals display based on checkbox
+        if (chemicalsCheckbox.checked) {
+            chemicalsDisplay.style.display = 'none';
+        } else {
+            chemicalsDisplay.style.display = 'flex';
+        }
     }
+    
+    // Handle chemicals checkbox change
+    chemicalsCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            chemicalsInput.disabled = true;
+            chemicalsInput.value = '0.00';
+        } else {
+            chemicalsInput.disabled = false;
+        }
+        updateTotal();
+    });
     
     // Add event listeners for real-time calculation
     rateInput.addEventListener('input', updateTotal);

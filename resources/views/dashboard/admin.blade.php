@@ -100,7 +100,8 @@
                                     <span class="badge 
                                         @if($invoice->status === 'paid') badge-success
                                         @elseif($invoice->status === 'overdue') badge-error
-                                        @else badge-warning @endif">
+                                        @elseif($invoice->status === 'sent') badge-info
+                                        @else badge-neutral @endif">
                                         {{ ucfirst($invoice->status) }}
                                     </span>
                                 </div>

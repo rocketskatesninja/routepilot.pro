@@ -184,13 +184,13 @@
                     <tr>
                         <td>
                             <div class="font-bold text-base-content">
-                                <a href="{{ route('invoices.show', $invoice) }}" class="hover:text-primary hover:underline">
+                                <a href="{{ route('invoices.show', $invoice) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $invoice->invoice_number }}
                                 </a>
                             </div>
                             <div class="text-sm opacity-50">
                                 @if($invoice->technician)
-                                    <a href="{{ route('technicians.show', $invoice->technician) }}" class="hover:text-primary hover:underline">
+                                    <a href="{{ route('technicians.show', $invoice->technician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $invoice->technician->full_name }}
                                     </a>
                                 @else
@@ -215,7 +215,7 @@
                                 <div>
                                     <div class="font-bold text-base-content">
                                         @if($invoice->client)
-                                            <a href="{{ route('clients.show', $invoice->client) }}" class="hover:text-primary hover:underline">
+                                            <a href="{{ route('clients.show', $invoice->client) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                                 {{ $invoice->client->full_name }}
                                             </a>
                                         @else
@@ -231,7 +231,7 @@
                             <div class="text-sm">
                                 <div class="text-base-content">
                                     @if($invoice->location)
-                                        <a href="{{ route('locations.show', $invoice->location) }}" class="hover:text-primary hover:underline">
+                                        <a href="{{ route('locations.show', $invoice->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                             {{ $invoice->location->nickname ?? 'Location' }}
                                         </a>
                                     @else
@@ -241,7 +241,7 @@
                                 @if($invoice->location && $invoice->location->city && $invoice->location->state)
                                     <a href="https://maps.google.com/?q={{ urlencode($invoice->location->street_address . ', ' . $invoice->location->city . ', ' . $invoice->location->state . ' ' . $invoice->location->zip_code) }}" 
                                        target="_blank" 
-                                       class="text-base-content/70 hover:text-primary hover:underline">
+                                       class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $invoice->location->city }}, {{ $invoice->location->state }}
                                     </a>
                                 @else
@@ -273,7 +273,7 @@
                             @if($invoice->status === 'paid')
                                 <span class="badge badge-success">Paid</span>
                             @elseif($invoice->status === 'sent')
-                                <span class="badge badge-warning">Sent</span>
+                                <span class="badge badge-info">Sent</span>
                             @elseif($invoice->status === 'overdue')
                                 <span class="badge badge-error">Overdue</span>
                             @else

@@ -52,7 +52,7 @@
                         Service Information
                     </h3>
                     
-                    <div>
+                    <div class="relative">
                         <label for="client_search" class="block text-sm font-medium text-base-content mb-2">
                             Client <span class="text-error">*</span>
                         </label>
@@ -142,59 +142,54 @@
                         Cost Information
                     </h3>
                     
-                    <div>
-                        <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
-                            Rate per Visit <span class="text-error">*</span>
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="rate_per_visit" class="block text-sm font-medium text-base-content mb-2">
+                                Rate per Visit <span class="text-error">*</span>
+                            </label>
                             <input type="number" name="rate_per_visit" id="rate_per_visit" 
                                    value="{{ old('rate_per_visit', number_format($invoice->rate_per_visit, 2)) }}" step="0.01" min="0" 
                                    class="input input-bordered w-full @error('rate_per_visit') input-error @enderror" 
                                    required>
+                            @error('rate_per_visit')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
-                        @error('rate_per_visit')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <span class="label-text">Include Chemicals</span>
-                            <input type="checkbox" name="chemicals_included" id="chemicals_included" 
-                                   value="1" {{ old('chemicals_included', $invoice->chemicals_included) ? 'checked' : '' }} 
-                                   class="checkbox checkbox-primary">
-                        </label>
-                    </div>
-                    
-                    <div id="chemicals_cost_group" style="display: {{ $invoice->chemicals_included ? 'block' : 'none' }};">
-                        <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
-                            Chemicals Cost
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" name="chemicals_cost" id="chemicals_cost" 
-                                   value="{{ old('chemicals_cost', number_format($invoice->chemicals_cost, 2)) }}" step="0.01" min="0" 
-                                   class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
-                        </div>
-                        @error('chemicals_cost')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    
-                    <div>
-                        <label for="extras_cost" class="block text-sm font-medium text-base-content mb-2">
-                            Extras Cost
-                        </label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
+                        
+                        <div>
+                            <label for="extras_cost" class="block text-sm font-medium text-base-content mb-2">
+                                Extras Cost
+                            </label>
                             <input type="number" name="extras_cost" id="extras_cost" 
                                    value="{{ old('extras_cost', number_format($invoice->extras_cost, 2)) }}" step="0.01" min="0" 
                                    class="input input-bordered w-full @error('extras_cost') input-error @enderror">
+                            @error('extras_cost')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
-                        @error('extras_cost')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-end">
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3 w-full">
+                                <span class="text-base-content">Include Chemicals</span>
+                                <input type="checkbox" name="chemicals_included" id="chemicals_included" 
+                                       value="1" {{ old('chemicals_included', $invoice->chemicals_included) ? 'checked' : '' }} 
+                                       class="checkbox checkbox-primary">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="chemicals_cost" class="block text-sm font-medium text-base-content mb-2">
+                                Chemicals Cost
+                            </label>
+                            <input type="number" name="chemicals_cost" id="chemicals_cost" 
+                                   value="{{ old('chemicals_cost', number_format($invoice->chemicals_cost, 2)) }}" step="0.01" min="0" 
+                                   class="input input-bordered w-full @error('chemicals_cost') input-error @enderror">
+                            @error('chemicals_cost')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
                     
                     <!-- Total Calculation -->
@@ -225,17 +220,38 @@
                 </div>
             </div>
             
-            <!-- Additional Information -->
-            <div class="mt-8">
-                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2 mb-6">
-                    Additional Information
+            <!-- Service Details -->
+            <div class="mt-8 space-y-6">
+                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                    Service Details
                 </h3>
-                <div class="space-y-6">
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <label for="service_type" class="block text-sm font-medium text-base-content mb-2">
+                            Service Type <span class="text-error">*</span>
+                        </label>
+                        <select name="service_type" id="service_type" 
+                                class="select select-bordered w-full @error('service_type') select-error @enderror" required>
+                            <option value="">Select Service Type</option>
+                            <option value="regular" {{ old('service_type', $invoice->service_type) == 'regular' ? 'selected' : '' }}>Regular Service</option>
+                            <option value="chemical" {{ old('service_type', $invoice->service_type) == 'chemical' ? 'selected' : '' }}>Chemical Service</option>
+                            <option value="repair" {{ old('service_type', $invoice->service_type) == 'repair' ? 'selected' : '' }}>Repair Service</option>
+                            <option value="cleaning" {{ old('service_type', $invoice->service_type) == 'cleaning' ? 'selected' : '' }}>Deep Cleaning</option>
+                            <option value="inspection" {{ old('service_type', $invoice->service_type) == 'inspection' ? 'selected' : '' }}>Inspection</option>
+                        </select>
+                        @error('service_type')
+                            <p class="text-error text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    
                     <div>
                         <label for="status" class="block text-sm font-medium text-base-content mb-2">
                             Status <span class="text-error">*</span>
                         </label>
-                        <select name="status" id="status" class="select select-bordered w-full @error('status') select-error @enderror" required>
+                        <select name="status" id="status" 
+                                class="select select-bordered w-full @error('status') select-error @enderror" required>
+                            <option value="">Select Status</option>
                             <option value="draft" {{ old('status', $invoice->status) == 'draft' ? 'selected' : '' }}>Draft</option>
                             <option value="sent" {{ old('status', $invoice->status) == 'sent' ? 'selected' : '' }}>Sent</option>
                             <option value="paid" {{ old('status', $invoice->status) == 'paid' ? 'selected' : '' }}>Paid</option>
@@ -246,31 +262,41 @@
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    <div>
-                        <label for="notes" class="block text-sm font-medium text-base-content mb-2">
-                            Notes
-                        </label>
-                        <textarea name="notes" id="notes" rows="4" 
-                                  class="textarea textarea-bordered w-full @error('notes') textarea-error @enderror"
-                                  placeholder="Additional notes about this invoice...">{{ old('notes', $invoice->notes) }}</textarea>
-                        @error('notes')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <span class="label-text">Send Notification</span>
+                </div>
+                
+                <div>
+                    <label for="service_notes" class="block text-sm font-medium text-base-content mb-2">
+                        Service Notes
+                    </label>
+                    <textarea name="service_notes" id="service_notes" rows="4" 
+                              class="textarea textarea-bordered w-full @error('service_notes') textarea-error @enderror"
+                              placeholder="Describe the services performed...">{{ old('service_notes', $invoice->service_notes) }}</textarea>
+                    @error('service_notes')
+                        <p class="text-error text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+            
+            <!-- Notification Settings -->
+            <div class="mt-8 space-y-6">
+                <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
+                    Notification Settings
+                </h3>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                            <span class="text-base-content">Send notification to client</span>
                             <input type="checkbox" name="notification_sent" id="notification_sent" 
                                    value="1" {{ old('notification_sent', $invoice->notification_sent) ? 'checked' : '' }} 
                                    class="checkbox checkbox-primary">
-                        </label>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Form Actions -->
-            <div class="flex justify-end space-x-4 mt-8 pt-6 border-t border-base-300">
+            <div class="flex justify-end space-x-4 mt-8">
                 <a href="{{ route('invoices.show', $invoice) }}" class="btn btn-outline">
                     Cancel
                 </a>
@@ -290,7 +316,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const rateInput = document.getElementById('rate_per_visit');
     const chemicalsCheckbox = document.getElementById('chemicals_included');
     const chemicalsCostInput = document.getElementById('chemicals_cost');
-    const chemicalsGroup = document.getElementById('chemicals_cost_group');
     const extrasInput = document.getElementById('extras_cost');
     
     const rateDisplay = document.getElementById('rate_display');
@@ -301,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateTotal() {
         const rate = parseFloat(rateInput.value) || 0;
-        const chemicals = chemicalsCheckbox.checked ? (parseFloat(chemicalsCostInput.value) || 0) : 0;
+        const chemicals = chemicalsCheckbox.checked ? 0 : (parseFloat(chemicalsCostInput.value) || 0);
         const extras = parseFloat(extrasInput.value) || 0;
         const total = rate + chemicals + extras;
         
@@ -310,10 +335,11 @@ document.addEventListener('DOMContentLoaded', function() {
         extrasDisplay.textContent = `$${extras.toFixed(2)}`;
         totalDisplay.textContent = `$${total.toFixed(2)}`;
         
+        // Show/hide chemicals display based on checkbox
         if (chemicalsCheckbox.checked) {
-            chemicalsDisplay.style.display = 'flex';
-        } else {
             chemicalsDisplay.style.display = 'none';
+        } else {
+            chemicalsDisplay.style.display = 'flex';
         }
     }
     
@@ -322,19 +348,23 @@ document.addEventListener('DOMContentLoaded', function() {
     chemicalsCostInput.addEventListener('input', updateTotal);
     extrasInput.addEventListener('input', updateTotal);
     
+    // Handle chemicals checkbox change
     chemicalsCheckbox.addEventListener('change', function() {
         if (this.checked) {
-            chemicalsGroup.style.display = 'block';
-            chemicalsDisplay.style.display = 'flex';
+            chemicalsCostInput.disabled = true;
+            chemicalsCostInput.value = '0.00';
         } else {
-            chemicalsGroup.style.display = 'none';
-            chemicalsDisplay.style.display = 'none';
+            chemicalsCostInput.disabled = false;
         }
         updateTotal();
     });
     
-    // Initialize total calculation
+    // Initialize total calculation and chemicals input state
     updateTotal();
+    if (chemicalsCheckbox.checked) {
+        chemicalsCostInput.disabled = true;
+        chemicalsCostInput.value = '0.00';
+    }
     
     // Client search functionality
     const clientSearch = document.getElementById('client_search');
@@ -342,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const clientSuggestions = document.getElementById('client_suggestions');
     
     clientSearch.addEventListener('input', function() {
-        const query = this.value;
+        const query = this.value.trim();
         if (query.length < 2) {
             clientSuggestions.style.display = 'none';
             return;
@@ -352,22 +382,27 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 clientSuggestions.innerHTML = '';
-                if (data.length > 0) {
+                if (data.length === 0) {
+                    clientSuggestions.innerHTML = '<div class="p-3 text-base-content/70">No clients found</div>';
+                    clientIdInput.value = '';
+                } else {
                     data.forEach(client => {
                         const div = document.createElement('div');
                         div.className = 'p-3 hover:bg-base-200 cursor-pointer border-b border-base-300 last:border-b-0';
-                        div.textContent = client.full_name;
-                        div.addEventListener('click', function() {
+                        div.textContent = `${client.full_name} - ${client.email}`;
+                        div.addEventListener('mousedown', function() {
                             clientSearch.value = client.full_name;
                             clientIdInput.value = client.id;
                             clientSuggestions.style.display = 'none';
+                            clientSearch.setSelectionRange(client.full_name.length, client.full_name.length);
                         });
                         clientSuggestions.appendChild(div);
                     });
-                    clientSuggestions.style.display = 'block';
-                } else {
-                    clientSuggestions.style.display = 'none';
                 }
+                clientSuggestions.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching clients:', error);
             });
     });
     

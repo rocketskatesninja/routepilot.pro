@@ -7,6 +7,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\TechnicianController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ChemicalCalculatorController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -55,10 +56,9 @@ Route::middleware('auth')->group(function () {
     // Reports Management
     Route::resource('reports', ReportController::class);
 
-    // Chemical Calculator Placeholder
-    Route::get('/chem-calc', function () {
-        return view('chem-calc');
-    })->name('chem-calc');
+    // Chemical Calculator
+    Route::get('/chem-calc', [ChemicalCalculatorController::class, 'index'])->name('chem-calc');
+    Route::post('/chem-calc', [ChemicalCalculatorController::class, 'calculate'])->name('chem-calc.calculate');
 });
 
 require __DIR__.'/auth.php';

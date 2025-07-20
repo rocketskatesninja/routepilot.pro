@@ -329,9 +329,10 @@ class ClientController extends Controller
         $queryLower = strtolower($query);
         $clients = Client::where('is_active', true)
             ->where(function ($q) use ($queryLower) {
-                $q->whereRaw('LOWER(first_name) LIKE ?', ["{$queryLower}%"])
-                  ->orWhereRaw('LOWER(last_name) LIKE ?', ["{$queryLower}%"])
-                  ->orWhereRaw('LOWER(email) LIKE ?', ["{$queryLower}%"]);
+                $q->whereRaw('LOWER(first_name) LIKE ?', ["%{$queryLower}%"])
+                  ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$queryLower}%"])
+                  ->orWhereRaw('LOWER(email) LIKE ?', ["%{$queryLower}%"])
+                  ->orWhereRaw('LOWER(CONCAT(first_name, " ", last_name)) LIKE ?', ["%{$queryLower}%"]);
             })
             ->limit(AppConstants::SEARCH_RESULT_LIMIT)
             ->get(['id', 'first_name', 'last_name', 'email'])

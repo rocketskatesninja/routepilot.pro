@@ -52,7 +52,7 @@
 
                 <!-- Status Badge -->
                 <div class="flex justify-center mb-6">
-                    <div class="badge badge-{{ $invoice->status === 'paid' ? 'success' : ($invoice->status === 'overdue' ? 'error' : ($invoice->status === 'sent' ? 'warning' : 'info')) }} badge-lg">
+                    <div class="badge badge-{{ $invoice->status === 'paid' ? 'success' : ($invoice->status === 'overdue' ? 'error' : ($invoice->status === 'sent' ? 'info' : 'neutral')) }} badge-lg">
                         {{ ucfirst($invoice->status) }}
                     </div>
                 </div>
@@ -74,7 +74,7 @@
                         </div>
                         <div>
                             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
-                                <a href="{{ route('clients.show', $invoice->client) }}" class="font-medium text-base-content hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('clients.show', $invoice->client) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $invoice->client->full_name }}
                                 </a>
                             @else
@@ -91,7 +91,7 @@
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Location</span>
                             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
-                                <a href="{{ route('locations.show', $invoice->location) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('locations.show', $invoice->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $invoice->location->nickname ?? 'Location' }}
                                 </a>
                             @else
@@ -101,7 +101,7 @@
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Technician</span>
                             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
-                                <a href="{{ route('technicians.show', $invoice->technician) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('technicians.show', $invoice->technician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $invoice->technician->full_name }}
                                 </a>
                             @else
@@ -171,7 +171,7 @@
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base-content/70">Report #</span>
-                                <a href="{{ route('reports.show', $relatedReport) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('reports.show', $relatedReport) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $relatedReport->id }}
                                 </a>
                             </div>

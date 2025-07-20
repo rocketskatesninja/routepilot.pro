@@ -50,7 +50,7 @@
                         Basic Information
                     </h3>
                     
-                    <div>
+                    <div class="relative">
                         <label for="client_search" class="block text-sm font-medium text-base-content mb-2">
                             Client
                         </label>
@@ -59,7 +59,7 @@
                                class="input input-bordered w-full @error('client_id') input-error @enderror" 
                                placeholder="Start typing client name...">
                         <input type="hidden" name="client_id" id="client_id" value="{{ old('client_id', $location->client_id) }}">
-                        <div id="client_suggestions" class="hidden absolute z-50 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+                        <div id="client_suggestions" class="absolute z-50 w-full bg-base-100 border border-base-300 rounded-lg shadow-lg max-h-60 overflow-y-auto" style="display: none;"></div>
                         @error('client_id')
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -465,58 +465,117 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Client autocomplete functionality
     const clientSearch = document.getElementById('client_search');
     const clientId = document.getElementById('client_id');
-    const suggestions = document.getElementById('client_suggestions');
-    
+    const clientSuggestions = document.getElementById('client_suggestions');
+    let searchTimeout;
+    let clientsList = [];
+    let activeIndex = -1;
+    let lastValue = '';
+
+    // Prevent browser autofill
+    clientSearch.setAttribute('autocomplete', 'off');
+    clientSearch.setAttribute('autocorrect', 'off');
+    clientSearch.setAttribute('spellcheck', 'false');
+
     clientSearch.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
         const query = this.value.trim();
-        
+        lastValue = query;
+        activeIndex = -1;
         if (query.length < 2) {
-            suggestions.classList.add('hidden');
+            clientSuggestions.style.display = 'none';
             return;
         }
-        
-        fetch(`/api/clients/search?q=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                suggestions.innerHTML = '';
-                
-                if (data.length === 0) {
-                    suggestions.classList.add('hidden');
-                    return;
-                }
-                
-                data.forEach(client => {
-                    const div = document.createElement('div');
-                    div.className = 'px-4 py-2 hover:bg-base-200 cursor-pointer';
-                    div.textContent = `${client.full_name} (${client.email})`;
-                    div.addEventListener('click', function() {
-                        clientSearch.value = client.full_name;
-                        clientId.value = client.id;
-                        suggestions.classList.add('hidden');
-                    });
-                    suggestions.appendChild(div);
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/clients/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    clientsList = data;
+                    clientSuggestions.innerHTML = '';
+                    if (data.length === 0) {
+                        clientSuggestions.innerHTML = '<div class="p-3 text-base-content/70">No clients found</div>';
+                        clientId.value = '';
+                    } else {
+                        data.forEach((client, idx) => {
+                            const div = document.createElement('div');
+                            div.className = 'p-3 hover:bg-base-200 cursor-pointer border-b border-base-300 last:border-b-0';
+                            div.textContent = `${client.full_name} - ${client.email}`;
+                            div.addEventListener('mousedown', () => {
+                                clientSearch.value = client.full_name;
+                                clientId.value = client.id;
+                                clientSuggestions.style.display = 'none';
+                                clientSearch.setSelectionRange(client.full_name.length, client.full_name.length);
+                            });
+                            clientSuggestions.appendChild(div);
+                        });
+                        // Inline autocomplete: if top suggestion starts with input, fill it
+                        const top = data[0];
+                        if (top && top.full_name.toLowerCase().startsWith(query.toLowerCase()) && top.full_name.length > query.length) {
+                            clientSearch.value = top.full_name;
+                            clientSearch.setSelectionRange(query.length, top.full_name.length);
+                            clientId.value = top.id;
+                        } else {
+                            clientId.value = '';
+                        }
+                    }
+                    clientSuggestions.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error fetching clients:', error);
                 });
-                
-                suggestions.classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Error fetching clients:', error);
-            });
+        }, 300);
     });
-    
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!clientSearch.contains(e.target) && !suggestions.contains(e.target)) {
-            suggestions.classList.add('hidden');
+
+    // Accept autocomplete with Tab or Right Arrow
+    clientSearch.addEventListener('keydown', function(e) {
+        if ((e.key === 'Tab' || e.key === 'ArrowRight') && this.selectionEnd > this.value.length - 1) {
+            this.setSelectionRange(this.value.length, this.value.length);
+            clientSuggestions.style.display = 'none';
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+            const items = clientSuggestions.querySelectorAll('div');
+            if (items.length > 0) {
+                activeIndex = (activeIndex + 1) % items.length;
+                items.forEach((el, idx) => el.classList.toggle('bg-base-200', idx === activeIndex));
+                if (activeIndex >= 0) {
+                    clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                    clientId.value = clientsList[activeIndex].id;
+                }
+            }
+            e.preventDefault();
+        } else if (e.key === 'ArrowUp') {
+            const items = clientSuggestions.querySelectorAll('div');
+            if (items.length > 0) {
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                items.forEach((el, idx) => el.classList.toggle('bg-base-200', idx === activeIndex));
+                if (activeIndex >= 0) {
+                    clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                    clientId.value = clientsList[activeIndex].id;
+                }
+            }
+            e.preventDefault();
+        } else if (e.key === 'Enter') {
+            const items = clientSuggestions.querySelectorAll('div');
+            if (activeIndex >= 0 && items[activeIndex]) {
+                clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                clientId.value = clientsList[activeIndex].id;
+                clientSuggestions.style.display = 'none';
+                this.setSelectionRange(this.value.length, this.value.length);
+                e.preventDefault();
+            } else {
+                clientSuggestions.style.display = 'none';
+            }
+        } else if (e.key === 'Escape') {
+            clientSuggestions.style.display = 'none';
         }
     });
-    
-    // Handle keyboard navigation
-    clientSearch.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            suggestions.classList.add('hidden');
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('mousedown', function(e) {
+        if (!clientSearch.contains(e.target) && !clientSuggestions.contains(e.target)) {
+            clientSuggestions.style.display = 'none';
         }
     });
 });

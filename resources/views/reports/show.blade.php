@@ -61,7 +61,7 @@
                         </div>
                         <div>
                             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
-                                <a href="{{ route('technicians.show', $report->technician) }}" class="font-medium text-base-content hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('technicians.show', $report->technician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $report->technician->full_name }}
                                 </a>
                             @else
@@ -78,7 +78,7 @@
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Client</span>
                             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
-                                <a href="{{ route('clients.show', $report->client) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('clients.show', $report->client) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $report->client->full_name }}
                                 </a>
                             @else
@@ -88,7 +88,7 @@
                         <div class="flex items-center justify-between">
                             <span class="text-base-content/70">Location</span>
                             @if(auth()->user()->role === 'admin' || auth()->user()->role === 'technician')
-                                <a href="{{ route('locations.show', $report->location) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('locations.show', $report->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $report->location->nickname ?? 'Location' }}
                                 </a>
                             @else
@@ -150,7 +150,7 @@
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-base-content/70">Invoice #</span>
-                                <a href="{{ route('invoices.show', $report->invoice) }}" class="text-base-content font-medium hover:text-primary hover:underline transition-colors">
+                                <a href="{{ route('invoices.show', $report->invoice) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     {{ $report->invoice->invoice_number }}
                                 </a>
                             </div>

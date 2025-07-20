@@ -158,7 +158,7 @@
                                 </div>
                                 <div>
                                     <div class="font-bold text-base-content">
-                                        <a href="{{ route('clients.show', $client) }}" class="hover:text-primary hover:underline">
+                                        <a href="{{ route('clients.show', $client) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                             {{ $client->full_name }}
                                         </a>
                                     </div>
@@ -179,7 +179,7 @@
                                 <div class="text-sm">
                                     <a href="https://maps.google.com/?q={{ urlencode($client->street_address . ', ' . $client->city . ', ' . $client->state . ' ' . $client->zip_code) }}" 
                                        target="_blank" 
-                                       class="text-base-content hover:text-primary hover:underline">
+                                       class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $client->city }}, {{ $client->state }}
                                     </a>
                                     @if($client->zip_code)

@@ -196,6 +196,28 @@ class ReportController extends Controller
             $report->update(['invoice_id' => $invoice->id]);
         }
         
+        // Redirect to chemical calculator if requested
+        if ($request->has('send_to_calculator')) {
+            $location = \App\Models\Location::find($validated['location_id']);
+            $poolVolume = $location->pool_volume ?? 15000; // Default to 15,000 gallons if not set
+            
+            $calculatorData = [
+                'pool_volume' => $poolVolume,
+                'current_ph' => $validated['ph'] ?? 7.4,
+                'target_ph' => 7.4,
+                'current_chlorine' => $validated['fac'] ?? 2.0,
+                'target_chlorine' => 2.0,
+                'current_alkalinity' => $validated['alkalinity'] ?? 100,
+                'target_alkalinity' => 100,
+                'current_calcium' => $validated['calcium'] ?? 250,
+                'target_calcium' => 250,
+                'current_cyanuric_acid' => $validated['cya'] ?? 50,
+                'target_cyanuric_acid' => 50,
+            ];
+            
+            return redirect()->route('chem-calc')->with('calculator_data', $calculatorData);
+        }
+        
         return redirect()->route('reports.show', $report)->with('success', 'Report submitted.');
     }
 
@@ -292,6 +314,28 @@ class ReportController extends Controller
         if ($request->has('generate_invoice') && !$report->invoice_id) {
             $invoice = $this->generateInvoiceFromReport($report);
             $report->update(['invoice_id' => $invoice->id]);
+        }
+        
+        // Redirect to chemical calculator if requested
+        if ($request->has('send_to_calculator')) {
+            $location = \App\Models\Location::find($validated['location_id']);
+            $poolVolume = $location->pool_volume ?? 15000; // Default to 15,000 gallons if not set
+            
+            $calculatorData = [
+                'pool_volume' => $poolVolume,
+                'current_ph' => $validated['ph'] ?? 7.4,
+                'target_ph' => 7.4,
+                'current_chlorine' => $validated['fac'] ?? 2.0,
+                'target_chlorine' => 2.0,
+                'current_alkalinity' => $validated['alkalinity'] ?? 100,
+                'target_alkalinity' => 100,
+                'current_calcium' => $validated['calcium'] ?? 250,
+                'target_calcium' => 250,
+                'current_cyanuric_acid' => $validated['cya'] ?? 50,
+                'target_cyanuric_acid' => 50,
+            ];
+            
+            return redirect()->route('chem-calc')->with('calculator_data', $calculatorData);
         }
         
         return redirect()->route('reports.show', $report)->with('success', 'Report updated successfully.');

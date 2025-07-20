@@ -135,7 +135,14 @@ class LocationController extends Controller
             }
         }
         
-        $location->load(['client', 'assignedTechnician', 'invoices', 'reports']);
+        $location->load(['client', 'assignedTechnician', 'reports']);
+        
+        // Load invoices, filtering out drafts for customers
+        if ($user->role === AppConstants::ROLE_CLIENT) {
+            $location->setRelation('invoices', $location->invoices()->where('status', '!=', 'draft')->get());
+        } else {
+            $location->load('invoices');
+        }
         
         // Get recent activities for this location
         $recentActivities = Activity::where('model_type', Location::class)

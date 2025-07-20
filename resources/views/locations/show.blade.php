@@ -176,7 +176,7 @@
                         <div>
                             <div class="font-medium text-base-content">
                                 @if(auth()->user()->isAdmin())
-                                    <a href="{{ route('technicians.show', $location->assignedTechnician) }}" class="hover:text-primary hover:underline">
+                                    <a href="{{ route('technicians.show', $location->assignedTechnician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $location->assignedTechnician->full_name }}
                                     </a>
                                 @else

@@ -247,7 +247,7 @@
                                 <div class="flex items-center space-x-4">
                                     <input type="checkbox" name="service_reports_enabled" id="service_reports_enabled" value="1" 
                                            class="checkbox checkbox-primary" {{ old('service_reports_enabled', $client->service_reports !== 'none') ? 'checked' : '' }}>
-                                    <select name="service_reports" id="service_reports" class="select select-bordered select-sm">
+                                    <select name="service_reports" id="service_reports" class="select select-bordered w-32">
                                         <option value="full" {{ old('service_reports', $client->service_reports) == 'full' ? 'selected' : '' }}>Full Reports</option>
                                         <option value="invoice_only" {{ old('service_reports', $client->service_reports) == 'invoice_only' ? 'selected' : '' }}>Invoice Only</option>
                                         <option value="services_only" {{ old('service_reports', $client->service_reports) == 'services_only' ? 'selected' : '' }}>Services Only</option>

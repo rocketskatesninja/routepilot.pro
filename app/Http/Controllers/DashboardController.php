@@ -125,8 +125,8 @@ class DashboardController extends Controller
         // Account Summary
         $stats = [
             'total_locations' => $client->locations()->count(),
-            'total_invoices' => $client->invoices()->count(),
-            'unpaid_invoices' => $client->invoices()->where('status', '!=', 'paid')->count(),
+            'total_invoices' => $client->invoices()->where('status', '!=', 'draft')->count(),
+            'unpaid_invoices' => $client->invoices()->where('status', '!=', 'paid')->where('status', '!=', 'draft')->count(),
             'total_reports' => $client->reports()->count(),
         ];
 
@@ -139,9 +139,10 @@ class DashboardController extends Controller
             })
             ->take(5);
 
-        // Recent Invoices
+        // Recent Invoices (excluding drafts)
         $recentInvoices = $client->invoices()
             ->with('location')
+            ->where('status', '!=', 'draft')
             ->latest()
             ->take(5)
             ->get();

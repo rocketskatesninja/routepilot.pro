@@ -201,7 +201,7 @@
                                 </div>
                                 <div>
                                     <div class="font-bold text-base-content">
-                                        <a href="{{ route('locations.show', $location) }}" class="hover:text-primary hover:underline">
+                                        <a href="{{ route('locations.show', $location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                             {{ $location->nickname ?? 'Location' }}
                                         </a>
                                     </div>
@@ -213,7 +213,7 @@
                         <td>
                             <div class="text-sm">
                                 <div class="text-base-content">
-                                    <a href="{{ route('clients.show', $location->client) }}" class="hover:text-primary hover:underline">
+                                    <a href="{{ route('clients.show', $location->client) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $location->client->full_name }}
                                     </a>
                                 </div>
@@ -225,12 +225,12 @@
                             <div class="text-sm">
                                 <a href="https://maps.google.com/?q={{ urlencode($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code) }}" 
                                    target="_blank" 
-                                   class="hover:text-primary hover:underline">
-                                    <div class="text-base-content">{{ $location->street_address }}</div>
+                                   class="text-blue-600 hover:text-blue-800 hover:underline">
+                                    <div>{{ $location->street_address }}</div>
                                     @if($location->street_address_2)
-                                        <div class="text-base-content/70">{{ $location->street_address_2 }}</div>
+                                        <div class="opacity-70">{{ $location->street_address_2 }}</div>
                                     @endif
-                                    <div class="text-base-content/70">{{ $location->city }}, {{ $location->state }} {{ $location->zip_code }}</div>
+                                    <div class="opacity-70">{{ $location->city }}, {{ $location->state }} {{ $location->zip_code }}</div>
                                 </a>
                             </div>
                         </td>
@@ -260,7 +260,7 @@
                             <div class="text-sm">
                                 @if($location->assignedTechnician)
                                     <div class="text-base-content">
-                                        <a href="{{ route('technicians.show', $location->assignedTechnician) }}" class="hover:text-primary hover:underline">
+                                        <a href="{{ route('technicians.show', $location->assignedTechnician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                             {{ $location->assignedTechnician->full_name }}
                                         </a>
                                     </div>

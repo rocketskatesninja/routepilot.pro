@@ -164,7 +164,7 @@
                                 </div>
                                 <div>
                                     <div class="font-bold text-base-content">
-                                        <a href="{{ route('technicians.show', $technician) }}" class="hover:text-primary hover:underline">
+                                        <a href="{{ route('technicians.show', $technician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                             {{ $technician->full_name }}
                                         </a>
                                     </div>
@@ -185,7 +185,7 @@
                                 <div class="text-sm">
                                     <a href="https://maps.google.com/?q={{ urlencode($technician->street_address . ', ' . $technician->city . ', ' . $technician->state . ' ' . $technician->zip_code) }}" 
                                        target="_blank" 
-                                       class="text-base-content hover:text-primary hover:underline">
+                                       class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $technician->city }}, {{ $technician->state }}
                                     </a>
                                     @if($technician->zip_code)

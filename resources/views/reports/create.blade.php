@@ -34,7 +34,7 @@
                             Basic Information
                         </h3>
                         
-                        <div>
+                        <div class="relative">
                             <label for="client_search" class="block text-sm font-medium text-base-content mb-2">
                                 Client <span class="text-error">*</span>
                             </label>
@@ -182,6 +182,14 @@
                                     <p class="text-error text-sm mt-1">{{ $message }}</p>
                                 @enderror
                             </div>
+                        </div>
+                        
+                        <!-- Chemical Calculator Integration -->
+                        <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                            <span class="text-base-content">Send chemistry readings to chemical calculator</span>
+                            <input type="checkbox" name="send_to_calculator" id="send_to_calculator" 
+                                   class="checkbox checkbox-primary" 
+                                   {{ old('send_to_calculator', true) ? 'checked' : '' }}>
                         </div>
                     </div>
                 </div>
@@ -388,11 +396,11 @@
                 <!-- Form Actions -->
                 <div class="mt-8 flex justify-end space-x-4">
                     <a href="{{ route('reports.index') }}" class="btn btn-outline">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="submit-button">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                         </svg>
-                        {{ isset($report) ? 'Save Changes' : 'Create Report' }}
+                        <span id="button-text">{{ isset($report) ? 'Save Changes' : 'Create Report' }}</span>
                     </button>
                 </div>
             @else
@@ -650,6 +658,27 @@ document.addEventListener('DOMContentLoaded', function() {
             chemicalsCostInput.disabled = true;
             chemicalsCostInput.classList.add('opacity-50');
         }
+    }
+
+    // Handle chemical calculator checkbox
+    const calculatorCheckbox = document.getElementById('send_to_calculator');
+    const buttonText = document.getElementById('button-text');
+    const isEdit = {{ isset($report) ? 'true' : 'false' }};
+
+    if (calculatorCheckbox && buttonText) {
+        function updateButtonText() {
+            if (calculatorCheckbox.checked) {
+                buttonText.textContent = isEdit ? 'Save Changes / Open Calculator' : 'Create Report / Open Calculator';
+            } else {
+                buttonText.textContent = isEdit ? 'Save Changes' : 'Create Report';
+            }
+        }
+
+        // Initial state
+        updateButtonText();
+
+        // Listen for changes
+        calculatorCheckbox.addEventListener('change', updateButtonText);
     }
 });
 </script>

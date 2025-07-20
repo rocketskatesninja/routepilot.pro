@@ -149,7 +149,7 @@
                     @forelse($reports as $report)
                     <tr>
                         <td>
-                            <a href="{{ route('reports.show', $report) }}" class="hover:text-primary hover:underline">
+                            <a href="{{ route('reports.show', $report) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                 #{{ $report->id }}
                             </a>
                         </td>
@@ -171,7 +171,7 @@
                                 <div>
                                     <div class="font-bold text-base-content">
                                         @if($report->client)
-                                            <a href="{{ route('clients.show', $report->client) }}" class="hover:text-primary hover:underline">
+                                            <a href="{{ route('clients.show', $report->client) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                                 {{ $report->client->full_name }}
                                             </a>
                                         @else
@@ -187,7 +187,7 @@
                             <div class="text-sm">
                                 <div class="text-base-content">
                                     @if($report->location)
-                                        <a href="{{ route('locations.show', $report->location) }}" class="hover:text-primary hover:underline">
+                                        <a href="{{ route('locations.show', $report->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                             {{ $report->location->nickname ?? 'Location' }}
                                         </a>
                                     @else
@@ -197,7 +197,7 @@
                                 @if($report->location && $report->location->city && $report->location->state)
                                     <a href="https://maps.google.com/?q={{ urlencode($report->location->street_address . ', ' . $report->location->city . ', ' . $report->location->state . ' ' . $report->location->zip_code) }}" 
                                        target="_blank" 
-                                       class="text-base-content/70 hover:text-primary hover:underline">
+                                       class="text-blue-600 hover:text-blue-800 hover:underline">
                                         {{ $report->location->full_address ?? $report->location->city . ', ' . $report->location->state }}
                                     </a>
                                 @else
@@ -223,7 +223,7 @@
                                     <div class="font-bold text-base-content">
                                         @if($report->technician)
                                             @if(auth()->user()->isAdmin())
-                                                <a href="{{ route('technicians.show', $report->technician) }}" class="hover:text-primary hover:underline">
+                                                <a href="{{ route('technicians.show', $report->technician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
                                                     {{ $report->technician->full_name }}
                                                 </a>
                                             @else
