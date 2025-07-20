@@ -7,6 +7,16 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
+        <!-- Favicon -->
+        @php
+            $customFavicon = \App\Models\Setting::getValue('favicon');
+        @endphp
+        @if($customFavicon)
+            <link rel="icon" type="image/x-icon" href="{{ Storage::url($customFavicon) }}">
+        @else
+            <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon.svg') }}">
+        @endif
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />

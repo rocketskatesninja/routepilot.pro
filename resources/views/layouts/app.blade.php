@@ -25,6 +25,16 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
+        <!-- Favicon -->
+        @php
+            $customFavicon = \App\Models\Setting::getValue('favicon');
+        @endphp
+        @if($customFavicon)
+            <link rel="icon" type="image/x-icon" href="{{ Storage::url($customFavicon) }}">
+        @else
+            <link rel="icon" type="image/svg+xml" href="{{ asset('images/favicon.svg') }}">
+        @endif
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -48,7 +58,23 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased bg-base-100">
-        <div class="min-h-screen">
+        @php
+            $backgroundImage = \App\Models\Setting::getValue('background_image');
+            $backgroundEnabled = \App\Models\Setting::getValue('background_enabled', '0');
+            $backgroundFixed = \App\Models\Setting::getValue('background_fixed', '0');
+        @endphp
+        
+        @if($backgroundImage && $backgroundEnabled)
+            <div class="fixed inset-0 z-0">
+                <div class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                     style="background-image: url('{{ Storage::url($backgroundImage) }}'); 
+                            background-attachment: {{ $backgroundFixed ? 'fixed' : 'scroll' }};">
+                </div>
+                <div class="absolute inset-0 bg-base-100/80 backdrop-blur-sm"></div>
+            </div>
+        @endif
+        
+        <div class="min-h-screen relative z-10">
             @include('layouts.navigation')
 
             <!-- Page Heading -->

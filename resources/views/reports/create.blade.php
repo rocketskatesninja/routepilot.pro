@@ -454,12 +454,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         data.forEach((client, idx) => {
                             const div = document.createElement('div');
                             div.className = 'p-3 hover:bg-base-200 cursor-pointer border-b border-base-300 last:border-b-0';
-                            div.textContent = `${client.full_name} - ${client.email}`;
+                            
+                            // Create display text with email
+                            let displayText = client.full_name;
+                            if (client.email) {
+                                displayText += ` (${client.email})`;
+                            }
+                            div.textContent = displayText;
+                            
                             div.addEventListener('mousedown', () => {
-                                clientSearch.value = client.full_name;
+                                clientSearch.value = displayText;
                                 clientId.value = client.id;
                                 clientSuggestions.style.display = 'none';
-                                clientSearch.setSelectionRange(client.full_name.length, client.full_name.length);
+                                clientSearch.setSelectionRange(displayText.length, displayText.length);
                                 loadClientLocations(client.id);
                             });
                             clientSuggestions.appendChild(div);
@@ -494,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 activeIndex = (activeIndex + 1) % items.length;
                 items.forEach((el, idx) => el.classList.toggle('bg-base-200', idx === activeIndex));
                 if (activeIndex >= 0) {
-                    clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                    clientSearch.value = items[activeIndex].textContent;
                     clientId.value = clientsList[activeIndex].id;
                 }
             }
@@ -505,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 activeIndex = (activeIndex - 1 + items.length) % items.length;
                 items.forEach((el, idx) => el.classList.toggle('bg-base-200', idx === activeIndex));
                 if (activeIndex >= 0) {
-                    clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                    clientSearch.value = items[activeIndex].textContent;
                     clientId.value = clientsList[activeIndex].id;
                 }
             }
@@ -513,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (e.key === 'Enter') {
             const items = clientSuggestions.querySelectorAll('div');
             if (activeIndex >= 0 && items[activeIndex]) {
-                clientSearch.value = items[activeIndex].textContent.split(' - ')[0];
+                clientSearch.value = items[activeIndex].textContent;
                 clientId.value = clientsList[activeIndex].id;
                 clientSuggestions.style.display = 'none';
                 this.setSelectionRange(this.value.length, this.value.length);
@@ -581,7 +588,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(location => {
                 if (location.client) {
                     // Set client search and ID
-                    clientSearch.value = `${location.client.full_name} - ${location.client.email}`;
+                    clientSearch.value = `${location.client.full_name} (${location.client.email})`;
                     clientId.value = location.client.id;
                     
                     // Load locations and select the preset one

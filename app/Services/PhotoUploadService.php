@@ -48,6 +48,23 @@ class PhotoUploadService
     }
 
     /**
+     * Handle single photo upload with custom field name.
+     */
+    public function handleSinglePhotoUploadWithField(Request $request, string $fieldName, string $directory, ?string $oldPhoto = null): ?string
+    {
+        if (!$request->hasFile($fieldName)) {
+            return $oldPhoto;
+        }
+
+        // Delete old photo if exists
+        if ($oldPhoto) {
+            $this->deletePhoto($oldPhoto);
+        }
+
+        return $request->file($fieldName)->store($directory, 'public');
+    }
+
+    /**
      * Delete multiple photos from storage.
      */
     private function deletePhotos(array $photos): void

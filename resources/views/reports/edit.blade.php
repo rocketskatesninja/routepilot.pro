@@ -458,9 +458,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         data.forEach(client => {
                             const div = document.createElement('div');
                             div.className = 'p-3 hover:bg-base-200 cursor-pointer border-b border-base-300 last:border-b-0';
-                            div.textContent = `${client.full_name} - ${client.email}`;
+                            
+                            // Create display text with email
+                            let displayText = client.full_name;
+                            if (client.email) {
+                                displayText += ` (${client.email})`;
+                            }
+                            div.textContent = displayText;
+                            
                             div.addEventListener('click', () => {
-                                clientSearch.value = `${client.full_name} - ${client.email}`;
+                                clientSearch.value = displayText;
                                 clientId.value = client.id;
                                 clientSuggestions.style.display = 'none';
                                 

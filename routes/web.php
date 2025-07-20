@@ -8,6 +8,7 @@ use App\Http\Controllers\TechnicianController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ChemicalCalculatorController;
+use App\Http\Controllers\Admin\SettingsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -59,6 +60,20 @@ Route::middleware('auth')->group(function () {
     // Chemical Calculator
     Route::get('/chem-calc', [ChemicalCalculatorController::class, 'index'])->name('chem-calc');
     Route::post('/chem-calc', [ChemicalCalculatorController::class, 'calculate'])->name('chem-calc.calculate');
+    
+    // Admin Settings Routes
+    Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/general', [SettingsController::class, 'updateGeneral'])->name('settings.general');
+        Route::post('/settings/database', [SettingsController::class, 'updateDatabase'])->name('settings.database');
+        Route::post('/settings/mail', [SettingsController::class, 'updateMail'])->name('settings.mail');
+        Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
+        Route::post('/settings/backup', [SettingsController::class, 'createBackup'])->name('settings.backup');
+        Route::get('/settings/backup/{filename}/download', [SettingsController::class, 'downloadBackup'])->name('settings.backup.download');
+        Route::delete('/settings/backup/{filename}', [SettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
+        Route::post('/settings/test-mail', [SettingsController::class, 'testMail'])->name('settings.test-mail');
+        Route::get('/settings/email-logs', [SettingsController::class, 'getEmailLogs'])->name('settings.email-logs');
+    });
 });
 
 require __DIR__.'/auth.php';

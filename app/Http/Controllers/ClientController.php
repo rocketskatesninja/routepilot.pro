@@ -326,6 +326,7 @@ class ClientController extends Controller
         if (strlen($query) < 1) {
             return response()->json([]);
         }
+        
         $queryLower = strtolower($query);
         $clients = Client::where('is_active', true)
             ->where(function ($q) use ($queryLower) {
@@ -334,13 +335,33 @@ class ClientController extends Controller
                   ->orWhereRaw('LOWER(email) LIKE ?', ["%{$queryLower}%"])
                   ->orWhereRaw('LOWER(CONCAT(first_name, " ", last_name)) LIKE ?', ["%{$queryLower}%"]);
             })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->orderBy('email')
             ->limit(AppConstants::SEARCH_RESULT_LIMIT)
-            ->get(['id', 'first_name', 'last_name', 'email'])
+            ->get(['id', 'first_name', 'last_name', 'email', 'phone', 'city', 'state'])
             ->map(function ($client) {
+                $displayName = $client->full_name;
+                
+                // If there are multiple clients with same name, add city/state for distinction
+                $sameNameCount = Client::where('first_name', $client->first_name)
+                    ->where('last_name', $client->last_name)
+                    ->count();
+                    
+                if ($sameNameCount > 1 && $client->city) {
+                    $displayName .= " - {$client->city}";
+                    if ($client->state) {
+                        $displayName .= ", {$client->state}";
+                    }
+                }
+                
                 return [
                     'id' => $client->id,
-                    'full_name' => $client->full_name,
+                    'full_name' => $displayName,
                     'email' => $client->email,
+                    'original_name' => $client->full_name,
+                    'city' => $client->city,
+                    'state' => $client->state,
                 ];
             });
 
