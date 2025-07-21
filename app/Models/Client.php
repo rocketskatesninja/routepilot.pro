@@ -88,7 +88,8 @@ class Client extends Model
      */
     public function getTotalBalanceAttribute(): float
     {
-        return $this->invoices()->sum('balance');
+        // Only sum balances for invoices that are not paid and not draft
+        return $this->invoices()->whereNotIn('status', ['paid', 'draft'])->sum('balance');
     }
 
     /**

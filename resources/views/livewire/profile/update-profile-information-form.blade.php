@@ -10,6 +10,7 @@ new class extends Component
 {
     public string $name = '';
     public string $email = '';
+    public string $maps_provider = '';
 
     /**
      * Mount the component.
@@ -18,6 +19,7 @@ new class extends Component
     {
         $this->name = Auth::user()->name;
         $this->email = Auth::user()->email;
+        $this->maps_provider = Auth::user()->maps_provider;
     }
 
     /**
@@ -30,6 +32,7 @@ new class extends Component
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($user->id)],
+            'maps_provider' => ['required', 'string', 'in:google,apple,bing'],
         ]);
 
         $user->fill($validated);
@@ -103,6 +106,18 @@ new class extends Component
                 </div>
             @endif
         </div>
+
+        @if(auth()->user()->role !== 'client')
+        <div>
+            <x-input-label for="maps_provider" :value="__('Preferred Maps Provider')" />
+            <select wire:model="maps_provider" id="maps_provider" name="maps_provider" class="select select-bordered w-full mt-1">
+                <option value="google">Google Maps</option>
+                <option value="apple">Apple Maps</option>
+                <option value="bing">Bing Maps</option>
+            </select>
+            <x-input-error class="mt-2" :messages="$errors->get('maps_provider')" />
+        </div>
+        @endif
 
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>

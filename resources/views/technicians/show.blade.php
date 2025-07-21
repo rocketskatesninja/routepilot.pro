@@ -155,10 +155,10 @@
             <!-- Tabs -->
             <div class="bg-base-100 shadow-xl rounded-lg">
                 <div class="tabs tabs-boxed p-4">
-                    <a class="tab tab-active" onclick="showTab('locations', event)">Assigned Locations</a>
-                    <a class="tab" onclick="showTab('reports', event)">Recent Reports</a>
-                    <a class="tab" onclick="showTab('invoices', event)">Recent Invoices</a>
-                    <a class="tab" onclick="showTab('activities', event)">Recent Activities</a>
+                    <a id="tab-locations" onclick="showTab('locations', event)" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-primary text-base-content focus:outline-none focus:border-primary-focus" style="margin-right: 1.5rem; cursor:pointer;">Assigned Locations</a>
+                    <a id="tab-reports" onclick="showTab('reports', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="margin-right: 1.5rem; cursor:pointer;">Recent Reports</a>
+                    <a id="tab-invoices" onclick="showTab('invoices', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="margin-right: 1.5rem; cursor:pointer;">Recent Invoices</a>
+                    <a id="tab-activities" onclick="showTab('activities', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="cursor:pointer;">Recent Activities</a>
                 </div>
 
                 <div class="p-6">
@@ -350,39 +350,34 @@
 
 <script>
 function showTab(tabName, event = null) {
-    console.log('Switching to tab:', tabName);
-    
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
         content.style.display = 'none';
-        console.log('Hiding tab content:', content.id);
     });
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('tab-active');
+
+    // Remove active classes and set inactive styles for all tab links
+    document.querySelectorAll('.tabs a').forEach(link => {
+        link.classList.remove('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        link.classList.add('border-transparent', 'text-base-content/70');
     });
-    
+
     // Show selected tab content
     const targetTab = document.getElementById(tabName + '-tab');
     if (targetTab) {
         targetTab.classList.remove('hidden');
         targetTab.style.display = 'block';
-        console.log('Showing tab content:', targetTab.id);
-    } else {
-        console.error('Tab content not found:', tabName + '-tab');
     }
-    
-    // Add active class to clicked tab (only if event is provided)
-    if (event && event.target) {
-        event.target.classList.add('tab-active');
+
+    // Add active classes and styles to the clicked tab link
+    const activeTab = document.getElementById('tab-' + tabName);
+    if (activeTab) {
+        activeTab.classList.add('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        activeTab.classList.remove('border-transparent', 'text-base-content/70');
     }
 }
 
-// Initialize the first tab as active
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing tabs');
     showTab('locations');
 });
 </script>

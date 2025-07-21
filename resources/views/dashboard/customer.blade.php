@@ -10,16 +10,6 @@
             <h1 class="text-3xl font-bold text-base-content">Welcome, {{ $client->first_name }}!</h1>
             <p class="text-base-content/70 mt-2">Manage your pool service locations and view your account overview</p>
         </div>
-        <div class="flex space-x-3">
-            <a href="{{ route('locations.create') }}" class="btn btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                </svg>
-                Add Location
-            </a>
-
-        </div>
     </div>
 
     <div class="space-y-6">

@@ -23,12 +23,6 @@
                 </svg>
                 Download PDF
             </a>
-            <a href="{{ route('invoices.index') }}" class="btn btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Invoices
-            </a>
         </div>
     </div>
 
@@ -36,25 +30,28 @@
         <!-- Invoice Profile -->
         <div class="lg:col-span-1">
             <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                <div class="text-center mb-6">
-                    <div class="avatar mb-4">
-                        <div class="mask mask-squircle w-24 h-24">
-                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center text-3xl font-bold">
-                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
+                <div class="mb-6">
+                    <div class="w-full h-80 rounded-lg overflow-hidden mb-4">
+                        @if($invoice->location && $invoice->location->photos && count($invoice->location->photos) > 0)
+                            <img src="{{ Storage::url($invoice->location->photos[0]) }}" alt="Location Photo" class="w-full h-full object-cover">
+                        @else
+                            <div class="w-full h-full bg-base-200 flex items-center justify-center rounded-lg">
+                                <div class="text-center">
+                                    <svg class="w-24 h-24 mx-auto text-base-content/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <p class="text-base-content/50 mt-2">No photos available</p>
+                                </div>
                             </div>
+                        @endif
+                    </div>
+                    <div class="flex flex-wrap gap-2 mb-6">
+                        <div class="badge badge-{{ $invoice->status === 'paid' ? 'success' : ($invoice->status === 'overdue' ? 'error' : ($invoice->status === 'sent' ? 'info' : 'neutral')) }} badge-lg">
+                            {{ ucfirst($invoice->status) }}
                         </div>
                     </div>
                     <h2 class="text-xl font-semibold text-base-content">Invoice {{ $invoice->invoice_number }}</h2>
                     <p class="text-base-content/70">{{ $invoice->service_date->format('M j, Y') }}</p>
-                </div>
-
-                <!-- Status Badge -->
-                <div class="flex justify-center mb-6">
-                    <div class="badge badge-{{ $invoice->status === 'paid' ? 'success' : ($invoice->status === 'overdue' ? 'error' : ($invoice->status === 'sent' ? 'info' : 'neutral')) }} badge-lg">
-                        {{ ucfirst($invoice->status) }}
-                    </div>
                 </div>
 
                 <!-- Client Information -->
@@ -62,11 +59,11 @@
                     <h3 class="text-lg font-semibold text-base-content">Client</h3>
                     <div class="flex items-center space-x-3">
                         <div class="avatar">
-                            <div class="mask mask-squircle w-12 h-12">
+                            <div class="mask mask-squircle w-10 h-10">
                                 @if($invoice->client->profile_photo)
                                     <img src="{{ Storage::url($invoice->client->profile_photo) }}" alt="{{ $invoice->client->full_name }}">
                                 @else
-                                    <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center">
+                                    <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                         <span class="text-sm font-semibold">{{ substr($invoice->client->first_name, 0, 1) }}{{ substr($invoice->client->last_name, 0, 1) }}</span>
                                     </div>
                                 @endif
@@ -214,9 +211,8 @@
             <!-- Tabs -->
             <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
-                    <a class="tab tab-active" onclick="showTab('details')">Invoice Details</a>
-                    <a class="tab" onclick="showTab('payment')">Payment History</a>
-                    <a class="tab" onclick="showTab('actions')">Actions</a>
+                    <a id="tab-details" onclick="showTab('details', event)" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-primary text-base-content focus:outline-none focus:border-primary-focus" style="margin-right: 1.5rem; cursor:pointer;">Invoice Details</a>
+                    <a id="tab-payment" onclick="showTab('payment', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="margin-right: 1.5rem; cursor:pointer;">Payment History</a>
                 </div>
 
                 <!-- Tab Content -->
@@ -307,90 +303,6 @@
                             @endif
                         </div>
                     </div>
-
-                    <!-- Actions Tab -->
-                    <div id="actions-tab" class="tab-content hidden">
-                        <div class="space-y-6">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Invoice Actions</h3>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                @if($invoice->status !== 'paid')
-                                <div class="card bg-base-200">
-                                    <div class="card-body">
-                                        <h4 class="card-title text-md">Record Payment</h4>
-                                        <form action="{{ route('invoices.record-payment', $invoice) }}" method="POST" class="space-y-3">
-                                            @csrf
-                                            <div class="form-control">
-                                                <label class="label">
-                                                    <span class="label-text">Payment Amount</span>
-                                                </label>
-                                                <input type="number" name="payment_amount" step="0.01" min="0.01" max="{{ $totalClientBalance }}" 
-                                                       value="{{ $totalClientBalance }}" class="input input-bordered" required>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">
-                                                    <span class="label-text">Payment Notes (Optional)</span>
-                                                </label>
-                                                <textarea name="payment_notes" class="textarea textarea-bordered" rows="2"></textarea>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary btn-sm w-full">Record Payment</button>
-                                        </form>
-                                    </div>
-                                </div>
-                                @endif
-                                
-                                <div class="card bg-base-200">
-                                    <div class="card-body">
-                                        <h4 class="card-title text-md">Quick Actions</h4>
-                                        <div class="space-y-2">
-                                            <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-outline btn-sm w-full">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                                Download PDF
-                                            </a>
-                                            <a href="{{ route('invoices.pdf.view', $invoice) }}" target="_blank" class="btn btn-outline btn-sm w-full">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                </svg>
-                                                View PDF
-                                            </a>
-                                            @if($invoice->status !== 'paid')
-                                            <form action="{{ route('invoices.mark-paid', $invoice) }}" method="POST" class="inline w-full">
-                                                @csrf
-                                                <button type="submit" class="btn btn-success btn-sm w-full">
-                                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                                    </svg>
-                                                    Mark as Paid
-                                                </button>
-                                            </form>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="card bg-error text-error-content">
-                                <div class="card-body">
-                                    <h4 class="card-title text-md">Danger Zone</h4>
-                                    <p class="text-sm">Once you delete an invoice, there is no going back. Please be certain.</p>
-                                    <form action="{{ route('invoices.destroy', $invoice) }}" method="POST" class="inline" 
-                                          onsubmit="return confirm('Are you sure you want to delete this invoice?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-error btn-sm">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                            Delete Invoice
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -398,22 +310,36 @@
 </div>
 
 <script>
-function showTab(tabName) {
+function showTab(tabName, event = null) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
+        content.style.display = 'none';
     });
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('tab-active');
+
+    // Remove active classes and set inactive styles for all tab links
+    document.querySelectorAll('.tabs a').forEach(link => {
+        link.classList.remove('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        link.classList.add('border-transparent', 'text-base-content/70');
     });
-    
+
     // Show selected tab content
-    document.getElementById(tabName + '-tab').classList.remove('hidden');
-    
-    // Add active class to clicked tab
-    event.target.classList.add('tab-active');
+    const targetTab = document.getElementById(tabName + '-tab');
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+        targetTab.style.display = 'block';
+    }
+
+    // Add active classes and styles to the clicked tab link
+    const activeTab = document.getElementById('tab-' + tabName);
+    if (activeTab) {
+        activeTab.classList.add('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        activeTab.classList.remove('border-transparent', 'text-base-content/70');
+    }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    showTab('details');
+});
 </script>
 @endsection 

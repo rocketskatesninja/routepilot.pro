@@ -30,12 +30,6 @@
                 </button>
             </form>
             @endif
-            <a href="{{ route('invoices.index') }}" class="btn btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Invoices
-            </a>
         </div>
     </div>
 
@@ -227,24 +221,6 @@
                 </h3>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div>
-                        <label for="service_type" class="block text-sm font-medium text-base-content mb-2">
-                            Service Type <span class="text-error">*</span>
-                        </label>
-                        <select name="service_type" id="service_type" 
-                                class="select select-bordered w-full @error('service_type') select-error @enderror" required>
-                            <option value="">Select Service Type</option>
-                            <option value="regular" {{ old('service_type', $invoice->service_type) == 'regular' ? 'selected' : '' }}>Regular Service</option>
-                            <option value="chemical" {{ old('service_type', $invoice->service_type) == 'chemical' ? 'selected' : '' }}>Chemical Service</option>
-                            <option value="repair" {{ old('service_type', $invoice->service_type) == 'repair' ? 'selected' : '' }}>Repair Service</option>
-                            <option value="cleaning" {{ old('service_type', $invoice->service_type) == 'cleaning' ? 'selected' : '' }}>Deep Cleaning</option>
-                            <option value="inspection" {{ old('service_type', $invoice->service_type) == 'inspection' ? 'selected' : '' }}>Inspection</option>
-                        </select>
-                        @error('service_type')
-                            <p class="text-error text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    
                     <div>
                         <label for="status" class="block text-sm font-medium text-base-content mb-2">
                             Status <span class="text-error">*</span>

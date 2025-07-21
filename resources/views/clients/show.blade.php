@@ -15,12 +15,6 @@
                 </svg>
                 Edit Client
             </a>
-            <a href="{{ route('clients.index') }}" class="btn btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Clients
-            </a>
         </div>
     </div>
 
@@ -53,6 +47,7 @@
                     <div class="badge badge-{{ $client->is_active ? 'success' : 'error' }}">
                         {{ $client->is_active ? 'Active' : 'Inactive' }}
                     </div>
+                    <span class="text-base-content/70 ml-2">Created: {{ $client->created_at->format('M j, Y') }}</span>
                 </div>
 
                 <!-- Contact Information -->
@@ -75,28 +70,35 @@
                                                             <a href="tel:{{ $client->phone }}" class="text-blue-600 hover:text-blue-800 hover:underline">{{ $client->phone }}</a>
                         </div>
                         @endif
-                    </div>
-                </div>
-
-                <!-- Address -->
-                @if($client->street_address)
-                <div class="space-y-4 mb-6">
-                    <h3 class="text-lg font-semibold text-base-content">Address</h3>
-                    <div class="flex items-start space-x-3">
-                        <svg class="w-5 h-5 text-base-content/50 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        <div class="text-base-content">
-                            <div>{{ $client->street_address }}</div>
-                            @if($client->street_address_2)
-                                <div>{{ $client->street_address_2 }}</div>
+                        @php
+                            $address_street = trim($client->street_address . ($client->street_address_2 ? ' ' . $client->street_address_2 : ''));
+                            $address_city = trim($client->city . ', ' . $client->state . ' ' . $client->zip_code);
+                            $full_address = trim($address_street . ', ' . $address_city);
+                            $user = auth()->user();
+                            $mapsProvider = $user->maps_provider ?? 'google';
+                            $mapsUrl = match($mapsProvider) {
+                                'apple' => 'https://maps.apple.com/?q=' . urlencode($full_address),
+                                'bing' => 'https://bing.com/maps/default.aspx?where1=' . urlencode($full_address),
+                                default => 'https://maps.google.com/?q=' . urlencode($full_address),
+                            };
+                        @endphp
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5 text-base-content/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            @if($user->role === 'admin' || $user->role === 'technician')
+                                <a href="{{ $mapsUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                    <div>{{ $address_street }}</div>
+                                    <div class="text-base-content/70">{{ $address_city }}</div>
+                                </a>
+                            @else
+                                <div>{{ $address_street }}</div>
+                                <div class="text-base-content/70">{{ $address_city }}</div>
                             @endif
-                            <div>{{ $client->city }}, {{ $client->state }} {{ $client->zip_code }}</div>
                         </div>
                     </div>
                 </div>
-                @endif
 
                 <!-- Preferences -->
                 <div class="space-y-4">
@@ -191,10 +193,10 @@
             <!-- Tabs -->
             <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
-                    <a class="tab tab-active" onclick="showTab('locations', event)">Locations</a>
-                    <a class="tab" onclick="showTab('invoices', event)">Invoices</a>
-                    <a class="tab" onclick="showTab('reports', event)">Reports</a>
-                    <a class="tab" onclick="showTab('activities', event)">Activities</a>
+                    <a id="tab-locations" onclick="showTab('locations', event)" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-primary text-base-content focus:outline-none focus:border-primary-focus" style="margin-right: 1.5rem; cursor:pointer;">Locations</a>
+                    <a id="tab-invoices" onclick="showTab('invoices', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="margin-right: 1.5rem; cursor:pointer;">Invoices</a>
+                    <a id="tab-reports" onclick="showTab('reports', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="margin-right: 1.5rem; cursor:pointer;">Reports</a>
+                    <a id="tab-activities" onclick="showTab('activities', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="cursor:pointer;">Activities</a>
                 </div>
 
                 <div class="p-6">
@@ -214,14 +216,15 @@
                                             <th>Address</th>
                                             <th>Pool Type</th>
                                             <th>Status</th>
-                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($client->locations as $location)
                                         <tr>
                                             <td>
-                                                <div class="font-medium">{{ $location->nickname ?: 'Main Location' }}</div>
+                                                <a href="{{ route('locations.show', $location) }}" class="text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                                    {{ $location->nickname ?: 'Main Location' }}
+                                                </a>
                                             </td>
                                             <td>
                                                 <div class="text-sm">{{ $location->city }}, {{ $location->state }}</div>
@@ -233,9 +236,6 @@
                                                 <div class="badge badge-{{ $location->status == 'active' ? 'success' : 'error' }}">
                                                     {{ ucfirst($location->status) }}
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <a href="#" class="btn btn-ghost btn-xs">View</a>
                                             </td>
                                         </tr>
                                         @endforeach
@@ -267,22 +267,22 @@
                                             <th>Date</th>
                                             <th>Amount</th>
                                             <th>Status</th>
-                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($client->invoices->take(5) as $invoice)
                                         <tr>
-                                            <td>{{ $invoice->invoice_number }}</td>
+                                            <td>
+                                                <a href="{{ route('invoices.show', $invoice) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                    {{ $invoice->invoice_number }}
+                                                </a>
+                                            </td>
                                             <td>{{ $invoice->service_date->format('M j, Y') }}</td>
                                             <td>${{ number_format($invoice->total_amount, 2) }}</td>
                                             <td>
                                                 <div class="badge badge-{{ $invoice->status == 'paid' ? 'success' : ($invoice->status == 'overdue' ? 'error' : 'warning') }}">
                                                     {{ ucfirst($invoice->status) }}
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <a href="#" class="btn btn-ghost btn-xs">View</a>
                                             </td>
                                         </tr>
                                         @endforeach
@@ -310,18 +310,27 @@
                                 <table class="table table-zebra w-full">
                                     <thead>
                                         <tr>
+                                            <th>Report #</th>
                                             <th>Date</th>
                                             <th>Location</th>
                                             <th>Technician</th>
                                             <th>Status</th>
-                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($client->reports->take(5) as $report)
                                         <tr>
+                                            <td>
+                                                <a href="{{ route('reports.show', $report) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                    {{ $report->id }}
+                                                </a>
+                                            </td>
                                             <td>{{ $report->service_date->format('M j, Y') }}</td>
-                                            <td>{{ $report->location->nickname ?: 'Main Location' }}</td>
+                                            <td>
+                                                <a href="{{ route('locations.show', $report->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                    {{ $report->location->nickname ?: 'Main Location' }}
+                                                </a>
+                                            </td>
                                             <td>
                                                 @if($report->technician)
                                                     <a href="{{ route('technicians.show', $report->technician) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
@@ -333,9 +342,6 @@
                                             </td>
                                             <td>
                                                 <div class="badge badge-success">Completed</div>
-                                            </td>
-                                            <td>
-                                                <a href="#" class="btn btn-ghost btn-xs">View</a>
                                             </td>
                                         </tr>
                                         @endforeach
@@ -391,39 +397,36 @@
 
 <script>
 function showTab(tabName, event = null) {
-    console.log('Switching to tab:', tabName);
-    
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
         content.style.display = 'none';
-        console.log('Hiding tab content:', content.id);
     });
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('tab-active');
+
+    // Remove active classes and set inactive styles for all tab links
+    document.querySelectorAll('.tabs a').forEach(link => {
+        link.classList.remove('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        link.classList.add('border-transparent', 'text-base-content/70');
     });
-    
+
     // Show selected tab content
     const targetTab = document.getElementById(tabName + '-tab');
     if (targetTab) {
         targetTab.classList.remove('hidden');
         targetTab.style.display = 'block';
-        console.log('Showing tab content:', targetTab.id);
-    } else {
-        console.error('Tab content not found:', tabName + '-tab');
     }
-    
-    // Add active class to clicked tab (only if event is provided)
-    if (event && event.target) {
-        event.target.classList.add('tab-active');
+
+    // Add active classes and styles to the clicked tab link
+    const activeTab = document.getElementById('tab-' + tabName);
+    if (activeTab) {
+        activeTab.classList.add('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        activeTab.classList.remove('border-transparent', 'text-base-content/70');
     }
 }
 
 // Initialize the first tab as active
+// (default to locations tab)
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing tabs');
     showTab('locations');
 });
 </script>

@@ -101,10 +101,10 @@
                     <div>
                         <label for="sort_by" class="block text-sm font-medium text-base-content mb-2">Sort By</label>
                         <select name="sort_by" id="sort_by" class="select select-bordered w-full">
-                            <option value="date_desc" {{ request('sort_by') == 'date_desc' ? 'selected' : '' }}>Date Created (Newest)</option>
-                            <option value="date_asc" {{ request('sort_by') == 'date_asc' ? 'selected' : '' }}>Date Created (Oldest)</option>
                             <option value="name" {{ request('sort_by') == 'name' ? 'selected' : '' }}>Name</option>
                             <option value="status" {{ request('sort_by') == 'status' ? 'selected' : '' }}>Status</option>
+                            <option value="balance_desc" {{ request('sort_by') == 'balance_desc' ? 'selected' : '' }}>Balance (High to Low)</option>
+                            <option value="balance_asc" {{ request('sort_by') == 'balance_asc' ? 'selected' : '' }}>Balance (Low to High)</option>
                         </select>
                     </div>
                 </div>
@@ -134,15 +134,17 @@
                     <tr>
                         <th>Client</th>
                         <th>Contact</th>
-                        <th>Location</th>
+                        <th>Address</th>
+                        <th>Locations</th>
                         <th>Status</th>
-                        <th>Created</th>
+                        <th>Balance</th>
                         <th class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($clients as $client)
                     <tr>
+                        <!-- Client -->
                         <td>
                             <div class="flex items-center space-x-3">
                                 <div class="avatar">
@@ -162,10 +164,10 @@
                                             {{ $client->full_name }}
                                         </a>
                                     </div>
-                                    <div class="text-sm opacity-50">{{ $client->role }}</div>
                                 </div>
                             </div>
                         </td>
+                        <!-- Contact -->
                         <td>
                             <div class="text-sm">
                                 <div class="text-base-content">{{ $client->email }}</div>
@@ -174,32 +176,55 @@
                                 @endif
                             </div>
                         </td>
+                        <!-- Address -->
                         <td>
-                            @if($client->city && $client->state)
-                                <div class="text-sm">
-                                    <a href="https://maps.google.com/?q={{ urlencode($client->street_address . ', ' . $client->city . ', ' . $client->state . ' ' . $client->zip_code) }}" 
-                                       target="_blank" 
-                                       class="text-blue-600 hover:text-blue-800 hover:underline">
-                                        {{ $client->city }}, {{ $client->state }}
+                            @if($client->locations->count() > 0)
+                                @php
+                                    $loc = $client->locations->first();
+                                    $address_street = trim($loc->street_address . ($loc->street_address_2 ? ' ' . $loc->street_address_2 : ''));
+                                    $address_city = trim($loc->city . ', ' . $loc->state . ' ' . $loc->zip_code);
+                                    $full_address = trim($address_street . ', ' . $address_city);
+                                    $user = auth()->user();
+                                    $mapsProvider = $user->maps_provider ?? 'google';
+                                    $mapsUrl = match($mapsProvider) {
+                                        'apple' => 'https://maps.apple.com/?q=' . urlencode($full_address),
+                                        'bing' => 'https://bing.com/maps/default.aspx?where1=' . urlencode($full_address),
+                                        default => 'https://maps.google.com/?q=' . urlencode($full_address),
+                                    };
+                                @endphp
+                                @if($user->role === 'admin' || $user->role === 'technician')
+                                    <a href="{{ $mapsUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                        <div>{{ $address_street }}</div>
+                                        <div class="text-base-content/70">{{ $address_city }}</div>
                                     </a>
-                                    @if($client->zip_code)
-                                        <div class="text-base-content/70">{{ $client->zip_code }}</div>
-                                    @endif
-                                </div>
+                                @else
+                                    <div>{{ $address_street }}</div>
+                                    <div class="text-base-content/70">{{ $address_city }}</div>
+                                @endif
                             @else
                                 <span class="text-base-content/50 text-sm">No address</span>
                             @endif
                         </td>
+                        <!-- Locations column in each row -->
+                        <td>
+                            {{ $client->locations->count() }}
+                        </td>
+                        <!-- Status -->
                         <td>
                             <div class="badge badge-{{ $client->status == 'active' ? 'success' : 'error' }}">
                                 {{ ucfirst($client->status) }}
                             </div>
                         </td>
+                        <!-- Balance -->
                         <td>
-                            <div class="text-sm text-base-content">
-                                {{ $client->created_at->format('M j, Y') }}
+                            @php
+                                $balance = $client->invoices()->whereNotIn('status', ['paid', 'draft'])->sum('balance');
+                            @endphp
+                            <div class="font-bold {{ $balance > 0 ? 'text-red-600' : 'text-green-600' }}">
+                                ${{ number_format($balance, 2) }}
                             </div>
                         </td>
+                        <!-- Actions -->
                         <td class="text-right">
                             <div class="flex gap-2 justify-end">
                                 <a href="{{ route('clients.edit', $client) }}" class="btn btn-sm btn-square btn-ghost btn-outline" title="Edit">

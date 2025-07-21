@@ -74,6 +74,16 @@
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+                    @if($user->role !== 'client')
+                    <div>
+                        <label class="block text-sm font-medium text-base-content mb-2">Preferred Maps Provider</label>
+                        <select name="maps_provider" class="select select-bordered w-full">
+                            <option value="google" {{ old('maps_provider', $user->maps_provider) == 'google' ? 'selected' : '' }}>Google Maps</option>
+                            <option value="apple" {{ old('maps_provider', $user->maps_provider) == 'apple' ? 'selected' : '' }}>Apple Maps</option>
+                            <option value="bing" {{ old('maps_provider', $user->maps_provider) == 'bing' ? 'selected' : '' }}>Bing Maps</option>
+                        </select>
+                    </div>
+                    @endif
                 </div>
 
                 <!-- Right Column: Password and Notification Preferences -->

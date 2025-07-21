@@ -184,25 +184,34 @@
                         </td>
                         @endif
                         <td>
-                            <div class="text-sm">
-                                <div class="text-base-content">
-                                    @if($report->location)
-                                        <a href="{{ route('locations.show', $report->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
-                                            {{ $report->location->nickname ?? 'Location' }}
-                                        </a>
-                                    @else
-                                        Location
+                            <div class="flex items-center space-x-3">
+                                <div class="avatar">
+                                    <div class="mask mask-squircle w-10 h-10">
+                                        @if($report->location && $report->location->photos && count($report->location->photos) > 0)
+                                            <img src="{{ Storage::url($report->location->photos[0]) }}" alt="{{ $report->location->nickname ?? 'Location' }}">
+                                        @else
+                                            <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                </svg>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-base-content font-bold">
+                                        @if($report->location)
+                                            <a href="{{ route('locations.show', $report->location) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                                {{ $report->location->nickname ?? 'Location' }}
+                                            </a>
+                                        @else
+                                            Location
+                                        @endif
+                                    </div>
+                                    @if($report->location && $report->location->city && $report->location->state)
+                                        <div class="text-base-content/70">{{ $report->location->city }}, {{ $report->location->state }}</div>
                                     @endif
                                 </div>
-                                @if($report->location && $report->location->city && $report->location->state)
-                                    <a href="https://maps.google.com/?q={{ urlencode($report->location->street_address . ', ' . $report->location->city . ', ' . $report->location->state . ' ' . $report->location->zip_code) }}" 
-                                       target="_blank" 
-                                       class="text-blue-600 hover:text-blue-800 hover:underline">
-                                        {{ $report->location->full_address ?? $report->location->city . ', ' . $report->location->state }}
-                                    </a>
-                                @else
-                                    <div class="text-base-content/70">{{ $report->location->full_address ?? '-' }}</div>
-                                @endif
                             </div>
                         </td>
                         @if(auth()->user()->isAdmin() || auth()->user()->isCustomer())

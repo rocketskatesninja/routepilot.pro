@@ -222,17 +222,33 @@
                         </td>
                         @endif
                         <td>
-                            <div class="text-sm">
-                                <a href="https://maps.google.com/?q={{ urlencode($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code) }}" 
-                                   target="_blank" 
-                                   class="text-blue-600 hover:text-blue-800 hover:underline">
-                                    <div>{{ $location->street_address }}</div>
+                            @php
+                                $address_street = trim($location->street_address . ($location->street_address_2 ? ' ' . $location->street_address_2 : ''));
+                                $address_city = trim($location->city . ', ' . $location->state . ' ' . $location->zip_code);
+                                $full_address = trim($address_street . ', ' . $address_city);
+                                $user = auth()->user();
+                                $mapsProvider = $user->maps_provider ?? 'google';
+                                $mapsUrl = match($mapsProvider) {
+                                    'apple' => 'https://maps.apple.com/?q=' . urlencode($full_address),
+                                    'bing' => 'https://bing.com/maps/default.aspx?where1=' . urlencode($full_address),
+                                    default => 'https://maps.google.com/?q=' . urlencode($full_address),
+                                };
+                            @endphp
+                            @if($user->role === 'admin' || $user->role === 'technician')
+                                <a href="{{ $mapsUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                    <div>{{ $address_street }}</div>
                                     @if($location->street_address_2)
                                         <div class="opacity-70">{{ $location->street_address_2 }}</div>
                                     @endif
-                                    <div class="opacity-70">{{ $location->city }}, {{ $location->state }} {{ $location->zip_code }}</div>
+                                    <div class="opacity-70">{{ $address_city }}</div>
                                 </a>
-                            </div>
+                            @else
+                                <div>{{ $address_street }}</div>
+                                @if($location->street_address_2)
+                                    <div class="opacity-70">{{ $location->street_address_2 }}</div>
+                                @endif
+                                <div class="opacity-70">{{ $address_city }}</div>
+                            @endif
                         </td>
                         <td>
                             <div class="flex flex-wrap gap-1">

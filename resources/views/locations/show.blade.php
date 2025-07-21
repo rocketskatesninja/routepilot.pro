@@ -29,12 +29,6 @@
                 </svg>
                 Edit Location
             </a>
-            <a href="{{ route('locations.index') }}" class="btn btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Locations
-            </a>
         </div>
     </div>
 
@@ -104,13 +98,33 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
-                        <div class="text-base-content">
-                            <div>{{ $location->street_address }}</div>
+                        @php
+                            $address_street = trim($location->street_address . ($location->street_address_2 ? ' ' . $location->street_address_2 : ''));
+                            $address_city = trim($location->city . ', ' . $location->state . ' ' . $location->zip_code);
+                            $full_address = trim($address_street . ', ' . $address_city);
+                            $user = auth()->user();
+                            $mapsProvider = $user->maps_provider ?? 'google';
+                            $mapsUrl = match($mapsProvider) {
+                                'apple' => 'https://maps.apple.com/?q=' . urlencode($full_address),
+                                'bing' => 'https://bing.com/maps/default.aspx?where1=' . urlencode($full_address),
+                                default => 'https://maps.google.com/?q=' . urlencode($full_address),
+                            };
+                        @endphp
+                        @if($user->role === 'admin' || $user->role === 'technician')
+                            <a href="{{ $mapsUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                <div>{{ $address_street }}</div>
+                                @if($location->street_address_2)
+                                    <div>{{ $location->street_address_2 }}</div>
+                                @endif
+                                <div>{{ $address_city }}</div>
+                            </a>
+                        @else
+                            <div>{{ $address_street }}</div>
                             @if($location->street_address_2)
                                 <div>{{ $location->street_address_2 }}</div>
                             @endif
-                            <div>{{ $location->city }}, {{ $location->state }} {{ $location->zip_code }}</div>
-                        </div>
+                            <div>{{ $address_city }}</div>
+                        @endif
                     </div>
                 </div>
 
@@ -246,8 +260,8 @@
             <!-- Tabs -->
             <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
-                    <a class="tab tab-active" onclick="showTab('invoices', event)">Invoices</a>
-                    <a class="tab" onclick="showTab('reports', event)">Reports</a>
+                    <a id="tab-invoices" onclick="showTab('invoices', event)" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-primary text-base-content focus:outline-none focus:border-primary-focus" style="margin-right: 1.5rem; cursor:pointer;">Invoices</a>
+                    <a id="tab-reports" onclick="showTab('reports', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="cursor:pointer;">Reports</a>
                 </div>
 
                 <div class="p-6">
@@ -346,39 +360,34 @@
 
 <script>
 function showTab(tabName, event = null) {
-    console.log('Switching to tab:', tabName);
-    
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
         content.style.display = 'none';
-        console.log('Hiding tab content:', content.id);
     });
-    
-    // Remove active class from all tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('tab-active');
+
+    // Remove active classes and set inactive styles for all tab links
+    document.querySelectorAll('.tabs a').forEach(link => {
+        link.classList.remove('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        link.classList.add('border-transparent', 'text-base-content/70');
     });
-    
+
     // Show selected tab content
     const targetTab = document.getElementById(tabName + '-tab');
     if (targetTab) {
         targetTab.classList.remove('hidden');
         targetTab.style.display = 'block';
-        console.log('Showing tab content:', targetTab.id);
-    } else {
-        console.error('Tab content not found:', tabName + '-tab');
     }
-    
-    // Add active class to clicked tab (only if event is provided)
-    if (event && event.target) {
-        event.target.classList.add('tab-active');
+
+    // Add active classes and styles to the clicked tab link
+    const activeTab = document.getElementById('tab-' + tabName);
+    if (activeTab) {
+        activeTab.classList.add('tab-active', 'border-primary', 'text-base-content', 'focus:border-primary-focus');
+        activeTab.classList.remove('border-transparent', 'text-base-content/70');
     }
 }
 
-// Initialize the first tab as active
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing tabs');
     showTab('invoices');
 });
 </script>

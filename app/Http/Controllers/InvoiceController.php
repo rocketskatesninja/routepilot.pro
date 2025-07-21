@@ -114,9 +114,7 @@ class InvoiceController extends Controller
 
         // Calculate total amount
         $total = $validated['rate_per_visit'];
-        if ($validated['chemicals_included']) {
-            $total += $validated['chemicals_cost'] ?? 0;
-        }
+        $total += $validated['chemicals_cost'] ?? 0;
         $total += $validated['extras_cost'] ?? 0;
 
         // Generate invoice number
@@ -137,7 +135,7 @@ class InvoiceController extends Controller
             'total_amount' => $total,
             'balance' => $total,
             'status' => 'sent',
-            'notes' => $validated['notes'],
+            'notes' => $validated['notes'] ?? $validated['service_notes'] ?? null,
         ]);
 
         return redirect()->route('invoices.show', $invoice)

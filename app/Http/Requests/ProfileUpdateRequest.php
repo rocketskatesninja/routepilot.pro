@@ -41,6 +41,7 @@ class ProfileUpdateRequest extends FormRequest
             'mailing_list' => ['nullable', 'boolean'],
             'service_reminders' => ['nullable', 'boolean'],
             'appointment_reminders' => ['nullable', 'boolean'],
+            'maps_provider' => $this->user()->role !== 'client' ? ['required', 'string', Rule::in(['google', 'apple', 'bing'])] : ['nullable'],
         ];
     }
 

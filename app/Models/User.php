@@ -35,6 +35,7 @@ class User extends Authenticatable
         'monthly_billing',
         'service_reports',
         'is_active',
+        'maps_provider',
     ];
 
     /**

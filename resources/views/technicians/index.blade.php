@@ -141,6 +141,7 @@
                         <th>Technician</th>
                         <th>Contact</th>
                         <th>Location</th>
+                        <th>Role</th>
                         <th>Status</th>
                         <th>Created</th>
                         <th class="text-right">Actions</th>
@@ -196,6 +197,7 @@
                                 <span class="text-base-content/50 text-sm">No address</span>
                             @endif
                         </td>
+                        <td><span class="capitalize">{{ $technician->role }}</span></td>
                         <td>
                             @if($technician->is_active)
                                 <div class="badge badge-success">Active</div>

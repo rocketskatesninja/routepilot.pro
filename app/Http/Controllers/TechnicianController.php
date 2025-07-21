@@ -25,7 +25,7 @@ class TechnicianController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = User::where('role', AppConstants::ROLE_TECHNICIAN);
+            $query = User::whereIn('role', [AppConstants::ROLE_TECHNICIAN, AppConstants::ROLE_ADMIN]);
 
             // Apply search functionality using trait
             $searchFields = ['first_name', 'last_name', 'email', 'phone'];

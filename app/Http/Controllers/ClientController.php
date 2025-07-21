@@ -53,6 +53,24 @@ class ClientController extends Controller
 
         $clients = $query->paginate(AppConstants::DEFAULT_PAGINATION);
 
+        // Sort by balance if requested
+        if ($request->sort_by === 'balance_desc' || $request->sort_by === 'balance_asc') {
+            $clients = $clients->sortBy(function($client) {
+                return $client->invoices()->whereNotIn('status', ['paid', 'draft'])->sum('balance');
+            }, SORT_REGULAR, $request->sort_by === 'balance_desc')->values();
+        }
+
+        // Paginate after sorting
+        $perPage = AppConstants::DEFAULT_PAGINATION;
+        $page = $request->input('page', 1);
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $clients->forPage($page, $perPage),
+            $clients->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
         // Get statistics
         $stats = [
             'total' => Client::count(),
@@ -60,7 +78,7 @@ class ClientController extends Controller
             'inactive' => Client::where('is_active', false)->count(),
         ];
 
-        return view('clients.index', compact('clients', 'stats'));
+        return view('clients.index', ['clients' => $paginated, 'stats' => $stats]);
     }
 
     /**
