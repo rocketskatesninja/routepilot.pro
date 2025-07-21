@@ -16,7 +16,7 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -42,7 +42,12 @@ class ProfileUpdateRequest extends FormRequest
             'service_reminders' => ['nullable', 'boolean'],
             'appointment_reminders' => ['nullable', 'boolean'],
             'maps_provider' => $this->user()->role !== 'client' ? ['required', 'string', Rule::in(['google', 'apple', 'bing'])] : ['nullable'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
+        if ($this->filled('password')) {
+            $rules['current_password'] = ['required', 'current_password'];
+        }
+        return $rules;
     }
 
     /**

@@ -93,15 +93,57 @@
                         <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">Change Password</h3>
                         <div>
                             <label class="block text-sm font-medium text-base-content mb-2">Current Password</label>
-                            <input type="password" name="current_password" class="input input-bordered w-full" autocomplete="current-password">
+                            <div class="relative">
+                                <input type="password" name="current_password" class="input input-bordered w-full pr-12" autocomplete="current-password" id="current_password">
+                                <button type="button" tabindex="-1" class="absolute right-0 top-0 h-full flex items-center px-3 text-base-content/60 hover:text-base-content focus:outline-none z-10" style="border:none; background:transparent;" onclick="togglePassword('current_password', this)">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                </button>
+                            </div>
+                            @error('current_password')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-base-content mb-2">New Password</label>
-                            <input type="password" name="password" class="input input-bordered w-full" autocomplete="new-password">
+                            <div class="relative">
+                                <input type="password" name="password" class="input input-bordered w-full pr-12" autocomplete="new-password" id="new_password">
+                                <button type="button" tabindex="-1" class="absolute right-0 top-0 h-full flex items-center px-3 text-base-content/60 hover:text-base-content focus:outline-none z-10" style="border:none; background:transparent;" onclick="togglePassword('new_password', this)">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                </button>
+                            </div>
+                            @error('password')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-base-content mb-2">Confirm New Password</label>
-                            <input type="password" name="password_confirmation" class="input input-bordered w-full" autocomplete="new-password">
+                            <div class="relative">
+                                <input type="password" name="password_confirmation" class="input input-bordered w-full pr-12" autocomplete="new-password" id="password_confirmation">
+                                <button type="button" tabindex="-1" class="absolute right-0 top-0 h-full flex items-center px-3 text-base-content/60 hover:text-base-content focus:outline-none z-10" style="border:none; background:transparent;" onclick="togglePassword('password_confirmation', this)">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                </button>
+                            </div>
+                            @error('password_confirmation')
+                                <p class="text-error text-sm mt-1">{{ $message }}</p>
+                            @enderror
+                            @php
+                                $minLength = \App\Models\Setting::getValue('password_min_length', 8);
+                                $requireComplexity = \App\Models\Setting::getValue('require_password_complexity', 0);
+                            @endphp
+                            <div class="mt-3 rounded-lg bg-base-200/80 border border-base-300 px-4 py-3 flex items-start gap-3">
+                                <svg class="w-5 h-5 mt-0.5 text-blue-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <div class="text-sm text-base-content/80">
+                                    <span class="font-semibold">Password requirements:</span>
+                                    <ul class="list-disc ml-5 mt-1 space-y-0.5">
+                                        <li>At least <span class="font-semibold">{{ $minLength }}</span> characters</li>
+                                        @if($requireComplexity)
+                                            <li>Uppercase &amp; lowercase letters</li>
+                                            <li>At least one number</li>
+                                            <li>At least one special character</li>
+                                        @endif
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -184,6 +226,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener
     serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
 });
+
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.querySelector('svg').classList.add('text-primary');
+    } else {
+        input.type = 'password';
+        btn.querySelector('svg').classList.remove('text-primary');
+    }
+}
 </script>
 @endsection
 

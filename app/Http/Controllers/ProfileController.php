@@ -52,13 +52,18 @@ class ProfileController extends Controller
         // Update user with all validated data including profile_photo
         $user->fill($validated);
 
+        // Update password if provided
+        if (!empty($validated['password'])) {
+            $user->password = bcrypt($validated['password']);
+        }
+
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
         }
 
         $user->save();
 
-        return Redirect::route('profile.edit');
+        return Redirect::route('profile.edit')->with('success', 'Profile updated successfully!');
     }
 
     /**

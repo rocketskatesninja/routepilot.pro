@@ -57,25 +57,41 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-base-100">
-        @php
-            $backgroundImage = \App\Models\Setting::getValue('background_image');
-            $backgroundEnabled = \App\Models\Setting::getValue('background_enabled', '0');
-            $backgroundFixed = \App\Models\Setting::getValue('background_fixed', '0');
-        @endphp
-        
+    <body class="font-sans antialiased bg-base-100"
+        style="
+            @php
+                $backgroundImage = \App\Models\Setting::getValue('background_image');
+                $backgroundEnabled = \App\Models\Setting::getValue('background_enabled', '0');
+                $backgroundFixed = \App\Models\Setting::getValue('background_fixed', '0');
+            @endphp
+            @if($backgroundImage && $backgroundEnabled)
+                background-image: url('{{ Storage::url($backgroundImage) }}');
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: {{ $backgroundFixed ? 'fixed' : 'scroll' }};
+            @endif
+        "
+    >
+        <!-- Global Alert Container -->
+        <div id="global-alert-container" class="fixed top-6 right-6 z-50 flex flex-col space-y-4 items-end"></div>
         @if($backgroundImage && $backgroundEnabled)
-            <div class="fixed inset-0 z-0">
-                <div class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                     style="background-image: url('{{ Storage::url($backgroundImage) }}'); 
-                            background-attachment: {{ $backgroundFixed ? 'fixed' : 'scroll' }};">
-                </div>
-                <div class="absolute inset-0 bg-base-100/80 backdrop-blur-sm"></div>
-            </div>
+            <div class="absolute inset-0 bg-base-100/80 backdrop-blur-sm pointer-events-none z-0"></div>
         @endif
         
         <div class="min-h-screen relative z-10">
             @include('layouts.navigation')
+
+            <!-- Global Alert Trigger for Laravel Flash Messages -->
+            @if(session('success'))
+                <script>window.addEventListener('DOMContentLoaded',function(){showGlobalAlert({message: @json(session('success')), type: 'success'});});</script>
+            @endif
+            @if(session('error'))
+                <script>window.addEventListener('DOMContentLoaded',function(){showGlobalAlert({message: @json(session('error')), type: 'error'});});</script>
+            @endif
+            @if(session('status'))
+                <script>window.addEventListener('DOMContentLoaded',function(){showGlobalAlert({message: @json(session('status')), type: 'info'});});</script>
+            @endif
 
             <!-- Page Heading -->
             @isset($header)

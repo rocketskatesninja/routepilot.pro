@@ -151,7 +151,9 @@ class ReportController extends Controller
         }
         
         $validated = $request->validated();
-        $validated['technician_id'] = $user->id;
+        if (empty($validated['technician_id'])) {
+            $validated['technician_id'] = $user->id;
+        }
         
         // Handle arrays
         $validated['chemicals_used'] = $request->input('chemicals_used', []);
