@@ -201,7 +201,7 @@
                             <span class="text-base-content">Send chemistry readings to chemical calculator</span>
                             <input type="checkbox" name="send_to_calculator" id="send_to_calculator" 
                                    class="checkbox checkbox-primary" 
-                                   {{ old('send_to_calculator', true) ? 'checked' : '' }}>
+                                   {{ old('send_to_calculator', false) ? 'checked' : '' }}>
                         </div>
                     </div>
                 </div>
@@ -375,17 +375,16 @@
                     <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">
                         Invoice Generation
                     </h3>
-                    
-                    <div class="form-control">
-                        <label class="label cursor-pointer">
-                            <input type="checkbox" name="generate_invoice" id="generate_invoice" 
-                                   class="checkbox checkbox-primary" 
-                                   {{ old('generate_invoice') ? 'checked' : '' }}>
-                            <span class="label-text ml-2">Automatically generate invoice for this report</span>
-                        </label>
-                        <p class="text-sm text-base-content/70 mt-2">
-                            When checked, an invoice will be created automatically using the service details and costs from this report.
-                        </p>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex items-center justify-between bg-base-200 rounded-lg px-4 py-3">
+                                <span class="text-base-content">Automatically generate invoice for this report</span>
+                                <input type="checkbox" name="generate_invoice" id="generate_invoice" 
+                                       class="checkbox checkbox-primary" 
+                                       {{ old('generate_invoice') ? 'checked' : '' }}
+                                       @if($report->invoice) disabled @endif>
+                            </div>
+                        </div>
                         @if($report->invoice)
                             <div class="alert alert-info mt-4">
                                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
