@@ -17,6 +17,12 @@
                 </svg>
                 Statistics
             </a>
+            <a href="{{ route('invoices.export') }}?{{ http_build_query(request()->all()) }}" class="btn btn-outline">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Export CSV
+            </a>
             <a href="{{ route('invoices.create') }}" class="btn btn-primary">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -143,12 +149,6 @@
                             Search
                         </button>
                         <a href="{{ route('invoices.index') }}" class="btn btn-outline">Clear Filters</a>
-                        <a href="{{ route('invoices.export') }}?{{ http_build_query(request()->all()) }}" class="btn btn-secondary">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Export CSV
-                        </a>
                     </div>
                     <div class="text-sm text-base-content/70">
                         {{ $invoices->total() }} result{{ $invoices->total() != 1 ? 's' : '' }}
@@ -172,7 +172,6 @@
                         <th>Service Date</th>
                         <th>Due Date</th>
                         <th>Amount</th>
-                        <th>Balance</th>
                         <th>Status</th>
                         @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <th class="text-right">Actions</th>
@@ -263,11 +262,6 @@
                         </td>
                         <td>
                             <div class="font-bold text-base-content">${{ number_format($invoice->total_amount, 2) }}</div>
-                        </td>
-                        <td>
-                            <div class="font-bold {{ $invoice->balance > 0 ? 'text-red-600' : 'text-green-600' }}">
-                                ${{ number_format($invoice->balance, 2) }}
-                            </div>
                         </td>
                         <td>
                             @if($invoice->status === 'paid')
