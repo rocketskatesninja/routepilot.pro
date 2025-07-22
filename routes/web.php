@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/delete-photo', [ProfileController::class, 'deletePhoto'])->name('profile.delete-photo');
     
     // Client Management Routes
     Route::resource('clients', ClientController::class);
@@ -36,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/locations/{location}/toggle-status', [LocationController::class, 'toggleStatus'])->name('locations.toggle-status');
     Route::get('/locations/export/csv', [LocationController::class, 'export'])->name('locations.export');
     Route::get('/api/locations/{location}', [LocationController::class, 'showApi'])->name('api.locations.show');
+    Route::post('/locations/{location}/delete-photo', [LocationController::class, 'deletePhoto'])->name('locations.delete-photo');
     
     // Technician Management Routes
     Route::resource('technicians', TechnicianController::class);
@@ -56,6 +58,7 @@ Route::middleware('auth')->group(function () {
 
     // Reports Management
     Route::resource('reports', ReportController::class);
+    Route::post('/reports/{report}/delete-photo', [ReportController::class, 'deletePhoto'])->name('reports.delete-photo');
 
     // Chemical Calculator
     Route::get('/chem-calc', [ChemicalCalculatorController::class, 'index'])->name('chem-calc');

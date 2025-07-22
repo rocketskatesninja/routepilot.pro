@@ -65,8 +65,9 @@
                     <div>
                         <label class="block text-sm font-medium text-base-content mb-2">Profile Photo</label>
                         @if($user->profile_photo)
-                            <div class="mb-2">
+                            <div class="mb-2 relative inline-block">
                                 <img src="{{ Storage::url($user->profile_photo) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
+                                <button type="button" class="absolute top-0 right-0 z-10 bg-red-600 text-white text-xs font-bold rounded w-5 h-5 flex items-center justify-center shadow hover:bg-red-700 focus:outline-none delete-profile-photo-btn" data-photo-path="{{ $user->profile_photo }}" style="opacity:0.9; transform: translate(25%,-25%);">X</button>
                             </div>
                         @endif
                         <input type="file" name="profile_photo" class="file-input file-input-bordered w-full @error('profile_photo') file-input-error @enderror" accept="image/*">
@@ -208,7 +209,7 @@
 </div>
 
 <script>
-// Service reports checkbox behavior
+// Service reports checkbox behavior and profile photo deletion
 document.addEventListener('DOMContentLoaded', function() {
     const serviceReportsCheckbox = document.getElementById('service_reports_enabled');
     const serviceReportsSelect = document.getElementById('service_reports');
@@ -225,6 +226,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listener
     serviceReportsCheckbox.addEventListener('change', toggleServiceReports);
+
+    // Profile photo deletion
+    document.querySelectorAll('.delete-profile-photo-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!confirm('Are you sure you want to delete your profile photo? This action cannot be undone.')) {
+                return;
+            }
+            const photoPath = btn.getAttribute('data-photo-path');
+            if (!photoPath) return alert('Could not determine photo path.');
+            // Build AJAX request
+            fetch('/profile/delete-photo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ photo: photoPath })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    btn.closest('.relative').remove();
+                } else {
+                    alert(data.error || 'Failed to delete photo.');
+                }
+            })
+            .catch(() => alert('Failed to delete photo.'));
+        });
+    });
 });
 
 function togglePassword(id, btn) {

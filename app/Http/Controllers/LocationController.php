@@ -318,4 +318,44 @@ class LocationController extends Controller
 
         return back()->with('success', "Location {$status} successfully.");
     }
+
+    /**
+     * Delete a single photo from a location (AJAX).
+     */
+    public function deletePhoto(Request $request, Location $location)
+    {
+        $user = auth()->user();
+        
+        // Check authorization based on user role and location access
+        if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
+            // Admin and technicians can delete photos from any location
+        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
+            // Clients can only delete photos from their own locations
+            $client = Client::where('email', $user->email)->first();
+            if (!$client || $location->client_id !== $client->id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        } else {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
+        $photo = $request->input('photo');
+        if (!$photo || !is_array($location->photos) || !in_array($photo, $location->photos)) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+        
+        // Remove from array
+        $updatedPhotos = array_values(array_filter($location->photos, fn($p) => $p !== $photo));
+        $location->photos = $updatedPhotos;
+        $location->save();
+        
+        // Delete from storage
+        Storage::disk('public')->delete($photo);
+        
+        // Log activity
+        $locationName = $location->nickname ?: $location->street_address;
+        Activity::log('delete', "Deleted photo from location: {$locationName}", $user, $location);
+        
+        return response()->json(['success' => true]);
+    }
 } 

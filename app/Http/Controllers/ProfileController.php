@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
+use App\Models\Activity;
 
 class ProfileController extends Controller
 {
@@ -49,13 +51,20 @@ class ProfileController extends Controller
             $validated['profile_photo'] = $path;
         }
         
-        // Update user with all validated data including profile_photo
-        $user->fill($validated);
-
-        // Update password if provided
+        // Handle password update - only if provided
         if (!empty($validated['password'])) {
-            $user->password = bcrypt($validated['password']);
+            $validated['password'] = bcrypt($validated['password']);
+        } else {
+            // Remove password from validated data if not provided
+            unset($validated['password']);
         }
+        
+        // Remove current_password from validated data as it's not a database field
+        unset($validated['current_password']);
+        unset($validated['password_confirmation']);
+        
+        // Update user with validated data
+        $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
@@ -85,5 +94,29 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    /**
+     * Delete the user's profile photo (AJAX).
+     */
+    public function deletePhoto(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->profile_photo) {
+            return response()->json(['error' => 'No profile photo found'], 404);
+        }
+        
+        // Delete from storage
+        Storage::disk('public')->delete($user->profile_photo);
+        
+        // Clear the profile photo field
+        $user->profile_photo = null;
+        $user->save();
+        
+        // Log activity
+        Activity::log('delete', "Deleted profile photo", $user, $user);
+        
+        return response()->json(['success' => true]);
     }
 }

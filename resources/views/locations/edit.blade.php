@@ -137,7 +137,10 @@
                                 <p class="text-sm text-base-content/70">Current photos:</p>
                                 <div class="flex flex-wrap gap-2 mt-2">
                                     @foreach($location->photos as $photo)
-                                        <img src="{{ Storage::url($photo) }}" alt="Location photo" class="w-16 h-16 rounded object-cover">
+                                        <div class="relative inline-block">
+                                            <img src="{{ Storage::url($photo) }}" alt="Location photo" class="w-16 h-16 rounded object-cover">
+                                            <button type="button" class="absolute top-0 right-0 z-10 bg-red-600 text-white text-xs font-bold rounded w-5 h-5 flex items-center justify-center shadow hover:bg-red-700 focus:outline-none delete-photo-btn" data-photo-path="{{ $photo }}" style="opacity:0.9; transform: translate(25%,-25%);">X</button>
+                                        </div>
                                     @endforeach
                                 </div>
                             </div>
@@ -571,6 +574,36 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!clientSearch.contains(e.target) && !clientSuggestions.contains(e.target)) {
             clientSuggestions.style.display = 'none';
         }
+    });
+
+    document.querySelectorAll('.delete-photo-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!confirm('Are you sure you want to delete this photo? This action cannot be undone.')) {
+                return;
+            }
+            const photoPath = btn.getAttribute('data-photo-path');
+            if (!photoPath) return alert('Could not determine photo path.');
+            // Build AJAX request
+            fetch(window.location.pathname.replace('/edit', '') + '/delete-photo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ photo: photoPath })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    btn.closest('.relative').remove();
+                } else {
+                    alert(data.error || 'Failed to delete photo.');
+                }
+            })
+            .catch(() => alert('Failed to delete photo.'));
+        });
     });
 });
 </script>

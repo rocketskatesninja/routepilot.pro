@@ -5,7 +5,7 @@
     <!-- Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div>
-            <h1 class="text-3xl font-bold text-base-content">Service Report</h1>
+            <h1 class="text-3xl font-bold text-base-content">Service Report #{{ $report->id }}</h1>
             <p class="text-base-content/70 mt-2">{{ $report->service_date->format('M j, Y') }} - {{ $report->location->nickname ?? 'Location' }}</p>
         </div>
         <div class="mt-4 lg:mt-0 flex space-x-2">
@@ -17,12 +17,6 @@
                 Edit Report
             </a>
             @endif
-            <a href="{{ route('reports.index') }}" class="btn btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Reports
-            </a>
         </div>
     </div>
 
@@ -257,136 +251,124 @@
                 <div class="p-6">
                     <div id="chemistry-tab" class="tab-content" style="display: block !important;">
                         <!-- Chemistry Readings Section -->
-                        <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Chemistry Readings</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                @foreach($report->chemistryReadings as $reading => $value)
-                                    @if($value !== null)
-                                    <div class="bg-base-200 rounded-lg p-3">
-                                        <div class="text-sm text-base-content/70 mb-1">{{ strtoupper($reading) }}</div>
-                                        <div class="text-lg font-semibold text-base-content">{{ $value }}</div>
-                                    </div>
-                                    @endif
-                                @endforeach
-                            </div>
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Chemistry Readings</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            @foreach($report->chemistryReadings as $reading => $value)
+                                @if($value !== null)
+                                <div class="bg-base-200 rounded-lg p-3">
+                                    <div class="text-sm text-base-content/70 mb-1">{{ strtoupper($reading) }}</div>
+                                    <div class="text-lg font-semibold text-base-content">{{ $value }}</div>
+                                </div>
+                                @endif
+                            @endforeach
                         </div>
                     </div>
                     <div id="cleaning-tab" class="tab-content hidden">
                         <!-- Cleaning Tasks Section -->
-                        <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Cleaning Tasks</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @foreach($report->cleaningTasks as $task => $completed)
-                                    <div class="flex items-center space-x-3">
-                                        <div class="badge badge-{{ $completed ? 'success' : 'error' }} badge-sm">
-                                            {{ $completed ? '✓' : '✗' }}
-                                        </div>
-                                        <span class="text-base-content">{{ ucwords(str_replace('_', ' ', $task)) }}</span>
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Cleaning Tasks</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach($report->cleaningTasks as $task => $completed)
+                                <div class="flex items-center space-x-3">
+                                    <div class="badge badge-{{ $completed ? 'success' : 'error' }} badge-sm">
+                                        {{ $completed ? '✓' : '✗' }}
                                     </div>
-                                @endforeach
-                            </div>
+                                    <span class="text-base-content">{{ ucwords(str_replace('_', ' ', $task)) }}</span>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                     <div id="maintenance-tab" class="tab-content hidden">
                         <!-- Maintenance Tasks Section -->
-                        <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Maintenance Tasks</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @foreach($report->maintenanceTasks as $task => $completed)
-                                    <div class="flex items-center space-x-3">
-                                        <div class="badge badge-{{ $completed ? 'success' : 'error' }} badge-sm">
-                                            {{ $completed ? '✓' : '✗' }}
-                                        </div>
-                                        <span class="text-base-content">{{ ucwords(str_replace('_', ' ', $task)) }}</span>
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Maintenance Tasks</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            @foreach($report->maintenanceTasks as $task => $completed)
+                                <div class="flex items-center space-x-3">
+                                    <div class="badge badge-{{ $completed ? 'success' : 'error' }} badge-sm">
+                                        {{ $completed ? '✓' : '✗' }}
                                     </div>
-                                @endforeach
-                            </div>
+                                    <span class="text-base-content">{{ ucwords(str_replace('_', ' ', $task)) }}</span>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                     <div id="chemicals-tab" class="tab-content hidden">
                         <!-- Chemicals & Services Section -->
                         @if($report->chemicals_used || $report->other_services)
-                        <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Chemicals & Services</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                @if($report->chemicals_used)
-                                <div>
-                                    <h4 class="font-semibold text-base-content mb-2">Chemicals Used</h4>
-                                    <div class="bg-base-200 rounded-lg p-4">
-                                        @if(is_array($report->chemicals_used))
-                                            <ul class="space-y-1">
-                                                @foreach($report->chemicals_used as $chemical)
-                                                    <li class="text-base-content">• {{ $chemical }}</li>
-                                                @endforeach
-                                            </ul>
-                                        @else
-                                            <p class="text-base-content">{{ $report->chemicals_used }}</p>
-                                        @endif
-                                    </div>
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Chemicals & Services</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            @if($report->chemicals_used)
+                            <div>
+                                <h4 class="font-semibold text-base-content mb-2">Chemicals Used</h4>
+                                <div class="bg-base-200 rounded-lg p-4">
+                                    @if(is_array($report->chemicals_used))
+                                        <ul class="space-y-1">
+                                            @foreach($report->chemicals_used as $chemical)
+                                                <li class="text-base-content">• {{ $chemical }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <p class="text-base-content">{{ $report->chemicals_used }}</p>
+                                    @endif
                                 </div>
-                                @endif
-
-                                @if($report->other_services)
-                                <div>
-                                    <h4 class="font-semibold text-base-content mb-2">Other Services</h4>
-                                    <div class="bg-base-200 rounded-lg p-4">
-                                        @if(is_array($report->other_services))
-                                            <ul class="space-y-1">
-                                                @foreach($report->other_services as $service)
-                                                    <li class="text-base-content">• {{ $service }}</li>
-                                                @endforeach
-                                            </ul>
-                                        @else
-                                            <p class="text-base-content">{{ $report->other_services }}</p>
-                                        @endif
-                                    </div>
-                                </div>
-                                @endif
                             </div>
+                            @endif
+
+                            @if($report->other_services)
+                            <div>
+                                <h4 class="font-semibold text-base-content mb-2">Other Services</h4>
+                                <div class="bg-base-200 rounded-lg p-4">
+                                    @if(is_array($report->other_services))
+                                        <ul class="space-y-1">
+                                            @foreach($report->other_services as $service)
+                                                <li class="text-base-content">• {{ $service }}</li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <p class="text-base-content">{{ $report->other_services }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                            @endif
                         </div>
                         @endif
                     </div>
                     <div id="notes-tab" class="tab-content hidden">
                         <!-- Notes Section -->
                         @if($report->notes_to_client || $report->notes_to_admin)
-                        <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Notes</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                @if($report->notes_to_client)
-                                <div>
-                                    <h4 class="font-semibold text-base-content mb-2">Notes to Client</h4>
-                                    <div class="bg-base-200 rounded-lg p-4">
-                                        <p class="text-base-content">{{ $report->notes_to_client }}</p>
-                                    </div>
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Notes</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            @if($report->notes_to_client)
+                            <div>
+                                <h4 class="font-semibold text-base-content mb-2">Notes to Client</h4>
+                                <div class="bg-base-200 rounded-lg p-4">
+                                    <p class="text-base-content">{{ $report->notes_to_client }}</p>
                                 </div>
-                                @endif
-
-                                @if($report->notes_to_admin)
-                                <div>
-                                    <h4 class="font-semibold text-base-content mb-2">Notes to Admin</h4>
-                                    <div class="bg-base-200 rounded-lg p-4">
-                                        <p class="text-base-content">{{ $report->notes_to_admin }}</p>
-                                    </div>
-                                </div>
-                                @endif
                             </div>
+                            @endif
+
+                            @if($report->notes_to_admin)
+                            <div>
+                                <h4 class="font-semibold text-base-content mb-2">Notes to Admin</h4>
+                                <div class="bg-base-200 rounded-lg p-4">
+                                    <p class="text-base-content">{{ $report->notes_to_admin }}</p>
+                                </div>
+                            </div>
+                            @endif
                         </div>
                         @endif
                     </div>
                     <div id="photos-tab" class="tab-content hidden">
                         <!-- Photos Section -->
                         @if($report->photos && is_array($report->photos) && count($report->photos) > 0)
-                        <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
-                            <h3 class="text-lg font-semibold text-base-content mb-4">Photos</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                @foreach($report->photos as $photo)
-                                    <div class="aspect-square rounded-lg overflow-hidden">
-                                        <a href="{{ Storage::url($photo) }}" target="_blank" class="block w-full h-full">
-                                            <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-full h-full object-cover hover:opacity-80 transition-opacity">
-                                        </a>
-                                    </div>
-                                @endforeach
-                            </div>
+                        <h3 class="text-lg font-semibold text-base-content mb-4">Photos</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            @foreach($report->photos as $photo)
+                                <div class="aspect-square rounded-lg overflow-hidden relative">
+                                    <a href="{{ Storage::url($photo) }}" target="_blank" class="block w-full h-full">
+                                        <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-full h-full object-cover hover:opacity-80 transition-opacity">
+                                    </a>
+                                </div>
+                            @endforeach
                         </div>
                         @endif
                     </div>
@@ -397,6 +379,7 @@
 </div>
 @endsection
 
+@section('scripts')
 <script>
 function showTab(tabName, event = null) {
     // Hide all tab contents
@@ -429,4 +412,5 @@ function showTab(tabName, event = null) {
 document.addEventListener('DOMContentLoaded', function() {
     showTab('chemistry');
 });
-</script> 
+</script>
+@endsection 
