@@ -7,6 +7,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\TechnicianController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\ChemicalCalculatorController;
 use App\Http\Controllers\Admin\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +60,15 @@ Route::middleware('auth')->group(function () {
     // Reports Management
     Route::resource('reports', ReportController::class);
     Route::post('/reports/{report}/delete-photo', [ReportController::class, 'deletePhoto'])->name('reports.delete-photo');
+
+    // Activities Management
+    Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
+    Route::get('/activities/settings', [ActivityController::class, 'settings'])->name('activities.settings');
+    Route::post('/activities/settings', [ActivityController::class, 'updateSettings'])->name('activities.update-settings');
+    Route::get('/activities/cleanup', [ActivityController::class, 'cleanup'])->name('activities.cleanup');
+    Route::post('/activities/cleanup', [ActivityController::class, 'cleanup'])->name('activities.cleanup');
+    Route::get('/activities/export', [ActivityController::class, 'export'])->name('activities.export');
+    Route::get('/activities/{activity}', [ActivityController::class, 'show'])->name('activities.show');
 
     // Chemical Calculator
     Route::get('/chem-calc', [ChemicalCalculatorController::class, 'index'])->name('chem-calc');
