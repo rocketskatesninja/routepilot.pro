@@ -254,5 +254,10 @@
         </div>
         @endif
     </div>
+
+    <!-- Interactive Map -->
+    <div class="mt-8">
+        <x-location-map :technicians="$technicians" :height="'500px'" />
+    </div>
 </div>
 @endsection 

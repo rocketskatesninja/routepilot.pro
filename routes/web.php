@@ -64,6 +64,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/chem-calc', [ChemicalCalculatorController::class, 'index'])->name('chem-calc');
     Route::post('/chem-calc', [ChemicalCalculatorController::class, 'calculate'])->name('chem-calc.calculate');
     
+    // Map API
+    Route::get('/api/geocode', function (Request $request) {
+        $address = $request->get('address');
+        if (!$address) {
+            return response()->json(['success' => false, 'error' => 'Address parameter is required']);
+        }
+        
+        $coordinates = \App\Services\MapService::geocodeAddress($address);
+        if ($coordinates) {
+            return response()->json(['success' => true, 'coordinates' => $coordinates]);
+        }
+        
+        return response()->json(['success' => false, 'error' => 'Address not found']);
+    })->name('api.geocode');
+    
     // Admin Settings Routes
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
