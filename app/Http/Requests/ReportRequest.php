@@ -64,7 +64,7 @@ class ReportRequest extends FormRequest
             'notes_to_client' => 'nullable|string',
             'notes_to_admin' => 'nullable|string',
             'photos' => 'nullable|array',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:25600',
         ];
     }
 

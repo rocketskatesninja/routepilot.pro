@@ -9,7 +9,7 @@ class AppConstants
     public const SEARCH_RESULT_LIMIT = 10;
     
     // File upload limits
-    public const MAX_FILE_SIZE = 2048; // 2MB in KB
+    public const MAX_FILE_SIZE = 25600; // 25MB in KB
     public const ALLOWED_IMAGE_TYPES = ['jpeg', 'png', 'jpg', 'gif'];
     
     // Status values

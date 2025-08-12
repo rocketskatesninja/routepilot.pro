@@ -60,9 +60,9 @@ class SettingsController extends Controller
         $request->validate([
             'site_title' => 'required|string|max:255',
             'site_tagline' => 'nullable|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'favicon' => 'nullable|image|mimes:ico,png,jpg|max:1024',
-            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:25600',
+            'favicon' => 'nullable|image|mimes:ico,png,jpg|max:25600',
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:25600',
             'background_enabled' => 'boolean',
             'background_fixed' => 'boolean',
             'company_name' => 'nullable|string|max:255',

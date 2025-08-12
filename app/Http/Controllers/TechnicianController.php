@@ -19,13 +19,29 @@ class TechnicianController extends Controller
 {
     use HasSearchable, HasSortable, HasExportable;
 
+
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         try {
-            $query = User::whereIn('role', [AppConstants::ROLE_TECHNICIAN, AppConstants::ROLE_ADMIN]);
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.index',
+                    'ip' => $request->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
+            $query = User::where('role', AppConstants::ROLE_TECHNICIAN);
 
             // Apply search functionality using trait
             $searchFields = ['first_name', 'last_name', 'email', 'phone'];
@@ -71,6 +87,20 @@ class TechnicianController extends Controller
     public function create()
     {
         try {
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.create',
+                    'ip' => request()->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
             LoggingService::logUserAction('accessed technician create form');
 
         return view('technicians.create');
@@ -86,6 +116,20 @@ class TechnicianController extends Controller
     public function store(TechnicianRequest $request)
     {
         try {
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.store',
+                    'ip' => $request->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
             $validated = $request->validated();
 
             // Handle profile photo upload using PhotoUploadService
@@ -124,7 +168,33 @@ class TechnicianController extends Controller
     public function show(string $id)
     {
         try {
-            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->findOrFail($id);
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.show',
+                    'ip' => request()->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
+            // Check if the technician exists and is actually a technician
+            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->find($id);
+            if (!$technician) {
+                LoggingService::logError('Invalid technician access attempt', [
+                    'requested_id' => $id,
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'route' => 'technicians.show',
+                ]);
+                
+                return redirect()->route('technicians.index')
+                    ->with('error', 'Technician not found. The requested technician does not exist or is not a valid technician.');
+            }
         
         // Get assigned locations
             $assignedLocations = $technician->assignedLocations()->paginate(AppConstants::SEARCH_RESULT_LIMIT);
@@ -163,13 +233,39 @@ class TechnicianController extends Controller
     public function edit(string $id)
     {
         try {
-            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->findOrFail($id);
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.edit',
+                    'ip' => request()->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
+            // Check if the technician exists and is actually a technician
+            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->find($id);
+            if (!$technician) {
+                LoggingService::logError('Invalid technician access attempt', [
+                    'requested_id' => $id,
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'route' => 'technicians.edit',
+                ]);
+                
+                return redirect()->route('technicians.index')
+                    ->with('error', 'Technician not found. The requested technician does not exist or is not a valid technician.');
+            }
             
             LoggingService::logUserAction('accessed technician edit form', [
                 'technician_id' => $id,
             ], 'User', $id);
 
-        return view('technicians.edit', compact('technician'));
+            return view('technicians.edit', compact('technician'));
         } catch (\Exception $e) {
             LoggingService::logError('Failed to load technician edit form', [
                 'technician_id' => $id,
@@ -184,7 +280,33 @@ class TechnicianController extends Controller
     public function update(TechnicianRequest $request, string $id)
     {
         try {
-            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->findOrFail($id);
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.update',
+                    'ip' => $request->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
+            // Check if the technician exists and is actually a technician
+            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->find($id);
+            if (!$technician) {
+                LoggingService::logError('Invalid technician access attempt', [
+                    'requested_id' => $id,
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'route' => 'technicians.update',
+                ]);
+                
+                return redirect()->route('technicians.index')
+                    ->with('error', 'Technician not found. The requested technician does not exist or is not a valid technician.');
+            }
             $validated = $request->validated();
 
             // Handle profile photo upload using PhotoUploadService
@@ -229,7 +351,33 @@ class TechnicianController extends Controller
     public function destroy(string $id)
     {
         try {
-            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->findOrFail($id);
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.destroy',
+                    'ip' => request()->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
+            // Check if the technician exists and is actually a technician
+            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->find($id);
+            if (!$technician) {
+                LoggingService::logError('Invalid technician access attempt', [
+                    'requested_id' => $id,
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'route' => 'technicians.destroy',
+                ]);
+                
+                return redirect()->route('technicians.index')
+                    ->with('error', 'Technician not found. The requested technician does not exist or is not a valid technician.');
+            }
         
         // Delete profile photo if exists
         if ($technician->profile_photo) {
@@ -259,7 +407,33 @@ class TechnicianController extends Controller
     public function toggleStatus(string $id)
     {
         try {
-            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->findOrFail($id);
+            // Check if the authenticated user has permission to access technician data
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                LoggingService::logError('Unauthorized technician access attempt', [
+                    'user_id' => $user?->id,
+                    'user_role' => $user?->role,
+                    'route' => 'technicians.toggle-status',
+                    'ip' => request()->ip(),
+                ]);
+                
+                return redirect()->route('dashboard')
+                    ->with('error', 'You do not have permission to access technician management.');
+            }
+            
+            // Check if the technician exists and is actually a technician
+            $technician = User::where('role', AppConstants::ROLE_TECHNICIAN)->find($id);
+            if (!$technician) {
+                LoggingService::logError('Invalid technician access attempt', [
+                    'requested_id' => $id,
+                    'user_id' => $user->id,
+                    'user_role' => $user->role,
+                    'route' => 'technicians.toggle-status',
+                ]);
+                
+                return redirect()->route('technicians.index')
+                    ->with('error', 'Technician not found. The requested technician does not exist or is not a valid technician.');
+            }
         $technician->update(['is_active' => !$technician->is_active]);
 
         $status = $technician->is_active ? 'activated' : 'deactivated';
