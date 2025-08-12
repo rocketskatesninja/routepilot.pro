@@ -1,5 +1,39 @@
 @props(['locations' => [], 'technicians' => [], 'height' => '400px'])
 
+@php
+    // Prepare location data
+    $locationData = [];
+    if ($locations) {
+        foreach ($locations as $location) {
+            $locationData[] = [
+                'id' => $location->id,
+                'name' => $location->nickname ?: ($location->client ? $location->client->full_name : 'Unknown Location'),
+                'address' => $location->full_address ?? ($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code),
+                'city' => $location->city,
+                'state' => $location->state,
+                'type' => 'location',
+                'status' => $location->status,
+                'technician' => $location->assignedTechnician ? $location->assignedTechnician->full_name : null
+            ];
+        }
+    }
+    
+    // Prepare technician data
+    $technicianData = [];
+    if ($technicians) {
+        foreach ($technicians as $technician) {
+            $technicianData[] = [
+                'id' => $technician->id,
+                'name' => $technician->full_name,
+                'city' => $technician->city,
+                'state' => $technician->state,
+                'type' => 'technician',
+                'status' => $technician->is_active ? 'active' : 'inactive'
+            ];
+        }
+    }
+@endphp
+
 <div class="bg-base-100 rounded-lg shadow-lg border border-base-300 overflow-hidden">
     <div class="p-4 border-b border-base-200">
         <h3 class="text-lg font-semibold text-base-content flex items-center">
@@ -10,12 +44,12 @@
             Interactive Map
         </h3>
         <p class="text-sm text-base-content/70 mt-1">
-            @if($locations->count() > 0 && $technicians->count() > 0)
-                Showing {{ $locations->count() }} locations and {{ $technicians->count() }} technicians
-            @elseif($locations->count() > 0)
-                Showing {{ $locations->count() }} locations
-            @elseif($technicians->count() > 0)
-                Showing {{ $technicians->count() }} technicians
+            @if(count($locationData) > 0 && count($technicianData) > 0)
+                Showing {{ count($locationData) }} locations and {{ count($technicianData) }} technicians
+            @elseif(count($locationData) > 0)
+                Showing {{ count($locationData) }} locations
+            @elseif(count($technicianData) > 0)
+                Showing {{ count($technicianData) }} technicians
             @else
                 No locations or technicians to display
             @endif
@@ -60,13 +94,13 @@
             <div class="bg-base-100 rounded-lg shadow-lg p-3">
                 <div class="text-sm font-medium text-base-content mb-2">Legend</div>
                 <div class="space-y-2">
-                    @if($locations->count() > 0)
+                    @if(count($locationData) > 0)
                         <div class="flex items-center">
                             <div class="w-4 h-4 bg-primary rounded-full mr-2"></div>
                             <span class="text-xs text-base-content/70">Locations</span>
                         </div>
                     @endif
-                    @if($technicians->count() > 0)
+                    @if(count($technicianData) > 0)
                         <div class="flex items-center">
                             <div class="w-4 h-4 bg-success rounded-full mr-2"></div>
                             <span class="text-xs text-base-content/70">Technicians</span>
@@ -86,28 +120,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Map data
     const mapData = {
-        locations: @json($locations ? $locations->map(function($location) {
-            return [
-                'id' => $location->id,
-                'name' => $location->nickname ?: ($location->client ? $location->client->full_name : 'Unknown Location'),
-                'address' => $location->full_address ?? ($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code),
-                'city' => $location->city,
-                'state' => $location->state,
-                'type' => 'location',
-                'status' => $location->status,
-                'technician' => $location->assignedTechnician ? $location->assignedTechnician->full_name : null
-            ];
-        }) : []),
-        technicians: @json($technicians ? $technicians->map(function($technician) {
-            return [
-                'id' => $technician->id,
-                'name' => $technician->full_name,
-                'city' => $technician->city,
-                'state' => $technician->state,
-                'type' => 'technician',
-                'status' => $technician->is_active ? 'active' : 'inactive'
-            ];
-        }) : [])
+        locations: @json($locationData),
+        technicians: @json($technicianData)
     };
 
     // Initialize map
