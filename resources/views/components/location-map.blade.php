@@ -86,19 +86,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Map data
     const mapData = {
-        locations: @json($locations->map(function($location) {
+        locations: @json($locations ? $locations->map(function($location) {
             return [
                 'id' => $location->id,
-                'name' => $location->nickname ?: $location->client->full_name,
-                'address' => $location->full_address,
+                'name' => $location->nickname ?: ($location->client ? $location->client->full_name : 'Unknown Location'),
+                'address' => $location->full_address ?? ($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code),
                 'city' => $location->city,
                 'state' => $location->state,
                 'type' => 'location',
                 'status' => $location->status,
                 'technician' => $location->assignedTechnician ? $location->assignedTechnician->full_name : null
             ];
-        })),
-        technicians: @json($technicians->map(function($technician) {
+        }) : []),
+        technicians: @json($technicians ? $technicians->map(function($technician) {
             return [
                 'id' => $technician->id,
                 'name' => $technician->full_name,
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 'type' => 'technician',
                 'status' => $technician->is_active ? 'active' : 'inactive'
             ];
-        }))
+        }) : [])
     };
 
     // Initialize map
@@ -126,17 +126,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }).addTo(map);
             
             // Add markers for locations
-            if (mapData.locations.length > 0) {
+            if (mapData.locations && mapData.locations.length > 0) {
                 await addLocationMarkers();
             }
             
             // Add markers for technicians
-            if (mapData.technicians.length > 0) {
+            if (mapData.technicians && mapData.technicians.length > 0) {
                 await addTechnicianMarkers();
             }
             
             // Fit map to show all markers
-            if (markers.length > 0) {
+            if (markers && markers.length > 0) {
                 const group = new L.featureGroup(markers);
                 map.fitBounds(group.getBounds().pad(0.1));
             } else {
@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById('reset-view').addEventListener('click', () => {
-        if (markers.length > 0) {
+        if (markers && markers.length > 0) {
             const group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.1));
         } else {
