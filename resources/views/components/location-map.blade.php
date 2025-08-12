@@ -117,12 +117,25 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <script>
+// Test if Leaflet is loaded
+console.log('Leaflet loaded:', typeof L !== 'undefined' ? 'YES' : 'NO');
+if (typeof L === 'undefined') {
+    console.error('Leaflet library failed to load!');
+}
+
+<script>
+console.log('Map component script starting...');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded event fired');
+    
     // Map data
     const mapData = {
         locations: @json($locationData),
         technicians: @json($technicianData)
     };
+    
+    console.log('Map data prepared:', mapData);
 
     // Initialize map
     let map;
@@ -319,7 +332,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize the map
     console.log('Calling initializeMap()...');
-    initializeMap();
+    
+    // Test basic functionality first
+    try {
+        console.log('Testing map container...');
+        const container = document.getElementById('map-container');
+        console.log('Container found:', container);
+        
+        if (container) {
+            console.log('Container dimensions:', container.offsetWidth, 'x', container.offsetHeight);
+        }
+        
+        console.log('Calling initializeMap...');
+        initializeMap();
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
 </script>
 
