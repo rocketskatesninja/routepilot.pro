@@ -33,7 +33,7 @@
                 <div class="mb-6">
                     <div class="w-full h-80 rounded-lg overflow-hidden mb-4">
                         @if($invoice->location && $invoice->location->photos && count($invoice->location->photos) > 0)
-                            <img src="{{ Storage::url($invoice->location->photos[0]) }}" alt="Location Photo" class="w-full h-full object-cover">
+                            <img src="{{ asset(Storage::url($invoice->location->photos[0])) }}" alt="Location Photo" class="w-full h-full object-cover">
                         @else
                             <div class="w-full h-full bg-base-200 flex items-center justify-center rounded-lg">
                                 <div class="text-center">
@@ -61,7 +61,7 @@
                         <div class="avatar">
                             <div class="mask mask-squircle w-10 h-10">
                                 @if($invoice->client->profile_photo)
-                                    <img src="{{ Storage::url($invoice->client->profile_photo) }}" alt="{{ $invoice->client->full_name }}">
+                                    <img src="{{ asset(Storage::url($invoice->client->profile_photo)) }}" alt="{{ $invoice->client->full_name }}">
                                 @else
                                     <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                         <span class="text-sm font-semibold">{{ substr($invoice->client->first_name, 0, 1) }}{{ substr($invoice->client->last_name, 0, 1) }}</span>

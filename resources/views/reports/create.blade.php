@@ -350,7 +350,7 @@
                         @if(isset($report) && !empty($report->photos))
                             <div class="flex flex-wrap gap-2 mt-4">
                                 @foreach($report->photos as $photo)
-                                    <img src="{{ Storage::url($photo) }}" alt="Report Photo" 
+                                    <img src="{{ asset(Storage::url($photo)) }}" alt="Report Photo" 
                                          class="w-24 h-24 object-cover rounded border border-base-300">
                                 @endforeach
                             </div>

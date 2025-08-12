@@ -363,7 +363,7 @@
                             <div class="flex flex-wrap gap-2 mt-4">
                                 @foreach($report->photos as $photo)
                                     <div class="relative inline-block">
-                                        <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-24 h-24 object-cover rounded border border-base-300">
+                                        <img src="{{ asset(Storage::url($photo)) }}" alt="Report Photo" class="w-24 h-24 object-cover rounded border border-base-300">
                                         <button type="button" class="absolute top-0 right-0 z-10 bg-red-600 text-white text-xs font-bold rounded w-5 h-5 flex items-center justify-center shadow hover:bg-red-700 focus:outline-none delete-photo-btn" data-photo-path="{{ $photo }}" style="opacity:0.9; transform: translate(25%,-25%);">X</button>
                                     </div>
                                 @endforeach

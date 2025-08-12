@@ -160,7 +160,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($report->client && $report->client->profile_photo)
-                                            <img src="{{ Storage::url($report->client->profile_photo) }}" alt="{{ $report->client->full_name }}">
+                                            <img src="{{ asset(Storage::url($report->client->profile_photo)) }}" alt="{{ $report->client->full_name }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <span class="text-sm font-semibold">{{ $report->client ? substr($report->client->first_name, 0, 1) . substr($report->client->last_name, 0, 1) : '?' }}</span>
@@ -188,7 +188,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($report->location && $report->location->photos && count($report->location->photos) > 0)
-                                            <img src="{{ Storage::url($report->location->photos[0]) }}" alt="{{ $report->location->nickname ?? 'Location' }}">
+                                            <img src="{{ asset(Storage::url($report->location->photos[0])) }}" alt="{{ $report->location->nickname ?? 'Location' }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($report->technician && $report->technician->profile_photo)
-                                            <img src="{{ Storage::url($report->technician->profile_photo) }}" alt="{{ $report->technician->full_name }}">
+                                            <img src="{{ asset(Storage::url($report->technician->profile_photo)) }}" alt="{{ $report->technician->full_name }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <span class="text-sm font-semibold">{{ $report->technician ? substr($report->technician->first_name, 0, 1) . substr($report->technician->last_name, 0, 1) : '?' }}</span>

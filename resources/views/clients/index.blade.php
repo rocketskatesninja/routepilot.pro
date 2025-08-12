@@ -150,7 +150,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($client->profile_photo)
-                                            <img src="{{ Storage::url($client->profile_photo) }}" alt="{{ $client->full_name }}">
+                                            <img src="{{ asset(Storage::url($client->profile_photo)) }}" alt="{{ $client->full_name }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <span class="text-sm font-semibold">{{ substr($client->first_name, 0, 1) }}{{ substr($client->last_name, 0, 1) }}</span>

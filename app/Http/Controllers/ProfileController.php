@@ -101,22 +101,44 @@ class ProfileController extends Controller
      */
     public function deletePhoto(Request $request): JsonResponse
     {
-        $user = $request->user();
-        
-        if (!$user->profile_photo) {
-            return response()->json(['error' => 'No profile photo found'], 404);
+        try {
+            $user = $request->user();
+            
+            if (!$user->profile_photo) {
+                return response()->json(['error' => 'No profile photo found'], 404);
+            }
+            
+            $photoPath = $user->profile_photo;
+            \Log::info("Attempting to delete profile photo: {$photoPath}");
+            
+            // Check if file exists before attempting deletion
+            if (!Storage::disk('public')->exists($photoPath)) {
+                \Log::warning("Profile photo file not found in storage: {$photoPath}");
+            }
+            
+            // Delete from storage
+            $deleted = Storage::disk('public')->delete($photoPath);
+            
+            if (!$deleted) {
+                \Log::warning("Failed to delete profile photo from storage: {$photoPath}");
+            } else {
+                \Log::info("Successfully deleted profile photo from storage: {$photoPath}");
+            }
+            
+            // Clear the profile photo field
+            $user->profile_photo = null;
+            $user->save();
+            
+            \Log::info("Profile photo field cleared from database for user: {$user->id}");
+            
+            // TODO: Implement activity logging when Activity::log method is available
+            // Activity::log('delete', "Deleted profile photo", $user, $user);
+            
+            return response()->json(['success' => true, 'message' => 'Profile photo deleted successfully']);
+            
+        } catch (\Exception $e) {
+            \Log::error("Error deleting profile photo: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete profile photo: ' . $e->getMessage()], 500);
         }
-        
-        // Delete from storage
-        Storage::disk('public')->delete($user->profile_photo);
-        
-        // Clear the profile photo field
-        $user->profile_photo = null;
-        $user->save();
-        
-        // Log activity
-        Activity::log('delete', "Deleted profile photo", $user, $user);
-        
-        return response()->json(['success' => true]);
     }
 }

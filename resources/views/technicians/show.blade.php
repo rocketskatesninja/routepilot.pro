@@ -17,24 +17,18 @@
                 </svg>
                 Edit Technician
             </a>
-            <a href="{{ route('technicians.index') }}" class="btn btn-outline">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Technicians
-            </a>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Technician Profile -->
         <div class="lg:col-span-1">
-            <div class="bg-base-100 shadow-xl rounded-lg p-6">
+            <div class="bg-base-100 shadow-xl rounded-lg p-6 border border-base-300">
                 <!-- Technician Photo -->
                 <div class="mb-6">
                     @if($technician->profile_photo)
                         <div class="w-full h-80 rounded-lg overflow-hidden">
-                            <img src="{{ Storage::url($technician->profile_photo) }}" alt="{{ $technician->full_name }}" class="w-full h-full object-cover">
+                            <img src="{{ asset(Storage::url($technician->profile_photo)) }}" alt="{{ $technician->full_name }}" class="w-full h-full object-cover">
                         </div>
                     @else
                         <div class="w-full h-80 bg-base-200 rounded-lg flex items-center justify-center">
@@ -153,7 +147,7 @@
             </div>
 
             <!-- Tabs -->
-            <div class="bg-base-100 shadow-xl rounded-lg">
+            <div class="bg-base-100 shadow-xl rounded-lg border border-base-300">
                 <div class="tabs tabs-boxed p-4">
                     <a id="tab-locations" onclick="showTab('locations', event)" class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-primary text-base-content focus:outline-none focus:border-primary-focus" style="margin-right: 1.5rem; cursor:pointer;">Assigned Locations</a>
                     <a id="tab-reports" onclick="showTab('reports', event)" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-base-content/70 hover:text-base-content hover:border-base-300 focus:outline-none focus:text-base-content focus:border-base-300 transition duration-150 ease-in-out" style="margin-right: 1.5rem; cursor:pointer;">Recent Reports</a>

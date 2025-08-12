@@ -95,7 +95,7 @@
                         </label>
                         @if($client->profile_photo)
                             <div class="mb-2">
-                                <img src="{{ Storage::url($client->profile_photo) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
+                                <img src="{{ asset(Storage::url($client->profile_photo)) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
                             </div>
                         @endif
                         <input type="file" name="profile_photo" id="profile_photo" 
@@ -197,9 +197,14 @@
                             Password
                         </label>
                         <div class="flex gap-2">
-                            <input type="text" name="password" id="password" 
-                                   class="input input-bordered flex-1 @error('password') input-error @enderror" 
-                                   placeholder="Leave blank to keep current password">
+                            <div class="relative flex-1">
+                                <input type="password" name="password" id="password" 
+                                       class="input input-bordered w-full pr-12 @error('password') input-error @enderror" 
+                                       placeholder="Leave blank to keep current password" autocomplete="new-password">
+                                <button type="button" tabindex="-1" class="absolute right-0 top-0 h-full flex items-center px-3 text-base-content/60 hover:text-base-content focus:outline-none z-10" style="border:none; background:transparent;" onclick="togglePassword('password', this)">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                </button>
+                            </div>
                             <button type="button" id="generate-password" class="btn btn-secondary">Generate</button>
                         </div>
                         @error('password')
@@ -335,6 +340,19 @@
         document.getElementById('generate-password').addEventListener('click', function() {
             document.getElementById('password').value = randomPassword();
         });
+
+        // Toggle password visibility function
+        function togglePassword(id, btn) {
+            const input = document.getElementById(id);
+            if (!input) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.querySelector('svg').classList.add('text-primary');
+            } else {
+                input.type = 'password';
+                btn.querySelector('svg').classList.remove('text-primary');
+            }
+        }
     </script>
 </div>
 @endsection 

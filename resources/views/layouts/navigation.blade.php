@@ -69,7 +69,7 @@
                                     <!-- User Avatar -->
                                     <div class="w-8 h-8 rounded-full overflow-hidden">
                                         @if(Auth::user()->profile_photo)
-                                            <img src="{{ Storage::url(Auth::user()->profile_photo) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
+                                            <img src="{{ asset(Storage::url(Auth::user()->profile_photo)) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
                                         @else
                                             <div class="w-full h-full bg-primary text-primary-content flex items-center justify-center text-sm font-semibold">
                                                 {{ substr(Auth::user()->first_name, 0, 1) }}{{ substr(Auth::user()->last_name, 0, 1) }}

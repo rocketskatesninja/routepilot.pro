@@ -203,7 +203,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($invoice->client && $invoice->client->profile_photo)
-                                            <img src="{{ Storage::url($invoice->client->profile_photo) }}" alt="{{ $invoice->client->full_name }}">
+                                            <img src="{{ asset(Storage::url($invoice->client->profile_photo)) }}" alt="{{ $invoice->client->full_name }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <span class="text-sm font-semibold">{{ $invoice->client ? substr($invoice->client->first_name, 0, 1) . substr($invoice->client->last_name, 0, 1) : '?' }}</span>
@@ -231,7 +231,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($invoice->location && $invoice->location->photos && count($invoice->location->photos) > 0)
-                                            <img src="{{ Storage::url($invoice->location->photos[0]) }}" alt="{{ $invoice->location->nickname ?? 'Location' }}">
+                                            <img src="{{ asset(Storage::url($invoice->location->photos[0])) }}" alt="{{ $invoice->location->nickname ?? 'Location' }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

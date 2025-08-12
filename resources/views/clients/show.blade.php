@@ -26,7 +26,7 @@
                 <div class="mb-6">
                     @if($client->profile_photo)
                         <div class="w-full h-80 rounded-lg overflow-hidden">
-                            <img src="{{ Storage::url($client->profile_photo) }}" alt="{{ $client->full_name }}" class="w-full h-full object-cover">
+                            <img src="{{ asset(Storage::url($client->profile_photo)) }}" alt="{{ $client->full_name }}" class="w-full h-full object-cover">
                         </div>
                     @else
                         <div class="w-full h-80 bg-base-200 rounded-lg flex items-center justify-center">

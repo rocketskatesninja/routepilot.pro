@@ -35,7 +35,7 @@
                             <div class="carousel w-full h-80 rounded-lg overflow-hidden">
                                 @foreach($reportPhotos as $index => $photo)
                                     <div id="slide-report-{{ $index }}" class="carousel-item relative w-full">
-                                        <img src="{{ Storage::url($photo) }}" alt="Report Photo {{ $index + 1 }}" class="w-full h-full object-cover">
+                                        <img src="{{ asset(Storage::url($photo)) }}" alt="Report Photo {{ $index + 1 }}" class="w-full h-full object-cover">
                                         @if(count($reportPhotos) > 1)
                                             <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
                                                 <a href="#slide-report-{{ $index == 0 ? count($reportPhotos) - 1 : $index - 1 }}" class="btn btn-circle btn-sm bg-base-100/50 hover:bg-base-100/80">
@@ -64,7 +64,7 @@
                             <div class="carousel w-full h-80 rounded-lg overflow-hidden">
                                 @foreach($locationPhotos as $index => $photo)
                                     <div id="slide-location-{{ $index }}" class="carousel-item relative w-full">
-                                        <img src="{{ Storage::url($photo) }}" alt="Location Photo {{ $index + 1 }}" class="w-full h-full object-cover">
+                                        <img src="{{ asset(Storage::url($photo)) }}" alt="Location Photo {{ $index + 1 }}" class="w-full h-full object-cover">
                                         @if(count($locationPhotos) > 1)
                                             <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
                                                 <a href="#slide-location-{{ $index == 0 ? count($locationPhotos) - 1 : $index - 1 }}" class="btn btn-circle btn-sm bg-base-100/50 hover:bg-base-100/80">
@@ -111,7 +111,7 @@
                         <div class="avatar">
                             <div class="mask mask-squircle w-12 h-12">
                                 @if($report->technician->profile_photo)
-                                    <img src="{{ Storage::url($report->technician->profile_photo) }}" alt="{{ $report->technician->full_name }}">
+                                    <img src="{{ asset(Storage::url($report->technician->profile_photo)) }}" alt="{{ $report->technician->full_name }}">
                                 @else
                                     <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center">
                                         <span class="text-sm font-semibold">{{ substr($report->technician->first_name, 0, 1) }}{{ substr($report->technician->last_name, 0, 1) }}</span>
@@ -364,8 +364,8 @@
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             @foreach($report->photos as $photo)
                                 <div class="aspect-square rounded-lg overflow-hidden relative">
-                                    <a href="{{ Storage::url($photo) }}" target="_blank" class="block w-full h-full">
-                                        <img src="{{ Storage::url($photo) }}" alt="Report Photo" class="w-full h-full object-cover hover:opacity-80 transition-opacity">
+                                    <a href="{{ asset(Storage::url($photo)) }}" target="_blank" class="block w-full h-full">
+<img src="{{ asset(Storage::url($photo)) }}" alt="Report Photo" class="w-full h-full object-cover hover:opacity-80 transition-opacity">
                                     </a>
                                 </div>
                             @endforeach

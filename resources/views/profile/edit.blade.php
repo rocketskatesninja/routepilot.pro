@@ -66,7 +66,7 @@
                         <label class="block text-sm font-medium text-base-content mb-2">Profile Photo</label>
                         @if($user->profile_photo)
                             <div class="mb-2 relative inline-block">
-                                <img src="{{ Storage::url($user->profile_photo) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
+                                <img src="{{ asset(Storage::url($user->profile_photo)) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
                                 <button type="button" class="absolute top-0 right-0 z-10 bg-red-600 text-white text-xs font-bold rounded w-5 h-5 flex items-center justify-center shadow hover:bg-red-700 focus:outline-none delete-profile-photo-btn" data-photo-path="{{ $user->profile_photo }}" style="opacity:0.9; transform: translate(25%,-25%);">X</button>
                             </div>
                         @endif
@@ -246,15 +246,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ photo: photoPath })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
-                    btn.closest('.relative').remove();
+                    // Remove the photo display and button
+                    const photoContainer = btn.closest('.relative');
+                    if (photoContainer) {
+                        photoContainer.remove();
+                    }
+                    // Show success message
+                    if (data.message) {
+                        // You could replace this with a toast notification if you have one
+                        console.log(data.message);
+                    }
                 } else {
-                    alert(data.error || 'Failed to delete photo.');
+                    throw new Error(data.error || 'Failed to delete photo.');
                 }
             })
-            .catch(() => alert('Failed to delete photo.'));
+            .catch(error => {
+                console.error('Photo deletion error:', error);
+                alert('Failed to delete photo: ' + error.message);
+            });
         });
     });
 });

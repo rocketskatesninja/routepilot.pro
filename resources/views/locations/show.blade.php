@@ -42,7 +42,7 @@
                         <div class="carousel w-full h-80 rounded-lg overflow-hidden">
                             @foreach($location->photos as $index => $photo)
                                 <div id="slide-{{ $index }}" class="carousel-item relative w-full">
-                                    <img src="{{ Storage::url($photo) }}" alt="Location Photo {{ $index + 1 }}" class="w-full h-full object-cover">
+                                    <img src="{{ asset(Storage::url($photo)) }}" alt="Location Photo {{ $index + 1 }}" class="w-full h-full object-cover">
                                     @if(count($location->photos) > 1)
                                         <div class="absolute flex justify-between transform -translate-y-1/2 left-5 right-5 top-1/2">
                                             <a href="#slide-{{ $index == 0 ? count($location->photos) - 1 : $index - 1 }}" class="btn btn-circle btn-sm bg-base-100/50 hover:bg-base-100/80">
@@ -179,7 +179,7 @@
                         <div class="avatar">
                             <div class="mask mask-squircle w-12 h-12">
                                 @if($location->assignedTechnician->profile_photo)
-                                    <img src="{{ Storage::url($location->assignedTechnician->profile_photo) }}" alt="{{ $location->assignedTechnician->full_name }}">
+                                    <img src="{{ asset(Storage::url($location->assignedTechnician->profile_photo)) }}" alt="{{ $location->assignedTechnician->full_name }}">
                                 @else
                                     <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center">
                                         <span class="text-sm font-semibold">{{ substr($location->assignedTechnician->first_name, 0, 1) }}{{ substr($location->assignedTechnician->last_name, 0, 1) }}</span>

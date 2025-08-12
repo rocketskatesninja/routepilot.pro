@@ -95,7 +95,7 @@
                         </label>
                         @if($technician->profile_photo)
                             <div class="mb-2">
-                                <img src="{{ Storage::url($technician->profile_photo) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
+                                <img src="{{ asset(Storage::url($technician->profile_photo)) }}" alt="Current profile photo" class="w-20 h-20 rounded-lg object-cover">
                             </div>
                         @endif
                         <input type="file" name="profile_photo" id="profile_photo" 

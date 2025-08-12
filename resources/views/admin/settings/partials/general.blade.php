@@ -57,7 +57,7 @@
                     @if(\App\Models\Setting::getValue('logo'))
                         <div class="mt-2">
                             <p class="text-sm text-base-content/70 mb-2">Current logo:</p>
-                            <img src="{{ Storage::url(\App\Models\Setting::getValue('logo')) }}" 
+                            <img src="{{ asset(Storage::url(\App\Models\Setting::getValue('logo'))) }}" 
                                  alt="Current Logo" class="h-12 object-contain">
                         </div>
                     @endif
@@ -77,7 +77,7 @@
                     @if(\App\Models\Setting::getValue('favicon'))
                         <div class="mt-2">
                             <p class="text-sm text-base-content/70 mb-2">Current favicon:</p>
-                            <img src="{{ Storage::url(\App\Models\Setting::getValue('favicon')) }}" 
+                            <img src="{{ asset(Storage::url(\App\Models\Setting::getValue('favicon'))) }}" 
                                  alt="Current Favicon" class="h-8 w-8 object-contain">
                         </div>
                     @endif
@@ -109,7 +109,7 @@
                     @if(\App\Models\Setting::getValue('background_image'))
                         <div class="mt-2">
                             <p class="text-sm text-base-content/70 mb-2">Current background:</p>
-                            <img src="{{ Storage::url(\App\Models\Setting::getValue('background_image')) }}" 
+                            <img src="{{ asset(Storage::url(\App\Models\Setting::getValue('background_image'))) }}" 
                                  alt="Current Background" class="h-24 w-full object-cover rounded">
                         </div>
                     @endif

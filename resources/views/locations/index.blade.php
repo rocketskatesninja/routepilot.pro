@@ -189,7 +189,7 @@
                                 <div class="avatar">
                                     <div class="mask mask-squircle w-10 h-10">
                                         @if($location->photos && count($location->photos) > 0)
-                                            <img src="{{ Storage::url($location->photos[0]) }}" alt="{{ $location->nickname ?? 'Location' }}">
+                                            <img src="{{ asset(Storage::url($location->photos[0])) }}" alt="{{ $location->nickname ?? 'Location' }}">
                                         @else
                                             <div class="bg-primary text-primary-content rounded-lg flex items-center justify-center w-10 h-10">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
