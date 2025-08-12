@@ -65,7 +65,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/chem-calc', [ChemicalCalculatorController::class, 'calculate'])->name('chem-calc.calculate');
     
     // Map API
-    Route::get('/api/geocode', function (Request $request) {
+    Route::get('/map/geocode', function (Request $request) {
         $address = $request->get('address');
         if (!$address) {
             return response()->json(['success' => false, 'error' => 'Address parameter is required']);
@@ -77,7 +77,7 @@ Route::middleware('auth')->group(function () {
         }
         
         return response()->json(['success' => false, 'error' => 'Address not found']);
-    })->name('api.geocode');
+    })->name('map.geocode');
     
     // Admin Settings Routes
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {

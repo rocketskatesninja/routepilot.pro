@@ -149,6 +149,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 await addTechnicianMarkers();
             }
             
+            // Hide loading indicator after a reasonable timeout
+            setTimeout(() => {
+                if (document.getElementById('map-loading').style.display !== 'none') {
+                    console.log('Map loading timeout - hiding loading indicator');
+                    document.getElementById('map-loading').style.display = 'none';
+                }
+            }, 5000); // 5 second timeout
+            
             // Fit map to show all markers
             if (markers && markers.length > 0) {
                 const group = new L.featureGroup(markers);
@@ -264,13 +272,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     async function geocodeAddress(address) {
         try {
-            // Use our backend MapService for better performance and caching
-            const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
-            const data = await response.json();
+            console.log('Geocoding address:', address);
             
-            if (data.success && data.coordinates) {
-                return [data.coordinates.lat, data.coordinates.lng];
+            // Use OpenStreetMap API directly for now
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=us`);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Geocoding response:', data);
+                
+                if (data && data.length > 0) {
+                    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                }
             }
+            
             return null;
         } catch (error) {
             console.warn('Geocoding failed:', error);
