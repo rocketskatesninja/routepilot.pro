@@ -584,6 +584,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             const photoPath = btn.getAttribute('data-photo-path');
             if (!photoPath) return alert('Could not determine photo path.');
+            
             // Build AJAX request
             fetch(window.location.pathname.replace('/edit', '') + '/delete-photo', {
                 method: 'POST',
@@ -594,15 +595,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({ photo: photoPath })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
-                    btn.closest('.relative').remove();
+                    // Remove the photo display and button
+                    const photoContainer = btn.closest('.relative');
+                    if (photoContainer) {
+                        photoContainer.remove();
+                    }
+                    // Show success message
+                    if (data.message) {
+                        console.log(data.message);
+                    }
                 } else {
-                    alert(data.error || 'Failed to delete photo.');
+                    throw new Error(data.error || 'Failed to delete photo.');
                 }
             })
-            .catch(() => alert('Failed to delete photo.'));
+            .catch(error => {
+                console.error('Photo deletion error:', error);
+                alert('Failed to delete photo: ' + error.message);
+            });
         });
     });
 });

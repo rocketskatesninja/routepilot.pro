@@ -35,7 +35,7 @@ class ClientRequest extends FormRequest
             'zip_code' => 'nullable|string|max:10',
             'notes_by_client' => 'nullable|string',
             'notes_by_admin' => 'nullable|string',
-            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:25600',
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:' . (25 * 1024),
             'appointment_reminders' => 'boolean',
             'mailing_list' => 'boolean',
             'monthly_billing' => 'boolean',

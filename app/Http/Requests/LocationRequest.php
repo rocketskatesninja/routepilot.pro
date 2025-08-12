@@ -32,7 +32,7 @@ class LocationRequest extends FormRequest
             'state' => 'required|string|max:2',
             'zip_code' => 'required|string|max:10',
             'photos' => 'nullable|array',
-            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:25600',
+            'photos.*' => 'image|mimes:jpeg,png,jpg,gif|max:' . (25 * 1024),
             'access' => ['nullable', Rule::in([AppConstants::ACCESS_RESIDENTIAL, AppConstants::ACCESS_COMMERCIAL])],
             'pool_type' => ['nullable', Rule::in([AppConstants::POOL_TYPE_FIBERGLASS, AppConstants::POOL_TYPE_VINYL_LINER, AppConstants::POOL_TYPE_CONCRETE, AppConstants::POOL_TYPE_GUNITE])],
             'water_type' => ['nullable', Rule::in([AppConstants::WATER_TYPE_CHLORINE, AppConstants::WATER_TYPE_SALT])],

@@ -373,38 +373,55 @@ class ReportController extends Controller
      */
     public function deletePhoto(Request $request, Report $report)
     {
-        $user = auth()->user();
-        
-        // Check authorization based on user role and report access
-        if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
-            // Admin and technicians can delete photos from any report
-        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
-            // Clients can only delete photos from their own reports
-            if ($report->client_id !== $user->client_id) {
+        try {
+            $user = auth()->user();
+            
+            // Check authorization based on user role and report access
+            if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
+                // Admin and technicians can delete photos from any report
+            } elseif ($user->role === AppConstants::ROLE_CLIENT) {
+                // Clients can only delete photos from their own reports
+                if ($report->client_id !== $user->client_id) {
+                    return response()->json(['error' => 'Unauthorized'], 403);
+                }
+            } else {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
-        } else {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            
+            $photo = $request->input('photo');
+            if (!$photo || !is_array($report->photos) || !in_array($photo, $report->photos)) {
+                return response()->json(['error' => 'Photo not found'], 404);
+            }
+            
+            // Check if file exists before attempting deletion
+            if (!Storage::disk('public')->exists($photo)) {
+                \Log::warning("Report photo file not found in storage: {$photo}");
+            }
+            
+            // Remove from array
+            $updatedPhotos = array_values(array_filter($report->photos, fn($p) => $p !== $photo));
+            $report->photos = $updatedPhotos;
+            $report->save();
+            
+            // Delete from storage
+            $deleted = Storage::disk('public')->delete($photo);
+            
+            if (!$deleted) {
+                \Log::warning("Failed to delete report photo from storage: {$photo}");
+            } else {
+                \Log::info("Successfully deleted report photo from storage: {$photo}");
+            }
+            
+            // Log activity
+            $reportId = $report->id;
+            Activity::log('delete', "Deleted photo from report: #{$reportId}", $user, $report);
+            
+            return response()->json(['success' => true, 'message' => 'Report photo deleted successfully']);
+            
+        } catch (\Exception $e) {
+            \Log::error("Error deleting report photo: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete report photo: ' . $e->getMessage()], 500);
         }
-        
-        $photo = $request->input('photo');
-        if (!$photo || !is_array($report->photos) || !in_array($photo, $report->photos)) {
-            return response()->json(['error' => 'Photo not found'], 404);
-        }
-        
-        // Remove from array
-        $updatedPhotos = array_values(array_filter($report->photos, fn($p) => $p !== $photo));
-        $report->photos = $updatedPhotos;
-        $report->save();
-        
-        // Delete from storage
-        Storage::disk('public')->delete($photo);
-        
-        // Log activity
-        $reportId = $report->id;
-        Activity::log('delete', "Deleted photo from report: #{$reportId}", $user, $report);
-        
-        return response()->json(['success' => true]);
     }
 
     /**

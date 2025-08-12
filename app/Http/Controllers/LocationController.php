@@ -324,38 +324,55 @@ class LocationController extends Controller
      */
     public function deletePhoto(Request $request, Location $location)
     {
-        $user = auth()->user();
-        
-        // Check authorization based on user role and location access
-        if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
-            // Admin and technicians can delete photos from any location
-        } elseif ($user->role === AppConstants::ROLE_CLIENT) {
-            // Clients can only delete photos from their own locations
-            $client = Client::where('email', $user->email)->first();
-            if (!$client || $location->client_id !== $client->id) {
+        try {
+            $user = auth()->user();
+            
+            // Check authorization based on user role and location access
+            if ($user->role === AppConstants::ROLE_ADMIN || $user->role === AppConstants::ROLE_TECHNICIAN) {
+                // Admin and technicians can delete photos from any location
+            } elseif ($user->role === AppConstants::ROLE_CLIENT) {
+                // Clients can only delete photos from their own locations
+                $client = Client::where('email', $user->email)->first();
+                if (!$client || $location->client_id !== $client->id) {
+                    return response()->json(['error' => 'Unauthorized'], 403);
+                }
+            } else {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
-        } else {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            
+            $photo = $request->input('photo');
+            if (!$photo || !is_array($location->photos) || !in_array($photo, $location->photos)) {
+                return response()->json(['error' => 'Photo not found'], 404);
+            }
+            
+            // Check if file exists before attempting deletion
+            if (!Storage::disk('public')->exists($photo)) {
+                \Log::warning("Location photo file not found in storage: {$photo}");
+            }
+            
+            // Remove from array
+            $updatedPhotos = array_values(array_filter($location->photos, fn($p) => $p !== $photo));
+            $location->photos = $updatedPhotos;
+            $location->save();
+            
+            // Delete from storage
+            $deleted = Storage::disk('public')->delete($photo);
+            
+            if (!$deleted) {
+                \Log::warning("Failed to delete location photo from storage: {$photo}");
+            } else {
+                \Log::info("Successfully deleted location photo from storage: {$photo}");
+            }
+            
+            // Log activity
+            $locationName = $location->nickname ?: $location->street_address;
+            Activity::log('delete', "Deleted photo from location: {$locationName}", $user, $location);
+            
+            return response()->json(['success' => true, 'message' => 'Location photo deleted successfully']);
+            
+        } catch (\Exception $e) {
+            \Log::error("Error deleting location photo: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete location photo: ' . $e->getMessage()], 500);
         }
-        
-        $photo = $request->input('photo');
-        if (!$photo || !is_array($location->photos) || !in_array($photo, $location->photos)) {
-            return response()->json(['error' => 'Photo not found'], 404);
-        }
-        
-        // Remove from array
-        $updatedPhotos = array_values(array_filter($location->photos, fn($p) => $p !== $photo));
-        $location->photos = $updatedPhotos;
-        $location->save();
-        
-        // Delete from storage
-        Storage::disk('public')->delete($photo);
-        
-        // Log activity
-        $locationName = $location->nickname ?: $location->street_address;
-        Activity::log('delete', "Deleted photo from location: {$locationName}", $user, $location);
-        
-        return response()->json(['success' => true]);
     }
 } 

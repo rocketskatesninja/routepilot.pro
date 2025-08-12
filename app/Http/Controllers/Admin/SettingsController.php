@@ -60,9 +60,9 @@ class SettingsController extends Controller
         $request->validate([
             'site_title' => 'required|string|max:255',
             'site_tagline' => 'nullable|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:25600',
-            'favicon' => 'nullable|image|mimes:ico,png,jpg|max:25600',
-            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:25600',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:' . (25 * 1024),
+            'favicon' => 'nullable|image|mimes:ico,png,jpg|max:' . (25 * 1024),
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:' . (25 * 1024),
             'background_enabled' => 'boolean',
             'background_fixed' => 'boolean',
             'company_name' => 'nullable|string|max:255',
@@ -330,5 +330,51 @@ class SettingsController extends Controller
         }
 
         return response()->json($logs);
+    }
+
+    /**
+     * Show uploads settings.
+     */
+    public function uploads()
+    {
+        return view('admin.settings.index', ['activeTab' => 'uploads']);
+    }
+
+    /**
+     * Update uploads settings.
+     */
+    public function updateUploads(Request $request)
+    {
+        // Check if user is admin
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'max_file_size' => 'required|numeric|min:1|max:100',
+            'image_quality' => 'required|numeric|min:1|max:100',
+            'allowed_types' => 'required|array|min:1',
+            'allowed_types.*' => 'string|in:image/jpeg,image/jpg,image/png,image/gif,image/webp',
+            'storage_disk' => 'required|string|in:public,s3,gcs',
+            'generate_thumbnails' => 'required|boolean',
+        ]);
+
+        // Convert MB to bytes
+        $maxFileSize = $request->max_file_size * 1024 * 1024;
+
+        // Update configuration
+        config([
+            'file-uploads.max_file_size' => $maxFileSize,
+            'file-uploads.image_quality' => $request->image_quality,
+            'file-uploads.allowed_image_types' => $request->allowed_types,
+            'file-uploads.storage_disk' => $request->storage_disk,
+            'file-uploads.generate_thumbnails' => (bool) $request->generate_thumbnails,
+        ]);
+
+        // Clear configuration cache
+        \Artisan::call('config:clear');
+
+        return redirect()->route('admin.settings.index', ['tab' => 'uploads'])
+            ->with('success', 'File upload settings updated successfully!');
     }
 }

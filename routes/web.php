@@ -76,6 +76,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/backup/{filename}', [SettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
         Route::post('/settings/test-mail', [SettingsController::class, 'testMail'])->name('settings.test-mail');
         Route::get('/settings/email-logs', [SettingsController::class, 'getEmailLogs'])->name('settings.email-logs');
+        Route::get('/settings/uploads', [SettingsController::class, 'uploads'])->name('settings.uploads');
+        Route::put('/settings/uploads', [SettingsController::class, 'updateUploads'])->name('settings.uploads');
     });
 });
 

@@ -33,7 +33,7 @@ class ProfileUpdateRequest extends FormRequest
             'city' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:2'],
             'zip_code' => ['nullable', 'string', 'max:10'],
-            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:25600'],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:' . (25 * 1024)],
             'notes_by_client' => ['nullable', 'string'],
             'monthly_billing' => ['nullable', 'boolean'],
             'service_reports' => ['nullable', Rule::in([AppConstants::REPORT_TYPE_FULL, AppConstants::REPORT_TYPE_INVOICE_ONLY, AppConstants::REPORT_TYPE_SERVICES_ONLY, AppConstants::REPORT_TYPE_NONE])],
