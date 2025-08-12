@@ -128,16 +128,22 @@ document.addEventListener('DOMContentLoaded', function() {
     let map;
     let markers = [];
     
+    console.log('Map component loaded, data:', mapData);
+    
     async function initializeMap() {
+        console.log('initializeMap() called');
         try {
             // Create map
+            console.log('Creating map...');
             map = L.map('map-container').setView([39.8283, -98.5795], 4); // Center of USA
             
             // Add OpenStreetMap tiles
+            console.log('Adding tile layer...');
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 18
             }).addTo(map);
+            console.log('Tile layer added');
             
             // Add markers for locations
             if (mapData.locations && mapData.locations.length > 0) {
@@ -295,23 +301,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Map controls
     document.getElementById('zoom-in').addEventListener('click', () => {
-        map.zoomIn();
+        if (map) map.zoomIn();
     });
     
     document.getElementById('zoom-out').addEventListener('click', () => {
-        map.zoomOut();
+        if (map) map.zoomOut();
     });
     
     document.getElementById('reset-view').addEventListener('click', () => {
-        if (markers && markers.length > 0) {
+        if (map && markers && markers.length > 0) {
             const group = new L.featureGroup(markers);
             map.fitBounds(group.getBounds().pad(0.1));
-        } else {
+        } else if (map) {
             map.setView([39.8283, -98.5795], 4);
         }
     });
     
     // Initialize the map
+    console.log('Calling initializeMap()...');
     initializeMap();
 });
 </script>
