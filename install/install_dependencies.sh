@@ -143,10 +143,32 @@ php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 
+# Set up cron job for automatic backups
+echo "⏰ Setting up cron job for automatic backups..."
+CRON_JOB="* * * * * cd /var/www/routepilot.pro && php artisan schedule:run >> /dev/null 2>&1"
+
+# Check if cron job already exists
+if crontab -l 2>/dev/null | grep -q "php artisan schedule:run"; then
+    echo "✅ Cron job already exists"
+else
+    # Add cron job
+    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    echo "✅ Cron job added successfully"
+fi
+
+# Test the backup command
+echo "🧪 Testing backup command..."
+if php artisan backup:run --help > /dev/null 2>&1; then
+    echo "✅ Backup command is working"
+else
+    echo "❌ Backup command test failed"
+fi
+
 echo "✅ Installation completed successfully!"
 echo "🌐 Your RoutePilot Pro application is ready!"
 echo "📝 Apache configuration installed and enabled"
 echo "🔗 Site should be accessible at: https://$DOMAIN"
+echo "⏰ Automatic backup cron job is configured"
 echo ""
 echo "🔐 Default admin credentials:"
 echo "   Email: admin@routepilot.pro"
@@ -157,8 +179,12 @@ echo "   - Configure your DNS/hosts file to point $DOMAIN to this server"
 echo "   - Set up SSL certificate for HTTPS (Let's Encrypt recommended)"
 echo "   - Configure mail settings in .env for email functionality"
 echo "   - Update admin password after first login"
+echo "   - Enable automatic backups in Admin > Settings > Database"
 echo ""
 echo "🔧 Troubleshooting:"
 echo "   - If photos don't load, check storage permissions: sudo chown -R www-data:www-data storage/"
 echo "   - If database connection fails, verify MySQL credentials in .env"
-echo "   - If Apache errors occur, check logs: sudo tail -f /var/log/apache2/error.log" 
+echo "   - If Apache errors occur, check logs: sudo tail -f /var/log/apache2/error.log"
+echo "   - To check cron job: crontab -l"
+echo "   - To test backup manually: php artisan backup:run"
+echo "   - To view cron logs: sudo tail -f /var/log/syslog | grep CRON" 

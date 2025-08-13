@@ -218,10 +218,25 @@
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
-                    Save Database Settings
+                    Save Backup Configuration
                 </button>
             </div>
         </form>
+        
+        <!-- Cron Job Management -->
+        <div class="mt-6 p-4 bg-base-200 rounded-lg">
+            <h4 class="text-md font-medium text-base-content mb-3">Cron Job Management</h4>
+            <p class="text-sm text-base-content/70 mb-4">
+                The automatic backup system uses a cron job to run backups at scheduled times. 
+                If you need to reset the backup schedule or force an immediate backup, use the button below.
+            </p>
+            <button type="button" onclick="resetCronJob()" class="btn btn-outline btn-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Reset Cron Job
+            </button>
+        </div>
     </div>
 
     <!-- Manual Backup Management -->
@@ -475,6 +490,43 @@ function createBackup() {
     })
     .catch(error => {
         showNotification('Backup failed: ' + error.message, 'error');
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
+
+// Function to reset the cron job
+function resetCronJob() {
+    if (!confirm('Are you sure you want to reset the automatic backup schedule? This will create an immediate backup and clear the scheduled task.')) {
+        return;
+    }
+
+    const button = document.querySelector('button[onclick="resetCronJob()"]');
+    const originalText = button.innerHTML;
+    
+    button.disabled = true;
+    button.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Resetting...';
+
+    fetch('{{ route("admin.settings.database.reset-cron") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Cron job reset successfully! Immediate backup created: ' + data.message.split(': ')[1], 'success');
+            // Reload the page to show the new backup
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            showNotification('Failed to reset cron job: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('Cron job reset failed: ' + error.message, 'error');
     })
     .finally(() => {
         button.disabled = false;

@@ -71,6 +71,9 @@ class BackupService
                 'path' => $backupPath
             ]);
             
+            // Record last backup time for scheduling
+            $this->recordLastBackupTime();
+            
             // Send notification if configured
             $this->sendBackupNotification($filename);
             
@@ -222,5 +225,21 @@ class BackupService
         Log::info("Database restored from backup: {$filename}");
         
         return true;
+    }
+    
+    /**
+     * Record the last backup time for scheduling purposes.
+     */
+    private function recordLastBackupTime()
+    {
+        $frequency = Setting::getValue('backup_frequency', 'daily');
+        $lastBackupKey = "last_backup_{$frequency}";
+        
+        Setting::setValue($lastBackupKey, Carbon::now()->toISOString(), 'datetime', 'database', "Last {$frequency} backup time");
+        
+        Log::info("Last backup time recorded", [
+            'frequency' => $frequency,
+            'timestamp' => Carbon::now()->toISOString()
+        ]);
     }
 } 

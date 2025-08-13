@@ -97,6 +97,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/general', [SettingsController::class, 'updateGeneral'])->name('settings.general');
         Route::post('/settings/database', [SettingsController::class, 'updateDatabase'])->name('settings.database');
         Route::post('/settings/database/test', [SettingsController::class, 'testDatabaseConnection'])->name('settings.database.test');
+        Route::post('/settings/database/reset-cron', [SettingsController::class, 'resetCronJob'])->name('settings.database.reset-cron');
+
         Route::post('/settings/mail', [SettingsController::class, 'updateMail'])->name('settings.mail');
         Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
         Route::post('/settings/backup', [SettingsController::class, 'createBackup'])->name('settings.backup');

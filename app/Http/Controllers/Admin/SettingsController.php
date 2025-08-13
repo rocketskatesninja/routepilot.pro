@@ -209,7 +209,7 @@ class SettingsController extends Controller
     }
 
     /**
-     * Test database connection with provided settings.
+     * Test database connection with provided credentials.
      */
     public function testDatabaseConnection(Request $request)
     {
@@ -228,16 +228,15 @@ class SettingsController extends Controller
         ]);
 
         try {
-            // Create temporary database configuration
+            // Build temporary database configuration
             $tempConfig = [
-                'driver' => 'mysql',
                 'host' => $request->db_host,
                 'port' => $request->db_port,
                 'database' => $request->db_database,
                 'username' => $request->db_username,
                 'password' => $request->db_password,
                 'charset' => $request->db_charset,
-                'collation' => $request->db_charset === 'utf8mb4' ? 'utf8mb4_unicode_ci' : 'utf8_unicode_ci',
+                'collation' => 'utf8mb4_unicode_ci',
                 'prefix' => '',
                 'strict' => true,
                 'engine' => null,
@@ -247,7 +246,7 @@ class SettingsController extends Controller
             $connection = new \Illuminate\Database\Connectors\MySqlConnector();
             $pdo = $connection->connect($tempConfig);
             
-            // Test if we can query the database
+            // Test query
             $pdo->query("SELECT 1");
             
             // Get database info
@@ -273,6 +272,51 @@ class SettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Database connection failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset the cron job for automatic backups.
+     */
+    public function resetCronJob(Request $request)
+    {
+        // Check if user is admin
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            // Clear the last backup time settings to force immediate backup
+            $frequencies = ['daily', 'weekly', 'monthly'];
+            foreach ($frequencies as $frequency) {
+                $lastBackupKey = "last_backup_{$frequency}";
+                Setting::where('key', $lastBackupKey)->delete();
+            }
+
+            // Clear config cache to ensure new settings are loaded
+            \Artisan::call('config:clear');
+            
+            // Create an immediate backup
+            $backupFilename = $this->backupService->createBackup();
+            
+            Log::info('Cron job reset for automatic backups and immediate backup created', [
+                'user_id' => auth()->id(),
+                'timestamp' => now()->toISOString(),
+                'backup_filename' => $backupFilename
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Cron job reset successfully and immediate backup created: ' . $backupFilename
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to reset cron job: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reset cron job: ' . $e->getMessage()
             ], 500);
         }
     }
