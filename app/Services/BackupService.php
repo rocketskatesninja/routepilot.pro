@@ -15,45 +15,77 @@ class BackupService
      */
     public function createBackup()
     {
-        $timestamp = Carbon::now()->format('Y-m-d_H-i-s');
-        $filename = "backup_{$timestamp}.sql";
-        $backupPath = storage_path('app/backups/' . $filename);
-        
-        // Ensure backup directory exists
-        if (!file_exists(storage_path('app/backups'))) {
-            mkdir(storage_path('app/backups'), 0755, true);
+        try {
+            $timestamp = Carbon::now()->format('Y-m-d_H-i-s');
+            $filename = "backup_{$timestamp}.sql";
+            $backupPath = storage_path('app/backups/' . $filename);
+            
+            // Ensure backup directory exists with proper permissions
+            $backupDir = storage_path('app/backups');
+            if (!file_exists($backupDir)) {
+                if (!mkdir($backupDir, 0755, true)) {
+                    throw new \Exception('Failed to create backup directory');
+                }
+            }
+            
+            // Check if directory is writable
+            if (!is_writable($backupDir)) {
+                throw new \Exception('Backup directory is not writable');
+            }
+            
+            // Get database configuration
+            $host = config('database.connections.mysql.host');
+            $database = config('database.connections.mysql.database');
+            $username = config('database.connections.mysql.username');
+            $password = config('database.connections.mysql.password');
+            
+            // Validate database configuration
+            if (!$host || !$database || !$username) {
+                throw new \Exception('Database configuration is incomplete');
+            }
+            
+            // Create backup command
+            $command = "mysqldump --host={$host} --user={$username}";
+            if ($password) {
+                $command .= " --password={$password}";
+            }
+            $command .= " --single-transaction --routines --triggers {$database} > {$backupPath} 2>&1";
+            
+            // Execute backup
+            exec($command, $output, $returnCode);
+            
+            if ($returnCode !== 0) {
+                $errorOutput = implode("\n", $output);
+                throw new \Exception("Database backup failed: {$errorOutput}");
+            }
+            
+            // Verify backup file was created and has content
+            if (!file_exists($backupPath) || filesize($backupPath) === 0) {
+                throw new \Exception('Backup file was not created or is empty');
+            }
+            
+            // Log backup creation
+            Log::info("Database backup created successfully", [
+                'filename' => $filename,
+                'size' => $this->formatBytes(filesize($backupPath)),
+                'path' => $backupPath
+            ]);
+            
+            // Send notification if configured
+            $this->sendBackupNotification($filename);
+            
+            // Clean up old backups
+            $this->cleanupOldBackups();
+            
+            return $filename;
+            
+        } catch (\Exception $e) {
+            Log::error("Database backup failed", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
         }
-        
-        // Get database configuration
-        $host = config('database.connections.mysql.host');
-        $database = config('database.connections.mysql.database');
-        $username = config('database.connections.mysql.username');
-        $password = config('database.connections.mysql.password');
-        
-        // Create backup command
-        $command = "mysqldump --host={$host} --user={$username}";
-        if ($password) {
-            $command .= " --password={$password}";
-        }
-        $command .= " {$database} > {$backupPath}";
-        
-        // Execute backup
-        exec($command, $output, $returnCode);
-        
-        if ($returnCode !== 0) {
-            throw new \Exception('Database backup failed');
-        }
-        
-        // Log backup creation
-        Log::info("Database backup created: {$filename}");
-        
-        // Send notification if configured
-        $this->sendBackupNotification($filename);
-        
-        // Clean up old backups
-        $this->cleanupOldBackups();
-        
-        return $filename;
     }
     
     /**

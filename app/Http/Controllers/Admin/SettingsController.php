@@ -127,20 +127,154 @@ class SettingsController extends Controller
         if (!auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
+        
         $request->validate([
+            'db_host' => 'required|string|max:255',
+            'db_port' => 'required|integer|min:1|max:65535',
+            'db_database' => 'required|string|max:255',
+            'db_username' => 'required|string|max:255',
+            'db_password' => 'nullable|string|max:255',
+            'db_charset' => 'required|in:utf8mb4,utf8,latin1',
             'backup_enabled' => 'boolean',
             'backup_frequency' => 'required_if:backup_enabled,1|in:daily,weekly,monthly',
             'backup_retention_days' => 'required_if:backup_enabled,1|integer|min:1|max:365',
             'backup_notification_email' => 'nullable|email',
         ]);
 
-        Setting::setValue('backup_enabled', $request->backup_enabled ? '1' : '0', 'boolean', 'database', 'Enable automatic backups');
-        Setting::setValue('backup_frequency', $request->backup_frequency, 'string', 'database', 'Backup frequency');
-        Setting::setValue('backup_retention_days', $request->backup_retention_days, 'integer', 'database', 'Backup retention days');
-        Setting::setValue('backup_notification_email', $request->backup_notification_email, 'string', 'database', 'Backup notification email');
+        try {
+            // Update database configuration
+            $this->updateDatabaseConfig($request);
+            
+            // Update backup settings
+            Setting::setValue('backup_enabled', $request->backup_enabled ? '1' : '0', 'boolean', 'database', 'Enable automatic backups');
+            Setting::setValue('backup_frequency', $request->backup_frequency, 'string', 'database', 'Backup frequency');
+            Setting::setValue('backup_retention_days', $request->backup_retention_days, 'integer', 'database', 'Backup retention days');
+            Setting::setValue('backup_notification_email', $request->backup_notification_email, 'string', 'database', 'Backup notification email');
 
-        return redirect()->route('admin.settings.index', ['tab' => 'database'])
-                        ->with('success', 'Database settings updated successfully.');
+            return redirect()->route('admin.settings.index', ['tab' => 'database'])
+                            ->with('success', 'Database settings updated successfully. You may need to restart your application for changes to take effect.');
+                            
+        } catch (\Exception $e) {
+            Log::error('Failed to update database settings: ' . $e->getMessage());
+            return redirect()->route('admin.settings.index', ['tab' => 'database'])
+                            ->with('error', 'Failed to update database settings: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update database configuration file.
+     */
+    private function updateDatabaseConfig(Request $request)
+    {
+        $configPath = config_path('database.php');
+        
+        if (!file_exists($configPath)) {
+            throw new \Exception('Database configuration file not found');
+        }
+        
+        // Read current config
+        $config = require $configPath;
+        
+        // Update MySQL connection settings
+        $config['connections']['mysql']['host'] = $request->db_host;
+        $config['connections']['mysql']['port'] = $request->db_port;
+        $config['connections']['mysql']['database'] = $request->db_database;
+        $config['connections']['mysql']['username'] = $request->db_username;
+        $config['connections']['mysql']['charset'] = $request->db_charset;
+        
+        // Only update password if provided
+        if ($request->filled('db_password')) {
+            $config['connections']['mysql']['password'] = $request->db_password;
+        }
+        
+        // Convert config array to PHP code
+        $configContent = "<?php\n\nreturn " . var_export($config, true) . ";\n";
+        
+        // Write updated config
+        if (file_put_contents($configPath, $configContent) === false) {
+            throw new \Exception('Failed to write database configuration file');
+        }
+        
+        // Clear config cache
+        \Artisan::call('config:clear');
+        
+        Log::info('Database configuration updated', [
+            'host' => $request->db_host,
+            'port' => $request->db_port,
+            'database' => $request->db_database,
+            'username' => $request->db_username,
+            'charset' => $request->db_charset,
+            'password_updated' => $request->filled('db_password')
+        ]);
+    }
+
+    /**
+     * Test database connection with provided settings.
+     */
+    public function testDatabaseConnection(Request $request)
+    {
+        // Check if user is admin
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Unauthorized action.');
+        }
+        
+        $request->validate([
+            'db_host' => 'required|string|max:255',
+            'db_port' => 'required|integer|min:1|max:65535',
+            'db_database' => 'required|string|max:255',
+            'db_username' => 'required|string|max:255',
+            'db_password' => 'nullable|string|max:255',
+            'db_charset' => 'required|in:utf8mb4,utf8,latin1',
+        ]);
+
+        try {
+            // Create temporary database configuration
+            $tempConfig = [
+                'driver' => 'mysql',
+                'host' => $request->db_host,
+                'port' => $request->db_port,
+                'database' => $request->db_database,
+                'username' => $request->db_username,
+                'password' => $request->db_password,
+                'charset' => $request->db_charset,
+                'collation' => $request->db_charset === 'utf8mb4' ? 'utf8mb4_unicode_ci' : 'utf8_unicode_ci',
+                'prefix' => '',
+                'strict' => true,
+                'engine' => null,
+            ];
+
+            // Test connection
+            $connection = new \Illuminate\Database\Connectors\MySqlConnector();
+            $pdo = $connection->connect($tempConfig);
+            
+            // Test if we can query the database
+            $pdo->query("SELECT 1");
+            
+            // Get database info
+            $version = $pdo->query("SELECT VERSION() as version")->fetch();
+            $tables = $pdo->query("SHOW TABLES")->fetchAll();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Database connection successful!',
+                'details' => [
+                    'version' => $version['version'] ?? 'Unknown',
+                    'tables_count' => count($tables),
+                    'host' => $request->db_host,
+                    'port' => $request->db_port,
+                    'database' => $request->db_database,
+                    'charset' => $request->db_charset
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Database connection test failed: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Database connection failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -332,49 +466,5 @@ class SettingsController extends Controller
         return response()->json($logs);
     }
 
-    /**
-     * Show uploads settings.
-     */
-    public function uploads()
-    {
-        return view('admin.settings.index', ['activeTab' => 'uploads']);
-    }
 
-    /**
-     * Update uploads settings.
-     */
-    public function updateUploads(Request $request)
-    {
-        // Check if user is admin
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Unauthorized action.');
-        }
-
-        $request->validate([
-            'max_file_size' => 'required|numeric|min:1|max:100',
-            'image_quality' => 'required|numeric|min:1|max:100',
-            'allowed_types' => 'required|array|min:1',
-            'allowed_types.*' => 'string|in:image/jpeg,image/jpg,image/png,image/gif,image/webp',
-            'storage_disk' => 'required|string|in:public,s3,gcs',
-            'generate_thumbnails' => 'required|boolean',
-        ]);
-
-        // Convert MB to bytes
-        $maxFileSize = $request->max_file_size * 1024 * 1024;
-
-        // Update configuration
-        config([
-            'file-uploads.max_file_size' => $maxFileSize,
-            'file-uploads.image_quality' => $request->image_quality,
-            'file-uploads.allowed_image_types' => $request->allowed_types,
-            'file-uploads.storage_disk' => $request->storage_disk,
-            'file-uploads.generate_thumbnails' => (bool) $request->generate_thumbnails,
-        ]);
-
-        // Clear configuration cache
-        \Artisan::call('config:clear');
-
-        return redirect()->route('admin.settings.index', ['tab' => 'uploads'])
-            ->with('success', 'File upload settings updated successfully!');
-    }
 }

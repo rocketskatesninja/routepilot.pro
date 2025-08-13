@@ -96,6 +96,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/general', [SettingsController::class, 'updateGeneral'])->name('settings.general');
         Route::post('/settings/database', [SettingsController::class, 'updateDatabase'])->name('settings.database');
+        Route::post('/settings/database/test', [SettingsController::class, 'testDatabaseConnection'])->name('settings.database.test');
         Route::post('/settings/mail', [SettingsController::class, 'updateMail'])->name('settings.mail');
         Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
         Route::post('/settings/backup', [SettingsController::class, 'createBackup'])->name('settings.backup');
@@ -103,8 +104,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/backup/{filename}', [SettingsController::class, 'deleteBackup'])->name('settings.backup.delete');
         Route::post('/settings/test-mail', [SettingsController::class, 'testMail'])->name('settings.test-mail');
         Route::get('/settings/email-logs', [SettingsController::class, 'getEmailLogs'])->name('settings.email-logs');
-        Route::get('/settings/uploads', [SettingsController::class, 'uploads'])->name('settings.uploads');
-        Route::put('/settings/uploads', [SettingsController::class, 'updateUploads'])->name('settings.uploads');
+
     });
 });
 
