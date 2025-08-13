@@ -82,6 +82,50 @@ class TechnicianController extends Controller
     }
 
     /**
+     * Get technicians with active location sharing for map display.
+     */
+    public function getTechniciansForMap()
+    {
+        try {
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, [AppConstants::ROLE_ADMIN, AppConstants::ROLE_TECHNICIAN])) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            // Only get technicians with active location sharing and recent GPS data
+            $technicians = User::where('role', AppConstants::ROLE_TECHNICIAN)
+                ->where('location_sharing_enabled', true)
+                ->whereNotNull('current_latitude')
+                ->whereNotNull('current_longitude')
+                ->where('location_updated_at', '>=', now()->subHours(24)) // Only show locations updated in last 24 hours
+                ->where('is_active', true)
+                ->select([
+                    'id', 'first_name', 'last_name', 'email', 'phone', 'is_active',
+                    'current_latitude', 'current_longitude', 'location_updated_at', 'location_sharing_enabled'
+                ])
+                ->get()
+                ->map(function ($technician) {
+                    return [
+                        'id' => $technician->id,
+                        'name' => $technician->full_name,
+                        'email' => $technician->email,
+                        'phone' => $technician->phone,
+                        'status' => $technician->is_active ? 'active' : 'inactive',
+                        'current_latitude' => $technician->current_latitude,
+                        'current_longitude' => $technician->current_longitude,
+                        'location_updated_at' => $technician->location_updated_at,
+                        'location_sharing_enabled' => $technician->location_sharing_enabled,
+                    ];
+                });
+
+            return response()->json(['technicians' => $technicians]);
+        } catch (\Exception $e) {
+            LoggingService::logError('Failed to get technicians for map', [], $e);
+            return response()->json(['error' => 'Failed to load technician data'], 500);
+        }
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()

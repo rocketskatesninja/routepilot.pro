@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/locations/{location}/delete-photo', [LocationController::class, 'deletePhoto'])->name('locations.delete-photo');
     
     // Technician Management Routes
+    Route::get('/technicians/map-data', [TechnicianController::class, 'getTechniciansForMap'])->name('technicians.map-data');
     Route::resource('technicians', TechnicianController::class);
     Route::get('/technicians/{technician}/toggle-status', [TechnicianController::class, 'toggleStatus'])->name('technicians.toggle-status');
     Route::get('/technicians/export/csv', [TechnicianController::class, 'export'])->name('technicians.export');
@@ -78,6 +79,17 @@ Route::middleware('auth')->group(function () {
         
         return response()->json(['success' => false, 'error' => 'Address not found']);
     })->name('map.geocode');
+
+    // GPS Location API
+    Route::middleware('auth')->group(function () {
+        Route::post('/gps/update-location', [\App\Http\Controllers\GpsLocationController::class, 'updateLocation'])->name('gps.update-location');
+        Route::get('/gps/get-location', [\App\Http\Controllers\GpsLocationController::class, 'getLocation'])->name('gps.get-location');
+        Route::post('/gps/toggle-sharing', [\App\Http\Controllers\GpsLocationController::class, 'toggleLocationSharing'])->name('gps.toggle-sharing');
+        Route::get('/gps/sharing-status', [\App\Http\Controllers\GpsLocationController::class, 'getLocationSharingStatus'])->name('gps.sharing-status');
+    });
+
+    // Map page for showing specific locations
+    Route::get('/map/location/{location}', [\App\Http\Controllers\LocationController::class, 'showOnMap'])->name('map.location')->middleware('auth');
     
     // Admin Settings Routes
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {

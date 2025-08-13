@@ -127,6 +127,16 @@
                 </div>
             </div>
         </div>
+
+        <!-- GPS Location Tracker -->
+        <div class="card bg-base-100 shadow-xl border border-base-300">
+            <div class="card-header p-6 border-b border-base-300">
+                <h3 class="text-lg font-medium text-base-content">Location Sharing</h3>
+            </div>
+            <div class="card-body p-6">
+                                        <x-gps-location-tracker :update-interval="60000" :show-status="true" />
+            </div>
+        </div>
     </div>
 </div>
 @endsection 

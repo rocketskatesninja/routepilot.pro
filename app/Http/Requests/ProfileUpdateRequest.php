@@ -41,7 +41,11 @@ class ProfileUpdateRequest extends FormRequest
             'mailing_list' => ['nullable', 'boolean'],
             'service_reminders' => ['nullable', 'boolean'],
             'appointment_reminders' => ['nullable', 'boolean'],
-            'maps_provider' => $this->user()->role !== 'client' ? ['required', 'string', Rule::in(['google', 'apple', 'bing'])] : ['nullable'],
+            'current_latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'current_longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'location_updated_at' => ['nullable', 'date'],
+            'location_sharing_enabled' => ['nullable', 'boolean'],
+
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
         if ($this->filled('password')) {
@@ -61,6 +65,7 @@ class ProfileUpdateRequest extends FormRequest
             'service_reminders' => $this->boolean('service_reminders'),
             'appointment_reminders' => $this->boolean('appointment_reminders'),
             'service_reports_enabled' => $this->boolean('service_reports_enabled'),
+            'location_sharing_enabled' => $this->boolean('location_sharing_enabled'),
         ]);
     }
 }

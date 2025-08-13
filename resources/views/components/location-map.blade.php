@@ -1,4 +1,4 @@
-@props(['locations' => [], 'technicians' => [], 'height' => '400px'])
+@props(['locations' => [], 'technicians' => [], 'height' => '400px', 'autoPopulateLocations' => true])
 
 @php
     // Prepare location data
@@ -28,7 +28,11 @@
                 'city' => $technician->city,
                 'state' => $technician->state,
                 'type' => 'technician',
-                'status' => $technician->is_active ? 'active' : 'inactive'
+                'status' => $technician->is_active ? 'active' : 'inactive',
+                'current_latitude' => $technician->current_latitude,
+                'current_longitude' => $technician->current_longitude,
+                'location_updated_at' => $technician->location_updated_at,
+                'location_sharing_enabled' => $technician->location_sharing_enabled
             ];
         }
     }
@@ -112,7 +116,7 @@
     </div>
 </div>
 
-@push('scripts')
+@section('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -122,6 +126,7 @@ console.log('Leaflet loaded:', typeof L !== 'undefined' ? 'YES' : 'NO');
 if (typeof L === 'undefined') {
     console.error('Leaflet library failed to load!');
 }
+</script>
 
 <script>
 console.log('Map component script starting...');
@@ -132,7 +137,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Map data
     const mapData = {
         locations: @json($locationData),
-        technicians: @json($technicianData)
+        technicians: @json($technicianData),
+        autoPopulateLocations: @json($autoPopulateLocations ?? true)
     };
     
     console.log('Map data prepared:', mapData);
@@ -150,6 +156,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Creating map...');
             map = L.map('map-container').setView([39.8283, -98.5795], 4); // Center of USA
             
+            // Store map reference globally for external access
+            window.mapInstance = map;
+            console.log('Map instance stored globally');
+            
             // Add OpenStreetMap tiles
             console.log('Adding tile layer...');
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -158,8 +168,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }).addTo(map);
             console.log('Tile layer added');
             
-            // Add markers for locations
-            if (mapData.locations && mapData.locations.length > 0) {
+            // Add markers for locations (only if auto-populate is enabled)
+            if (mapData.locations && mapData.locations.length > 0 && mapData.autoPopulateLocations !== false) {
                 await addLocationMarkers();
             }
             
@@ -251,42 +261,103 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function addTechnicianMarkers() {
-        for (const technician of mapData.technicians) {
-            try {
-                const address = `${technician.city}, ${technician.state}`;
-                const coordinates = await geocodeAddress(address);
-                if (coordinates) {
-                    const marker = L.marker(coordinates, {
-                        icon: L.divIcon({
-                            className: 'custom-div-icon',
-                            html: `<div class="w-6 h-6 bg-success rounded-full border-2 border-white shadow-lg flex items-center justify-center">
-                                     <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                     </svg>
-                                   </div>`,
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                        })
-                    });
-                    
-                    const popupContent = `
-                        <div class="p-2">
-                            <div class="font-semibold text-success">${technician.name}</div>
-                            <div class="text-sm text-gray-600">${address}</div>
-                            <div class="text-xs text-gray-500 mt-1">
-                                Status: <span class="badge badge-${technician.status === 'active' ? 'success' : 'error'} badge-xs">${technician.status}</span>
-                            </div>
-                        </div>
-                    `;
-                    
-                    marker.bindPopup(popupContent);
-                    marker.addTo(map);
-                    markers.push(marker);
+        try {
+            // Fetch technicians with active location sharing
+            const response = await fetch('/technicians/map-data', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+                credentials: 'same-origin' // Include cookies for authentication
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const technicians = data.technicians || [];
+                
+                console.log(`Adding ${technicians.length} technicians with active location sharing`);
+                
+                for (const technician of technicians) {
+                    try {
+                        let coordinates = null;
+                        let locationSource = '';
+                        
+                        // Check if technician has GPS coordinates
+                        if (technician.current_latitude && technician.current_longitude) {
+                            coordinates = [technician.current_latitude, technician.current_longitude];
+                            locationSource = 'GPS';
+                        } else if (technician.city && technician.state) {
+                            // Fallback to geocoded address
+                            const address = `${technician.city}, ${technician.state}`;
+                            coordinates = await geocodeAddress(address);
+                            locationSource = 'Address';
+                        }
+                        
+                        if (coordinates) {
+                            const marker = L.marker(coordinates, {
+                                icon: L.divIcon({
+                                    className: 'custom-div-icon',
+                                    html: `<div class="w-6 h-6 bg-success rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+                                             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                             </svg>
+                                           </div>`,
+                                    iconSize: [24, 24],
+                                    iconAnchor: [12, 12]
+                                })
+                            });
+                            
+                            const locationInfo = locationSource === 'GPS' 
+                                ? `GPS Location (${technician.location_updated_at ? 'Updated ' + formatTimeAgo(technician.location_updated_at) : 'Recent'})`
+                                : `${technician.city}, ${technician.state}`;
+                            
+                            const popupContent = `
+                                <div class="p-2">
+                                    <div class="font-semibold text-success">${technician.name}</div>
+                                    <div class="text-sm text-gray-600">${locationInfo}</div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Status: <span class="badge badge-${technician.status === 'active' ? 'success' : 'error'} badge-xs">${technician.status}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        Source: ${locationSource}
+                                    </div>
+                                </div>
+                            `;
+                            
+                            marker.bindPopup(popupContent);
+                            marker.addTo(map);
+                            markers.push(marker);
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to add technician marker: ${technician.name}`, error);
+                    }
                 }
-            } catch (error) {
-                console.warn(`Failed to geocode technician: ${technician.name}`, error);
+            } else {
+                console.warn('Failed to fetch technicians for map');
             }
+        } catch (error) {
+            console.error('Error fetching technicians for map:', error);
         }
+    }
+    
+    // Format time ago for location timestamps
+    function formatTimeAgo(timestamp) {
+        if (!timestamp) return 'Unknown';
+        
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        
+        return date.toLocaleDateString();
     }
     
     async function geocodeAddress(address) {
@@ -361,8 +432,8 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 8px;
 }
 
-.leaflet-popup-tip {
-    background: white;
-}
+    .leaflet-popup-tip {
+        background: white;
+    }
 </style>
-@endpush
+@endsection

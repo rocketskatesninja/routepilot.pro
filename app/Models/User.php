@@ -35,7 +35,11 @@ class User extends Authenticatable
         'monthly_billing',
         'service_reports',
         'is_active',
-        'maps_provider',
+
+        'current_latitude',
+        'current_longitude',
+        'location_updated_at',
+        'location_sharing_enabled',
     ];
 
     /**
@@ -60,6 +64,8 @@ class User extends Authenticatable
         'mailing_list' => 'boolean',
         'monthly_billing' => 'boolean',
         'is_active' => 'boolean',
+        'location_updated_at' => 'datetime',
+        'location_sharing_enabled' => 'boolean',
     ];
 
     /**
@@ -140,5 +146,58 @@ class User extends Authenticatable
     public function activities()
     {
         return $this->hasMany(Activity::class);
+    }
+
+    /**
+     * Check if user has current GPS location.
+     */
+    public function hasCurrentLocation(): bool
+    {
+        return !is_null($this->current_latitude) && !is_null($this->current_longitude);
+    }
+
+    /**
+     * Get current GPS coordinates as array.
+     */
+    public function getCurrentCoordinates(): ?array
+    {
+        if ($this->hasCurrentLocation()) {
+            return [
+                'lat' => $this->current_latitude,
+                'lng' => $this->current_longitude
+            ];
+        }
+        return null;
+    }
+
+    /**
+     * Update current GPS location.
+     */
+    public function updateCurrentLocation(float $latitude, float $longitude): bool
+    {
+        $this->current_latitude = $latitude;
+        $this->current_longitude = $longitude;
+        $this->location_updated_at = now();
+        return $this->save();
+    }
+
+    /**
+     * Get location age in minutes.
+     */
+    public function getLocationAge(): ?int
+    {
+        if ($this->location_updated_at) {
+            return now()->diffInMinutes($this->location_updated_at);
+        }
+        return null;
+    }
+
+    /**
+     * Check if location is recent (less than 30 minutes old).
+     */
+    public function hasRecentLocation(): bool
+    {
+        $age = $this->getLocationAge();
+        return $age !== null && $age < 30;
     }
 }

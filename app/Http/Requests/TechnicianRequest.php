@@ -53,9 +53,9 @@ class TechnicianRequest extends FormRequest
 
         // Add password validation for create requests
         if ($this->isMethod('POST')) {
-            $rules['password'] = 'required|string|min:8|confirmed';
+            $rules['password'] = 'required|string|min:8';
         } else {
-            $rules['password'] = 'nullable|string|min:8|confirmed';
+            $rules['password'] = 'nullable|string|min:8';
         }
 
         return $rules;
@@ -78,7 +78,6 @@ class TechnicianRequest extends FormRequest
             'profile_photo.max' => 'The profile photo may not be greater than 2MB.',
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters.',
-            'password.confirmed' => 'Password confirmation does not match.',
             'role.in' => 'Invalid role selected.',
             'hourly_rate.numeric' => 'Hourly rate must be a number.',
             'hourly_rate.min' => 'Hourly rate cannot be negative.',

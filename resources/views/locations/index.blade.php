@@ -227,15 +227,9 @@
                                 $address_city = trim($location->city . ', ' . $location->state . ' ' . $location->zip_code);
                                 $full_address = trim($address_street . ', ' . $address_city);
                                 $user = auth()->user();
-                                $mapsProvider = $user->maps_provider ?? 'google';
-                                $mapsUrl = match($mapsProvider) {
-                                    'apple' => 'https://maps.apple.com/?q=' . urlencode($full_address),
-                                    'bing' => 'https://bing.com/maps/default.aspx?where1=' . urlencode($full_address),
-                                    default => 'https://maps.google.com/?q=' . urlencode($full_address),
-                                };
                             @endphp
                             @if($user->role === 'admin' || $user->role === 'technician')
-                                <a href="{{ $mapsUrl }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                <a href="{{ route('map.location', $location) }}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
                                     <div>{{ $address_street }}</div>
                                     @if($location->street_address_2)
                                         <div class="opacity-70">{{ $location->street_address_2 }}</div>
@@ -300,6 +294,16 @@
                         @if(auth()->user()->isAdmin() || auth()->user()->isTechnician())
                         <td class="text-right">
                             <div class="flex gap-2 justify-end">
+                                <button 
+                                    onclick="showLocationOnMap({{ $location->id }}, '{{ $location->nickname ?: ($location->client ? $location->client->full_name : 'Unknown Location') }}', '{{ $location->full_address ?? ($location->street_address . ', ' . $location->city . ', ' . $location->state . ' ' . $location->zip_code) }}')"
+                                    class="btn btn-sm btn-square btn-info" 
+                                    title="Show on Map"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </button>
                                 <a href="{{ route('locations.edit', $location) }}" class="btn btn-sm btn-square btn-ghost btn-outline" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -311,7 +315,7 @@
                                     <button type="submit" class="btn btn-sm btn-square btn-error" title="Delete">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
+                                    </svg>
                                     </button>
                                 </form>
                             </div>
@@ -346,7 +350,102 @@
 
     <!-- Interactive Map -->
     <div class="mt-8">
-        <x-location-map :locations="$locations" :height="'500px'" />
+        <x-location-map :locations="$locations" :height="'500px'" :auto-populate-locations="false" />
     </div>
 </div>
+
+<script>
+// Function to show a specific location on the map
+async function showLocationOnMap(locationId, locationName, locationAddress) {
+    try {
+        console.log('Showing location on map:', locationName, locationAddress);
+        
+        // Get the map instance from the map component
+        const map = window.mapInstance;
+        if (!map) {
+            console.error('Map not initialized yet');
+            alert('Map is still loading. Please wait a moment and try again.');
+            return;
+        }
+        
+        // Clear existing markers
+        if (window.mapMarkers) {
+            window.mapMarkers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            window.mapMarkers = [];
+        }
+        
+        // Geocode the address
+        const coordinates = await geocodeAddress(locationAddress);
+        if (coordinates) {
+            // Create a marker for this location
+            const marker = L.marker(coordinates, {
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="w-8 h-8 bg-primary rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                             </svg>
+                           </div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                })
+            });
+            
+            // Create popup content
+            const popupContent = `
+                <div class="p-3">
+                    <div class="font-semibold text-primary text-lg">${locationName}</div>
+                    <div class="text-sm text-gray-600 mt-1">${locationAddress}</div>
+                    <div class="text-xs text-gray-500 mt-2">Location ID: ${locationId}</div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            marker.addTo(map);
+            
+            // Store marker reference
+            if (!window.mapMarkers) window.mapMarkers = [];
+            window.mapMarkers.push(marker);
+            
+            // Fit map to show the marker
+            map.setView(coordinates, 15);
+            
+            // Open popup automatically
+            marker.openPopup();
+            
+            console.log('Location marker added to map');
+        } else {
+            alert('Could not find coordinates for this address. Please check the address format.');
+        }
+    } catch (error) {
+        console.error('Error showing location on map:', error);
+        alert('Error showing location on map. Please try again.');
+    }
+}
+
+// Geocoding function (same as in map component)
+async function geocodeAddress(address) {
+    try {
+        console.log('Geocoding address:', address);
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=us`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Geocoding response:', data);
+            
+            if (data && data.length > 0) {
+                return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.warn('Geocoding failed:', error);
+        return null;
+    }
+}
+</script>
 @endsection 

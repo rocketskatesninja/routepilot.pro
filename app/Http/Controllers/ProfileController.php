@@ -63,6 +63,22 @@ class ProfileController extends Controller
         unset($validated['current_password']);
         unset($validated['password_confirmation']);
         
+        // Preserve current GPS location sharing state if not explicitly provided
+        if (!isset($validated['location_sharing_enabled'])) {
+            $validated['location_sharing_enabled'] = $user->location_sharing_enabled;
+        }
+        
+        // Preserve current GPS coordinates if not explicitly provided
+        if (!isset($validated['current_latitude'])) {
+            $validated['current_latitude'] = $user->current_latitude;
+        }
+        if (!isset($validated['current_longitude'])) {
+            $validated['current_longitude'] = $user->current_longitude;
+        }
+        if (!isset($validated['location_updated_at'])) {
+            $validated['location_updated_at'] = $user->location_updated_at;
+        }
+        
         // Update user with validated data
         $user->fill($validated);
 

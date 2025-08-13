@@ -375,4 +375,17 @@ class LocationController extends Controller
             return response()->json(['error' => 'Failed to delete location photo: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * Show a specific location on a dedicated map page.
+     */
+    public function showOnMap(Location $location)
+    {
+        // Check authorization
+        if (!auth()->user()->isAdmin() && !auth()->user()->isTechnician()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        return view('map.location', compact('location'));
+    }
 } 

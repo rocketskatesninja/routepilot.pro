@@ -13,7 +13,7 @@
 
 
     <div class="card bg-base-100 shadow-xl border border-base-300">
-        <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" class="card-body p-6">
+        <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data" class="card-body p-6" onsubmit="logFormData(event)">
             @csrf
             @method('PATCH')
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -75,14 +75,23 @@
                             <p class="text-error text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    @if($user->role !== 'client')
-                    <div>
-                        <label class="block text-sm font-medium text-base-content mb-2">Preferred Maps Provider</label>
-                        <select name="maps_provider" class="select select-bordered w-full">
-                            <option value="google" {{ old('maps_provider', $user->maps_provider) == 'google' ? 'selected' : '' }}>Google Maps</option>
-                            <option value="apple" {{ old('maps_provider', $user->maps_provider) == 'apple' ? 'selected' : '' }}>Apple Maps</option>
-                            <option value="bing" {{ old('maps_provider', $user->maps_provider) == 'bing' ? 'selected' : '' }}>Bing Maps</option>
-                        </select>
+
+
+                    <!-- GPS Location Tracker for Technicians -->
+                    @if($user->role === 'technician')
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-base-content border-b border-base-300 pb-2">GPS Location Sharing</h3>
+                        <p class="text-sm text-base-content/70">
+                            Share your real-time GPS location so administrators can see where you are on the map.
+                        </p>
+                        
+                        <!-- Hidden fields to persist GPS location state -->
+                        <input type="hidden" name="current_latitude" value="{{ $user->current_latitude }}">
+                        <input type="hidden" name="current_longitude" value="{{ $user->current_longitude }}">
+                        <input type="hidden" name="location_updated_at" value="{{ $user->location_updated_at }}">
+                        <input type="hidden" name="location_sharing_enabled" value="{{ $user->location_sharing_enabled ? '1' : '0' }}">
+                        
+                        <x-gps-location-tracker :update-interval="60000" :show-status="true" :initial-sharing-enabled="$user->location_sharing_enabled" />
                     </div>
                     @endif
                 </div>
@@ -286,6 +295,19 @@ function togglePassword(id, btn) {
         input.type = 'password';
         btn.querySelector('svg').classList.remove('text-primary');
     }
+}
+
+function logFormData(event) {
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    console.log('=== FORM DATA BEING SUBMITTED ===');
+    for (let [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+    }
+    console.log('=== END FORM DATA ===');
+    
+    // Don't prevent default - let the form submit normally
 }
 </script>
 @endsection

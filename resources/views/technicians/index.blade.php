@@ -141,9 +141,9 @@
                         <th>Technician</th>
                         <th>Contact</th>
                         <th>Location</th>
-                        <th>Role</th>
                         <th>Status</th>
                         <th>Created</th>
+                        <th>GPS Sharing</th>
                         <th class="text-right">Actions</th>
                     </tr>
                 </thead>
@@ -197,7 +197,6 @@
                                 <span class="text-base-content/50 text-sm">No address</span>
                             @endif
                         </td>
-                        <td><span class="capitalize">{{ $technician->role }}</span></td>
                         <td>
                             @if($technician->is_active)
                                 <div class="badge badge-success">Active</div>
@@ -211,8 +210,52 @@
                                 <div class="text-base-content/70">{{ $technician->created_at->format('g:i A') }}</div>
                             </div>
                         </td>
+                        <td>
+                            @if($technician->location_sharing_enabled && $technician->current_latitude && $technician->current_longitude)
+                                <div class="badge badge-success gap-2">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Active
+                                </div>
+                                @if($technician->location_updated_at)
+                                    <div class="text-xs text-base-content/70 mt-1">
+                                        {{ $technician->location_updated_at->diffForHumans() }}
+                                    </div>
+                                @endif
+                            @elseif($technician->location_sharing_enabled)
+                                <div class="badge badge-warning gap-2">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Enabled
+                                </div>
+                                <div class="text-xs text-base-content/70 mt-1">No GPS data</div>
+                            @else
+                                <div class="badge badge-error gap-2">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Disabled
+                                </div>
+                            @endif
+                        </td>
                         <td class="text-right">
                             <div class="flex gap-2 justify-end">
+                                <button 
+                                    onclick="showTechnicianOnMap({{ $technician->id }}, '{{ $technician->full_name }}', '{{ $technician->city }}, {{ $technician->state }}', {{ $technician->current_latitude ?? 'null' }}, {{ $technician->current_longitude ?? 'null' }}, '{{ $technician->location_updated_at ?? '' }}')"
+                                    class="btn btn-sm btn-square btn-success" 
+                                    title="Show on Map"
+                                    @if((!$technician->city || !$technician->state) && (!$technician->current_latitude || !$technician->current_longitude)) disabled @endif
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </button>
                                 <a href="{{ route('technicians.edit', $technician) }}" class="btn btn-sm btn-square btn-ghost btn-outline" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -232,7 +275,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-8">
+                        <td colspan="7" class="text-center py-8">
                             <div class="text-base-content/70">
                                 <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
@@ -260,4 +303,133 @@
         <x-location-map :technicians="$technicians" :height="'500px'" />
     </div>
 </div>
+
+<script>
+// Function to show a specific technician on the map
+async function showTechnicianOnMap(technicianId, technicianName, technicianLocation, latitude, longitude, updatedAt) {
+    try {
+        console.log('Showing technician on map:', technicianName, technicianLocation);
+        
+        // Get the map instance from the map component
+        const map = window.mapInstance;
+        if (!map) {
+            console.error('Map not initialized yet');
+            alert('Map is still loading. Please wait a moment and try again.');
+            return;
+        }
+        
+        // Clear existing markers
+        if (window.mapMarkers) {
+            window.mapMarkers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            window.mapMarkers = [];
+        }
+        
+        // Use GPS coordinates if available, otherwise geocode the address
+        let coordinates = null;
+        let locationSource = '';
+        
+        if (latitude && longitude && latitude !== 'null' && longitude !== 'null') {
+            coordinates = [parseFloat(latitude), parseFloat(longitude)];
+            locationSource = 'GPS';
+        } else {
+            coordinates = await geocodeAddress(technicianLocation);
+            locationSource = 'Address';
+        }
+        
+        if (coordinates) {
+            // Create a marker for this technician
+            const marker = L.marker(coordinates, {
+                icon: L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="w-8 h-8 bg-success rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                             </svg>
+                           </div>`,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                })
+            });
+            
+            // Create popup content
+            const locationInfo = locationSource === 'GPS' 
+                ? `GPS Location (${updatedAt ? 'Updated ' + formatTimeAgo(updatedAt) : 'Recent'})`
+                : technicianLocation;
+                
+            const popupContent = `
+                <div class="p-3">
+                    <div class="font-semibold text-success text-lg">${technicianName}</div>
+                    <div class="text-sm text-gray-600 mt-1">${locationInfo}</div>
+                    <div class="text-xs text-gray-500 mt-2">Technician ID: ${technicianId}</div>
+                    <div class="text-xs text-gray-400 mt-1">Source: ${locationSource}</div>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            marker.addTo(map);
+            
+            // Store marker reference
+            if (!window.mapMarkers) window.mapMarkers = [];
+            window.mapMarkers.push(marker);
+            
+            // Fit map to show the marker
+            map.setView(coordinates, 15);
+            
+            // Open popup automatically
+            marker.openPopup();
+            
+            console.log('Technician marker added to map');
+        } else {
+            alert('Could not find coordinates for this location. Please check the address format.');
+        }
+    } catch (error) {
+        console.error('Error showing technician on map:', error);
+        alert('Error showing technician on map. Please try again.');
+            }
+    }
+    
+    // Format time ago for location timestamps
+    function formatTimeAgo(timestamp) {
+        if (!timestamp) return 'Unknown';
+        
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        
+        return date.toLocaleDateString();
+    }
+    
+    // Geocoding function (same as in map component)
+    async function geocodeAddress(address) {
+    try {
+        console.log('Geocoding address:', address);
+        
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=us`);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Geocoding response:', data);
+            
+            if (data && data.length > 0) {
+                return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.warn('Geocoding failed:', error);
+        return null;
+    }
+}
+</script>
 @endsection 
