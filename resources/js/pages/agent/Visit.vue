@@ -58,6 +58,7 @@ const form = useForm<{
     tasks: { name: string; done: boolean }[];
     treatments: { name: string; amount: string; unit: string }[];
     notes: string;
+    photos: File[];
 }>({
     free_chlorine: '',
     total_chlorine: '',
@@ -70,7 +71,13 @@ const form = useForm<{
     tasks: props.service.tasks.map((name) => ({ name, done: false })),
     treatments: [],
     notes: '',
+    photos: [],
 });
+
+function onPhotos(e: Event) {
+    const files = (e.target as HTMLInputElement).files;
+    form.photos = files ? Array.from(files) : [];
+}
 
 const recommendations = ref<Recommendation[]>([]);
 const analyzing = ref(false);
@@ -206,6 +213,14 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
                 <label v-for="(t, i) in form.tasks" :key="i" class="flex items-center gap-2 py-1 text-sm">
                     <input v-model="t.done" type="checkbox" /> <span :class="{ 'text-muted-foreground line-through': t.done }">{{ t.name }}</span>
                 </label>
+            </section>
+
+            <!-- photos -->
+            <section class="rounded-xl border border-border p-4">
+                <Label class="text-sm font-medium">Photos</Label>
+                <input type="file" accept="image/*" multiple class="mt-1 block w-full text-sm text-muted-foreground" @change="onPhotos" />
+                <p v-if="form.photos.length" class="mt-1 text-xs text-muted-foreground">{{ form.photos.length }} photo(s) attached</p>
+                <p v-if="form.errors.photos" class="text-xs text-red-600">{{ form.errors.photos }}</p>
             </section>
 
             <!-- notes + complete -->

@@ -13,6 +13,8 @@ use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -63,6 +65,17 @@ test('the agent completes a visit, writing reading + tasks + treatments', functi
     expect($visit?->treatments()->count())->toBe(1);
     expect($visit?->tasks()->count())->toBe(2);
     expect($this->stop->fresh()?->status)->toBe('completed');
+});
+
+test('completing a visit stores uploaded photos', function () {
+    Storage::fake('public');
+
+    $this->actingAs($this->agent)
+        ->post("/visit/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('after.jpg')]]))
+        ->assertRedirect('/dashboard');
+
+    $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->first();
+    expect($visit?->photos()->count())->toBe(1);
 });
 
 test('a treatment deducts matching inventory and logs it', function () {

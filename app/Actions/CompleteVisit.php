@@ -10,6 +10,7 @@ use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Services\ChemistryService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,10 +30,11 @@ class CompleteVisit
 
     /**
      * @param  array<string, mixed>  $data
+     * @param  list<UploadedFile>  $photos
      */
-    public function handle(RouteStop $stop, array $data, User $agent): ServiceVisit
+    public function handle(RouteStop $stop, array $data, User $agent, array $photos = []): ServiceVisit
     {
-        return DB::transaction(function () use ($stop, $data, $agent): ServiceVisit {
+        return DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
             $pool = $stop->pool;
 
             $visit = ServiceVisit::create([
@@ -73,6 +75,13 @@ class CompleteVisit
                 $unit = is_string($t['unit'] ?? null) ? $t['unit'] : 'oz';
                 $visit->treatments()->create(['chemical_name' => $name, 'amount' => $amount, 'unit' => $unit]);
                 $this->deductInventory($name, $amount, $unit, $visit, $agent);
+            }
+
+            foreach ($photos as $photo) {
+                $path = $photo->store('visit-photos/'.$visit->id, 'public');
+                if ($path !== false) {
+                    $visit->photos()->create(['photo_path' => $path]);
+                }
             }
 
             $stop->update(['status' => 'completed', 'completed_at' => now()]);

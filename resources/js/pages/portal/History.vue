@@ -28,6 +28,7 @@ interface VisitDetail {
     } | null;
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
+    photos: string[];
 }
 
 const props = defineProps<{
@@ -141,6 +142,19 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                             <section v-if="props.selected.notes">
                                 <h3 class="mb-1 font-medium">Notes</h3>
                                 <p class="text-muted-foreground">{{ props.selected.notes }}</p>
+                            </section>
+
+                            <section v-if="props.selected.photos.length">
+                                <h3 class="mb-1 font-medium">Photos</h3>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <a v-for="(photo, i) in props.selected.photos" :key="i" :href="photo" target="_blank">
+                                        <img
+                                            :src="photo"
+                                            alt="Service photo"
+                                            class="aspect-square w-full rounded-md border border-border object-cover"
+                                        />
+                                    </a>
+                                </div>
                             </section>
                         </div>
                     </template>

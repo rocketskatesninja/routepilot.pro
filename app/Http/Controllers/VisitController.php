@@ -82,7 +82,8 @@ class VisitController extends Controller
         abort_if($user === null, 403);
         $this->authorizeStop($request, $stop);
 
-        $action->handle($stop, $request->validated(), $user);
+        $photos = $request->file('photos');
+        $action->handle($stop, $request->validated(), $user, is_array($photos) ? $photos : []);
 
         return redirect('/dashboard')->with('success', 'Visit completed.');
     }

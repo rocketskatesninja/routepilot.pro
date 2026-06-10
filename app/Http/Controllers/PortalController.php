@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,7 +42,7 @@ class PortalController extends Controller
             $visit = ServiceVisit::query()
                 ->whereIn('pool_id', $poolIds)
                 ->whereKey($selectedId)
-                ->with(['pool:id,name', 'agent:id,first_name,last_name', 'chemicalReading', 'treatments', 'tasks'])
+                ->with(['pool:id,name', 'agent:id,first_name,last_name', 'chemicalReading', 'treatments', 'tasks', 'photos'])
                 ->first();
             if ($visit !== null) {
                 $selected = $this->toDetail($visit);
@@ -124,6 +125,7 @@ class PortalController extends Controller
                 'name' => $t->getAttribute('task_name'),
                 'done' => (bool) $t->getAttribute('is_completed'),
             ])->all(),
+            'photos' => $visit->photos->map(fn ($p): string => Storage::disk('public')->url((string) $p->getAttribute('photo_path')))->all(),
         ];
     }
 }

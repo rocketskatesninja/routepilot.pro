@@ -35,6 +35,8 @@ class CompleteVisitRequest extends FormRequest
             'treatments.*.amount' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'treatments.*.unit' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'photos' => ['nullable', 'array', 'max:6'],
+            'photos.*' => ['image', 'max:5120'],
         ];
     }
 }
