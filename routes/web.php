@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
+use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -17,6 +18,7 @@ Route::get('dashboard', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
     Route::get('people', [PeopleController::class, 'index'])->name('people.index');
+    Route::get('services', [ServiceController::class, 'index'])->name('services.index');
 });
 
 require __DIR__.'/settings.php';

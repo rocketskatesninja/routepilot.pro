@@ -13,6 +13,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * ServiceType — a reusable visit template: pricing, duration, the task
  * checklist, and which at-pool field-flow modules the visit shows.
+ *
+ * @property string $name
+ * @property string|null $category
+ * @property string $frequency
+ * @property int $estimated_duration_minutes
+ * @property string $price
+ * @property bool $chemicals_included
+ * @property string|null $description
+ * @property array<int, string>|null $tasks
+ * @property array<string, bool>|null $field_modules
+ * @property bool $is_active
  */
 class ServiceType extends Model
 {
