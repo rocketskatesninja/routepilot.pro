@@ -7,6 +7,7 @@ import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     Banknote,
+    BarChart3,
     Bot,
     Building2,
     CalendarDays,
@@ -47,6 +48,7 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Inventory', href: '/inventory', icon: FlaskConical },
         { title: 'Reports', href: '/reports', icon: FileText },
+        { title: 'Insights', href: '/insights', icon: BarChart3 },
         { title: 'Balances', href: '/balances', icon: Banknote },
         { title: 'Assistant', href: '/assistant', icon: Bot },
         { title: 'Company', href: '/company', icon: Building2 },

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
@@ -82,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inventory/{chemical}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
     Route::delete('inventory/{chemical}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('insights', [AnalyticsController::class, 'index'])->name('insights.index');
     Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
     Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
