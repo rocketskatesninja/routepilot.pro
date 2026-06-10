@@ -10,6 +10,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
+use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
@@ -73,6 +74,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
     Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
+
+    // Customer portal.
+    Route::get('history', [PortalController::class, 'history'])->name('portal.history');
 
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
