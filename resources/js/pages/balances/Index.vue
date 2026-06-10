@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { CheckCircle2, FileText, Plus } from 'lucide-vue-next';
+import { CheckCircle2, Download, FileText, Plus } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface BalanceRow {
@@ -48,6 +48,7 @@ function generateInvoice() {
     if (!props.selected) return;
     router.post(`/balances/${props.selected.id}/invoice`, {}, { preserveScroll: true });
 }
+const exportCsv = () => window.open('/balances/export', '_blank');
 
 // --- add manual charge ---
 const chargeOpen = ref(false);
@@ -85,6 +86,7 @@ function submitCharge() {
                 </div>
                 <div class="flex items-end gap-3">
                     <Button v-if="props.canManage" size="sm" variant="outline" @click="openCharge"><Plus class="mr-1 size-4" /> Charge</Button>
+                    <Button v-if="props.canManage" size="sm" variant="outline" @click="exportCsv"><Download class="mr-1 size-4" /> Export</Button>
                     <div class="text-right">
                         <div class="text-2xl font-semibold">{{ money(props.total) }}</div>
                         <div class="text-sm text-muted-foreground">outstanding</div>

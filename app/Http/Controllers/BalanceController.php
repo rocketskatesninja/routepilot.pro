@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Back-office Balances screen — accounts receivable. Lists every customer
@@ -97,6 +98,36 @@ class BalanceController extends Controller
         $invoice = $action->handle($customer);
 
         return back()->with('success', $invoice !== null ? "Invoice {$invoice->number} created." : 'Nothing to invoice.');
+    }
+
+    /** QuickBooks-friendly CSV of every invoice (tenant-scoped). */
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $invoices = Invoice::query()->with('customer:id,first_name,last_name')->latest('issued_at')->latest('id')->get();
+
+        return response()->streamDownload(function () use ($invoices): void {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+            fputcsv($out, ['Number', 'Customer', 'Issued', 'Due', 'Subtotal', 'Tax', 'Total', 'Paid', 'Status']);
+            foreach ($invoices as $invoice) {
+                fputcsv($out, [
+                    $invoice->number,
+                    $invoice->customer?->displayName() ?? '',
+                    $invoice->issued_at?->toDateString() ?? '',
+                    $invoice->due_at?->toDateString() ?? '',
+                    $invoice->subtotal,
+                    $invoice->tax,
+                    $invoice->total,
+                    $invoice->amount_paid,
+                    $invoice->status,
+                ]);
+            }
+            fclose($out);
+        }, 'invoices.csv', ['Content-Type' => 'text/csv']);
     }
 
     /** @return list<array{id: int, name: string}> */

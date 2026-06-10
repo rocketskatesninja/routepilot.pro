@@ -79,6 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
     Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'download'])->name('invoices.pdf');
+    Route::get('balances/export', [BalanceController::class, 'exportCsv'])->name('balances.export');
 
     // Customer portal.
     Route::get('history', [PortalController::class, 'history'])->name('portal.history');
