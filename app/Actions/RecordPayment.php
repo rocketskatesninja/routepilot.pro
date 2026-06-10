@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\ManualCharge;
 use App\Models\Payment;
 use App\Models\ServiceVisit;
@@ -38,6 +39,13 @@ class RecordPayment
                 ->where('customer_id', $customer->id)
                 ->whereNull('paid_at')
                 ->update(['paid_at' => now()]);
+
+            // A full-balance payment clears any open invoices too.
+            Invoice::query()
+                ->where('customer_id', $customer->id)
+                ->whereIn('status', ['draft', 'sent', 'overdue'])
+                ->get()
+                ->each(fn (Invoice $invoice) => $invoice->update(['amount_paid' => $invoice->total, 'status' => 'paid']));
 
             return Payment::create([
                 'customer_id' => $customer->id,

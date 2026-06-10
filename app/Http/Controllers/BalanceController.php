@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\AddManualCharge;
+use App\Actions\GenerateInvoice;
 use App\Actions\RecordPayment;
 use App\Http\Requests\RecordPaymentRequest;
 use App\Http\Requests\StoreManualChargeRequest;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Services\BillingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +46,17 @@ class BalanceController extends Controller
                     'id' => $customer->id,
                     'name' => $customer->displayName(),
                     ...$billing->breakdownForCustomer($customer),
+                    'invoices' => Invoice::query()
+                        ->where('customer_id', $customer->id)
+                        ->latest('issued_at')->latest('id')->limit(10)->get()
+                        ->map(fn (Invoice $i): array => [
+                            'id' => $i->id,
+                            'number' => $i->number,
+                            'status' => $i->status,
+                            'total' => (float) $i->total,
+                            'balance' => $i->balance(),
+                            'issued_on' => $i->issued_at?->toDateString(),
+                        ])->all(),
                 ];
             }
         }
@@ -75,6 +88,15 @@ class BalanceController extends Controller
         $payment = $action->handle($customer, (string) $request->validated()['method'], (int) $user->id);
 
         return back()->with('success', $payment !== null ? 'Payment recorded.' : 'Nothing outstanding.');
+    }
+
+    public function generateInvoice(Request $request, Customer $customer, GenerateInvoice $action): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $invoice = $action->handle($customer);
+
+        return back()->with('success', $invoice !== null ? "Invoice {$invoice->number} created." : 'Nothing to invoice.');
     }
 
     /** @return list<array{id: int, name: string}> */

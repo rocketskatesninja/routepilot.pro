@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { CheckCircle2, Plus } from 'lucide-vue-next';
+import { CheckCircle2, FileText, Plus } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface BalanceRow {
@@ -22,6 +22,7 @@ interface BalanceDetail {
     visits: { pool: string; date: string; price: number }[];
     charges: { description: string; amount: number }[];
     total: number;
+    invoices: { id: number; number: string; status: string; total: number; balance: number; issued_on: string | null }[];
 }
 
 const props = defineProps<{
@@ -42,6 +43,10 @@ const payMethod = ref('cash');
 function recordPayment() {
     if (!props.selected) return;
     router.post(`/balances/${props.selected.id}/pay`, { method: payMethod.value }, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
+function generateInvoice() {
+    if (!props.selected) return;
+    router.post(`/balances/${props.selected.id}/invoice`, {}, { preserveScroll: true });
 }
 
 // --- add manual charge ---
@@ -153,17 +158,39 @@ function submitCharge() {
                                 <span>Total</span><span>{{ money(props.selected.total) }}</span>
                             </div>
 
-                            <div v-if="props.canManage" class="flex items-center gap-2 border-t border-border pt-3">
-                                <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                                    <option value="cash">Cash</option>
-                                    <option value="check">Check</option>
-                                    <option value="card">Card</option>
-                                    <option value="ach">ACH</option>
-                                    <option value="other">Other</option>
-                                </select>
-                                <Button size="sm" @click="recordPayment">Mark paid · {{ money(props.selected.total) }}</Button>
+                            <section v-if="props.selected.invoices.length">
+                                <h3 class="mb-1 font-medium">Invoices</h3>
+                                <ul class="space-y-1 text-muted-foreground">
+                                    <li v-for="inv in props.selected.invoices" :key="inv.id" class="flex justify-between">
+                                        <span
+                                            >{{ inv.number }} <span class="text-xs capitalize">· {{ inv.status }}</span></span
+                                        >
+                                        <span
+                                            >{{ money(inv.total)
+                                            }}<span v-if="inv.balance > 0" class="text-amber-600 dark:text-amber-400">
+                                                · {{ money(inv.balance) }} due</span
+                                            ></span
+                                        >
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <div v-if="props.canManage" class="space-y-2 border-t border-border pt-3">
+                                <div class="flex items-center gap-2">
+                                    <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                        <option value="cash">Cash</option>
+                                        <option value="check">Check</option>
+                                        <option value="card">Card</option>
+                                        <option value="ach">ACH</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    <Button size="sm" @click="recordPayment">Mark paid · {{ money(props.selected.total) }}</Button>
+                                </div>
+                                <Button size="sm" variant="outline" class="w-full" @click="generateInvoice"
+                                    ><FileText class="mr-1 size-3.5" /> Generate invoice</Button
+                                >
                             </div>
-                            <p v-else class="text-xs text-muted-foreground">Send-invoice + card payments arrive with the Stripe flow.</p>
+                            <p v-else class="text-xs text-muted-foreground">Card payments + autopay arrive with the Stripe flow.</p>
                         </div>
                     </template>
                 </SheetContent>

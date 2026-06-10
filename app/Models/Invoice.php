@@ -8,6 +8,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Invoice — a customer's branded statement for a period. Tenant-scoped.
@@ -16,6 +17,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $status
  * @property string $total
  * @property string $amount_paid
+ * @property Carbon|null $issued_at
+ * @property Carbon|null $due_at
+ * @property Carbon|null $period_start
+ * @property Carbon|null $period_end
  */
 class Invoice extends Model
 {
