@@ -1,0 +1,39 @@
+name: linter
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'rebuild/**'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install Dependencies
+        run: |
+          composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
+          npm install
+
+      # Check-only — CI fails on unformatted/lint-dirty code rather than
+      # auto-fixing, so style is enforced at the PR boundary.
+      - name: Check PHP Code Style (Pint)
+        run: vendor/bin/pint --test
+
+      - name: Check Frontend Formatting (Prettier)
+        run: npm run format:check
+
+      - name: Lint Frontend (ESLint)
+        run: npx eslint .

@@ -1,0 +1,89 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+      - 'rebuild/**'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          tools: composer:v2
+          coverage: xdebug
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Create SQLite Database
+        run: touch database/database.sqlite
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Copy Environment File
+        run: cp .env.example .env
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Publish Ziggy Configuration
+        run: php artisan ziggy:generate
+
+      - name: Static Analysis (Larastan)
+        run: ./vendor/bin/phpstan analyse --no-progress
+
+      - name: Build Assets
+        run: npm run build
+
+      - name: Tests
+        run: ./vendor/bin/pest
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          tools: composer:v2
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      # Fail on any known advisory in composer dependencies.
+      - name: Composer Security Audit
+        run: composer audit --no-interaction
+
+      # Fail only on high/critical advisories in npm dependencies.
+      - name: NPM Security Audit
+        run: npm audit --audit-level=high
