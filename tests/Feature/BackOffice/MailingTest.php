@@ -57,6 +57,34 @@ test('the People screen offers email audiences to a tenant admin', function () {
         ->assertInertia(fn (Assert $page) => $page->component('people/Index')->where('canEmail', true)->has('audiences', 2));
 });
 
+test('a tenant admin can email a hand-picked selection', function () {
+    $c1 = Customer::factory()->for($this->tenant)->create(['email' => 'c1@x.test']);
+    Customer::factory()->for($this->tenant)->create(['email' => 'c2@x.test']);
+    $c3 = Customer::factory()->for($this->tenant)->create(['email' => 'c3@x.test']);
+
+    $this->actingAs($this->admin)
+        ->post('/people/email', ['audience' => 'selected', 'recipients' => ["customer:{$c1->id}", "customer:{$c3->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
+        ->assertRedirect();
+
+    Mail::assertQueued(CampaignMail::class, 2);
+});
+
+test('a selection cannot reach another tenant\'s customer', function () {
+    $foreign = Customer::factory()->for(Tenant::factory())->create(['email' => 'foreign@x.test']);
+
+    $this->actingAs($this->admin)
+        ->post('/people/email', ['audience' => 'selected', 'recipients' => ["customer:{$foreign->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
+        ->assertRedirect();
+
+    Mail::assertNothingQueued();
+});
+
+test('a selected send requires a recipient list', function () {
+    $this->actingAs($this->admin)
+        ->post('/people/email', ['audience' => 'selected', 'subject' => 'Hi', 'body' => 'Yo'])
+        ->assertInvalid('recipients');
+});
+
 test('agents cannot send campaigns', function () {
     $agent = User::factory()->agent()->for($this->tenant)->create();
 

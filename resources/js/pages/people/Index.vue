@@ -86,16 +86,48 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
 
-// --- broadcast email ---
+// --- selection + email ---
+const selected = ref<string[]>([]);
+const keyFor = (p: PersonRow) => `${p.person_type}:${p.id}`;
+const isSelected = (p: PersonRow) => selected.value.includes(keyFor(p));
+function toggleSelect(p: PersonRow) {
+    const k = keyFor(p);
+    const i = selected.value.indexOf(k);
+    if (i === -1) selected.value.push(k);
+    else selected.value.splice(i, 1);
+}
+const pageKeys = computed(() => props.people.data.map(keyFor));
+const allOnPage = computed(() => pageKeys.value.length > 0 && pageKeys.value.every((k) => selected.value.includes(k)));
+function toggleAll() {
+    if (allOnPage.value) selected.value = selected.value.filter((k) => !pageKeys.value.includes(k));
+    else selected.value = [...new Set([...selected.value, ...pageKeys.value])];
+}
+
 const emailOpen = ref(false);
-const emailForm = useForm({ audience: 'customers', subject: '', body: '' });
-const emailCount = computed(() => props.audiences.find((a) => a.key === emailForm.audience)?.count ?? 0);
+const emailForm = useForm<{ audience: string; subject: string; body: string; recipients: string[] }>({
+    audience: 'customers',
+    subject: '',
+    body: '',
+    recipients: [],
+});
+const audienceOptions = computed(() => [
+    ...(selected.value.length ? [{ key: 'selected', label: 'Selected people', count: selected.value.length }] : []),
+    ...props.audiences,
+]);
+const emailCount = computed(() => audienceOptions.value.find((a) => a.key === emailForm.audience)?.count ?? 0);
+function openEmail() {
+    emailForm.audience = selected.value.length ? 'selected' : (props.audiences[0]?.key ?? 'customers');
+    emailForm.clearErrors();
+    emailOpen.value = true;
+}
 function submitEmail() {
+    emailForm.recipients = emailForm.audience === 'selected' ? [...selected.value] : [];
     emailForm.post('/people/email', {
         preserveScroll: true,
         onSuccess: () => {
             emailOpen.value = false;
             emailForm.reset();
+            selected.value = [];
         },
     });
 }
@@ -297,7 +329,9 @@ function destroyAgent() {
                     <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
                     <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
                     <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
-                    <Button v-if="props.canEmail" size="sm" variant="outline" @click="emailOpen = true"><Mail class="mr-1 size-4" /> Email</Button>
+                    <Button v-if="props.canEmail" size="sm" variant="outline" @click="openEmail"
+                        ><Mail class="mr-1 size-4" /> Email<span v-if="selected.length"> ({{ selected.length }})</span></Button
+                    >
                 </div>
             </div>
 
@@ -317,6 +351,9 @@ function destroyAgent() {
                 <table class="w-full text-sm">
                     <thead class="bg-muted/50 text-left text-muted-foreground">
                         <tr>
+                            <th v-if="props.canEmail" class="w-10 px-4 py-2">
+                                <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
+                            </th>
                             <th class="px-4 py-2 font-medium">Name</th>
                             <th class="px-4 py-2 font-medium">Type</th>
                             <th class="hidden px-4 py-2 font-medium md:table-cell">Email</th>
@@ -331,6 +368,14 @@ function destroyAgent() {
                             :class="{ 'bg-muted/60': selectedKey === `${person.person_type}-${person.id}` }"
                             @click="openPerson(person)"
                         >
+                            <td v-if="props.canEmail" class="px-4 py-2.5" @click.stop>
+                                <input
+                                    type="checkbox"
+                                    :checked="isSelected(person)"
+                                    :aria-label="`Select ${fullName(person)}`"
+                                    @change="toggleSelect(person)"
+                                />
+                            </td>
                             <td class="px-4 py-2.5 font-medium">{{ fullName(person) }}</td>
                             <td class="px-4 py-2.5">
                                 <span
@@ -348,7 +393,7 @@ function destroyAgent() {
                             <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
                         </tr>
                         <tr v-if="props.people.data.length === 0">
-                            <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
+                            <td :colspan="props.canEmail ? 5 : 4" class="px-4 py-10 text-center text-muted-foreground">
                                 <Users class="mx-auto mb-2 size-6 opacity-50" />
                                 No people yet.
                             </td>
@@ -609,7 +654,7 @@ function destroyAgent() {
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
                             <select id="aud" v-model="emailForm.audience" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                                <option v-for="a in props.audiences" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
+                                <option v-for="a in audienceOptions" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
                             </select>
                             <p class="text-xs text-muted-foreground">{{ emailCount }} recipient(s).</p>
                         </div>

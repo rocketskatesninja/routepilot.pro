@@ -48,6 +48,17 @@ test('a super-admin emails every agent across all tenants', function () {
     Mail::assertQueued(CampaignMail::class, 2);
 });
 
+test('a super-admin can email a hand-picked selection across tenants', function () {
+    $a = Customer::factory()->for(Tenant::factory())->create(['email' => 'a@x.test']);
+    $b = Customer::factory()->for(Tenant::factory())->create(['email' => 'b@x.test']);
+
+    $this->actingAs($this->super)
+        ->post('/people/email', ['audience' => 'selected', 'recipients' => ["customer:{$a->id}", "customer:{$b->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
+        ->assertRedirect();
+
+    Mail::assertQueued(CampaignMail::class, 2);
+});
+
 test('the super People screen offers the three platform audiences', function () {
     $this->actingAs($this->super)
         ->get('/people')

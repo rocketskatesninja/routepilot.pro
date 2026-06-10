@@ -28,7 +28,9 @@ class SendCampaign
         $audience = (string) $data['audience'];
         $subject = (string) $data['subject'];
         $body = (string) $data['body'];
-        $recipients = $this->recipients($audience, $sender);
+        $recipients = $audience === 'selected'
+            ? $this->resolveSelected(is_array($data['recipients'] ?? null) ? $data['recipients'] : [], $sender)
+            : $this->recipients($audience, $sender);
 
         $campaign = MailCampaign::create([
             'created_by' => $sender->id,
@@ -78,6 +80,63 @@ class SendCampaign
             'customers' => $this->customerQuery()->count(),
             default => 0,
         };
+    }
+
+    /**
+     * Resolve hand-picked recipient keys ("customer:5" / "agent:3" /
+     * "tenant:2") to emails — ownership-checked: a tenant admin only resolves
+     * their own customers/agents; tenant keys are super-admin only.
+     *
+     * @param  array<int, mixed>  $keys
+     * @return list<array{email: string, name: string, customer_id: int|null}>
+     */
+    private function resolveSelected(array $keys, User $sender): array
+    {
+        $customerIds = [];
+        $agentIds = [];
+        $tenantIds = [];
+        foreach ($keys as $key) {
+            if (! is_string($key) || ! str_contains($key, ':')) {
+                continue;
+            }
+            [$type, $raw] = explode(':', $key, 2);
+            $id = (int) $raw;
+            if ($id <= 0) {
+                continue;
+            }
+            match ($type) {
+                'customer' => $customerIds[] = $id,
+                'agent' => $agentIds[] = $id,
+                'tenant' => $tenantIds[] = $id,
+                default => null,
+            };
+        }
+
+        $out = [];
+
+        if ($customerIds !== []) {
+            // Customer global scope restricts a tenant admin to their own.
+            foreach ($this->customerQuery()->whereKey($customerIds)->get() as $c) {
+                $out[] = ['email' => (string) $c->email, 'name' => $c->displayName(), 'customer_id' => $c->id];
+            }
+        }
+
+        if ($agentIds !== []) {
+            foreach ($this->staffQuery('agent', $sender)->whereKey($agentIds)->get() as $u) {
+                $out[] = ['email' => (string) $u->getAttribute('email'), 'name' => $u->displayName(), 'customer_id' => null];
+            }
+        }
+
+        if ($tenantIds !== [] && $sender->isSuperAdmin()) {
+            $admins = User::query()
+                ->where('role', 'tenant_admin')->where('is_active', true)->whereNotNull('email')
+                ->whereIn('tenant_id', $tenantIds)->get();
+            foreach ($admins as $u) {
+                $out[] = ['email' => (string) $u->getAttribute('email'), 'name' => $u->displayName(), 'customer_id' => null];
+            }
+        }
+
+        return $out;
     }
 
     /**
