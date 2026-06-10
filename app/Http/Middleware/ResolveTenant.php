@@ -33,7 +33,15 @@ class ResolveTenant
 
         // 1. Staff: tenant comes from the session-authenticated user.
         if ($user && ! $user->isSuperAdmin() && $user->tenant_id) {
-            $this->bind($user->tenant);
+            $tenant = $user->tenant;
+
+            // A suspended/cancelled company is locked out — unless a super-admin
+            // is impersonating, so they can still get in to put things right.
+            if ($tenant !== null && $tenant->getAttribute('status') !== 'active' && ! $request->session()->has('impersonator_id')) {
+                abort(403, 'This company account is suspended. Please contact support.');
+            }
+
+            $this->bind($tenant);
 
             return $next($request);
         }

@@ -53,6 +53,7 @@ class HandleInertiaRequests extends Middleware
                 'permissions' => $user
                     ? $user->getAllPermissions()->pluck('name')->values()
                     : [],
+                'impersonating' => $request->session()->has('impersonator_id'),
             ],
             'tenant' => $tenant instanceof Tenant ? [
                 'id' => $tenant->id,

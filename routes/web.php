@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\PeopleController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\TenantController;
 use App\Http\Controllers\VisitController;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
@@ -89,6 +91,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Company settings (tenant_admin).
     Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
     Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
+
+    // Super-admin platform console.
+    Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
+    Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
+    Route::patch('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
+    Route::post('tenants/{tenant}/impersonate', [ImpersonationController::class, 'start'])->name('tenants.impersonate');
+    Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
 });
 
 require __DIR__.'/settings.php';

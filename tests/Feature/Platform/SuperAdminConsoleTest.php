@@ -1,0 +1,73 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\AuditLog;
+use App\Models\Tenant;
+use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
+
+beforeEach(function () {
+    $this->super = User::factory()->create();
+    $this->super->forceFill(['role' => 'super_admin', 'tenant_id' => null])->save();
+});
+
+test('a super-admin sees the tenants list', function () {
+    Tenant::factory()->create(['name' => 'Acme Pools']);
+
+    $this->actingAs($this->super)
+        ->get('/tenants')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/Tenants')->has('tenants'));
+});
+
+test('a super-admin creates a tenant with a pre-verified admin', function () {
+    $this->actingAs($this->super)
+        ->post('/tenants', ['company' => 'New Co', 'first_name' => 'Pat', 'email' => 'pat@newco.test', 'password' => 'password123'])
+        ->assertRedirect();
+
+    expect(Tenant::query()->where('name', 'New Co')->exists())->toBeTrue();
+    $admin = User::query()->where('email', 'pat@newco.test')->first();
+    expect($admin?->role)->toBe('tenant_admin');
+    expect($admin?->getAttribute('email_verified_at'))->not->toBeNull();
+});
+
+test('a super-admin can suspend a tenant', function () {
+    $tenant = Tenant::factory()->create(['status' => 'active']);
+
+    $this->actingAs($this->super)
+        ->patch("/tenants/{$tenant->id}", ['name' => $tenant->name, 'status' => 'suspended'])
+        ->assertRedirect();
+
+    expect($tenant->fresh()?->getAttribute('status'))->toBe('suspended');
+});
+
+test('a suspended company locks its staff out', function () {
+    $tenant = Tenant::factory()->create(['status' => 'suspended']);
+    $admin = User::factory()->for($tenant)->create();
+
+    $this->actingAs($admin)->get('/dashboard')->assertForbidden();
+});
+
+test('a super-admin can impersonate a tenant and return', function () {
+    $tenant = Tenant::factory()->create();
+    $admin = User::factory()->for($tenant)->create();
+
+    $this->actingAs($this->super)
+        ->post("/tenants/{$tenant->id}/impersonate")
+        ->assertRedirect('/dashboard')
+        ->assertSessionHas('impersonator_id', $this->super->id);
+
+    $this->assertAuthenticatedAs($admin);
+    expect(AuditLog::query()->where('action', 'impersonate.start')->exists())->toBeTrue();
+
+    $this->post('/impersonate/stop')->assertRedirect('/tenants');
+    $this->assertAuthenticatedAs($this->super);
+});
+
+test('staff cannot reach the platform console', function () {
+    $admin = User::factory()->for(Tenant::factory())->create();
+
+    $this->actingAs($admin)->get('/tenants')->assertForbidden();
+    $this->actingAs($admin)->post('/tenants', ['company' => 'x', 'first_name' => 'y', 'email' => 'z@z.test', 'password' => 'password123'])->assertForbidden();
+});
