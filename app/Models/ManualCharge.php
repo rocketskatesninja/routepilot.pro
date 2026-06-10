@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * ManualCharge — an ad-hoc charge added to a customer's account (e.g. a
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $description
  * @property string $amount
  * @property bool $taxable
+ * @property Carbon|null $paid_at
  */
 class ManualCharge extends Model
 {
@@ -22,7 +24,7 @@ class ManualCharge extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'customer_id', 'description', 'amount', 'taxable', 'occurred_on', 'invoice_id', 'created_by',
+        'customer_id', 'description', 'amount', 'taxable', 'occurred_on', 'invoice_id', 'created_by', 'paid_at',
     ];
 
     /** @return array<string, string> */
@@ -32,6 +34,7 @@ class ManualCharge extends Model
             'amount' => 'decimal:2',
             'taxable' => 'boolean',
             'occurred_on' => 'date',
+            'paid_at' => 'datetime',
         ];
     }
 

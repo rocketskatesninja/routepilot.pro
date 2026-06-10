@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\AddManualCharge;
+use App\Actions\RecordPayment;
+use App\Http\Requests\RecordPaymentRequest;
+use App\Http\Requests\StoreManualChargeRequest;
 use App\Models\Customer;
 use App\Services\BillingService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -47,7 +52,39 @@ class BalanceController extends Controller
             'balances' => $rows,
             'total' => round((float) $balances->sum(fn (array $r): float => $r['balance']), 2),
             'selected' => $selected,
+            'canManage' => $request->user()?->role === 'tenant_admin',
+            'customers' => $this->customerOptions(),
         ]);
+    }
+
+    public function addCharge(StoreManualChargeRequest $request, AddManualCharge $action): RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $action->handle($request->validated(), (int) $user->id);
+
+        return back()->with('success', 'Charge added.');
+    }
+
+    public function recordPayment(RecordPaymentRequest $request, Customer $customer, RecordPayment $action): RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $payment = $action->handle($customer, (string) $request->validated()['method'], (int) $user->id);
+
+        return back()->with('success', $payment !== null ? 'Payment recorded.' : 'Nothing outstanding.');
+    }
+
+    /** @return list<array{id: int, name: string}> */
+    private function customerOptions(): array
+    {
+        return Customer::query()
+            ->orderBy('first_name')->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name'])
+            ->map(fn (Customer $c): array => ['id' => $c->id, 'name' => $c->displayName()])
+            ->all();
     }
 
     private function authorizeStaff(Request $request): void

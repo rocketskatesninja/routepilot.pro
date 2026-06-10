@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { FlaskConical } from 'lucide-vue-next';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
 interface InventoryRow {
@@ -14,6 +16,16 @@ interface InventoryRow {
     stock: number;
     low: boolean;
     cost_per_unit: number | null;
+}
+
+interface InventoryFields {
+    chemical_name: string;
+    unit: string;
+    reorder_threshold: number | null;
+    cost_per_unit: number | null;
+    sell_price: number | null;
+    supplier: string | null;
+    is_active: boolean;
 }
 
 interface InventoryDetail {
@@ -28,12 +40,14 @@ interface InventoryDetail {
     value: number | null;
     low: boolean;
     transactions: { id: number; type: string; quantity: number; on: string | null; agent: string | null }[];
+    fields: InventoryFields;
 }
 
 const props = defineProps<{
     items: { data: InventoryRow[]; total: number };
     selected: InventoryDetail | null;
     filters: { search: string };
+    canManage: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Inventory', href: '/inventory' }];
@@ -48,6 +62,66 @@ watch(search, (value) => {
 const open = (id: number) => router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/inventory', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = (n: number) => `$${n.toFixed(2)}`;
+
+// --- create / edit chemical ---
+const formOpen = ref(false);
+const formMode = ref<'create' | 'edit'>('create');
+const formId = ref<number | null>(null);
+const form = useForm<{ chemical_name: string; unit: string; current_stock: string; reorder_threshold: string; cost_per_unit: string; sell_price: string; supplier: string; is_active: boolean }>({
+    chemical_name: '',
+    unit: 'gal',
+    current_stock: '0',
+    reorder_threshold: '',
+    cost_per_unit: '',
+    sell_price: '',
+    supplier: '',
+    is_active: true,
+});
+
+function openCreate() {
+    form.reset();
+    form.clearErrors();
+    formMode.value = 'create';
+    formId.value = null;
+    formOpen.value = true;
+}
+
+function openEdit() {
+    if (!props.selected) return;
+    const f = props.selected.fields;
+    form.chemical_name = f.chemical_name;
+    form.unit = f.unit;
+    form.reorder_threshold = f.reorder_threshold !== null ? String(f.reorder_threshold) : '';
+    form.cost_per_unit = f.cost_per_unit !== null ? String(f.cost_per_unit) : '';
+    form.sell_price = f.sell_price !== null ? String(f.sell_price) : '';
+    form.supplier = f.supplier ?? '';
+    form.is_active = f.is_active;
+    form.clearErrors();
+    formMode.value = 'edit';
+    formId.value = props.selected.id;
+    formOpen.value = true;
+}
+
+function submitForm() {
+    if (formMode.value === 'create') {
+        form.post('/inventory', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+    } else if (formId.value !== null) {
+        form.patch(`/inventory/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+    }
+}
+
+function destroyChemical() {
+    if (!props.selected) return;
+    if (!confirm('Remove this chemical?')) return;
+    router.delete(`/inventory/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
+
+// --- adjust stock (inline in the drawer) ---
+const adjustForm = useForm({ type: 'restock', quantity: '', notes: '' });
+function submitAdjust() {
+    if (!props.selected || adjustForm.quantity === '') return;
+    adjustForm.post(`/inventory/${props.selected.id}/adjust`, { preserveScroll: true, onSuccess: () => adjustForm.reset() });
+}
 </script>
 
 <template>
@@ -60,7 +134,10 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                     <h1 class="text-xl font-semibold">Inventory</h1>
                     <p class="text-sm text-muted-foreground">{{ props.items.total }} chemicals</p>
                 </div>
-                <Input v-model="search" type="search" placeholder="Search chemicals…" class="max-w-xs" />
+                <div class="flex items-center gap-2">
+                    <Input v-model="search" type="search" placeholder="Search chemicals…" class="max-w-xs" />
+                    <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Chemical</Button>
+                </div>
             </div>
 
             <div class="overflow-hidden rounded-xl border border-border">
@@ -84,10 +161,7 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                             <td class="px-4 py-2.5 font-medium">{{ item.name }}</td>
                             <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
                             <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="item.low ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'"
-                                >
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="item.low ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'">
                                     {{ item.low ? 'Low' : 'OK' }}
                                 </span>
                             </td>
@@ -103,7 +177,7 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                 </table>
             </div>
 
-            <Sheet :open="props.selected !== null" @update:open="(o: boolean) => !o && closeDrawer()">
+            <Sheet :open="props.selected !== null && !formOpen" @update:open="(o: boolean) => !o && closeDrawer()">
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -112,6 +186,11 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
+                            <div v-if="props.canManage" class="flex gap-2">
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyChemical"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                            </div>
+
                             <dl class="space-y-1 text-muted-foreground">
                                 <div class="flex justify-between"><dt>Reorder at</dt><dd>{{ props.selected.reorder_threshold ?? '—' }} {{ props.selected.unit }}</dd></div>
                                 <div class="flex justify-between"><dt>Cost</dt><dd>{{ props.selected.cost_per_unit !== null ? money(props.selected.cost_per_unit) : '—' }}</dd></div>
@@ -119,6 +198,19 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                                 <div class="flex justify-between"><dt>Stock value</dt><dd>{{ props.selected.value !== null ? money(props.selected.value) : '—' }}</dd></div>
                                 <div v-if="props.selected.supplier" class="flex justify-between"><dt>Supplier</dt><dd>{{ props.selected.supplier }}</dd></div>
                             </dl>
+
+                            <section v-if="props.canManage" class="rounded-lg border border-border p-3">
+                                <h3 class="mb-2 font-medium">Adjust stock</h3>
+                                <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitAdjust">
+                                    <select v-model="adjustForm.type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                        <option value="restock">Restock (+)</option>
+                                        <option value="usage">Usage (−)</option>
+                                        <option value="adjustment">Set to…</option>
+                                    </select>
+                                    <Input v-model="adjustForm.quantity" type="number" min="0" step="0.01" placeholder="Qty" class="w-24" />
+                                    <Button type="submit" size="sm" :disabled="adjustForm.processing || adjustForm.quantity === ''">Apply</Button>
+                                </form>
+                            </section>
 
                             <section v-if="props.selected.transactions.length">
                                 <h3 class="mb-1 font-medium">Recent movement</h3>
@@ -131,6 +223,41 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                             </section>
                         </div>
                     </template>
+                </SheetContent>
+            </Sheet>
+
+            <!-- create / edit chemical -->
+            <Sheet v-model:open="formOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>{{ formMode === 'create' ? 'New chemical' : 'Edit chemical' }}</SheetTitle>
+                        <SheetDescription>Stock changes are logged via Adjust stock.</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-2 grid gap-1.5">
+                                <Label for="cname">Name</Label>
+                                <Input id="cname" v-model="form.chemical_name" />
+                                <p v-if="form.errors.chemical_name" class="text-xs text-red-600">{{ form.errors.chemical_name }}</p>
+                            </div>
+                            <div class="grid gap-1.5"><Label for="cunit">Unit</Label><Input id="cunit" v-model="form.unit" placeholder="gal / lbs" /></div>
+                        </div>
+                        <div v-if="formMode === 'create'" class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5"><Label for="cstock">Starting stock</Label><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" /></div>
+                            <div class="grid gap-1.5"><Label for="creorder">Reorder at</Label><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" /></div>
+                        </div>
+                        <div v-else class="grid gap-1.5"><Label for="creorder2">Reorder at</Label><Input id="creorder2" v-model="form.reorder_threshold" type="number" min="0" step="0.01" /></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5"><Label for="ccost">Cost / unit ($)</Label><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" /></div>
+                            <div class="grid gap-1.5"><Label for="csell">Sell price ($)</Label><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" /></div>
+                        </div>
+                        <div class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
+                        <label v-if="formMode === 'edit'" class="flex items-center gap-2"><input v-model="form.is_active" type="checkbox" /> Active</label>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add chemical' : 'Save' }}</Button>
+                        </div>
+                    </form>
                 </SheetContent>
             </Sheet>
         </div>

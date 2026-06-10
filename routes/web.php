@@ -48,8 +48,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::post('inventory', [InventoryController::class, 'store'])->name('inventory.store');
+    Route::patch('inventory/{chemical}', [InventoryController::class, 'update'])->name('inventory.update');
+    Route::post('inventory/{chemical}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
+    Route::delete('inventory/{chemical}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
+    Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
+    Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
 
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');

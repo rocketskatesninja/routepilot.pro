@@ -32,7 +32,7 @@ class BillingService
         $service = (float) $visits->sum(fn (ServiceVisit $v): float => $this->visitPrice($v));
         $charges = (float) ManualCharge::query()
             ->where('customer_id', $customer->id)
-            ->whereNull('invoice_id')
+            ->whereNull('paid_at')
             ->sum('amount');
 
         return round($service + $charges, 2);
@@ -67,7 +67,7 @@ class BillingService
 
         $charges = ManualCharge::query()
             ->where('customer_id', $customer->id)
-            ->whereNull('invoice_id')
+            ->whereNull('paid_at')
             ->get()
             ->map(fn (ManualCharge $m): array => ['description' => $m->description, 'amount' => (float) $m->amount])
             ->all();

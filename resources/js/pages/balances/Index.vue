@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { CheckCircle2 } from 'lucide-vue-next';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { CheckCircle2, Plus } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface BalanceRow {
     id: number;
@@ -24,6 +28,8 @@ const props = defineProps<{
     balances: BalanceRow[];
     total: number;
     selected: BalanceDetail | null;
+    canManage: boolean;
+    customers: { id: number; name: string }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }];
@@ -31,6 +37,29 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }]
 const open = (id: number) => router.get('/balances', { selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/balances', {}, { preserveState: true, preserveScroll: true });
 const money = (n: number) => `$${n.toFixed(2)}`;
+
+const payMethod = ref('cash');
+function recordPayment() {
+    if (!props.selected) return;
+    router.post(`/balances/${props.selected.id}/pay`, { method: payMethod.value }, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
+
+// --- add manual charge ---
+const chargeOpen = ref(false);
+const chargeForm = useForm<{ customer_id: number | string; description: string; amount: string; taxable: boolean }>({
+    customer_id: '',
+    description: '',
+    amount: '',
+    taxable: true,
+});
+function openCharge() {
+    chargeForm.reset();
+    chargeForm.clearErrors();
+    chargeOpen.value = true;
+}
+function submitCharge() {
+    chargeForm.post('/balances/charges', { preserveScroll: true, onSuccess: () => { chargeOpen.value = false; chargeForm.reset(); } });
+}
 </script>
 
 <template>
@@ -38,14 +67,17 @@ const money = (n: number) => `$${n.toFixed(2)}`;
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-end justify-between">
+            <div class="flex items-end justify-between gap-4">
                 <div>
                     <h1 class="text-xl font-semibold">Balances</h1>
                     <p class="text-sm text-muted-foreground">{{ props.balances.length }} customers owe</p>
                 </div>
-                <div class="text-right">
-                    <div class="text-2xl font-semibold">{{ money(props.total) }}</div>
-                    <div class="text-sm text-muted-foreground">outstanding</div>
+                <div class="flex items-end gap-3">
+                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openCharge"><Plus class="mr-1 size-4" /> Charge</Button>
+                    <div class="text-right">
+                        <div class="text-2xl font-semibold">{{ money(props.total) }}</div>
+                        <div class="text-sm text-muted-foreground">outstanding</div>
+                    </div>
                 </div>
             </div>
 
@@ -80,7 +112,7 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                 </table>
             </div>
 
-            <Sheet :open="props.selected !== null" @update:open="(o: boolean) => !o && closeDrawer()">
+            <Sheet :open="props.selected !== null && !chargeOpen" @update:open="(o: boolean) => !o && closeDrawer()">
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -111,9 +143,55 @@ const money = (n: number) => `$${n.toFixed(2)}`;
                             <div class="flex justify-between border-t border-border pt-2 font-medium">
                                 <span>Total</span><span>{{ money(props.selected.total) }}</span>
                             </div>
-                            <p class="text-xs text-muted-foreground">Recording payments and sending invoices arrive with the payments flow.</p>
+
+                            <div v-if="props.canManage" class="flex items-center gap-2 border-t border-border pt-3">
+                                <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option value="cash">Cash</option>
+                                    <option value="check">Check</option>
+                                    <option value="card">Card</option>
+                                    <option value="ach">ACH</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <Button size="sm" @click="recordPayment">Mark paid · {{ money(props.selected.total) }}</Button>
+                            </div>
+                            <p v-else class="text-xs text-muted-foreground">Send-invoice + card payments arrive with the Stripe flow.</p>
                         </div>
                     </template>
+                </SheetContent>
+            </Sheet>
+
+            <!-- add manual charge -->
+            <Sheet v-model:open="chargeOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Add a charge</SheetTitle>
+                        <SheetDescription>An ad-hoc charge raises the customer's balance.</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitCharge">
+                        <div class="grid gap-1.5">
+                            <Label for="ch_cust">Customer</Label>
+                            <select id="ch_cust" v-model="chargeForm.customer_id" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <option value="">Select…</option>
+                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                            <p v-if="chargeForm.errors.customer_id" class="text-xs text-red-600">{{ chargeForm.errors.customer_id }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="ch_desc">Description</Label>
+                            <Input id="ch_desc" v-model="chargeForm.description" placeholder="e.g. Filter replacement" />
+                            <p v-if="chargeForm.errors.description" class="text-xs text-red-600">{{ chargeForm.errors.description }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="ch_amt">Amount ($)</Label>
+                            <Input id="ch_amt" v-model="chargeForm.amount" type="number" min="0.01" step="0.01" />
+                            <p v-if="chargeForm.errors.amount" class="text-xs text-red-600">{{ chargeForm.errors.amount }}</p>
+                        </div>
+                        <label class="flex items-center gap-2"><input v-model="chargeForm.taxable" type="checkbox" /> Taxable</label>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="chargeOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="chargeForm.processing">Add charge</Button>
+                        </div>
+                    </form>
                 </SheetContent>
             </Sheet>
         </div>

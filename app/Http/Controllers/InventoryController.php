@@ -4,8 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\AdjustStock;
+use App\Actions\CreateChemical;
+use App\Actions\UpdateChemical;
+use App\Http\Requests\AdjustStockRequest;
+use App\Http\Requests\StoreChemicalRequest;
+use App\Http\Requests\UpdateChemicalRequest;
 use App\Models\ChemicalInventory;
 use App\Models\InventoryTransaction;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -50,7 +57,37 @@ class InventoryController extends Controller
             'items' => $items,
             'selected' => $selected,
             'filters' => ['search' => $search],
+            'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
+    }
+
+    public function store(StoreChemicalRequest $request, CreateChemical $action): RedirectResponse
+    {
+        $action->handle($request->validated());
+
+        return back()->with('success', 'Chemical added.');
+    }
+
+    public function update(UpdateChemicalRequest $request, ChemicalInventory $chemical, UpdateChemical $action): RedirectResponse
+    {
+        $action->handle($chemical, $request->validated());
+
+        return back()->with('success', 'Chemical updated.');
+    }
+
+    public function adjust(AdjustStockRequest $request, ChemicalInventory $chemical, AdjustStock $action): RedirectResponse
+    {
+        $action->handle($chemical, $request->validated(), (int) $request->user()?->id);
+
+        return back()->with('success', 'Stock adjusted.');
+    }
+
+    public function destroy(Request $request, ChemicalInventory $chemical): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $chemical->delete();
+
+        return back()->with('success', 'Chemical removed.');
     }
 
     private function authorizeStaff(Request $request): void
@@ -91,6 +128,16 @@ class InventoryController extends Controller
             'value' => $cost !== null ? round($stock * $cost, 2) : null,
             'low' => $item->isLowStock(),
             'transactions' => $transactions,
+            // Raw values for the edit form.
+            'fields' => [
+                'chemical_name' => $item->chemical_name,
+                'unit' => $item->unit,
+                'reorder_threshold' => $item->reorder_threshold !== null ? (float) $item->reorder_threshold : null,
+                'cost_per_unit' => $cost,
+                'sell_price' => $item->sell_price !== null ? (float) $item->sell_price : null,
+                'supplier' => $item->supplier,
+                'is_active' => $item->is_active,
+            ],
         ];
     }
 }
