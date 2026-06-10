@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
+use App\Services\AiQuota;
 use App\Services\Chat\AssistantService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +41,7 @@ class ChatController extends Controller
         ]);
     }
 
-    public function send(SendMessageRequest $request): JsonResponse
+    public function send(SendMessageRequest $request, AiQuota $quota): JsonResponse
     {
         $user = $request->user();
         abort_unless($user !== null, 403);
@@ -49,6 +50,12 @@ class ChatController extends Controller
         if (RateLimiter::tooManyAttempts($rateKey, 30)) {
             return response()->json(['error' => 'Rate limit reached (30 messages/hour). Please wait a few minutes.'], 429);
         }
+
+        $tenantId = $user->tenant_id;
+        if ($tenantId !== null && $quota->remaining((int) $tenantId) <= 0) {
+            return response()->json(['error' => 'Monthly AI allowance reached. Add a top-up or upgrade to continue.'], 429);
+        }
+
         RateLimiter::hit($rateKey, 3600);
 
         $sessionId = $request->integer('session_id');
@@ -59,10 +66,15 @@ class ChatController extends Controller
 
         $reply = $this->assistant->reply($user, $session, (string) $request->string('message'));
 
+        if ($tenantId !== null) {
+            $quota->record((int) $tenantId);
+        }
+
         return response()->json([
             'reply' => $reply,
             'session_id' => $session->id,
             'remaining' => max(0, 30 - RateLimiter::attempts($rateKey)),
+            'ai_remaining' => $tenantId !== null ? $quota->remaining((int) $tenantId) : null,
         ]);
     }
 
