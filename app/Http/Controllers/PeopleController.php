@@ -137,7 +137,18 @@ class PeopleController extends Controller
             'email' => $agent->getAttribute('email'),
             'phone' => $agent->getAttribute('phone'),
             'is_active' => (bool) $agent->getAttribute('is_active'),
+            'agent_plus' => (bool) $agent->getAttribute('agent_plus'),
             'stats' => ['completed_visits' => $completed, 'this_week' => $thisWeek],
+            // Raw values for the edit form.
+            'fields' => [
+                'first_name' => $agent->getAttribute('first_name'),
+                'last_name' => $agent->getAttribute('last_name'),
+                'email' => $agent->getAttribute('email'),
+                'phone' => $agent->getAttribute('phone'),
+                'map_color' => $agent->getAttribute('map_color'),
+                'is_active' => (bool) $agent->getAttribute('is_active'),
+                'agent_plus' => (bool) $agent->getAttribute('agent_plus'),
+            ],
         ];
     }
 

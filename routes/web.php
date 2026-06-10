@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AgentController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
@@ -38,6 +39,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+    Route::post('customers/{customer}/portal', [CustomerController::class, 'grantPortal'])->name('customers.portal');
+    Route::post('agents', [AgentController::class, 'store'])->name('agents.store');
+    Route::patch('agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
+    Route::delete('agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
     Route::post('services', [ServiceController::class, 'store'])->name('services.store');
     Route::patch('services/{service}', [ServiceController::class, 'update'])->name('services.update');

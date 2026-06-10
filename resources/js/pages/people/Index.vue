@@ -46,6 +46,16 @@ interface CustomerDetail {
     fields: CustomerFields;
 }
 
+interface AgentFields {
+    first_name: string;
+    last_name: string | null;
+    email: string | null;
+    phone: string | null;
+    map_color: string | null;
+    is_active: boolean;
+    agent_plus: boolean;
+}
+
 interface AgentDetail {
     type: 'agent';
     id: number;
@@ -53,7 +63,9 @@ interface AgentDetail {
     email: string | null;
     phone: string | null;
     is_active: boolean;
+    agent_plus: boolean;
     stats: { completed_visits: number; this_week: number };
+    fields: AgentFields;
 }
 
 interface Paginated<T> {
@@ -171,6 +183,68 @@ function destroyCustomer() {
     if (!confirm('Remove this customer? Their service history is preserved.')) return;
     router.delete(`/customers/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
 }
+
+function grantPortal() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    const pw = window.prompt('Set an initial portal password for this customer (min 8 characters):');
+    if (!pw || pw.length < 8) return;
+    router.post(`/customers/${props.selected.id}/portal`, { password: pw }, { preserveScroll: true });
+}
+
+// --- agent create / edit ---
+const agentFormOpen = ref(false);
+const agentFormMode = ref<'create' | 'edit'>('create');
+const agentFormId = ref<number | null>(null);
+
+const agentForm = useForm({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    map_color: '#0ea5e9',
+    is_active: true,
+    agent_plus: false,
+});
+
+function openAgentCreate() {
+    agentForm.reset();
+    agentForm.clearErrors();
+    agentFormMode.value = 'create';
+    agentFormId.value = null;
+    agentFormOpen.value = true;
+}
+
+function openAgentEdit() {
+    if (!props.selected || props.selected.type !== 'agent') return;
+    const f = props.selected.fields;
+    agentForm.first_name = f.first_name;
+    agentForm.last_name = f.last_name ?? '';
+    agentForm.email = f.email ?? '';
+    agentForm.phone = f.phone ?? '';
+    agentForm.password = '';
+    agentForm.map_color = f.map_color ?? '#0ea5e9';
+    agentForm.is_active = f.is_active;
+    agentForm.agent_plus = f.agent_plus;
+    agentForm.clearErrors();
+    agentFormMode.value = 'edit';
+    agentFormId.value = props.selected.id;
+    agentFormOpen.value = true;
+}
+
+function submitAgent() {
+    if (agentFormMode.value === 'create') {
+        agentForm.post('/agents', { preserveScroll: true, onSuccess: () => { agentFormOpen.value = false; agentForm.reset(); } });
+    } else if (agentFormId.value !== null) {
+        agentForm.patch(`/agents/${agentFormId.value}`, { preserveScroll: true, onSuccess: () => { agentFormOpen.value = false; } });
+    }
+}
+
+function destroyAgent() {
+    if (!props.selected || props.selected.type !== 'agent') return;
+    if (!confirm('Remove this agent? Their visit history is preserved.')) return;
+    router.delete(`/agents/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
 </script>
 
 <template>
@@ -183,6 +257,7 @@ function destroyCustomer() {
                 <div class="flex items-center gap-2">
                     <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
                     <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
+                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
                 </div>
             </div>
 
@@ -243,7 +318,7 @@ function destroyCustomer() {
             </div>
 
             <!-- Read drawer (hidden while the form is open) -->
-            <Sheet :open="props.selected !== null && !formOpen" @update:open="(open: boolean) => !open && closeDrawer()">
+            <Sheet :open="props.selected !== null && !formOpen && !agentFormOpen" @update:open="(open: boolean) => !open && closeDrawer()">
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -252,8 +327,9 @@ function destroyCustomer() {
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
-                            <div v-if="props.canManage && props.selected.type === 'customer'" class="flex gap-2">
+                            <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
                                 <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
                             </div>
 
@@ -286,10 +362,15 @@ function destroyCustomer() {
                             </template>
 
                             <template v-else>
+                                <div v-if="props.canManage" class="flex flex-wrap gap-2">
+                                    <Button size="sm" variant="outline" @click="openAgentEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyAgent"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                                </div>
                                 <section>
                                     <h3 class="mb-1 font-medium">Activity</h3>
                                     <dl class="space-y-1 text-muted-foreground">
                                         <div class="flex justify-between"><dt>Status</dt><dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd></div>
+                                        <div class="flex justify-between"><dt>Agent+ mode</dt><dd>{{ props.selected.agent_plus ? 'On' : 'Off' }}</dd></div>
                                         <div class="flex justify-between"><dt>Completed visits</dt><dd>{{ props.selected.stats.completed_visits }}</dd></div>
                                         <div class="flex justify-between"><dt>This week</dt><dd>{{ props.selected.stats.this_week }}</dd></div>
                                     </dl>
@@ -383,6 +464,46 @@ function destroyCustomer() {
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add customer' : 'Save' }}</Button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
+
+            <!-- create / edit agent -->
+            <Sheet v-model:open="agentFormOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>{{ agentFormMode === 'create' ? 'New agent' : 'Edit agent' }}</SheetTitle>
+                        <SheetDescription>{{ agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.' }}</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitAgent">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="a_first">First name</Label>
+                                <Input id="a_first" v-model="agentForm.first_name" />
+                                <p v-if="agentForm.errors.first_name" class="text-xs text-red-600">{{ agentForm.errors.first_name }}</p>
+                            </div>
+                            <div class="grid gap-1.5"><Label for="a_last">Last name</Label><Input id="a_last" v-model="agentForm.last_name" /></div>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="a_email">Email</Label>
+                            <Input id="a_email" v-model="agentForm.email" type="email" />
+                            <p v-if="agentForm.errors.email" class="text-xs text-red-600">{{ agentForm.errors.email }}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5"><Label for="a_phone">Phone</Label><Input id="a_phone" v-model="agentForm.phone" /></div>
+                            <div class="grid gap-1.5"><Label for="a_color">Map color</Label><input id="a_color" v-model="agentForm.map_color" type="color" class="h-9 w-full rounded-md border border-input" /></div>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="a_pw">{{ agentFormMode === 'create' ? 'Initial password' : 'New password (optional)' }}</Label>
+                            <Input id="a_pw" v-model="agentForm.password" type="password" autocomplete="new-password" />
+                            <p v-if="agentForm.errors.password" class="text-xs text-red-600">{{ agentForm.errors.password }}</p>
+                        </div>
+                        <label class="flex items-center gap-2"><input v-model="agentForm.agent_plus" type="checkbox" /> Agent+ (edit own schedule, skip, add stops)</label>
+                        <label v-if="agentFormMode === 'edit'" class="flex items-center gap-2"><input v-model="agentForm.is_active" type="checkbox" /> Active (can log in)</label>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="agentFormOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="agentForm.processing">{{ agentFormMode === 'create' ? 'Add agent' : 'Save' }}</Button>
                         </div>
                     </form>
                 </SheetContent>

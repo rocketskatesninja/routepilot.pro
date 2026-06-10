@@ -65,6 +65,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'agent_plus' => 'boolean',
             'dashboard_layout' => 'array',
             'sidebar_state' => 'array',
         ];
