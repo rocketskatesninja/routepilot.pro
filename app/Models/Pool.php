@@ -73,6 +73,12 @@ class Pool extends Model
         return $this->hasMany(ServiceSubscription::class);
     }
 
+    /** @return HasMany<ServiceVisit, $this> */
+    public function visits(): HasMany
+    {
+        return $this->hasMany(ServiceVisit::class);
+    }
+
     /**
      * The pool's [lat, lng] for routing, or null if it has no geocoded
      * service location. A 0/null coordinate is treated as unset.
