@@ -8,6 +8,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
@@ -77,6 +78,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
     Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
     Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
+    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'download'])->name('invoices.pdf');
 
     // Customer portal.
     Route::get('history', [PortalController::class, 'history'])->name('portal.history');

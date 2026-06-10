@@ -162,8 +162,8 @@ function submitCharge() {
                                 <h3 class="mb-1 font-medium">Invoices</h3>
                                 <ul class="space-y-1 text-muted-foreground">
                                     <li v-for="inv in props.selected.invoices" :key="inv.id" class="flex justify-between">
-                                        <span
-                                            >{{ inv.number }} <span class="text-xs capitalize">· {{ inv.status }}</span></span
+                                        <a :href="`/invoices/${inv.id}/pdf`" target="_blank" class="text-foreground hover:underline"
+                                            >{{ inv.number }} <span class="text-xs capitalize text-muted-foreground">· {{ inv.status }}</span></a
                                         >
                                         <span
                                             >{{ money(inv.total)

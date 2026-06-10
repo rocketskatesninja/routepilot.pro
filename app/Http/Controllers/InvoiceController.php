@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\Tenant;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+/**
+ * Branded PDF invoices. The {invoice} binding is tenant-scoped, so staff only
+ * resolve their own tenant's invoices; a customer is additionally checked to
+ * own the invoice.
+ */
+class InvoiceController extends Controller
+{
+    public function download(Request $request, Invoice $invoice): Response
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        if ($user->role === 'customer') {
+            $customer = Customer::query()->where('user_id', $user->id)->first();
+            abort_unless($customer !== null && $invoice->getAttribute('customer_id') === $customer->id, 403);
+        } else {
+            abort_unless(in_array($user->role, ['tenant_admin', 'agent'], true), 403);
+        }
+
+        $invoice->load(['customer', 'lineItems']);
+        $tenant = app()->has('tenant') ? app('tenant') : null;
+
+        $pdf = Pdf::loadView('invoices.pdf', [
+            'invoice' => $invoice,
+            'tenant' => $tenant instanceof Tenant ? $tenant : null,
+        ]);
+
+        return $pdf->download("invoice-{$invoice->number}.pdf");
+    }
+}
