@@ -69,6 +69,8 @@ interface PoolDetail {
         agent_id: number | null;
         frequency: string;
         preferred_day: string | null;
+        hold_starts_at: string | null;
+        hold_ends_at: string | null;
     }[];
     latest_reading: {
         taken_on: string | null;
@@ -228,6 +230,8 @@ const subForm = useForm<{
     frequency: string;
     preferred_day: string;
     status: string;
+    hold_starts_at: string;
+    hold_ends_at: string;
 }>({
     pool_id: null,
     service_type_id: '',
@@ -235,6 +239,8 @@ const subForm = useForm<{
     frequency: 'weekly',
     preferred_day: '',
     status: 'active',
+    hold_starts_at: '',
+    hold_ends_at: '',
 });
 
 function openSubCreate() {
@@ -253,6 +259,8 @@ function openSubEdit(sub: Subscription) {
     subForm.frequency = sub.frequency;
     subForm.preferred_day = sub.preferred_day ?? '';
     subForm.status = sub.status;
+    subForm.hold_starts_at = sub.hold_starts_at ?? '';
+    subForm.hold_ends_at = sub.hold_ends_at ?? '';
     subForm.clearErrors();
     subFormMode.value = 'edit';
     subFormId.value = sub.id;
@@ -647,6 +655,17 @@ function removeSub(sub: Subscription) {
                                 <option value="paused">Paused</option>
                                 <option value="cancelled">Cancelled</option>
                             </select>
+                        </div>
+                        <div v-if="subFormMode === 'edit'" class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="hold_start">Vacation hold from</Label
+                                ><Input id="hold_start" v-model="subForm.hold_starts_at" type="date" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="hold_end">to</Label>
+                                <Input id="hold_end" v-model="subForm.hold_ends_at" type="date" />
+                                <p v-if="subForm.errors.hold_ends_at" class="text-xs text-red-600">{{ subForm.errors.hold_ends_at }}</p>
+                            </div>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="subFormOpen = false">Cancel</Button>

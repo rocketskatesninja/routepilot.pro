@@ -203,6 +203,8 @@ class PoolController extends Controller
                 'agent_id' => $sub->assigned_agent_id,
                 'frequency' => $sub->frequency,
                 'preferred_day' => $sub->preferred_day,
+                'hold_starts_at' => $sub->hold_starts_at?->toDateString(),
+                'hold_ends_at' => $sub->hold_ends_at?->toDateString(),
             ])->all(),
             'latest_reading' => $reading !== null ? [
                 'taken_on' => $reading->created_at?->toDateString(),
