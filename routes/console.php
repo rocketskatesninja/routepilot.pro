@@ -8,6 +8,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+// Drain the queue (campaign emails etc.) — runs ~once a minute, exits when empty.
+Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')->everyMinute()->withoutOverlapping();
+
 // Nightly automation (platform-wide; each command iterates active tenants).
 Schedule::command('app:backup-database')->dailyAt('01:00');
 Schedule::command('app:materialize-schedules')->dailyAt('02:00');

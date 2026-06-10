@@ -28,7 +28,7 @@ test('a tenant admin emails their customers (opt-outs excluded)', function () {
         ->post('/people/email', ['audience' => 'customers', 'subject' => 'Spring tips', 'body' => 'Hello!'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 3);
+    Mail::assertSent(CampaignMail::class, 3);
     expect(MailCampaign::query()->where('subject', 'Spring tips')->where('audience', 'customers')->exists())->toBeTrue();
 });
 
@@ -39,7 +39,7 @@ test('a tenant admin emails their agents', function () {
         ->post('/people/email', ['audience' => 'agents', 'subject' => 'Team', 'body' => 'Meeting'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 2);
+    Mail::assertSent(CampaignMail::class, 2);
 });
 
 test('a tenant admin cannot target other tenants', function () {
@@ -66,7 +66,7 @@ test('a tenant admin can email a hand-picked selection', function () {
         ->post('/people/email', ['audience' => 'selected', 'recipients' => ["customer:{$c1->id}", "customer:{$c3->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 2);
+    Mail::assertSent(CampaignMail::class, 2);
 });
 
 test('a selection cannot reach another tenant\'s customer', function () {
@@ -76,7 +76,7 @@ test('a selection cannot reach another tenant\'s customer', function () {
         ->post('/people/email', ['audience' => 'selected', 'recipients' => ["customer:{$foreign->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
         ->assertRedirect();
 
-    Mail::assertNothingQueued();
+    Mail::assertNothingSent();
 });
 
 test('a selected send requires a recipient list', function () {

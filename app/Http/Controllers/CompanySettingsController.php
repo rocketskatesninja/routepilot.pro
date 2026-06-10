@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateCompanyRequest;
+use App\Http\Requests\UpdateMailConfigRequest;
+use App\Models\Integration;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use Illuminate\Http\RedirectResponse;
@@ -33,7 +35,60 @@ class CompanySettingsController extends Controller
                 'provider' => TenantSetting::getFor($tenant->id, 'ai_provider') ?? 'anthropic',
                 'model' => TenantSetting::getFor($tenant->id, 'ai_model') ?? '',
             ],
+            'mail' => $this->mailConfig($tenant),
         ]);
+    }
+
+    public function updateMail(UpdateMailConfigRequest $request): RedirectResponse
+    {
+        $tenant = $this->tenant($request);
+        $data = $request->validated();
+
+        $existing = Integration::query()->where('integration_type', 'smtp')->first();
+        $existingConfig = is_array($existing?->getAttribute('config')) ? $existing->getAttribute('config') : [];
+        $password = (string) ($data['password'] ?? '');
+
+        Integration::query()->updateOrCreate(
+            ['integration_type' => 'smtp'],
+            [
+                'provider' => 'smtp',
+                'is_active' => true,
+                'config' => [
+                    'host' => $data['host'],
+                    'port' => (int) $data['port'],
+                    'encryption' => $data['encryption'] ?? 'tls',
+                    'username' => $data['username'] ?? null,
+                    // Keep the stored (encrypted) password if the field was left blank.
+                    'password' => $password !== '' ? $password : ($existingConfig['password'] ?? null),
+                    'from_address' => $data['from_address'] ?? null,
+                    'from_name' => $data['from_name'] ?? null,
+                ],
+            ],
+        );
+
+        return back()->with('success', 'Mail settings saved.');
+    }
+
+    /**
+     * The tenant's SMTP config for the form — never exposes the password.
+     *
+     * @return array<string, mixed>
+     */
+    private function mailConfig(Tenant $tenant): array
+    {
+        $smtp = Integration::query()->where('integration_type', 'smtp')->first();
+        $config = is_array($smtp?->getAttribute('config')) ? $smtp->getAttribute('config') : [];
+
+        return [
+            'host' => $config['host'] ?? '',
+            'port' => $config['port'] ?? 587,
+            'encryption' => $config['encryption'] ?? 'tls',
+            'username' => $config['username'] ?? '',
+            'from_address' => $config['from_address'] ?? '',
+            'from_name' => $config['from_name'] ?? '',
+            'has_password' => ! empty($config['password']),
+            'active' => (bool) ($smtp?->getAttribute('is_active')) && ! empty($config['host']),
+        ];
     }
 
     public function update(UpdateCompanyRequest $request): RedirectResponse

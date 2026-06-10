@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Mail\CampaignMail;
+use App\Jobs\SendCampaignEmail;
 use App\Models\Customer;
 use App\Models\MailCampaign;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -48,7 +47,7 @@ class SendCampaign
                 ? URL::signedRoute('unsubscribe', ['customer' => $recipient['customer_id']])
                 : null;
 
-            Mail::to($recipient['email'])->queue(new CampaignMail($subject, $body, $recipient['name'], $unsubscribe));
+            SendCampaignEmail::dispatch($recipient['email'], $subject, $body, $recipient['name'], $unsubscribe, $sender->tenant_id);
         }
 
         return $campaign;

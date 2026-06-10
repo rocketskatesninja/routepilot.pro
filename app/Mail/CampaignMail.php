@@ -6,6 +6,7 @@ namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -13,21 +14,29 @@ use Illuminate\Queue\SerializesModels;
 /**
  * A single campaign email. Body is treated as plain text (escaped) for
  * safety; a CAN-SPAM unsubscribe footer is appended for customer recipients.
+ * The From comes from the tenant's mail config (null = platform default).
  */
 class CampaignMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * @param  array{address: string, name: string}|null  $fromAddress
+     */
     public function __construct(
         public string $subjectLine,
         public string $body,
         public string $recipientName,
         public ?string $unsubscribeUrl,
+        public ?array $fromAddress = null,
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->subjectLine);
+        return new Envelope(
+            subject: $this->subjectLine,
+            from: $this->fromAddress !== null ? new Address($this->fromAddress['address'], $this->fromAddress['name']) : null,
+        );
     }
 
     public function content(): Content

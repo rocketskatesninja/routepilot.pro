@@ -9,6 +9,16 @@ import { Head, useForm } from '@inertiajs/vue3';
 const props = defineProps<{
     company: { name: string; timezone: string | null; brand_color: string | null; tax_rate_percent: number };
     ai: { provider: string; model: string };
+    mail: {
+        host: string;
+        port: number;
+        encryption: string;
+        username: string;
+        from_address: string;
+        from_name: string;
+        has_password: boolean;
+        active: boolean;
+    };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Company', href: '/company' }];
@@ -33,6 +43,17 @@ const timezones = [
 ];
 
 const submit = () => form.patch('/company', { preserveScroll: true });
+
+const mailForm = useForm({
+    host: props.mail.host,
+    port: props.mail.port,
+    encryption: props.mail.encryption || 'tls',
+    username: props.mail.username,
+    password: '',
+    from_address: props.mail.from_address,
+    from_name: props.mail.from_name,
+});
+const submitMail = () => mailForm.patch('/company/mail', { preserveScroll: true, onSuccess: () => mailForm.reset('password') });
 </script>
 
 <template>
@@ -92,6 +113,60 @@ const submit = () => form.patch('/company', { preserveScroll: true });
                     <span v-if="form.recentlySuccessful" class="text-sm text-emerald-600">Saved.</span>
                 </div>
             </form>
+
+            <div class="mt-8 border-t border-border pt-6">
+                <h2 class="font-medium">Outgoing email (SMTP)</h2>
+                <p class="text-sm text-muted-foreground">
+                    Send campaigns + statements from your own mail server.<span
+                        v-if="props.mail.active"
+                        class="text-emerald-600 dark:text-emerald-400"
+                    >
+                        · Active</span
+                    >
+                </p>
+                <form class="mt-4 space-y-5" @submit.prevent="submitMail">
+                    <div class="grid gap-4 sm:grid-cols-3">
+                        <div class="grid gap-2 sm:col-span-2">
+                            <Label for="host">Host</Label>
+                            <Input id="host" v-model="mailForm.host" placeholder="smtp.example.com" />
+                            <p v-if="mailForm.errors.host" class="text-sm text-red-600">{{ mailForm.errors.host }}</p>
+                        </div>
+                        <div class="grid gap-2"><Label for="port">Port</Label><Input id="port" v-model="mailForm.port" type="number" /></div>
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="enc">Encryption</Label>
+                            <select id="enc" v-model="mailForm.encryption" class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                                <option value="tls">TLS</option>
+                                <option value="ssl">SSL</option>
+                            </select>
+                        </div>
+                        <div class="grid gap-2"><Label for="user">Username</Label><Input id="user" v-model="mailForm.username" /></div>
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="pass">Password</Label>
+                        <Input
+                            id="pass"
+                            v-model="mailForm.password"
+                            type="password"
+                            autocomplete="new-password"
+                            :placeholder="props.mail.has_password ? '•••••••• (leave blank to keep)' : ''"
+                        />
+                    </div>
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div class="grid gap-2">
+                            <Label for="fromaddr">From address</Label>
+                            <Input id="fromaddr" v-model="mailForm.from_address" type="email" placeholder="hello@yourco.com" />
+                            <p v-if="mailForm.errors.from_address" class="text-sm text-red-600">{{ mailForm.errors.from_address }}</p>
+                        </div>
+                        <div class="grid gap-2"><Label for="fromname">From name</Label><Input id="fromname" v-model="mailForm.from_name" /></div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <Button type="submit" :disabled="mailForm.processing">Save mail settings</Button>
+                        <span v-if="mailForm.recentlySuccessful" class="text-sm text-emerald-600">Saved.</span>
+                    </div>
+                </form>
+            </div>
         </div>
     </AppLayout>
 </template>

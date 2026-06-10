@@ -94,6 +94,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Company settings (tenant_admin).
     Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
     Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
+    Route::patch('company/mail', [CompanySettingsController::class, 'updateMail'])->name('company.mail');
 
     // Super-admin platform console.
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');

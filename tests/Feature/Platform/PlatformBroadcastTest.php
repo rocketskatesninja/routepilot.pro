@@ -24,7 +24,7 @@ test('a super-admin emails every customer across all tenants', function () {
         ->post('/people/email', ['audience' => 'customers', 'subject' => 'Platform notice', 'body' => 'Hi all'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 2);
+    Mail::assertSent(CampaignMail::class, 2);
 });
 
 test('a super-admin emails every tenant admin', function () {
@@ -35,7 +35,7 @@ test('a super-admin emails every tenant admin', function () {
         ->post('/people/email', ['audience' => 'tenants', 'subject' => 'For owners', 'body' => 'Update'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 2);
+    Mail::assertSent(CampaignMail::class, 2);
 });
 
 test('a super-admin emails every agent across all tenants', function () {
@@ -45,7 +45,7 @@ test('a super-admin emails every agent across all tenants', function () {
         ->post('/people/email', ['audience' => 'agents', 'subject' => 'Field memo', 'body' => 'Note'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 2);
+    Mail::assertSent(CampaignMail::class, 2);
 });
 
 test('a super-admin can email a hand-picked selection across tenants', function () {
@@ -56,7 +56,7 @@ test('a super-admin can email a hand-picked selection across tenants', function 
         ->post('/people/email', ['audience' => 'selected', 'recipients' => ["customer:{$a->id}", "customer:{$b->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 2);
+    Mail::assertSent(CampaignMail::class, 2);
 });
 
 test('the super People screen lists pickable people + audiences', function () {
@@ -81,5 +81,5 @@ test('a super-admin can email a picked tenant (reaches its admins)', function ()
         ->post('/people/email', ['audience' => 'selected', 'recipients' => ["tenant:{$tenant->id}"], 'subject' => 'Hi', 'body' => 'Yo'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 1);
+    Mail::assertSent(CampaignMail::class, 1);
 });
