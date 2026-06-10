@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
@@ -23,6 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
     Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
 
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');

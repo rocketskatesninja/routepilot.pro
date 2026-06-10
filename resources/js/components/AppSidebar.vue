@@ -31,7 +31,7 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Inventory', href: '/inventory', icon: FlaskConical },
         { title: 'Reports', href: '/reports', icon: FileText },
-        { title: 'Billing', href: '/dashboard', icon: Banknote },
+        { title: 'Balances', href: '/balances', icon: Banknote },
         { title: 'Assistant', href: '/assistant', icon: Bot },
     ],
     agent: [

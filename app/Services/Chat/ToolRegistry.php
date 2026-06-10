@@ -6,6 +6,7 @@ namespace App\Services\Chat;
 
 use App\Services\Chat\Tools\ChangePreferredDay;
 use App\Services\Chat\Tools\DeleteStops;
+use App\Services\Chat\Tools\LookupBalance;
 use App\Services\Chat\Tools\LookupChemistry;
 use App\Services\Chat\Tools\LookupCustomer;
 use App\Services\Chat\Tools\LookupInventory;
@@ -16,8 +17,7 @@ use App\Services\Chat\Tools\SkipStop;
 
 /**
  * Registry of AI tools available to the assistant (tenant-admin role).
- * Add a tool by appending its class here. (LookupBalance lands with the
- * customer-billing schema in Phase 6.)
+ * Add a tool by appending its class here.
  */
 class ToolRegistry
 {
@@ -38,6 +38,7 @@ class ToolRegistry
         LookupChemistry::class,
         LookupServiceHistory::class,
         LookupInventory::class,
+        LookupBalance::class,
     ];
 
     /**
