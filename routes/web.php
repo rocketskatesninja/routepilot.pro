@@ -66,6 +66,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     Route::post('customers/{customer}/portal', [CustomerController::class, 'grantPortal'])->name('customers.portal');
+    Route::get('customers/{customer}/export', [CustomerController::class, 'export'])->name('customers.export');
     Route::post('people/email', [MailController::class, 'send'])->name('people.email');
     Route::post('agents', [AgentController::class, 'store'])->name('agents.store');
     Route::patch('agents/{agent}', [AgentController::class, 'update'])->name('agents.update');

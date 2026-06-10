@@ -250,6 +250,10 @@ function grantPortal() {
     if (!pw || pw.length < 8) return;
     router.post(`/customers/${props.selected.id}/portal`, { password: pw }, { preserveScroll: true });
 }
+function exportCustomer() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    window.open(`/customers/${props.selected.id}/export`, '_blank');
+}
 
 // --- agent create / edit ---
 const agentFormOpen = ref(false);
@@ -418,6 +422,7 @@ function destroyAgent() {
                             <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
+                                <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
                                 <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
                                     ><Trash2 class="mr-1 size-3.5" /> Remove</Button
                                 >
