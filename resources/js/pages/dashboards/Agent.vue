@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
+import { ChevronRight } from 'lucide-vue-next';
 
 defineProps<{
     agent_name: string;
@@ -47,13 +48,24 @@ const statusClasses: Record<string, string> = {
             <div class="rounded-xl border border-border">
                 <h2 class="border-b border-border px-4 py-2 font-medium">Today's route</h2>
                 <ul class="divide-y divide-border text-sm">
-                    <li v-for="(stop, i) in today_stops" :key="stop.id" class="flex items-center justify-between px-4 py-2.5">
-                        <span
-                            ><span class="mr-2 text-muted-foreground">{{ i + 1 }}.</span>{{ stop.pool }}</span
+                    <li v-for="(stop, i) in today_stops" :key="stop.id">
+                        <Link
+                            :href="`/visit/${stop.id}`"
+                            class="flex items-center justify-between gap-2 px-4 py-2.5 transition-colors hover:bg-muted/40"
                         >
-                        <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClasses[stop.status] ?? 'bg-muted'">
-                            {{ stop.status.replace('_', ' ') }}
-                        </span>
+                            <span
+                                ><span class="mr-2 text-muted-foreground">{{ i + 1 }}.</span>{{ stop.pool }}</span
+                            >
+                            <span class="flex items-center gap-1.5">
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                    :class="statusClasses[stop.status] ?? 'bg-muted'"
+                                >
+                                    {{ stop.status.replace('_', ' ') }}
+                                </span>
+                                <ChevronRight class="size-4 text-muted-foreground" />
+                            </span>
+                        </Link>
                     </li>
                     <li v-if="today_stops.length === 0" class="px-4 py-6 text-center text-muted-foreground">No stops scheduled today.</li>
                 </ul>

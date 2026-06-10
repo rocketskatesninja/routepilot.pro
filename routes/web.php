@@ -14,6 +14,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\VisitController;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -37,6 +38,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
     Route::post('routes/{route}/optimize', [ScheduleController::class, 'optimize'])->name('routes.optimize');
     Route::post('stops/{stop}/skip', [ScheduleController::class, 'skipStop'])->name('stops.skip');
+
+    // Agent at-pool visit flow.
+    Route::get('visit/{stop}', [VisitController::class, 'show'])->name('visit.show');
+    Route::post('visit/{stop}/analyze', [VisitController::class, 'analyze'])->name('visit.analyze');
+    Route::post('visit/{stop}/complete', [VisitController::class, 'complete'])->name('visit.complete');
     Route::post('subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
     Route::patch('subscriptions/{subscription}', [SubscriptionController::class, 'update'])->name('subscriptions.update');
     Route::delete('subscriptions/{subscription}', [SubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
