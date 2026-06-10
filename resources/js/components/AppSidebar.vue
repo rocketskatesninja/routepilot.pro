@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Banknote, CalendarDays, ClipboardList, LayoutGrid, Map, Settings, ShieldCheck, Users, Waves } from 'lucide-vue-next';
+import { Banknote, Bot, CalendarDays, ClipboardList, LayoutGrid, Map, Settings, ShieldCheck, Users, Waves } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -30,14 +30,17 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Services', href: '/services', icon: ClipboardList },
         { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Billing', href: '/dashboard', icon: Banknote },
+        { title: 'Assistant', href: '/assistant', icon: Bot },
     ],
     agent: [
         { title: 'Today', href: '/dashboard', icon: CalendarDays },
         { title: 'My Route', href: '/dashboard', icon: Map },
+        { title: 'Assistant', href: '/assistant', icon: Bot },
     ],
     customer: [
         { title: 'My Pools', href: '/dashboard', icon: Waves },
         { title: 'Billing', href: '/dashboard', icon: Banknote },
+        { title: 'Assistant', href: '/assistant', icon: Bot },
     ],
 };
 

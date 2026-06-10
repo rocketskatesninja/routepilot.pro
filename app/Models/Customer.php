@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPersonName;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,11 +15,23 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Customer — a homeowner/account the tenant services. Tenant-scoped.
+ *
+ * @property string $first_name
+ * @property string|null $last_name
+ * @property string|null $email
+ * @property string|null $phone
+ * @property string|null $address_line1
+ * @property string|null $address_line2
+ * @property string|null $city
+ * @property string|null $state
+ * @property string|null $zip
+ * @property string|null $notes
+ * @property int|null $user_id
  */
 class Customer extends Model
 {
     /** @use HasFactory<CustomerFactory> */
-    use BelongsToTenant, HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, HasPersonName, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [

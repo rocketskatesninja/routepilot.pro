@@ -14,6 +14,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * ChemicalReading — the water-test values captured during a visit.
  * One per visit; the chemistry engine analyzes these against the
  * pool's target ranges and writes back the computed LSI score.
+ *
+ * @property float|null $free_chlorine
+ * @property float|null $total_chlorine
+ * @property float|null $ph
+ * @property float|null $alkalinity
+ * @property float|null $calcium_hardness
+ * @property float|null $cyanuric_acid
+ * @property float|null $salt
+ * @property float|null $tds
+ * @property float|null $phosphates
+ * @property float|null $water_temperature
+ * @property float|null $lsi_score
  */
 class ChemicalReading extends Model
 {

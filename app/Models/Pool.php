@@ -17,6 +17,20 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Pool — a body of water serviced for a customer. Tenant-scoped.
  * `custom_target_ranges` overrides the tenant/global chemistry targets.
  *
+ * @property string $name
+ * @property string $type
+ * @property int|null $volume_gallons
+ * @property string|null $surface_type
+ * @property string $sanitizer_type
+ * @property string|null $filter_type
+ * @property string|null $pump_type
+ * @property bool $has_heater
+ * @property bool $has_automation
+ * @property bool $has_pool_cleaner
+ * @property bool $has_cover
+ * @property bool $has_water_feature
+ * @property bool $has_auto_fill
+ * @property string|null $notes
  * @property array<string, array{min?: float|int, max?: float|int}>|null $custom_target_ranges
  * @property-read ServiceLocation|null $serviceLocation
  */

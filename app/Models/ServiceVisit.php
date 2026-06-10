@@ -18,6 +18,8 @@ use Illuminate\Support\Carbon;
  * the chemical reading, treatments applied, and photos. A null
  * route_stop_id means an ad-hoc (off-route) visit.
  *
+ * @property string $status
+ * @property string|null $notes
  * @property Carbon|null $visited_at
  * @property Carbon|null $completed_at
  * @property Carbon|null $paid_at

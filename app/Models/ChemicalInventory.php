@@ -14,6 +14,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * ChemicalInventory — central tenant stock of a chemical. Treatments deduct
  * from it; stock at/below `reorder_threshold` drives reorder alerts. Modeled
  * with a future per-truck location in mind (no truck_id yet).
+ *
+ * @property string $chemical_name
+ * @property string $unit
+ * @property string|null $supplier
+ * @property bool $is_active
  */
 class ChemicalInventory extends Model
 {

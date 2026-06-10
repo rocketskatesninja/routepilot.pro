@@ -9,6 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * ChatMessage — one turn in a ChatSession (user / assistant / system).
+ *
+ * @property string $role
+ * @property string $content
  */
 class ChatMessage extends Model
 {

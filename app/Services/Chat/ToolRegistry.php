@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
+use App\Services\Chat\Tools\ChangePreferredDay;
+use App\Services\Chat\Tools\DeleteStops;
+use App\Services\Chat\Tools\LookupChemistry;
+use App\Services\Chat\Tools\LookupCustomer;
+use App\Services\Chat\Tools\LookupInventory;
+use App\Services\Chat\Tools\LookupPool;
+use App\Services\Chat\Tools\LookupServiceHistory;
+use App\Services\Chat\Tools\ReassignAgent;
+use App\Services\Chat\Tools\SkipStop;
+
 /**
- * Registry of AI tools available to the assistant.
- *
- * The concrete tools (LookupCustomer/Pool/Chemistry/ServiceHistory/
- * Inventory/Balance + the ReassignAgent/SkipStop/DeleteStops/
- * ChangePreferredDay actions) are ported in Phase 3 alongside the
- * back-office models and controllers they read and mutate; add each class
- * to $toolClasses there.
+ * Registry of AI tools available to the assistant (tenant-admin role).
+ * Add a tool by appending its class here. (LookupBalance lands with the
+ * customer-billing schema in Phase 6.)
  */
 class ToolRegistry
 {
@@ -20,7 +26,19 @@ class ToolRegistry
      *
      * @var list<class-string<AiTool>>
      */
-    protected static array $toolClasses = [];
+    protected static array $toolClasses = [
+        // Action tools — mutate the schedule / assignments.
+        ChangePreferredDay::class,
+        DeleteStops::class,
+        ReassignAgent::class,
+        SkipStop::class,
+        // Lookup tools — read-only queries.
+        LookupCustomer::class,
+        LookupPool::class,
+        LookupChemistry::class,
+        LookupServiceHistory::class,
+        LookupInventory::class,
+    ];
 
     /**
      * Cached tool instances (built once per request).

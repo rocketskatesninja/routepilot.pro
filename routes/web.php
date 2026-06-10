@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
@@ -18,6 +19,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
     Route::get('people', [PeopleController::class, 'index'])->name('people.index');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+
+    // AI assistant (all roles).
+    Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
+    Route::post('assistant/send', [ChatController::class, 'send'])->name('assistant.send');
 });
 
 require __DIR__.'/settings.php';

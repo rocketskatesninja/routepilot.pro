@@ -52,8 +52,10 @@ abstract class AiTool
      * don't copy-paste the whereRaw. Column names are caller-fixed, never
      * user input (the value is bound).
      *
-     * @param  Builder<Model>  $query
-     * @return Builder<Model>
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
     protected function whereNameLike(Builder $query, string $name, string $firstCol = 'first_name', string $lastCol = 'last_name'): Builder
     {
