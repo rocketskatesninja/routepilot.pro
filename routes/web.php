@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,6 +21,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
     Route::get('people', [PeopleController::class, 'index'])->name('people.index');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+    Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
