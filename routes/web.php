@@ -11,6 +11,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\MailController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\PortalController;
@@ -93,6 +94,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
     Route::post('requests', [RequestController::class, 'store'])->name('requests.store');
     Route::post('requests/{serviceRequest}/resolve', [RequestController::class, 'resolve'])->name('requests.resolve');
+
+    // In-app notifications (all roles).
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readall');
 
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');

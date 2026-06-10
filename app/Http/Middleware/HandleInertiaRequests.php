@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                     ? $user->getAllPermissions()->pluck('name')->values()
                     : [],
                 'impersonating' => $request->session()->has('impersonator_id'),
+                'unread' => $user !== null ? $user->unreadNotifications()->count() : 0,
             ],
             'tenant' => $tenant instanceof Tenant ? [
                 'id' => $tenant->id,

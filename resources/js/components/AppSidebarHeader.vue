@@ -2,10 +2,16 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import type { BreadcrumbItemType } from '@/types';
+import { Link, usePage } from '@inertiajs/vue3';
+import { Bell } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 defineProps<{
     breadcrumbs?: BreadcrumbItemType[];
 }>();
+
+const page = usePage();
+const unread = computed(() => (page.props.auth as { unread?: number } | undefined)?.unread ?? 0);
 </script>
 
 <template>
@@ -34,5 +40,17 @@ defineProps<{
                 </Breadcrumb>
             </template>
         </div>
+        <Link
+            href="/notifications"
+            class="relative ml-auto rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Notifications"
+        >
+            <Bell class="size-5" />
+            <span
+                v-if="unread > 0"
+                class="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                >{{ unread > 9 ? '9+' : unread }}</span
+            >
+        </Link>
     </header>
 </template>
