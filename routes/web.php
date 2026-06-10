@@ -32,6 +32,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
+    Route::post('services', [ServiceController::class, 'store'])->name('services.store');
+    Route::patch('services/{service}', [ServiceController::class, 'update'])->name('services.update');
+    Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');

@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\CreateServiceType;
+use App\Actions\UpdateServiceType;
+use App\Http\Requests\StoreServiceTypeRequest;
+use App\Http\Requests\UpdateServiceTypeRequest;
 use App\Models\ServiceType;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,7 +62,36 @@ class ServiceController extends Controller
             'services' => $services,
             'selected' => $selected,
             'filters' => ['search' => $search],
+            'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
+    }
+
+    public function store(StoreServiceTypeRequest $request, CreateServiceType $action): RedirectResponse
+    {
+        $action->handle($request->validated());
+
+        return back()->with('success', 'Service type added.');
+    }
+
+    public function update(UpdateServiceTypeRequest $request, ServiceType $service, UpdateServiceType $action): RedirectResponse
+    {
+        $action->handle($service, $request->validated());
+
+        return back()->with('success', 'Service type updated.');
+    }
+
+    public function destroy(Request $request, ServiceType $service): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        // Never cascade-delete subscription history — retire via inactive instead.
+        if ($service->subscriptions()->exists()) {
+            return back()->with('error', 'This service type is in use. Mark it inactive instead.');
+        }
+
+        $service->delete();
+
+        return back()->with('success', 'Service type removed.');
     }
 
     /** Staff-only (tenant_admin / agent). */
@@ -92,6 +126,35 @@ class ServiceController extends Controller
             'tasks' => array_values($type->tasks ?? []),
             'pools' => (int) $type->getAttribute('active_pools_count'),
             'is_active' => $type->is_active,
+            // Raw values for the edit form.
+            'fields' => [
+                'name' => $type->name,
+                'category' => $type->category,
+                'frequency' => $type->frequency,
+                'estimated_duration_minutes' => $type->estimated_duration_minutes,
+                'price' => $type->price,
+                'chemicals_included' => $type->chemicals_included,
+                'description' => $type->description,
+                'tasks' => array_values($type->tasks ?? []),
+                'field_modules' => $this->moduleFlags($type),
+                'is_active' => $type->is_active,
+            ],
         ];
+    }
+
+    /**
+     * Current module on/off flags (default all on), keyed for the form.
+     *
+     * @return array<string, bool>
+     */
+    private function moduleFlags(ServiceType $type): array
+    {
+        $flags = $type->field_modules ?? [];
+        $out = [];
+        foreach (array_keys(self::MODULES) as $key) {
+            $out[$key] = ! array_key_exists($key, $flags) || (bool) $flags[$key];
+        }
+
+        return $out;
     }
 }

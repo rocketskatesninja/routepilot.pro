@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { ClipboardList } from 'lucide-vue-next';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { ClipboardList, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
 interface ServiceRow {
@@ -14,6 +16,19 @@ interface ServiceRow {
     frequency: string;
     price: string;
     pools: number;
+    is_active: boolean;
+}
+
+interface ServiceFields {
+    name: string;
+    category: string | null;
+    frequency: string;
+    estimated_duration_minutes: number;
+    price: string;
+    chemicals_included: boolean;
+    description: string | null;
+    tasks: string[];
+    field_modules: Record<string, boolean>;
     is_active: boolean;
 }
 
@@ -30,17 +45,14 @@ interface ServiceDetail {
     tasks: string[];
     pools: number;
     is_active: boolean;
-}
-
-interface Paginated<T> {
-    data: T[];
-    total: number;
+    fields: ServiceFields;
 }
 
 const props = defineProps<{
-    services: Paginated<ServiceRow>;
+    services: { data: ServiceRow[]; total: number };
     selected: ServiceDetail | null;
     filters: { search: string };
+    canManage: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Services', href: '/services' }];
@@ -52,15 +64,84 @@ watch(search, (value) => {
     timer = setTimeout(() => router.get('/services', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }), 300);
 });
 
-function open(id: number) {
-    router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
-}
-
-function closeDrawer() {
-    router.get('/services', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
-}
-
+const open = (id: number) => router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
+const closeDrawer = () => router.get('/services', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = (price: string) => `$${Number(price).toFixed(2)}`;
+
+const moduleLabels: Record<string, string> = { tasks: 'Tasks', chemistry: 'Chemistry', treatments: 'Treatments', photos: 'Photos' };
+
+// --- create / edit ---
+const formOpen = ref(false);
+const formMode = ref<'create' | 'edit'>('create');
+const formId = ref<number | null>(null);
+
+const blankModules = (): Record<string, boolean> => ({ tasks: true, chemistry: true, treatments: true, photos: true });
+const form = useForm<{
+    name: string;
+    category: string;
+    frequency: string;
+    estimated_duration_minutes: number;
+    price: string;
+    chemicals_included: boolean;
+    description: string;
+    tasks: string[];
+    field_modules: Record<string, boolean>;
+    is_active: boolean;
+}>({
+    name: '',
+    category: '',
+    frequency: 'weekly',
+    estimated_duration_minutes: 30,
+    price: '0',
+    chemicals_included: true,
+    description: '',
+    tasks: [],
+    field_modules: blankModules(),
+    is_active: true,
+});
+
+function openCreate() {
+    form.reset();
+    form.field_modules = blankModules();
+    form.tasks = [];
+    form.clearErrors();
+    formMode.value = 'create';
+    formId.value = null;
+    formOpen.value = true;
+}
+
+function openEdit() {
+    if (!props.selected) return;
+    const f = props.selected.fields;
+    form.name = f.name;
+    form.category = f.category ?? '';
+    form.frequency = f.frequency;
+    form.estimated_duration_minutes = f.estimated_duration_minutes;
+    form.price = f.price;
+    form.chemicals_included = f.chemicals_included;
+    form.description = f.description ?? '';
+    form.tasks = [...f.tasks];
+    form.field_modules = { ...blankModules(), ...f.field_modules };
+    form.is_active = f.is_active;
+    form.clearErrors();
+    formMode.value = 'edit';
+    formId.value = props.selected.id;
+    formOpen.value = true;
+}
+
+function submitForm() {
+    if (formMode.value === 'create') {
+        form.post('/services', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+    } else if (formId.value !== null) {
+        form.patch(`/services/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+    }
+}
+
+function destroyService() {
+    if (!props.selected) return;
+    if (!confirm('Remove this service type?')) return;
+    router.delete(`/services/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
 </script>
 
 <template>
@@ -73,7 +154,10 @@ const money = (price: string) => `$${Number(price).toFixed(2)}`;
                     <h1 class="text-xl font-semibold">Services</h1>
                     <p class="text-sm text-muted-foreground">Service-type catalog</p>
                 </div>
-                <Input v-model="search" type="search" placeholder="Search services…" class="max-w-xs" />
+                <div class="flex items-center gap-2">
+                    <Input v-model="search" type="search" placeholder="Search services…" class="max-w-xs" />
+                    <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Service</Button>
+                </div>
             </div>
 
             <div class="overflow-hidden rounded-xl border border-border">
@@ -100,10 +184,7 @@ const money = (price: string) => `$${Number(price).toFixed(2)}`;
                             <td class="px-4 py-2.5 text-muted-foreground">{{ money(service.price) }}</td>
                             <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ service.pools }}</td>
                             <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="service.is_active ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'"
-                                >
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="service.is_active ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'">
                                     {{ service.is_active ? 'Active' : 'Inactive' }}
                                 </span>
                             </td>
@@ -118,7 +199,7 @@ const money = (price: string) => `$${Number(price).toFixed(2)}`;
                 </table>
             </div>
 
-            <Sheet :open="props.selected !== null" @update:open="(open: boolean) => !open && closeDrawer()">
+            <Sheet :open="props.selected !== null && !formOpen" @update:open="(o: boolean) => !o && closeDrawer()">
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -127,6 +208,11 @@ const money = (price: string) => `$${Number(price).toFixed(2)}`;
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
+                            <div v-if="props.canManage" class="flex gap-2">
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyService"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                            </div>
+
                             <section>
                                 <dl class="space-y-1 text-muted-foreground">
                                     <div class="flex justify-between"><dt>Price</dt><dd>{{ money(props.selected.price) }}</dd></div>
@@ -152,6 +238,85 @@ const money = (price: string) => `$${Number(price).toFixed(2)}`;
                             </section>
                         </div>
                     </template>
+                </SheetContent>
+            </Sheet>
+
+            <!-- create / edit service type -->
+            <Sheet v-model:open="formOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>{{ formMode === 'create' ? 'New service type' : 'Edit service type' }}</SheetTitle>
+                        <SheetDescription>A reusable visit template pools subscribe to.</SheetDescription>
+                    </SheetHeader>
+
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="grid gap-1.5">
+                            <Label for="name">Name</Label>
+                            <Input id="name" v-model="form.name" />
+                            <p v-if="form.errors.name" class="text-xs text-red-600">{{ form.errors.name }}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="category">Category</Label>
+                                <Input id="category" v-model="form.category" placeholder="routine, chemistry…" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="frequency">Frequency</Label>
+                                <select id="frequency" v-model="form.frequency" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option value="weekly">Weekly</option>
+                                    <option value="biweekly">Biweekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="one_time">One-time</option>
+                                    <option value="seasonal">Seasonal</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="price">Price ($)</Label>
+                                <Input id="price" v-model="form.price" type="number" step="0.01" min="0" />
+                                <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="duration">Duration (min)</Label>
+                                <Input id="duration" v-model="form.estimated_duration_minutes" type="number" min="5" max="600" />
+                            </div>
+                        </div>
+
+                        <label class="flex items-center gap-2"><input v-model="form.chemicals_included" type="checkbox" /> Chemicals included in price</label>
+
+                        <div>
+                            <span class="text-xs font-medium text-muted-foreground">At-pool field steps</span>
+                            <div class="mt-1 grid grid-cols-2 gap-1">
+                                <label v-for="(label, key) in moduleLabels" :key="key" class="flex items-center gap-2"><input v-model="form.field_modules[key]" type="checkbox" /> {{ label }}</label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="mb-1 flex items-center justify-between">
+                                <span class="text-xs font-medium text-muted-foreground">Task checklist</span>
+                                <Button type="button" size="sm" variant="outline" @click="form.tasks.push('')"><Plus class="mr-1 size-3.5" /> Task</Button>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div v-for="(task, i) in form.tasks" :key="i" class="flex gap-2">
+                                    <Input v-model="form.tasks[i]" placeholder="e.g. Brush walls" />
+                                    <Button type="button" size="icon" variant="outline" @click="form.tasks.splice(i, 1)"><X class="size-4" /></Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-1.5">
+                            <Label for="desc">Description</Label>
+                            <textarea id="desc" v-model="form.description" rows="2" class="rounded-md border border-input bg-background px-3 py-2 text-sm"></textarea>
+                        </div>
+
+                        <label class="flex items-center gap-2"><input v-model="form.is_active" type="checkbox" /> Active (offered to new pools)</label>
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add service' : 'Save' }}</Button>
+                        </div>
+                    </form>
                 </SheetContent>
             </Sheet>
         </div>
