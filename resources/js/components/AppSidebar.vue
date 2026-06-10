@@ -25,7 +25,7 @@ const navByRole: Record<string, NavItem[]> = {
     tenant_admin: [
         { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
         { title: 'Schedule', href: '/dashboard', icon: CalendarDays },
-        { title: 'Pools', href: '/dashboard', icon: Waves },
+        { title: 'Pools', href: '/pools', icon: Waves },
         { title: 'People', href: '/dashboard', icon: Users },
         { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Billing', href: '/dashboard', icon: Banknote },

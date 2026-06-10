@@ -19,6 +19,8 @@ use Illuminate\Support\Carbon;
  * cadence specifics (week_type for biweekly, day_of_month for monthly).
  * A dated hold window suspends materialization and auto-resumes.
  *
+ * @property string $frequency
+ * @property string|null $preferred_day
  * @property array<string, mixed>|null $frequency_details
  * @property Carbon|null $hold_starts_at
  * @property Carbon|null $hold_ends_at
@@ -70,5 +72,18 @@ class ServiceSubscription extends Model
         return $this->hold_starts_at !== null
             && $this->hold_ends_at !== null
             && $date->betweenIncluded($this->hold_starts_at, $this->hold_ends_at);
+    }
+
+    /** Human-readable cadence label, e.g. "Weekly on Tuesday". */
+    public function scheduleLabel(): string
+    {
+        $day = $this->preferred_day !== null && $this->preferred_day !== '' ? ' on '.ucfirst($this->preferred_day) : '';
+
+        return match ($this->frequency) {
+            'weekly' => 'Weekly'.$day,
+            'biweekly' => 'Biweekly'.$day.(isset($this->frequency_details['week_type']) ? " ({$this->frequency_details['week_type']} weeks)" : ''),
+            'monthly' => 'Monthly'.(isset($this->frequency_details['day_of_month']) ? ' on day '.$this->frequency_details['day_of_month'] : ''),
+            default => ucfirst($this->frequency),
+        };
     }
 }

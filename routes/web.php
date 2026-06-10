@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PoolController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -10,6 +11,11 @@ Route::get('/', function () {
 Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+// Back-office (staff). Tenant is resolved from the session user by ResolveTenant.
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
