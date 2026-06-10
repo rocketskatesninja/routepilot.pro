@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
@@ -55,6 +56,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('pools', [PoolController::class, 'store'])->name('pools.store');
     Route::patch('pools/{pool}', [PoolController::class, 'update'])->name('pools.update');
     Route::delete('pools/{pool}', [PoolController::class, 'destroy'])->name('pools.destroy');
+    Route::post('equipment', [EquipmentController::class, 'store'])->name('equipment.store');
+    Route::patch('equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
+    Route::delete('equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
+    Route::post('equipment/{equipment}/service', [EquipmentController::class, 'logService'])->name('equipment.service');
     Route::get('people', [PeopleController::class, 'index'])->name('people.index');
     Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');

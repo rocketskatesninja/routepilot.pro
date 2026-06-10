@@ -10,7 +10,9 @@ use App\Http\Requests\StorePoolRequest;
 use App\Http\Requests\UpdatePoolRequest;
 use App\Models\ChemicalReading;
 use App\Models\Customer;
+use App\Models\EquipmentServiceLog;
 use App\Models\Pool;
+use App\Models\PoolEquipment;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\User;
@@ -205,6 +207,22 @@ class PoolController extends Controller
                 'preferred_day' => $sub->preferred_day,
                 'hold_starts_at' => $sub->hold_starts_at?->toDateString(),
                 'hold_ends_at' => $sub->hold_ends_at?->toDateString(),
+            ])->all(),
+            'equipment_items' => $pool->equipmentItems()->with('serviceLog')->latest('id')->get()->map(fn (PoolEquipment $e): array => [
+                'id' => $e->id,
+                'type' => $e->type,
+                'make' => $e->getAttribute('make'),
+                'model' => $e->getAttribute('model'),
+                'serial' => $e->getAttribute('serial'),
+                'installed_on' => $e->installed_on?->toDateString(),
+                'warranty_until' => $e->warranty_until?->toDateString(),
+                'notes' => $e->getAttribute('notes'),
+                'service_log' => $e->serviceLog->map(fn (EquipmentServiceLog $l): array => [
+                    'id' => $l->id,
+                    'on' => $l->serviced_on?->toDateString(),
+                    'description' => $l->description,
+                    'cost' => (float) $l->cost,
+                ])->all(),
             ])->all(),
             'latest_reading' => $reading !== null ? [
                 'taken_on' => $reading->created_at?->toDateString(),

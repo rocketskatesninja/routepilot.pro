@@ -72,6 +72,17 @@ interface PoolDetail {
         hold_starts_at: string | null;
         hold_ends_at: string | null;
     }[];
+    equipment_items: {
+        id: number;
+        type: string;
+        make: string | null;
+        model: string | null;
+        serial: string | null;
+        installed_on: string | null;
+        warranty_until: string | null;
+        notes: string | null;
+        service_log: { id: number; on: string | null; description: string; cost: number }[];
+    }[];
     latest_reading: {
         taken_on: string | null;
         free_chlorine: number | null;
@@ -304,6 +315,54 @@ function removeSub(sub: Subscription) {
     if (!confirm('Remove this service plan?')) return;
     router.delete(`/subscriptions/${sub.id}`, { preserveScroll: true });
 }
+
+// --- equipment ---
+type Equipment = PoolDetail['equipment_items'][number];
+const equipmentTypes = ['pump', 'filter', 'heater', 'salt_cell', 'cleaner', 'automation', 'other'];
+
+const equipOpen = ref(false);
+const equipForm = useForm({ pool_id: 0, type: 'pump', make: '', model: '', serial: '', installed_on: '', warranty_until: '', notes: '' });
+function openEquip() {
+    if (!props.selected) return;
+    equipForm.reset();
+    equipForm.pool_id = props.selected.id;
+    equipForm.clearErrors();
+    equipOpen.value = true;
+}
+function submitEquip() {
+    equipForm.post('/equipment', {
+        preserveScroll: true,
+        onSuccess: () => {
+            equipOpen.value = false;
+            equipForm.reset();
+        },
+    });
+}
+function removeEquip(item: Equipment) {
+    if (!confirm('Remove this equipment? Its service history is kept.')) return;
+    router.delete(`/equipment/${item.id}`, { preserveScroll: true });
+}
+
+const serviceOpen = ref(false);
+const serviceId = ref<number | null>(null);
+const serviceForm = useForm({ serviced_on: '', description: '', cost: '', bill: false });
+function openService(item: Equipment) {
+    serviceForm.reset();
+    serviceForm.clearErrors();
+    serviceId.value = item.id;
+    serviceOpen.value = true;
+}
+function submitService() {
+    if (serviceId.value === null) return;
+    serviceForm.post(`/equipment/${serviceId.value}/service`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            serviceOpen.value = false;
+            serviceForm.reset();
+        },
+    });
+}
+const labelize = (s: string) => s.replace('_', ' ');
 </script>
 
 <template>
@@ -357,7 +416,10 @@ function removeSub(sub: Subscription) {
                 </table>
             </div>
 
-            <Sheet :open="props.selected !== null && !formOpen && !subFormOpen" @update:open="(open: boolean) => !open && closeDrawer()">
+            <Sheet
+                :open="props.selected !== null && !formOpen && !subFormOpen && !equipOpen && !serviceOpen"
+                @update:open="(open: boolean) => !open && closeDrawer()"
+            >
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -474,8 +536,117 @@ function removeSub(sub: Subscription) {
                                     </li>
                                 </ul>
                             </section>
+
+                            <section>
+                                <div class="mb-1 flex items-center justify-between">
+                                    <h3 class="font-medium">Equipment</h3>
+                                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openEquip"
+                                        ><Plus class="mr-1 size-3.5" /> Equipment</Button
+                                    >
+                                </div>
+                                <ul class="space-y-2">
+                                    <li
+                                        v-for="item in props.selected.equipment_items"
+                                        :key="item.id"
+                                        class="rounded-md border border-border p-2 text-muted-foreground"
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-medium capitalize text-foreground">{{ labelize(item.type) }}</span>
+                                            <span v-if="item.make || item.model" class="text-xs">{{
+                                                [item.make, item.model].filter(Boolean).join(' ')
+                                            }}</span>
+                                        </div>
+                                        <ul v-if="item.service_log.length" class="mt-1 space-y-0.5 text-xs">
+                                            <li v-for="log in item.service_log" :key="log.id" class="flex justify-between gap-2">
+                                                <span class="truncate">{{ log.on }} · {{ log.description }}</span>
+                                                <span v-if="log.cost > 0" class="shrink-0">${{ log.cost.toFixed(2) }}</span>
+                                            </li>
+                                        </ul>
+                                        <div v-if="props.canManage" class="mt-1.5 flex gap-3 text-xs">
+                                            <button class="hover:text-foreground" @click="openService(item)">Log service</button>
+                                            <button class="text-red-600 hover:text-red-700" @click="removeEquip(item)">Remove</button>
+                                        </div>
+                                    </li>
+                                    <li v-if="props.selected.equipment_items.length === 0" class="text-sm text-muted-foreground">
+                                        No equipment tracked yet.
+                                    </li>
+                                </ul>
+                            </section>
                         </div>
                     </template>
+                </SheetContent>
+            </Sheet>
+
+            <!-- add equipment -->
+            <Sheet v-model:open="equipOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Add equipment</SheetTitle>
+                        <SheetDescription>Track a pump, filter, heater, salt cell, etc.</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitEquip">
+                        <div class="grid gap-1.5">
+                            <Label for="eq_type">Type</Label>
+                            <select
+                                id="eq_type"
+                                v-model="equipForm.type"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
+                            >
+                                <option v-for="t in equipmentTypes" :key="t" :value="t">{{ labelize(t) }}</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5"><Label for="eq_make">Make</Label><Input id="eq_make" v-model="equipForm.make" /></div>
+                            <div class="grid gap-1.5"><Label for="eq_model">Model</Label><Input id="eq_model" v-model="equipForm.model" /></div>
+                        </div>
+                        <div class="grid gap-1.5"><Label for="eq_serial">Serial</Label><Input id="eq_serial" v-model="equipForm.serial" /></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="eq_inst">Installed</Label><Input id="eq_inst" v-model="equipForm.installed_on" type="date" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="eq_warr">Warranty until</Label><Input id="eq_warr" v-model="equipForm.warranty_until" type="date" />
+                            </div>
+                        </div>
+                        <div class="grid gap-1.5"><Label for="eq_notes">Notes</Label><Input id="eq_notes" v-model="equipForm.notes" /></div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="equipOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="equipForm.processing">Add</Button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
+
+            <!-- log service -->
+            <Sheet v-model:open="serviceOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Log service</SheetTitle>
+                        <SheetDescription>Record a repair or maintenance — optionally bill it.</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitService">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="sv_on">Date</Label><Input id="sv_on" v-model="serviceForm.serviced_on" type="date" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="sv_cost">Cost ($)</Label
+                                ><Input id="sv_cost" v-model="serviceForm.cost" type="number" step="0.01" min="0" />
+                            </div>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="sv_desc">Description</Label>
+                            <Input id="sv_desc" v-model="serviceForm.description" />
+                            <p v-if="serviceForm.errors.description" class="text-xs text-red-600">{{ serviceForm.errors.description }}</p>
+                        </div>
+                        <label class="flex items-center gap-2"
+                            ><input v-model="serviceForm.bill" type="checkbox" /> Bill this repair to the customer</label
+                        >
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="serviceOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="serviceForm.processing">Save</Button>
+                        </div>
+                    </form>
                 </SheetContent>
             </Sheet>
 
