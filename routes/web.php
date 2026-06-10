@@ -11,6 +11,7 @@ use App\Http\Controllers\PoolController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\SubscriptionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -23,6 +24,12 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule.index');
+    Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
+    Route::post('routes/{route}/optimize', [ScheduleController::class, 'optimize'])->name('routes.optimize');
+    Route::post('stops/{stop}/skip', [ScheduleController::class, 'skipStop'])->name('stops.skip');
+    Route::post('subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
+    Route::patch('subscriptions/{subscription}', [SubscriptionController::class, 'update'])->name('subscriptions.update');
+    Route::delete('subscriptions/{subscription}', [SubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
     Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
     Route::post('pools', [PoolController::class, 'store'])->name('pools.store');
     Route::patch('pools/{pool}', [PoolController::class, 'update'])->name('pools.update');

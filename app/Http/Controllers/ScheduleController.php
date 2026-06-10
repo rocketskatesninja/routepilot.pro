@@ -6,6 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Services\RouteOptimizer;
+use App\Services\SubscriptionMaterializer;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -52,7 +55,41 @@ class ScheduleController extends Controller
         return Inertia::render('schedule/Index', [
             'date' => $date,
             'routes' => $routes,
+            'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
+    }
+
+    /** Materialize route stops from active subscriptions through 4 weeks out. */
+    public function materialize(Request $request, SubscriptionMaterializer $materializer): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $through = Carbon::today()->addWeeks(4)->toDateString();
+        $materializer->run((int) $request->user()->tenant_id, $through);
+
+        return back()->with('success', "Schedule generated through {$through}.");
+    }
+
+    /** Re-order a route's pending stops (nearest-neighbour + 2-opt). */
+    public function optimize(Request $request, Route $route, RouteOptimizer $optimizer): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $result = $optimizer->optimize($route);
+
+        return back()->with('success', "Optimized {$result['optimized']} stops · {$result['total_distance_km']} km.");
+    }
+
+    /** Skip a single pending stop. */
+    public function skipStop(Request $request, RouteStop $stop): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        // RouteStop isn't globally scoped; its Route is — a foreign stop's route resolves to null.
+        abort_if($stop->route === null, 404);
+
+        $stop->update(['status' => 'skipped', 'skip_reason' => 'Skipped by office']);
+
+        return back()->with('success', 'Stop skipped.');
     }
 
     private function authorizeStaff(Request $request): void

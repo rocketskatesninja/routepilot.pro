@@ -1,0 +1,32 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateSubscriptionRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->role === 'tenant_admin';
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        $tenantId = $this->user()?->tenant_id;
+
+        return [
+            'service_type_id' => ['required', Rule::exists('service_types', 'id')->where('tenant_id', $tenantId)],
+            'assigned_agent_id' => ['nullable', Rule::exists('users', 'id')->where('tenant_id', $tenantId)->where('role', 'agent')],
+            'frequency' => ['required', 'in:weekly,biweekly,monthly,one_time,seasonal'],
+            'preferred_day' => ['nullable', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
+            'status' => ['required', 'in:active,paused,cancelled'],
+            'hold_starts_at' => ['nullable', 'date'],
+            'hold_ends_at' => ['nullable', 'date', 'after_or_equal:hold_starts_at'],
+        ];
+    }
+}

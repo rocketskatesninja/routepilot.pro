@@ -11,6 +11,9 @@ use App\Http\Requests\UpdatePoolRequest;
 use App\Models\ChemicalReading;
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\ServiceSubscription;
+use App\Models\ServiceType;
+use App\Models\User;
 use App\Services\ChemistryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -50,7 +53,7 @@ class PoolController extends Controller
             $pool = Pool::query()->with([
                 'customer:id,first_name,last_name,email,phone',
                 'serviceLocation',
-                'subscriptions' => fn ($q) => $q->where('status', 'active')->with('agent:id,first_name,last_name'),
+                'subscriptions' => fn ($q) => $q->whereIn('status', ['active', 'paused'])->with(['agent:id,first_name,last_name', 'serviceType:id,name']),
             ])->find($selectedId);
             if ($pool) {
                 $selected = $this->toDetail($pool, $chem);
@@ -62,6 +65,8 @@ class PoolController extends Controller
             'selected' => $selected,
             'filters' => ['search' => $search],
             'customers' => $this->customerOptions(),
+            'serviceTypes' => $this->serviceTypeOptions(),
+            'agents' => $this->agentOptions(),
             'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
     }
@@ -95,6 +100,25 @@ class PoolController extends Controller
             ->orderBy('first_name')->orderBy('last_name')
             ->get(['id', 'first_name', 'last_name'])
             ->map(fn (Customer $c): array => ['id' => $c->id, 'name' => $c->displayName()])
+            ->all();
+    }
+
+    /** @return list<array{id: int, name: string}> */
+    private function serviceTypeOptions(): array
+    {
+        return ServiceType::query()
+            ->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name])
+            ->all();
+    }
+
+    /** @return list<array{id: int, name: string}> */
+    private function agentOptions(): array
+    {
+        return User::query()
+            ->where('tenant_id', app('tenant_id'))->where('role', 'agent')->where('is_active', true)
+            ->orderBy('first_name')->get(['id', 'first_name', 'last_name'])
+            ->map(fn (User $u): array => ['id' => $u->id, 'name' => $u->displayName()])
             ->all();
     }
 
@@ -169,10 +193,16 @@ class PoolController extends Controller
                 'gate_code' => $location->getAttribute('gate_code'),
                 'access_notes' => $location->getAttribute('access_notes'),
             ] : null,
-            'subscriptions' => $pool->subscriptions->map(fn ($sub) => [
+            'subscriptions' => $pool->subscriptions->map(fn (ServiceSubscription $sub): array => [
                 'id' => $sub->id,
+                'service' => $sub->serviceType->name,
                 'schedule' => $sub->scheduleLabel(),
                 'agent' => $this->personName($sub->agent),
+                'status' => $sub->status,
+                'service_type_id' => $sub->service_type_id,
+                'agent_id' => $sub->assigned_agent_id,
+                'frequency' => $sub->frequency,
+                'preferred_day' => $sub->preferred_day,
             ])->all(),
             'latest_reading' => $reading !== null ? [
                 'taken_on' => $reading->created_at?->toDateString(),
