@@ -49,6 +49,7 @@ class PeopleController extends Controller
             'counts' => $builder->counts($tenantId, $search),
             'selected' => $selected,
             'filters' => ['search' => $search, 'type' => $type],
+            'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
     }
 
@@ -94,6 +95,19 @@ class PeopleController extends Controller
                 'pool' => $visit->pool?->getAttribute('name'),
                 'completed_on' => $visit->completed_at?->toDateString(),
             ])->all(),
+            // Raw values for the edit form.
+            'fields' => [
+                'first_name' => $customer->first_name,
+                'last_name' => $customer->last_name,
+                'email' => $customer->email,
+                'phone' => $customer->phone,
+                'address_line1' => $customer->address_line1,
+                'city' => $customer->city,
+                'state' => $customer->state,
+                'zip' => $customer->zip,
+                'notes' => $customer->notes,
+                'bill_chemicals' => (bool) $customer->getAttribute('bill_chemicals'),
+            ],
         ];
     }
 

@@ -3,6 +3,7 @@
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PeopleController;
@@ -23,7 +24,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
+    Route::post('pools', [PoolController::class, 'store'])->name('pools.store');
+    Route::patch('pools/{pool}', [PoolController::class, 'update'])->name('pools.update');
+    Route::delete('pools/{pool}', [PoolController::class, 'destroy'])->name('pools.destroy');
     Route::get('people', [PeopleController::class, 'index'])->name('people.index');
+    Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+    Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
     Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');

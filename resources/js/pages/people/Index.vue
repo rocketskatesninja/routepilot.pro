@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { Users } from 'lucide-vue-next';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { Pencil, Plus, Trash2, Users } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -18,6 +20,19 @@ interface PersonRow {
     phone: string | null;
 }
 
+interface CustomerFields {
+    first_name: string;
+    last_name: string | null;
+    email: string | null;
+    phone: string | null;
+    address_line1: string | null;
+    city: string | null;
+    state: string | null;
+    zip: string | null;
+    notes: string | null;
+    bill_chemicals: boolean;
+}
+
 interface CustomerDetail {
     type: 'customer';
     id: number;
@@ -28,6 +43,7 @@ interface CustomerDetail {
     has_portal: boolean;
     pools: { id: number; name: string; type: string }[];
     recent_visits: { id: number; pool: string | null; completed_on: string | null }[];
+    fields: CustomerFields;
 }
 
 interface AgentDetail {
@@ -50,6 +66,7 @@ const props = defineProps<{
     counts: { all: number; customers: number; agents: number };
     selected: CustomerDetail | AgentDetail | null;
     filters: { search: string; type: 'all' | 'customers' | 'agents' };
+    canManage: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
@@ -91,6 +108,69 @@ function closeDrawer() {
 
 const fullName = (p: PersonRow) => `${p.first_name} ${p.last_name ?? ''}`.trim();
 const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${props.selected.id}` : null));
+
+// --- Customer create / edit form ---
+const formOpen = ref(false);
+const formMode = ref<'create' | 'edit'>('create');
+const formId = ref<number | null>(null);
+
+const form = useForm({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    address_line1: '',
+    city: '',
+    state: '',
+    zip: '',
+    notes: '',
+    bill_chemicals: false,
+    pool_name: '',
+    pool_type: 'inground',
+    pool_volume: '',
+    pool_sanitizer: 'chlorine',
+});
+
+function openCreate() {
+    form.reset();
+    form.clearErrors();
+    formMode.value = 'create';
+    formId.value = null;
+    formOpen.value = true;
+}
+
+function openEdit() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    const f = props.selected.fields;
+    form.first_name = f.first_name;
+    form.last_name = f.last_name ?? '';
+    form.email = f.email ?? '';
+    form.phone = f.phone ?? '';
+    form.address_line1 = f.address_line1 ?? '';
+    form.city = f.city ?? '';
+    form.state = f.state ?? '';
+    form.zip = f.zip ?? '';
+    form.notes = f.notes ?? '';
+    form.bill_chemicals = f.bill_chemicals;
+    form.clearErrors();
+    formMode.value = 'edit';
+    formId.value = props.selected.id;
+    formOpen.value = true;
+}
+
+function submitForm() {
+    if (formMode.value === 'create') {
+        form.post('/customers', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+    } else if (formId.value !== null) {
+        form.patch(`/customers/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+    }
+}
+
+function destroyCustomer() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    if (!confirm('Remove this customer? Their service history is preserved.')) return;
+    router.delete(`/customers/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
 </script>
 
 <template>
@@ -100,7 +180,10 @@ const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${p
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div class="flex items-center justify-between gap-4">
                 <h1 class="text-xl font-semibold">People</h1>
-                <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
+                <div class="flex items-center gap-2">
+                    <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
+                    <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
+                </div>
             </div>
 
             <div class="flex gap-1 text-sm">
@@ -159,7 +242,8 @@ const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${p
                 </table>
             </div>
 
-            <Sheet :open="props.selected !== null" @update:open="(open: boolean) => !open && closeDrawer()">
+            <!-- Read drawer (hidden while the form is open) -->
+            <Sheet :open="props.selected !== null && !formOpen" @update:open="(open: boolean) => !open && closeDrawer()">
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -168,6 +252,11 @@ const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${p
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
+                            <div v-if="props.canManage && props.selected.type === 'customer'" class="flex gap-2">
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                            </div>
+
                             <section>
                                 <h3 class="mb-1 font-medium">Contact</h3>
                                 <dl class="space-y-1 text-muted-foreground">
@@ -208,6 +297,94 @@ const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${p
                             </template>
                         </div>
                     </template>
+                </SheetContent>
+            </Sheet>
+
+            <!-- Create / edit customer form -->
+            <Sheet v-model:open="formOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>{{ formMode === 'create' ? 'New customer' : 'Edit customer' }}</SheetTitle>
+                        <SheetDescription>{{ formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.' }}</SheetDescription>
+                    </SheetHeader>
+
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="first_name">First name</Label>
+                                <Input id="first_name" v-model="form.first_name" />
+                                <p v-if="form.errors.first_name" class="text-xs text-red-600">{{ form.errors.first_name }}</p>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="last_name">Last name</Label>
+                                <Input id="last_name" v-model="form.last_name" />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="email">Email</Label>
+                                <Input id="email" v-model="form.email" type="email" />
+                                <p v-if="form.errors.email" class="text-xs text-red-600">{{ form.errors.email }}</p>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="phone">Phone</Label>
+                                <Input id="phone" v-model="form.phone" />
+                            </div>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="address">Address</Label>
+                            <Input id="address" v-model="form.address_line1" />
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-1 grid gap-1.5">
+                                <Label for="city">City</Label>
+                                <Input id="city" v-model="form.city" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="state">State</Label>
+                                <Input id="state" v-model="form.state" maxlength="2" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="zip">ZIP</Label>
+                                <Input id="zip" v-model="form.zip" />
+                            </div>
+                        </div>
+                        <label class="flex items-center gap-2"><input v-model="form.bill_chemicals" type="checkbox" /> <span>Itemize chemicals on this customer's bill</span></label>
+                        <div class="grid gap-1.5">
+                            <Label for="notes">Notes</Label>
+                            <textarea id="notes" v-model="form.notes" rows="2" class="rounded-md border border-input bg-background px-3 py-2 text-sm"></textarea>
+                        </div>
+
+                        <fieldset v-if="formMode === 'create'" class="space-y-3 rounded-lg border border-border p-3">
+                            <legend class="px-1 text-xs font-medium text-muted-foreground">First pool (optional)</legend>
+                            <div class="grid gap-1.5">
+                                <Label for="pool_name">Pool name</Label>
+                                <Input id="pool_name" v-model="form.pool_name" placeholder="e.g. Backyard Pool" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="grid gap-1.5">
+                                    <Label for="pool_type">Type</Label>
+                                    <select id="pool_type" v-model="form.pool_type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                        <option value="inground">In-ground</option>
+                                        <option value="above_ground">Above ground</option>
+                                        <option value="spa">Spa</option>
+                                        <option value="indoor">Indoor</option>
+                                        <option value="infinity">Infinity</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="grid gap-1.5">
+                                    <Label for="pool_volume">Volume (gal)</Label>
+                                    <Input id="pool_volume" v-model="form.pool_volume" type="number" min="0" />
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add customer' : 'Save' }}</Button>
+                        </div>
+                    </form>
                 </SheetContent>
             </Sheet>
         </div>

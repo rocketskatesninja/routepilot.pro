@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\CreatePool;
+use App\Actions\UpdatePool;
+use App\Http\Requests\StorePoolRequest;
+use App\Http\Requests\UpdatePoolRequest;
 use App\Models\ChemicalReading;
+use App\Models\Customer;
 use App\Models\Pool;
 use App\Services\ChemistryService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -55,7 +61,41 @@ class PoolController extends Controller
             'pools' => $pools,
             'selected' => $selected,
             'filters' => ['search' => $search],
+            'customers' => $this->customerOptions(),
+            'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
+    }
+
+    public function store(StorePoolRequest $request, CreatePool $action): RedirectResponse
+    {
+        $action->handle($request->validated());
+
+        return back()->with('success', 'Pool added.');
+    }
+
+    public function update(UpdatePoolRequest $request, Pool $pool, UpdatePool $action): RedirectResponse
+    {
+        $action->handle($pool, $request->validated());
+
+        return back()->with('success', 'Pool updated.');
+    }
+
+    public function destroy(Request $request, Pool $pool): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $pool->delete();
+
+        return back()->with('success', 'Pool removed.');
+    }
+
+    /** @return list<array{id: int, name: string}> */
+    private function customerOptions(): array
+    {
+        return Customer::query()
+            ->orderBy('first_name')->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name'])
+            ->map(fn (Customer $c): array => ['id' => $c->id, 'name' => $c->displayName()])
+            ->all();
     }
 
     /** Staff-only (tenant_admin / agent); customers use the portal. */
@@ -141,6 +181,30 @@ class PoolController extends Controller
                 'alkalinity' => $reading->alkalinity,
                 'health' => $health,
             ] : null,
+            // Raw values for the edit form.
+            'fields' => [
+                'customer_id' => $pool->customer_id,
+                'name' => $pool->name,
+                'type' => $pool->type,
+                'volume_gallons' => $pool->volume_gallons,
+                'surface_type' => $pool->surface_type,
+                'sanitizer_type' => $pool->sanitizer_type,
+                'filter_type' => $pool->filter_type,
+                'pump_type' => $pool->pump_type,
+                'has_heater' => $pool->has_heater,
+                'has_automation' => $pool->has_automation,
+                'has_pool_cleaner' => $pool->has_pool_cleaner,
+                'has_cover' => $pool->has_cover,
+                'has_water_feature' => $pool->has_water_feature,
+                'has_auto_fill' => $pool->has_auto_fill,
+                'notes' => $pool->notes,
+                'address_line1' => $location?->getAttribute('address_line1'),
+                'city' => $location?->getAttribute('city'),
+                'state' => $location?->getAttribute('state'),
+                'zip' => $location?->getAttribute('zip'),
+                'gate_code' => $location?->getAttribute('gate_code'),
+                'access_notes' => $location?->getAttribute('access_notes'),
+            ],
         ];
     }
 
