@@ -21,7 +21,7 @@ beforeEach(function () {
 });
 
 /** A customer with one unpaid $50 visit. */
-function owingCustomer(Tenant $tenant, User $agent): Customer
+function customerWithUnpaidVisit(Tenant $tenant, User $agent): Customer
 {
     $customer = Customer::factory()->for($tenant)->create();
     $pool = Pool::factory()->for($tenant)->for($customer)->create();
@@ -43,7 +43,7 @@ test('an admin can add a manual charge', function () {
 });
 
 test('recording a payment settles visits + charges and writes a Payment', function () {
-    $customer = owingCustomer($this->tenant, $this->agent);
+    $customer = customerWithUnpaidVisit($this->tenant, $this->agent);
     ManualCharge::create(['customer_id' => $customer->id, 'description' => 'Repair', 'amount' => 89, 'created_by' => $this->admin->id, 'occurred_on' => now()]);
 
     expect(app(BillingService::class)->outstandingForCustomer($customer))->toBe(139.0);
