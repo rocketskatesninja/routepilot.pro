@@ -11,6 +11,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
@@ -37,6 +38,9 @@ Route::get('unsubscribe/{customer}', function (Customer $customer) {
 
     return response('You have been unsubscribed from marketing emails.');
 })->name('unsubscribe')->middleware('signed');
+
+// Public lead capture from a tenant's landing site (by slug), rate-limited.
+Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->middleware('throttle:10,1')->name('leads.capture');
 
 // Role-adaptive dashboard + back-office (staff). Tenant is resolved from the
 // session user by ResolveTenant.
@@ -84,6 +88,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('inventory/{chemical}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('insights', [AnalyticsController::class, 'index'])->name('insights.index');
+    Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
+    Route::patch('leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
     Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
     Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
