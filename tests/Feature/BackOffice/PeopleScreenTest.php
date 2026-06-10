@@ -53,6 +53,18 @@ test('the type filter narrows to agents only', function () {
         );
 });
 
+test('search matches across first and last name (no SQL CONCAT)', function () {
+    Customer::factory()->for($this->tenant)->create(['first_name' => 'Jonathan', 'last_name' => 'Smith']);
+    Customer::factory()->for($this->tenant)->create(['first_name' => 'Alice', 'last_name' => 'Jones']);
+
+    $this->actingAs($this->admin)
+        ->get('/people?search=Smith')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('people.data', 1)
+            ->where('people.data.0.last_name', 'Smith')
+        );
+});
+
 test('a customer drawer carries pools and recent visits', function () {
     $customer = Customer::factory()->for($this->tenant)->create();
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create(['name' => 'Smith Pool']);

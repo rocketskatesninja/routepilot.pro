@@ -48,9 +48,10 @@ abstract class AiTool
     }
 
     /**
-     * Fuzzy name match against CONCAT(first, ' ', last) — shared so tools
-     * don't copy-paste the whereRaw. Column names are caller-fixed, never
-     * user input (the value is bound).
+     * Fuzzy, order-independent name match: every whitespace token must appear
+     * in the first OR last name. Avoids SQL CONCAT (not portable to older
+     * SQLite) and matches "John Smith" or "Smith John" alike. Column names are
+     * caller-fixed, never user input; the values are bound.
      *
      * @template TModel of Model
      *
@@ -59,6 +60,11 @@ abstract class AiTool
      */
     protected function whereNameLike(Builder $query, string $name, string $firstCol = 'first_name', string $lastCol = 'last_name'): Builder
     {
-        return $query->whereRaw("CONCAT({$firstCol}, ' ', {$lastCol}) LIKE ?", ['%'.$name.'%']);
+        foreach (array_filter(explode(' ', trim($name))) as $token) {
+            $like = '%'.$token.'%';
+            $query->where(fn ($q) => $q->where($firstCol, 'like', $like)->orWhere($lastCol, 'like', $like));
+        }
+
+        return $query;
     }
 }

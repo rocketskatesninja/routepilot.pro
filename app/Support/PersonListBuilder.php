@@ -69,6 +69,12 @@ class PersonListBuilder
 
     private function whereName(Builder $query, string $search): Builder
     {
-        return $query->whereRaw("CONCAT(first_name, ' ', COALESCE(last_name, '')) LIKE ?", ['%'.$search.'%']);
+        // Token-per-word match across first/last — portable (no SQL CONCAT).
+        foreach (array_filter(explode(' ', trim($search))) as $token) {
+            $like = '%'.$token.'%';
+            $query->where(fn (Builder $q) => $q->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like));
+        }
+
+        return $query;
     }
 }
