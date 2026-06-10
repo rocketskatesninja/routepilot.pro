@@ -10,6 +10,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -149,5 +150,19 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Company::class, 'agent_company')
             ->withPivot('is_primary')
             ->withTimestamps();
+    }
+
+    /** @return HasMany<NotificationPreference, $this> */
+    public function notificationPreferences(): HasMany
+    {
+        return $this->hasMany(NotificationPreference::class);
+    }
+
+    /** Whether this user wants a given notification category on a channel (default on). */
+    public function wantsNotification(string $category, string $channel = 'in_app'): bool
+    {
+        $pref = $this->notificationPreferences()->where('category', $category)->first();
+
+        return $pref === null ? true : (bool) $pref->getAttribute($channel);
     }
 }

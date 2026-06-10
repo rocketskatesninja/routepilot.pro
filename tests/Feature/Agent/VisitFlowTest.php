@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\InventoryTransaction;
+use App\Models\NotificationPreference;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
@@ -76,6 +77,25 @@ test('completing a visit stores uploaded photos', function () {
 
     $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->first();
     expect($visit?->photos()->count())->toBe(1);
+});
+
+test('completing a visit notifies the homeowner portal user', function () {
+    $portalUser = User::factory()->customer()->for($this->tenant)->create();
+    $this->pool->customer->forceFill(['user_id' => $portalUser->id])->save();
+
+    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+
+    expect($portalUser->notifications()->count())->toBe(1);
+});
+
+test('a homeowner who opted out gets no service notification', function () {
+    $portalUser = User::factory()->customer()->for($this->tenant)->create();
+    $this->pool->customer->forceFill(['user_id' => $portalUser->id])->save();
+    NotificationPreference::create(['user_id' => $portalUser->id, 'category' => 'service', 'email' => false, 'in_app' => false]);
+
+    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+
+    expect($portalUser->notifications()->count())->toBe(0);
 });
 
 test('a treatment deducts matching inventory and logs it', function () {

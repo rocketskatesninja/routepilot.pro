@@ -9,10 +9,13 @@ use App\Http\Requests\AnalyzeReadingRequest;
 use App\Http\Requests\CompleteVisitRequest;
 use App\Models\ChemicalReading;
 use App\Models\RouteStop;
+use App\Models\User;
+use App\Notifications\VisitCompleted;
 use App\Services\ChemistryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -83,7 +86,16 @@ class VisitController extends Controller
         $this->authorizeStop($request, $stop);
 
         $photos = $request->file('photos');
-        $action->handle($stop, $request->validated(), $user, is_array($photos) ? $photos : []);
+        $visit = $action->handle($stop, $request->validated(), $user, is_array($photos) ? $photos : []);
+
+        // Notify the homeowner's portal user, if any (honors their preferences).
+        $customerUserId = $visit->pool?->customer?->getAttribute('user_id');
+        if ($customerUserId !== null) {
+            $customerUser = User::find($customerUserId);
+            if ($customerUser !== null) {
+                Notification::send($customerUser, new VisitCompleted($visit));
+            }
+        }
 
         return redirect('/dashboard')->with('success', 'Visit completed.');
     }

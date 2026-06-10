@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\ServiceRequest;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -20,7 +21,7 @@ class ServiceRequestSubmitted extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('requests') ? [] : ['database'];
     }
 
     /** @return array<string, mixed> */
