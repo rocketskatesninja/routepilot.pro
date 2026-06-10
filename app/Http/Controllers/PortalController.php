@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -50,6 +51,35 @@ class PortalController extends Controller
         return Inertia::render('portal/History', [
             'visits' => $visits,
             'selected' => $selected,
+        ]);
+    }
+
+    public function requests(Request $request): Response
+    {
+        $customer = $this->resolveCustomer($request);
+
+        $requests = ServiceRequest::query()
+            ->where('customer_id', $customer->id)
+            ->with('pool:id,name')
+            ->latest()
+            ->limit(30)
+            ->get()
+            ->map(fn (ServiceRequest $r): array => [
+                'id' => $r->id,
+                'type' => $r->type,
+                'message' => $r->message,
+                'status' => $r->status,
+                'pool' => $r->pool?->getAttribute('name'),
+                'preferred_date' => $r->preferred_date?->toDateString(),
+                'on' => $r->created_at?->toDateString(),
+            ])->all();
+
+        $pools = $customer->pools()->orderBy('name')->get(['id', 'name'])
+            ->map(fn ($p): array => ['id' => $p->id, 'name' => $p->getAttribute('name')])->all();
+
+        return Inertia::render('portal/Requests', [
+            'requests' => $requests,
+            'pools' => $pools,
         ]);
     }
 

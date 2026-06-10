@@ -1,14 +1,26 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 
 defineProps<{
     stats: { today_stops: number; completed_today: number; remaining_today: number; agents: number; customers: number; pools: number };
     recent_visits: { id: number; pool: string | null; agent: string; completed_on: string | null }[];
+    pending_requests: {
+        id: number;
+        type: string;
+        message: string;
+        customer: string | null;
+        pool: string | null;
+        preferred_date: string | null;
+        on: string | null;
+    }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
+
+const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}, { preserveScroll: true });
 </script>
 
 <template>
@@ -42,6 +54,33 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' 
                     <div class="text-2xl font-semibold">{{ stats.pools }}</div>
                     <div class="text-sm text-muted-foreground">Pools</div>
                 </div>
+            </div>
+
+            <div v-if="pending_requests.length" class="rounded-xl border border-amber-500/40 bg-amber-500/5">
+                <h2 class="border-b border-border px-4 py-2 font-medium">Customer requests · {{ pending_requests.length }} pending</h2>
+                <ul class="divide-y divide-border text-sm">
+                    <li v-for="r in pending_requests" :key="r.id" class="flex items-start justify-between gap-3 px-4 py-2.5">
+                        <div>
+                            <span
+                                class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                :class="
+                                    r.type === 'hold'
+                                        ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                "
+                            >
+                                {{ r.type === 'hold' ? 'Vacation hold' : 'New service' }}
+                            </span>
+                            <span class="ml-2 font-medium">{{ r.customer }}</span>
+                            <span v-if="r.pool" class="text-muted-foreground"> · {{ r.pool }}</span>
+                            <p class="mt-0.5 text-muted-foreground">{{ r.message }}</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ r.on }}<span v-if="r.preferred_date"> · prefers {{ r.preferred_date }}</span>
+                            </p>
+                        </div>
+                        <Button size="sm" variant="outline" @click="resolveRequest(r.id)">Resolve</Button>
+                    </li>
+                </ul>
             </div>
 
             <div class="rounded-xl border border-border">

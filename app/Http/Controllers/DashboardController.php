@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -77,6 +78,18 @@ class DashboardController extends Controller
                     'pool' => $v->pool?->getAttribute('name'),
                     'agent' => $this->name($v->agent),
                     'completed_on' => $v->completed_at?->toDateString(),
+                ])->all(),
+            'pending_requests' => ServiceRequest::query()
+                ->where('status', 'pending')->with(['customer:id,first_name,last_name', 'pool:id,name'])
+                ->latest()->limit(8)->get()
+                ->map(fn (ServiceRequest $r) => [
+                    'id' => $r->id,
+                    'type' => $r->type,
+                    'message' => $r->message,
+                    'customer' => $r->customer?->displayName(),
+                    'pool' => $r->pool?->getAttribute('name'),
+                    'preferred_date' => $r->preferred_date?->toDateString(),
+                    'on' => $r->created_at?->toDateString(),
                 ])->all(),
         ];
     }

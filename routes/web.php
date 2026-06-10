@@ -12,6 +12,7 @@ use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubscriptionController;
@@ -77,6 +78,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Customer portal.
     Route::get('history', [PortalController::class, 'history'])->name('portal.history');
+    Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
+    Route::post('requests', [RequestController::class, 'store'])->name('requests.store');
+    Route::post('requests/{serviceRequest}/resolve', [RequestController::class, 'resolve'])->name('requests.resolve');
 
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
