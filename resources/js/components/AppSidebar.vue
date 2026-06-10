@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Banknote, Bot, CalendarDays, ClipboardList, FileText, FlaskConical, LayoutGrid, Map, Settings, ShieldCheck, Users, Waves } from 'lucide-vue-next';
+import { Banknote, Bot, Building2, CalendarDays, ClipboardList, FileText, FlaskConical, LayoutGrid, Map, Settings, ShieldCheck, Users, Waves } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -24,7 +24,7 @@ const navByRole: Record<string, NavItem[]> = {
     ],
     tenant_admin: [
         { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-        { title: 'Schedule', href: '/dashboard', icon: CalendarDays },
+        { title: 'Schedule', href: '/schedule', icon: CalendarDays },
         { title: 'Pools', href: '/pools', icon: Waves },
         { title: 'People', href: '/people', icon: Users },
         { title: 'Services', href: '/services', icon: ClipboardList },
@@ -33,6 +33,7 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Reports', href: '/reports', icon: FileText },
         { title: 'Balances', href: '/balances', icon: Banknote },
         { title: 'Assistant', href: '/assistant', icon: Bot },
+        { title: 'Company', href: '/company', icon: Building2 },
     ],
     agent: [
         { title: 'Today', href: '/dashboard', icon: CalendarDays },

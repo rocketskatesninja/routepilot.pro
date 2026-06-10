@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,6 +21,7 @@ Route::get('/', function () {
 // session user by ResolveTenant.
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
     Route::get('people', [PeopleController::class, 'index'])->name('people.index');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
@@ -29,6 +32,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // AI assistant (all roles).
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
     Route::post('assistant/send', [ChatController::class, 'send'])->name('assistant.send');
+
+    // Company settings (tenant_admin).
+    Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
+    Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
 });
 
 require __DIR__.'/settings.php';
