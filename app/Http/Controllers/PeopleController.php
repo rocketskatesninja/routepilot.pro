@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\PersonListBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,7 +28,7 @@ class PeopleController extends Controller
     {
         $user = $request->user();
         if ($user?->isSuperAdmin()) {
-            return $this->platform($user, $campaigns);
+            return $this->platform($request, $user, $campaigns);
         }
 
         $this->authorizeStaff($request);
@@ -64,9 +65,15 @@ class PeopleController extends Controller
         ]);
     }
 
-    /** Super-admin platform-wide People + broadcast composer. */
-    private function platform(User $user, SendCampaign $campaigns): Response
+    /** Super-admin platform-wide People (pickable) + broadcast composer. */
+    private function platform(Request $request, User $user, SendCampaign $campaigns): Response
     {
+        $type = (string) $request->string('type');
+        if (! in_array($type, ['tenants', 'agents', 'customers'], true)) {
+            $type = 'tenants';
+        }
+        $search = trim((string) $request->string('search'));
+
         return Inertia::render('people/Platform', [
             'audiences' => $campaigns->audiencesFor($user),
             'counts' => [
@@ -74,8 +81,40 @@ class PeopleController extends Controller
                 'agents' => User::query()->where('role', 'agent')->count(),
                 'customers' => Customer::query()->count(),
             ],
+            'people' => $this->platformPeople($type, $search),
+            'filters' => ['type' => $type, 'search' => $search],
             'recent' => $this->recentCampaigns(true),
         ]);
+    }
+
+    /**
+     * Platform-wide people of one type, as pickable rows for the super-admin.
+     * A "tenant" row resolves (at send time) to that company's admins.
+     *
+     * @return LengthAwarePaginator<int, array<string, mixed>>
+     */
+    private function platformPeople(string $type, string $search): LengthAwarePaginator
+    {
+        $like = '%'.$search.'%';
+        $nameSearch = fn ($q) => $q->where(fn ($w) => $w->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like)->orWhere('email', 'like', $like));
+
+        return match ($type) {
+            'agents' => User::query()->where('role', 'agent')->with('tenant:id,name')
+                ->when($search !== '', $nameSearch)
+                ->orderBy('first_name')->orderBy('last_name')
+                ->paginate(25)->withQueryString()
+                ->through(fn (User $u): array => ['key' => 'agent:'.$u->id, 'name' => $u->displayName(), 'sub' => $u->getAttribute('email'), 'meta' => $u->tenant?->name]),
+            'customers' => Customer::query()->with('tenant:id,name')
+                ->when($search !== '', $nameSearch)
+                ->orderBy('first_name')->orderBy('last_name')
+                ->paginate(25)->withQueryString()
+                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name]),
+            default => Tenant::query()
+                ->when($search !== '', fn ($q) => $q->where('name', 'like', $like))
+                ->orderBy('name')
+                ->paginate(25)->withQueryString()
+                ->through(fn (Tenant $t): array => ['key' => 'tenant:'.$t->id, 'name' => $t->name, 'sub' => $t->getAttribute('status'), 'meta' => $t->slug]),
+        };
     }
 
     /**
