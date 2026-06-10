@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Stripe posts webhooks without a CSRF token (verified by signature).
+        $middleware->validateCsrfTokens(except: ['stripe/webhook']);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

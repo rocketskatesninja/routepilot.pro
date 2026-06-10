@@ -12,6 +12,7 @@ use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
@@ -41,6 +42,9 @@ Route::get('unsubscribe/{customer}', function (Customer $customer) {
 
 // Public lead capture from a tenant's landing site (by slug), rate-limited.
 Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->middleware('throttle:10,1')->name('leads.capture');
+
+// Stripe webhook — fails closed (signature-verified), idempotent. CSRF-exempt.
+Route::post('stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
 
 // Role-adaptive dashboard + back-office (staff). Tenant is resolved from the
 // session user by ResolveTenant.
