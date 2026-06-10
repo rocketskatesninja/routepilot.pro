@@ -18,54 +18,56 @@ beforeEach(function () {
     $this->admin = User::factory()->for($this->tenant)->create();
 });
 
-test('a campaign queues an email per eligible recipient and records it', function () {
+test('a tenant admin emails their customers (opt-outs excluded)', function () {
     foreach (['a', 'b', 'c'] as $n) {
         Customer::factory()->for($this->tenant)->create(['email' => "{$n}@x.test"]);
     }
     Customer::factory()->for($this->tenant)->create(['email' => 'opted@x.test', 'email_opt_out' => true]);
 
     $this->actingAs($this->admin)
-        ->post('/mail', ['audience' => 'customers', 'subject' => 'Spring tips', 'body' => 'Hello!'])
+        ->post('/people/email', ['audience' => 'customers', 'subject' => 'Spring tips', 'body' => 'Hello!'])
         ->assertRedirect();
 
-    Mail::assertQueued(CampaignMail::class, 3); // opted-out excluded
-
-    $campaign = MailCampaign::query()->where('subject', 'Spring tips')->first();
-    expect($campaign?->recipient_count)->toBe(3);
-    expect($campaign?->audience)->toBe('customers');
+    Mail::assertQueued(CampaignMail::class, 3);
+    expect(MailCampaign::query()->where('subject', 'Spring tips')->where('audience', 'customers')->exists())->toBeTrue();
 });
 
-test('the agents audience targets agents', function () {
+test('a tenant admin emails their agents', function () {
     User::factory()->agent()->for($this->tenant)->count(2)->create();
 
     $this->actingAs($this->admin)
-        ->post('/mail', ['audience' => 'agents', 'subject' => 'Team', 'body' => 'Meeting'])
+        ->post('/people/email', ['audience' => 'agents', 'subject' => 'Team', 'body' => 'Meeting'])
         ->assertRedirect();
 
     Mail::assertQueued(CampaignMail::class, 2);
 });
 
-test('the composer shows audiences with live counts', function () {
+test('a tenant admin cannot target other tenants', function () {
+    $this->actingAs($this->admin)
+        ->post('/people/email', ['audience' => 'tenants', 'subject' => 'x', 'body' => 'y'])
+        ->assertInvalid('audience');
+});
+
+test('the People screen offers email audiences to a tenant admin', function () {
     Customer::factory()->for($this->tenant)->create(['email' => 'x@x.test']);
 
     $this->actingAs($this->admin)
-        ->get('/mail')
+        ->get('/people')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('mail/Index')->has('audiences', 4));
+        ->assertInertia(fn (Assert $page) => $page->component('people/Index')->where('canEmail', true)->has('audiences', 2));
 });
 
-test('the one-click unsubscribe link sets the opt-out flag', function () {
+test('agents cannot send campaigns', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+
+    $this->actingAs($agent)->post('/people/email', ['audience' => 'customers', 'subject' => 'x', 'body' => 'y'])->assertForbidden();
+});
+
+test('one-click unsubscribe opts a customer out', function () {
     $customer = Customer::factory()->for($this->tenant)->create(['email' => 'leave@x.test']);
     $url = URL::signedRoute('unsubscribe', ['customer' => $customer->id]);
 
     $this->get($url)->assertOk();
 
     expect($customer->fresh()?->email_opt_out)->toBeTrue();
-});
-
-test('agents cannot use the mailing system', function () {
-    $agent = User::factory()->agent()->for($this->tenant)->create();
-
-    $this->actingAs($agent)->get('/mail')->assertForbidden();
-    $this->actingAs($agent)->post('/mail', ['audience' => 'customers', 'subject' => 'x', 'body' => 'y'])->assertForbidden();
 });

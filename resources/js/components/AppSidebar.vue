@@ -15,7 +15,6 @@ import {
     FlaskConical,
     Inbox,
     LayoutGrid,
-    Mail,
     Map,
     Settings,
     ShieldCheck,
@@ -36,6 +35,7 @@ const navByRole: Record<string, NavItem[]> = {
     super_admin: [
         { title: 'Platform', href: '/dashboard', icon: ShieldCheck },
         { title: 'Tenants', href: '/tenants', icon: Building2 },
+        { title: 'People', href: '/people', icon: Users },
         { title: 'Assistant', href: '/assistant', icon: Bot },
     ],
     tenant_admin: [
@@ -48,7 +48,6 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Inventory', href: '/inventory', icon: FlaskConical },
         { title: 'Reports', href: '/reports', icon: FileText },
         { title: 'Balances', href: '/balances', icon: Banknote },
-        { title: 'Mail', href: '/mail', icon: Mail },
         { title: 'Assistant', href: '/assistant', icon: Bot },
         { title: 'Company', href: '/company', icon: Building2 },
     ],

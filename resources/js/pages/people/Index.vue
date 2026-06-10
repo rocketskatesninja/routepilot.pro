@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2, Users } from 'lucide-vue-next';
+import { Mail, Pencil, Plus, Send, Trash2, Users } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -79,9 +79,26 @@ const props = defineProps<{
     selected: CustomerDetail | AgentDetail | null;
     filters: { search: string; type: 'all' | 'customers' | 'agents' };
     canManage: boolean;
+    canEmail: boolean;
+    audiences: { key: string; label: string; count: number }[];
+    recent: { id: number; subject: string; audience: string; recipients: number; sent_on: string | null }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
+
+// --- broadcast email ---
+const emailOpen = ref(false);
+const emailForm = useForm({ audience: 'customers', subject: '', body: '' });
+const emailCount = computed(() => props.audiences.find((a) => a.key === emailForm.audience)?.count ?? 0);
+function submitEmail() {
+    emailForm.post('/people/email', {
+        preserveScroll: true,
+        onSuccess: () => {
+            emailOpen.value = false;
+            emailForm.reset();
+        },
+    });
+}
 
 const tabs = [
     { key: 'all', label: 'All' },
@@ -280,6 +297,7 @@ function destroyAgent() {
                     <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
                     <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
                     <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
+                    <Button v-if="props.canEmail" size="sm" variant="outline" @click="emailOpen = true"><Mail class="mr-1 size-4" /> Email</Button>
                 </div>
             </div>
 
@@ -340,7 +358,10 @@ function destroyAgent() {
             </div>
 
             <!-- Read drawer (hidden while the form is open) -->
-            <Sheet :open="props.selected !== null && !formOpen && !agentFormOpen" @update:open="(open: boolean) => !open && closeDrawer()">
+            <Sheet
+                :open="props.selected !== null && !formOpen && !agentFormOpen && !emailOpen"
+                @update:open="(open: boolean) => !open && closeDrawer()"
+            >
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <template v-if="props.selected">
                         <SheetHeader>
@@ -572,6 +593,55 @@ function destroyAgent() {
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="agentFormOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="agentForm.processing">{{ agentFormMode === 'create' ? 'Add agent' : 'Save' }}</Button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
+
+            <!-- broadcast email -->
+            <Sheet v-model:open="emailOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Email people</SheetTitle>
+                        <SheetDescription>Send to a whole audience. Customers who opted out are excluded.</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitEmail">
+                        <div class="grid gap-1.5">
+                            <Label for="aud">Audience</Label>
+                            <select id="aud" v-model="emailForm.audience" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <option v-for="a in props.audiences" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
+                            </select>
+                            <p class="text-xs text-muted-foreground">{{ emailCount }} recipient(s).</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="esub">Subject</Label>
+                            <Input id="esub" v-model="emailForm.subject" />
+                            <p v-if="emailForm.errors.subject" class="text-xs text-red-600">{{ emailForm.errors.subject }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="ebody">Message</Label>
+                            <textarea
+                                id="ebody"
+                                v-model="emailForm.body"
+                                rows="7"
+                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            ></textarea>
+                            <p v-if="emailForm.errors.body" class="text-xs text-red-600">{{ emailForm.errors.body }}</p>
+                        </div>
+                        <div v-if="props.recent.length" class="border-t border-border pt-2">
+                            <p class="mb-1 text-xs font-medium text-muted-foreground">Recent</p>
+                            <ul class="space-y-0.5 text-xs text-muted-foreground">
+                                <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
+                                    <span class="truncate">{{ c.subject }}</span
+                                    ><span class="shrink-0">{{ c.recipients }} · {{ c.sent_on }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="emailOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="emailForm.processing || emailCount === 0"
+                                ><Send class="mr-1 size-4" /> Send to {{ emailCount }}</Button
+                            >
                         </div>
                     </form>
                 </SheetContent>

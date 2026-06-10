@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\SendCampaign;
 use App\Models\Customer;
+use App\Models\MailCampaign;
 use App\Models\ServiceVisit;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Support\PersonListBuilder;
 use Illuminate\Database\Eloquent\Model;
@@ -20,10 +23,15 @@ use Inertia\Response;
  */
 class PeopleController extends Controller
 {
-    public function index(Request $request, PersonListBuilder $builder): Response
+    public function index(Request $request, PersonListBuilder $builder, SendCampaign $campaigns): Response
     {
+        $user = $request->user();
+        if ($user?->isSuperAdmin()) {
+            return $this->platform($user, $campaigns);
+        }
+
         $this->authorizeStaff($request);
-        $tenantId = (int) $request->user()?->tenant_id;
+        $tenantId = (int) $user?->tenant_id;
 
         $type = (string) $request->string('type');
         if (! in_array($type, ['all', 'customers', 'agents'], true)) {
@@ -49,8 +57,47 @@ class PeopleController extends Controller
             'counts' => $builder->counts($tenantId, $search),
             'selected' => $selected,
             'filters' => ['search' => $search, 'type' => $type],
-            'canManage' => $request->user()?->role === 'tenant_admin',
+            'canManage' => $user?->role === 'tenant_admin',
+            'canEmail' => $user?->role === 'tenant_admin',
+            'audiences' => $user?->role === 'tenant_admin' ? $campaigns->audiencesFor($user) : [],
+            'recent' => $this->recentCampaigns(),
         ]);
+    }
+
+    /** Super-admin platform-wide People + broadcast composer. */
+    private function platform(User $user, SendCampaign $campaigns): Response
+    {
+        return Inertia::render('people/Platform', [
+            'audiences' => $campaigns->audiencesFor($user),
+            'counts' => [
+                'tenants' => Tenant::query()->count(),
+                'agents' => User::query()->where('role', 'agent')->count(),
+                'customers' => Customer::query()->count(),
+            ],
+            'recent' => $this->recentCampaigns(true),
+        ]);
+    }
+
+    /**
+     * Recent campaigns for the composer. Platform = tenant-less (super) sends;
+     * otherwise the tenant's own (via the global scope).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function recentCampaigns(bool $platform = false): array
+    {
+        return MailCampaign::query()
+            ->when($platform, fn ($q) => $q->whereNull('tenant_id'))
+            ->latest('sent_at')
+            ->limit(12)
+            ->get()
+            ->map(fn (MailCampaign $c): array => [
+                'id' => $c->id,
+                'subject' => $c->subject,
+                'audience' => $c->audience,
+                'recipients' => $c->recipient_count,
+                'sent_on' => $c->sent_at?->toDateString(),
+            ])->all();
     }
 
     /** Staff-only (tenant_admin / agent). */
