@@ -46,7 +46,9 @@ function materialize() {
 const optimize = (id: number) => router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
 
-const prettyDate = computed(() => new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }));
+const prettyDate = computed(() =>
+    new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
+);
 
 const statusClasses: Record<string, string> = {
     completed: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
@@ -64,7 +66,9 @@ const statusClasses: Record<string, string> = {
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h1 class="text-xl font-semibold">Schedule</h1>
                 <div class="flex items-center gap-2">
-                    <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"><Sparkles class="mr-1 size-4" /> Generate</Button>
+                    <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
+                        ><Sparkles class="mr-1 size-4" /> Generate</Button
+                    >
                     <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(-1)"><ChevronLeft class="size-4" /></button>
                     <span class="min-w-48 text-center text-sm font-medium">{{ prettyDate }}</span>
                     <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(1)"><ChevronRight class="size-4" /></button>
@@ -74,7 +78,9 @@ const statusClasses: Record<string, string> = {
             <div v-if="props.routes.length === 0" class="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
                 <CalendarDays class="size-8 opacity-50" />
                 <p>No routes scheduled for this day.</p>
-                <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button>
+                <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
+                    ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
+                >
             </div>
 
             <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -83,15 +89,36 @@ const statusClasses: Record<string, string> = {
                         <span class="font-medium">{{ route.agent }}</span>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-muted-foreground">{{ route.completed }}/{{ route.total }} done</span>
-                            <button v-if="props.canManage && route.total > 1" class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Optimize order" @click="optimize(route.id)"><Wand2 class="size-3.5" /></button>
+                            <button
+                                v-if="props.canManage && route.total > 1"
+                                class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                title="Optimize order"
+                                @click="optimize(route.id)"
+                            >
+                                <Wand2 class="size-3.5" />
+                            </button>
                         </div>
                     </div>
                     <ul class="divide-y divide-border text-sm">
                         <li v-for="stop in route.stops" :key="stop.id" class="flex items-center justify-between gap-2 px-4 py-2">
-                            <span class="min-w-0 truncate"><span class="mr-2 text-muted-foreground">{{ stop.order }}.</span>{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span>
+                            <span class="min-w-0 truncate"
+                                ><span class="mr-2 text-muted-foreground">{{ stop.order }}.</span>{{ stop.pool }}
+                                <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
+                            >
                             <div class="flex shrink-0 items-center gap-1.5">
-                                <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClasses[stop.status] ?? 'bg-muted'">{{ stop.status.replace('_', ' ') }}</span>
-                                <button v-if="props.canManage && stop.status === 'pending'" class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600" title="Skip stop" @click="skipStop(stop.id)"><SkipForward class="size-3.5" /></button>
+                                <span
+                                    class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                    :class="statusClasses[stop.status] ?? 'bg-muted'"
+                                    >{{ stop.status.replace('_', ' ') }}</span
+                                >
+                                <button
+                                    v-if="props.canManage && stop.status === 'pending'"
+                                    class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"
+                                    title="Skip stop"
+                                    @click="skipStop(stop.id)"
+                                >
+                                    <SkipForward class="size-3.5" />
+                                </button>
                             </div>
                         </li>
                         <li v-if="route.stops.length === 0" class="px-4 py-3 text-center text-muted-foreground">No stops.</li>

@@ -39,11 +39,7 @@ const healthClasses: Record<Health['color'], string> = {
                 <div v-for="pool in pools" :key="pool.id" class="rounded-xl border border-border p-4">
                     <div class="flex items-center justify-between">
                         <span class="font-medium">{{ pool.name }}</span>
-                        <span
-                            v-if="pool.health"
-                            class="rounded-full px-2 py-0.5 text-xs font-medium"
-                            :class="healthClasses[pool.health.color]"
-                        >
+                        <span v-if="pool.health" class="rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClasses[pool.health.color]">
                             {{ pool.health.label }}
                         </span>
                         <span v-else class="text-xs text-muted-foreground">No reading yet</span>

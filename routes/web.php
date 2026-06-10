@@ -9,12 +9,12 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\PeopleController;
-use App\Models\Customer;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubscriptionController;
+use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 

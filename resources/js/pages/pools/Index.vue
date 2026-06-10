@@ -59,8 +59,24 @@ interface PoolDetail {
     equipment: string[];
     customer: { name: string; email: string | null; phone: string | null };
     location: { city: string | null; gate_code: string | null; access_notes: string | null } | null;
-    subscriptions: { id: number; service: string; schedule: string; agent: string; status: string; service_type_id: number; agent_id: number | null; frequency: string; preferred_day: string | null }[];
-    latest_reading: { taken_on: string | null; free_chlorine: number | null; ph: number | null; alkalinity: number | null; health: Health | null } | null;
+    subscriptions: {
+        id: number;
+        service: string;
+        schedule: string;
+        agent: string;
+        status: string;
+        service_type_id: number;
+        agent_id: number | null;
+        frequency: string;
+        preferred_day: string | null;
+    }[];
+    latest_reading: {
+        taken_on: string | null;
+        free_chlorine: number | null;
+        ph: number | null;
+        alkalinity: number | null;
+        health: Health | null;
+    } | null;
     fields: PoolFields;
 }
 
@@ -82,10 +98,14 @@ const search = ref(props.filters.search);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch(search, (value) => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => router.get('/pools', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }), 300);
+    searchTimer = setTimeout(
+        () => router.get('/pools', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }),
+        300,
+    );
 });
 
-const openPool = (id: number) => router.get('/pools', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
+const openPool = (id: number) =>
+    router.get('/pools', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/pools', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 
 const healthClasses: Record<Health['color'], string> = {
@@ -172,9 +192,20 @@ function openEdit() {
 
 function submitForm() {
     if (formMode.value === 'create') {
-        form.post('/pools', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+        form.post('/pools', {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+                form.reset();
+            },
+        });
     } else if (formId.value !== null) {
-        form.patch(`/pools/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+        form.patch(`/pools/${formId.value}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+            },
+        });
     }
 }
 
@@ -190,7 +221,14 @@ const subFormMode = ref<'create' | 'edit'>('create');
 const subFormId = ref<number | null>(null);
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-const subForm = useForm<{ pool_id: number | null; service_type_id: number | string; assigned_agent_id: number | string; frequency: string; preferred_day: string; status: string }>({
+const subForm = useForm<{
+    pool_id: number | null;
+    service_type_id: number | string;
+    assigned_agent_id: number | string;
+    frequency: string;
+    preferred_day: string;
+    status: string;
+}>({
     pool_id: null,
     service_type_id: '',
     assigned_agent_id: '',
@@ -223,16 +261,33 @@ function openSubEdit(sub: Subscription) {
 
 function submitSub() {
     if (subFormMode.value === 'create') {
-        subForm.post('/subscriptions', { preserveScroll: true, onSuccess: () => { subFormOpen.value = false; subForm.reset(); } });
+        subForm.post('/subscriptions', {
+            preserveScroll: true,
+            onSuccess: () => {
+                subFormOpen.value = false;
+                subForm.reset();
+            },
+        });
     } else if (subFormId.value !== null) {
-        subForm.patch(`/subscriptions/${subFormId.value}`, { preserveScroll: true, onSuccess: () => { subFormOpen.value = false; } });
+        subForm.patch(`/subscriptions/${subFormId.value}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                subFormOpen.value = false;
+            },
+        });
     }
 }
 
 function toggleSub(sub: Subscription) {
     router.patch(
         `/subscriptions/${sub.id}`,
-        { service_type_id: sub.service_type_id, assigned_agent_id: sub.agent_id, frequency: sub.frequency, preferred_day: sub.preferred_day, status: sub.status === 'active' ? 'paused' : 'active' },
+        {
+            service_type_id: sub.service_type_id,
+            assigned_agent_id: sub.agent_id,
+            frequency: sub.frequency,
+            preferred_day: sub.preferred_day,
+            status: sub.status === 'active' ? 'paused' : 'active',
+        },
         { preserveScroll: true },
     );
 }
@@ -305,58 +360,110 @@ function removeSub(sub: Subscription) {
                         <div class="mt-4 space-y-5 text-sm">
                             <div v-if="props.canManage" class="flex gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyPool"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyPool"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
                             </div>
 
                             <section v-if="props.selected.latest_reading?.health" class="rounded-lg border border-border p-3">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClasses[props.selected.latest_reading.health.color]">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="healthClasses[props.selected.latest_reading.health.color]"
+                                >
                                     {{ props.selected.latest_reading.health.label }}
                                 </span>
                                 <dl class="mt-2 grid grid-cols-3 gap-2 text-muted-foreground">
-                                    <div><dt class="text-xs">Free Cl</dt><dd>{{ props.selected.latest_reading.free_chlorine ?? '—' }}</dd></div>
-                                    <div><dt class="text-xs">pH</dt><dd>{{ props.selected.latest_reading.ph ?? '—' }}</dd></div>
-                                    <div><dt class="text-xs">Alk</dt><dd>{{ props.selected.latest_reading.alkalinity ?? '—' }}</dd></div>
+                                    <div>
+                                        <dt class="text-xs">Free Cl</dt>
+                                        <dd>{{ props.selected.latest_reading.free_chlorine ?? '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs">pH</dt>
+                                        <dd>{{ props.selected.latest_reading.ph ?? '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs">Alk</dt>
+                                        <dd>{{ props.selected.latest_reading.alkalinity ?? '—' }}</dd>
+                                    </div>
                                 </dl>
                             </section>
 
                             <section>
                                 <h3 class="mb-1 font-medium">Specs</h3>
                                 <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between"><dt>Type</dt><dd class="capitalize">{{ props.selected.type.replace('_', ' ') }}</dd></div>
-                                    <div class="flex justify-between"><dt>Volume</dt><dd>{{ props.selected.volume_gallons ? props.selected.volume_gallons.toLocaleString() + ' gal' : '—' }}</dd></div>
-                                    <div class="flex justify-between"><dt>Sanitizer</dt><dd class="capitalize">{{ props.selected.sanitizer }}</dd></div>
-                                    <div v-if="props.selected.equipment.length" class="flex justify-between"><dt>Equipment</dt><dd>{{ props.selected.equipment.join(', ') }}</dd></div>
+                                    <div class="flex justify-between">
+                                        <dt>Type</dt>
+                                        <dd class="capitalize">{{ props.selected.type.replace('_', ' ') }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Volume</dt>
+                                        <dd>{{ props.selected.volume_gallons ? props.selected.volume_gallons.toLocaleString() + ' gal' : '—' }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Sanitizer</dt>
+                                        <dd class="capitalize">{{ props.selected.sanitizer }}</dd>
+                                    </div>
+                                    <div v-if="props.selected.equipment.length" class="flex justify-between">
+                                        <dt>Equipment</dt>
+                                        <dd>{{ props.selected.equipment.join(', ') }}</dd>
+                                    </div>
                                 </dl>
                             </section>
 
                             <section v-if="props.selected.location">
                                 <h3 class="mb-1 font-medium">Location</h3>
                                 <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between"><dt>City</dt><dd>{{ props.selected.location.city ?? '—' }}</dd></div>
-                                    <div v-if="props.selected.location.gate_code" class="flex justify-between"><dt>Gate code</dt><dd class="font-mono">{{ props.selected.location.gate_code }}</dd></div>
-                                    <p v-if="props.selected.location.access_notes" class="pt-1 text-xs italic">{{ props.selected.location.access_notes }}</p>
+                                    <div class="flex justify-between">
+                                        <dt>City</dt>
+                                        <dd>{{ props.selected.location.city ?? '—' }}</dd>
+                                    </div>
+                                    <div v-if="props.selected.location.gate_code" class="flex justify-between">
+                                        <dt>Gate code</dt>
+                                        <dd class="font-mono">{{ props.selected.location.gate_code }}</dd>
+                                    </div>
+                                    <p v-if="props.selected.location.access_notes" class="pt-1 text-xs italic">
+                                        {{ props.selected.location.access_notes }}
+                                    </p>
                                 </dl>
                             </section>
 
                             <section>
                                 <div class="mb-1 flex items-center justify-between">
                                     <h3 class="font-medium">Service plans</h3>
-                                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openSubCreate"><Plus class="mr-1 size-3.5" /> Plan</Button>
+                                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openSubCreate"
+                                        ><Plus class="mr-1 size-3.5" /> Plan</Button
+                                    >
                                 </div>
                                 <ul class="space-y-2">
-                                    <li v-for="sub in props.selected.subscriptions" :key="sub.id" class="rounded-md border border-border p-2 text-muted-foreground">
+                                    <li
+                                        v-for="sub in props.selected.subscriptions"
+                                        :key="sub.id"
+                                        class="rounded-md border border-border p-2 text-muted-foreground"
+                                    >
                                         <div class="flex items-center justify-between">
                                             <span class="font-medium text-foreground">{{ sub.service }}</span>
-                                            <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="sub.status === 'active' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'">{{ sub.status }}</span>
+                                            <span
+                                                class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                                :class="
+                                                    sub.status === 'active'
+                                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                                "
+                                                >{{ sub.status }}</span
+                                            >
                                         </div>
                                         <div class="text-xs">{{ sub.schedule }} · {{ sub.agent }}</div>
                                         <div v-if="props.canManage" class="mt-1.5 flex gap-3 text-xs">
                                             <button class="hover:text-foreground" @click="openSubEdit(sub)">Edit</button>
-                                            <button class="hover:text-foreground" @click="toggleSub(sub)">{{ sub.status === 'active' ? 'Pause' : 'Resume' }}</button>
+                                            <button class="hover:text-foreground" @click="toggleSub(sub)">
+                                                {{ sub.status === 'active' ? 'Pause' : 'Resume' }}
+                                            </button>
                                             <button class="text-red-600 hover:text-red-700" @click="removeSub(sub)">Remove</button>
                                         </div>
                                     </li>
-                                    <li v-if="props.selected.subscriptions.length === 0" class="text-sm text-muted-foreground">No service plans yet.</li>
+                                    <li v-if="props.selected.subscriptions.length === 0" class="text-sm text-muted-foreground">
+                                        No service plans yet.
+                                    </li>
                                 </ul>
                             </section>
                         </div>
@@ -375,7 +482,12 @@ function removeSub(sub: Subscription) {
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
                         <div class="grid gap-1.5">
                             <Label for="customer_id">Customer</Label>
-                            <select id="customer_id" v-model="form.customer_id" :disabled="formMode === 'edit'" class="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60">
+                            <select
+                                id="customer_id"
+                                v-model="form.customer_id"
+                                :disabled="formMode === 'edit'"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60"
+                            >
                                 <option value="">Select a customer…</option>
                                 <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
                             </select>
@@ -406,7 +518,11 @@ function removeSub(sub: Subscription) {
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="sanitizer">Sanitizer</Label>
-                                <select id="sanitizer" v-model="form.sanitizer_type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select
+                                    id="sanitizer"
+                                    v-model="form.sanitizer_type"
+                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                >
                                     <option value="chlorine">Chlorine</option>
                                     <option value="salt">Salt</option>
                                     <option value="bromine">Bromine</option>
@@ -430,7 +546,9 @@ function removeSub(sub: Subscription) {
                         <div>
                             <span class="text-xs font-medium text-muted-foreground">Equipment</span>
                             <div class="mt-1 grid grid-cols-2 gap-1">
-                                <label v-for="e in equipmentToggles" :key="e.key" class="flex items-center gap-2"><input v-model="form[e.key]" type="checkbox" /> {{ e.label }}</label>
+                                <label v-for="e in equipmentToggles" :key="e.key" class="flex items-center gap-2"
+                                    ><input v-model="form[e.key]" type="checkbox" /> {{ e.label }}</label
+                                >
                             </div>
                         </div>
 
@@ -448,7 +566,12 @@ function removeSub(sub: Subscription) {
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="access">Access notes</Label>
-                            <textarea id="access" v-model="form.access_notes" rows="2" class="rounded-md border border-input bg-background px-3 py-2 text-sm"></textarea>
+                            <textarea
+                                id="access"
+                                v-model="form.access_notes"
+                                rows="2"
+                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            ></textarea>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
@@ -469,7 +592,11 @@ function removeSub(sub: Subscription) {
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitSub">
                         <div class="grid gap-1.5">
                             <Label for="sub_service">Service type</Label>
-                            <select id="sub_service" v-model="subForm.service_type_id" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select
+                                id="sub_service"
+                                v-model="subForm.service_type_id"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            >
                                 <option value="">Select…</option>
                                 <option v-for="t in props.serviceTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
                             </select>
@@ -477,7 +604,11 @@ function removeSub(sub: Subscription) {
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="sub_agent">Agent</Label>
-                            <select id="sub_agent" v-model="subForm.assigned_agent_id" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select
+                                id="sub_agent"
+                                v-model="subForm.assigned_agent_id"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            >
                                 <option value="">Unassigned</option>
                                 <option v-for="a in props.agents" :key="a.id" :value="a.id">{{ a.name }}</option>
                             </select>
@@ -485,7 +616,11 @@ function removeSub(sub: Subscription) {
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="sub_freq">Frequency</Label>
-                                <select id="sub_freq" v-model="subForm.frequency" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select
+                                    id="sub_freq"
+                                    v-model="subForm.frequency"
+                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                >
                                     <option value="weekly">Weekly</option>
                                     <option value="biweekly">Biweekly</option>
                                     <option value="monthly">Monthly</option>
@@ -495,7 +630,11 @@ function removeSub(sub: Subscription) {
                             </div>
                             <div class="grid gap-1.5">
                                 <Label for="sub_day">Preferred day</Label>
-                                <select id="sub_day" v-model="subForm.preferred_day" class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize">
+                                <select
+                                    id="sub_day"
+                                    v-model="subForm.preferred_day"
+                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
+                                >
                                     <option value="">Any</option>
                                     <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
                                 </select>

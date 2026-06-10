@@ -172,9 +172,20 @@ function openEdit() {
 
 function submitForm() {
     if (formMode.value === 'create') {
-        form.post('/customers', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+        form.post('/customers', {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+                form.reset();
+            },
+        });
     } else if (formId.value !== null) {
-        form.patch(`/customers/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+        form.patch(`/customers/${formId.value}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+            },
+        });
     }
 }
 
@@ -234,9 +245,20 @@ function openAgentEdit() {
 
 function submitAgent() {
     if (agentFormMode.value === 'create') {
-        agentForm.post('/agents', { preserveScroll: true, onSuccess: () => { agentFormOpen.value = false; agentForm.reset(); } });
+        agentForm.post('/agents', {
+            preserveScroll: true,
+            onSuccess: () => {
+                agentFormOpen.value = false;
+                agentForm.reset();
+            },
+        });
     } else if (agentFormId.value !== null) {
-        agentForm.patch(`/agents/${agentFormId.value}`, { preserveScroll: true, onSuccess: () => { agentFormOpen.value = false; } });
+        agentForm.patch(`/agents/${agentFormId.value}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                agentFormOpen.value = false;
+            },
+        });
     }
 }
 
@@ -330,14 +352,22 @@ function destroyAgent() {
                             <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
                             </div>
 
                             <section>
                                 <h3 class="mb-1 font-medium">Contact</h3>
                                 <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between"><dt>Email</dt><dd>{{ props.selected.email ?? '—' }}</dd></div>
-                                    <div class="flex justify-between"><dt>Phone</dt><dd>{{ props.selected.phone ?? '—' }}</dd></div>
+                                    <div class="flex justify-between">
+                                        <dt>Email</dt>
+                                        <dd>{{ props.selected.email ?? '—' }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Phone</dt>
+                                        <dd>{{ props.selected.phone ?? '—' }}</dd>
+                                    </div>
                                 </dl>
                             </section>
 
@@ -346,7 +376,8 @@ function destroyAgent() {
                                     <h3 class="mb-1 font-medium">Pools ({{ props.selected.pools.length }})</h3>
                                     <ul class="space-y-1 text-muted-foreground">
                                         <li v-for="pool in props.selected.pools" :key="pool.id" class="flex justify-between">
-                                            <span>{{ pool.name }}</span><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
+                                            <span>{{ pool.name }}</span
+                                            ><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
                                         </li>
                                         <li v-if="props.selected.pools.length === 0">No pools.</li>
                                     </ul>
@@ -355,7 +386,8 @@ function destroyAgent() {
                                     <h3 class="mb-1 font-medium">Recent visits</h3>
                                     <ul class="space-y-1 text-muted-foreground">
                                         <li v-for="visit in props.selected.recent_visits" :key="visit.id" class="flex justify-between">
-                                            <span>{{ visit.pool }}</span><span>{{ visit.completed_on }}</span>
+                                            <span>{{ visit.pool }}</span
+                                            ><span>{{ visit.completed_on }}</span>
                                         </li>
                                     </ul>
                                 </section>
@@ -364,15 +396,29 @@ function destroyAgent() {
                             <template v-else>
                                 <div v-if="props.canManage" class="flex flex-wrap gap-2">
                                     <Button size="sm" variant="outline" @click="openAgentEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyAgent"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyAgent"
+                                        ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                    >
                                 </div>
                                 <section>
                                     <h3 class="mb-1 font-medium">Activity</h3>
                                     <dl class="space-y-1 text-muted-foreground">
-                                        <div class="flex justify-between"><dt>Status</dt><dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd></div>
-                                        <div class="flex justify-between"><dt>Agent+ mode</dt><dd>{{ props.selected.agent_plus ? 'On' : 'Off' }}</dd></div>
-                                        <div class="flex justify-between"><dt>Completed visits</dt><dd>{{ props.selected.stats.completed_visits }}</dd></div>
-                                        <div class="flex justify-between"><dt>This week</dt><dd>{{ props.selected.stats.this_week }}</dd></div>
+                                        <div class="flex justify-between">
+                                            <dt>Status</dt>
+                                            <dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt>Agent+ mode</dt>
+                                            <dd>{{ props.selected.agent_plus ? 'On' : 'Off' }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt>Completed visits</dt>
+                                            <dd>{{ props.selected.stats.completed_visits }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt>This week</dt>
+                                            <dd>{{ props.selected.stats.this_week }}</dd>
+                                        </div>
                                     </dl>
                                 </section>
                             </template>
@@ -386,7 +432,9 @@ function destroyAgent() {
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <SheetHeader>
                         <SheetTitle>{{ formMode === 'create' ? 'New customer' : 'Edit customer' }}</SheetTitle>
-                        <SheetDescription>{{ formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.' }}</SheetDescription>
+                        <SheetDescription>{{
+                            formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.'
+                        }}</SheetDescription>
                     </SheetHeader>
 
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
@@ -430,10 +478,17 @@ function destroyAgent() {
                                 <Input id="zip" v-model="form.zip" />
                             </div>
                         </div>
-                        <label class="flex items-center gap-2"><input v-model="form.bill_chemicals" type="checkbox" /> <span>Itemize chemicals on this customer's bill</span></label>
+                        <label class="flex items-center gap-2"
+                            ><input v-model="form.bill_chemicals" type="checkbox" /> <span>Itemize chemicals on this customer's bill</span></label
+                        >
                         <div class="grid gap-1.5">
                             <Label for="notes">Notes</Label>
-                            <textarea id="notes" v-model="form.notes" rows="2" class="rounded-md border border-input bg-background px-3 py-2 text-sm"></textarea>
+                            <textarea
+                                id="notes"
+                                v-model="form.notes"
+                                rows="2"
+                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            ></textarea>
                         </div>
 
                         <fieldset v-if="formMode === 'create'" class="space-y-3 rounded-lg border border-border p-3">
@@ -445,7 +500,11 @@ function destroyAgent() {
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="grid gap-1.5">
                                     <Label for="pool_type">Type</Label>
-                                    <select id="pool_type" v-model="form.pool_type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <select
+                                        id="pool_type"
+                                        v-model="form.pool_type"
+                                        class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                    >
                                         <option value="inground">In-ground</option>
                                         <option value="above_ground">Above ground</option>
                                         <option value="spa">Spa</option>
@@ -474,7 +533,9 @@ function destroyAgent() {
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
                     <SheetHeader>
                         <SheetTitle>{{ agentFormMode === 'create' ? 'New agent' : 'Edit agent' }}</SheetTitle>
-                        <SheetDescription>{{ agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.' }}</SheetDescription>
+                        <SheetDescription>{{
+                            agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.'
+                        }}</SheetDescription>
                     </SheetHeader>
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitAgent">
                         <div class="grid grid-cols-2 gap-3">
@@ -492,15 +553,22 @@ function destroyAgent() {
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5"><Label for="a_phone">Phone</Label><Input id="a_phone" v-model="agentForm.phone" /></div>
-                            <div class="grid gap-1.5"><Label for="a_color">Map color</Label><input id="a_color" v-model="agentForm.map_color" type="color" class="h-9 w-full rounded-md border border-input" /></div>
+                            <div class="grid gap-1.5">
+                                <Label for="a_color">Map color</Label
+                                ><input id="a_color" v-model="agentForm.map_color" type="color" class="h-9 w-full rounded-md border border-input" />
+                            </div>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="a_pw">{{ agentFormMode === 'create' ? 'Initial password' : 'New password (optional)' }}</Label>
                             <Input id="a_pw" v-model="agentForm.password" type="password" autocomplete="new-password" />
                             <p v-if="agentForm.errors.password" class="text-xs text-red-600">{{ agentForm.errors.password }}</p>
                         </div>
-                        <label class="flex items-center gap-2"><input v-model="agentForm.agent_plus" type="checkbox" /> Agent+ (edit own schedule, skip, add stops)</label>
-                        <label v-if="agentFormMode === 'edit'" class="flex items-center gap-2"><input v-model="agentForm.is_active" type="checkbox" /> Active (can log in)</label>
+                        <label class="flex items-center gap-2"
+                            ><input v-model="agentForm.agent_plus" type="checkbox" /> Agent+ (edit own schedule, skip, add stops)</label
+                        >
+                        <label v-if="agentFormMode === 'edit'" class="flex items-center gap-2"
+                            ><input v-model="agentForm.is_active" type="checkbox" /> Active (can log in)</label
+                        >
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="agentFormOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="agentForm.processing">{{ agentFormMode === 'create' ? 'Add agent' : 'Save' }}</Button>

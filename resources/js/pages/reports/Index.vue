@@ -109,7 +109,9 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                     <template v-if="props.selected">
                         <SheetHeader>
                             <SheetTitle>{{ props.selected.pool }}</SheetTitle>
-                            <SheetDescription>{{ props.selected.customer }} · {{ props.selected.completed_on }} · {{ props.selected.agent }}</SheetDescription>
+                            <SheetDescription
+                                >{{ props.selected.customer }} · {{ props.selected.completed_on }} · {{ props.selected.agent }}</SheetDescription
+                            >
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
@@ -129,7 +131,8 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                                 <h3 class="mb-1 font-medium">Treatments</h3>
                                 <ul class="space-y-1 text-muted-foreground">
                                     <li v-for="(t, i) in props.selected.treatments" :key="i" class="flex justify-between">
-                                        <span>{{ t.name }}</span><span>{{ t.amount }} {{ t.unit }}</span>
+                                        <span>{{ t.name }}</span
+                                        ><span>{{ t.amount }} {{ t.unit }}</span>
                                     </li>
                                 </ul>
                             </section>

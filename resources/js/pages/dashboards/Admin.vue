@@ -48,7 +48,9 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' 
                 <h2 class="border-b border-border px-4 py-2 font-medium">Recent service visits</h2>
                 <ul class="divide-y divide-border text-sm">
                     <li v-for="v in recent_visits" :key="v.id" class="flex items-center justify-between px-4 py-2.5">
-                        <span>{{ v.pool }} <span class="text-muted-foreground">· {{ v.agent }}</span></span>
+                        <span
+                            >{{ v.pool }} <span class="text-muted-foreground">· {{ v.agent }}</span></span
+                        >
                         <span class="text-xs text-muted-foreground">{{ v.completed_on }}</span>
                     </li>
                     <li v-if="recent_visits.length === 0" class="px-4 py-6 text-center text-muted-foreground">No visits yet.</li>

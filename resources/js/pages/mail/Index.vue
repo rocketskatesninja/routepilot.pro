@@ -65,10 +65,17 @@ function submit() {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="body">Message</Label>
-                        <textarea id="body" v-model="form.body" rows="8" class="rounded-md border border-input bg-background px-3 py-2 text-sm"></textarea>
+                        <textarea
+                            id="body"
+                            v-model="form.body"
+                            rows="8"
+                            class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        ></textarea>
                         <p v-if="form.errors.body" class="text-xs text-red-600">{{ form.errors.body }}</p>
                     </div>
-                    <Button type="submit" :disabled="form.processing || selectedCount === 0"><Send class="mr-1 size-4" /> Send to {{ selectedCount }}</Button>
+                    <Button type="submit" :disabled="form.processing || selectedCount === 0"
+                        ><Send class="mr-1 size-4" /> Send to {{ selectedCount }}</Button
+                    >
                 </form>
 
                 <!-- history -->
@@ -87,8 +94,12 @@ function submit() {
                             <tr v-for="c in props.campaigns" :key="c.id" class="border-t border-border">
                                 <td class="px-4 py-2.5 font-medium">{{ c.subject }}</td>
                                 <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ c.audience }}</td>
-                                <td class="px-4 py-2.5 text-muted-foreground">{{ c.sent }}/{{ c.recipients }}<span v-if="c.failed" class="text-red-600"> · {{ c.failed }} failed</span></td>
-                                <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ c.sent_on }} <span v-if="c.by">· {{ c.by }}</span></td>
+                                <td class="px-4 py-2.5 text-muted-foreground">
+                                    {{ c.sent }}/{{ c.recipients }}<span v-if="c.failed" class="text-red-600"> · {{ c.failed }} failed</span>
+                                </td>
+                                <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                                    {{ c.sent_on }} <span v-if="c.by">· {{ c.by }}</span>
+                                </td>
                             </tr>
                             <tr v-if="props.campaigns.length === 0">
                                 <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">

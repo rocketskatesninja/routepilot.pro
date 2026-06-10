@@ -48,7 +48,9 @@ const statusClasses: Record<string, string> = {
                 <h2 class="border-b border-border px-4 py-2 font-medium">Today's route</h2>
                 <ul class="divide-y divide-border text-sm">
                     <li v-for="(stop, i) in today_stops" :key="stop.id" class="flex items-center justify-between px-4 py-2.5">
-                        <span><span class="mr-2 text-muted-foreground">{{ i + 1 }}.</span>{{ stop.pool }}</span>
+                        <span
+                            ><span class="mr-2 text-muted-foreground">{{ i + 1 }}.</span>{{ stop.pool }}</span
+                        >
                         <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClasses[stop.status] ?? 'bg-muted'">
                             {{ stop.status.replace('_', ' ') }}
                         </span>

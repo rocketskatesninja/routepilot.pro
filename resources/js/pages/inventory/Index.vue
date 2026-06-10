@@ -56,10 +56,14 @@ const search = ref(props.filters.search);
 let timer: ReturnType<typeof setTimeout> | undefined;
 watch(search, (value) => {
     clearTimeout(timer);
-    timer = setTimeout(() => router.get('/inventory', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }), 300);
+    timer = setTimeout(
+        () => router.get('/inventory', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }),
+        300,
+    );
 });
 
-const open = (id: number) => router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
+const open = (id: number) =>
+    router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/inventory', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = (n: number) => `$${n.toFixed(2)}`;
 
@@ -67,7 +71,16 @@ const money = (n: number) => `$${n.toFixed(2)}`;
 const formOpen = ref(false);
 const formMode = ref<'create' | 'edit'>('create');
 const formId = ref<number | null>(null);
-const form = useForm<{ chemical_name: string; unit: string; current_stock: string; reorder_threshold: string; cost_per_unit: string; sell_price: string; supplier: string; is_active: boolean }>({
+const form = useForm<{
+    chemical_name: string;
+    unit: string;
+    current_stock: string;
+    reorder_threshold: string;
+    cost_per_unit: string;
+    sell_price: string;
+    supplier: string;
+    is_active: boolean;
+}>({
     chemical_name: '',
     unit: 'gal',
     current_stock: '0',
@@ -104,9 +117,20 @@ function openEdit() {
 
 function submitForm() {
     if (formMode.value === 'create') {
-        form.post('/inventory', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+        form.post('/inventory', {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+                form.reset();
+            },
+        });
     } else if (formId.value !== null) {
-        form.patch(`/inventory/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+        form.patch(`/inventory/${formId.value}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+            },
+        });
     }
 }
 
@@ -161,11 +185,20 @@ function submitAdjust() {
                             <td class="px-4 py-2.5 font-medium">{{ item.name }}</td>
                             <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
                             <td class="px-4 py-2.5">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="item.low ? 'bg-red-500/15 text-red-600 dark:text-red-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="
+                                        item.low
+                                            ? 'bg-red-500/15 text-red-600 dark:text-red-400'
+                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    "
+                                >
                                     {{ item.low ? 'Low' : 'OK' }}
                                 </span>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}</td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                                {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
+                            </td>
                         </tr>
                         <tr v-if="props.items.data.length === 0">
                             <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
@@ -188,15 +221,32 @@ function submitAdjust() {
                         <div class="mt-4 space-y-5 text-sm">
                             <div v-if="props.canManage" class="flex gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyChemical"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyChemical"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
                             </div>
 
                             <dl class="space-y-1 text-muted-foreground">
-                                <div class="flex justify-between"><dt>Reorder at</dt><dd>{{ props.selected.reorder_threshold ?? '—' }} {{ props.selected.unit }}</dd></div>
-                                <div class="flex justify-between"><dt>Cost</dt><dd>{{ props.selected.cost_per_unit !== null ? money(props.selected.cost_per_unit) : '—' }}</dd></div>
-                                <div class="flex justify-between"><dt>Sell price</dt><dd>{{ props.selected.sell_price !== null ? money(props.selected.sell_price) : '—' }}</dd></div>
-                                <div class="flex justify-between"><dt>Stock value</dt><dd>{{ props.selected.value !== null ? money(props.selected.value) : '—' }}</dd></div>
-                                <div v-if="props.selected.supplier" class="flex justify-between"><dt>Supplier</dt><dd>{{ props.selected.supplier }}</dd></div>
+                                <div class="flex justify-between">
+                                    <dt>Reorder at</dt>
+                                    <dd>{{ props.selected.reorder_threshold ?? '—' }} {{ props.selected.unit }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt>Cost</dt>
+                                    <dd>{{ props.selected.cost_per_unit !== null ? money(props.selected.cost_per_unit) : '—' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt>Sell price</dt>
+                                    <dd>{{ props.selected.sell_price !== null ? money(props.selected.sell_price) : '—' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt>Stock value</dt>
+                                    <dd>{{ props.selected.value !== null ? money(props.selected.value) : '—' }}</dd>
+                                </div>
+                                <div v-if="props.selected.supplier" class="flex justify-between">
+                                    <dt>Supplier</dt>
+                                    <dd>{{ props.selected.supplier }}</dd>
+                                </div>
                             </dl>
 
                             <section v-if="props.canManage" class="rounded-lg border border-border p-3">
@@ -240,19 +290,38 @@ function submitAdjust() {
                                 <Input id="cname" v-model="form.chemical_name" />
                                 <p v-if="form.errors.chemical_name" class="text-xs text-red-600">{{ form.errors.chemical_name }}</p>
                             </div>
-                            <div class="grid gap-1.5"><Label for="cunit">Unit</Label><Input id="cunit" v-model="form.unit" placeholder="gal / lbs" /></div>
+                            <div class="grid gap-1.5">
+                                <Label for="cunit">Unit</Label><Input id="cunit" v-model="form.unit" placeholder="gal / lbs" />
+                            </div>
                         </div>
                         <div v-if="formMode === 'create'" class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5"><Label for="cstock">Starting stock</Label><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" /></div>
-                            <div class="grid gap-1.5"><Label for="creorder">Reorder at</Label><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" /></div>
+                            <div class="grid gap-1.5">
+                                <Label for="cstock">Starting stock</Label
+                                ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="creorder">Reorder at</Label
+                                ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
+                            </div>
                         </div>
-                        <div v-else class="grid gap-1.5"><Label for="creorder2">Reorder at</Label><Input id="creorder2" v-model="form.reorder_threshold" type="number" min="0" step="0.01" /></div>
+                        <div v-else class="grid gap-1.5">
+                            <Label for="creorder2">Reorder at</Label
+                            ><Input id="creorder2" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5"><Label for="ccost">Cost / unit ($)</Label><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" /></div>
-                            <div class="grid gap-1.5"><Label for="csell">Sell price ($)</Label><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" /></div>
+                            <div class="grid gap-1.5">
+                                <Label for="ccost">Cost / unit ($)</Label
+                                ><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="csell">Sell price ($)</Label
+                                ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
+                            </div>
                         </div>
                         <div class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
-                        <label v-if="formMode === 'edit'" class="flex items-center gap-2"><input v-model="form.is_active" type="checkbox" /> Active</label>
+                        <label v-if="formMode === 'edit'" class="flex items-center gap-2"
+                            ><input v-model="form.is_active" type="checkbox" /> Active</label
+                        >
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add chemical' : 'Save' }}</Button>

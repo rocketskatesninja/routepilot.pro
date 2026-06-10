@@ -61,10 +61,14 @@ const search = ref(props.filters.search);
 let timer: ReturnType<typeof setTimeout> | undefined;
 watch(search, (value) => {
     clearTimeout(timer);
-    timer = setTimeout(() => router.get('/services', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }), 300);
+    timer = setTimeout(
+        () => router.get('/services', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }),
+        300,
+    );
 });
 
-const open = (id: number) => router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
+const open = (id: number) =>
+    router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/services', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = (price: string) => `$${Number(price).toFixed(2)}`;
 
@@ -131,9 +135,20 @@ function openEdit() {
 
 function submitForm() {
     if (formMode.value === 'create') {
-        form.post('/services', { preserveScroll: true, onSuccess: () => { formOpen.value = false; form.reset(); } });
+        form.post('/services', {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+                form.reset();
+            },
+        });
     } else if (formId.value !== null) {
-        form.patch(`/services/${formId.value}`, { preserveScroll: true, onSuccess: () => { formOpen.value = false; } });
+        form.patch(`/services/${formId.value}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                formOpen.value = false;
+            },
+        });
     }
 }
 
@@ -184,7 +199,14 @@ function destroyService() {
                             <td class="px-4 py-2.5 text-muted-foreground">{{ money(service.price) }}</td>
                             <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ service.pools }}</td>
                             <td class="px-4 py-2.5">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="service.is_active ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="
+                                        service.is_active
+                                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                            : 'bg-muted text-muted-foreground'
+                                    "
+                                >
                                     {{ service.is_active ? 'Active' : 'Inactive' }}
                                 </span>
                             </td>
@@ -204,21 +226,37 @@ function destroyService() {
                     <template v-if="props.selected">
                         <SheetHeader>
                             <SheetTitle>{{ props.selected.name }}</SheetTitle>
-                            <SheetDescription class="capitalize">{{ props.selected.category ?? 'Service' }} · {{ props.selected.frequency }}</SheetDescription>
+                            <SheetDescription class="capitalize"
+                                >{{ props.selected.category ?? 'Service' }} · {{ props.selected.frequency }}</SheetDescription
+                            >
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
                             <div v-if="props.canManage" class="flex gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyService"><Trash2 class="mr-1 size-3.5" /> Remove</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyService"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
                             </div>
 
                             <section>
                                 <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between"><dt>Price</dt><dd>{{ money(props.selected.price) }}</dd></div>
-                                    <div class="flex justify-between"><dt>Duration</dt><dd>{{ props.selected.duration_minutes }} min</dd></div>
-                                    <div class="flex justify-between"><dt>Chemicals</dt><dd>{{ props.selected.chemicals_included ? 'Included' : 'Billed separately' }}</dd></div>
-                                    <div class="flex justify-between"><dt>Active pools</dt><dd>{{ props.selected.pools }}</dd></div>
+                                    <div class="flex justify-between">
+                                        <dt>Price</dt>
+                                        <dd>{{ money(props.selected.price) }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Duration</dt>
+                                        <dd>{{ props.selected.duration_minutes }} min</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Chemicals</dt>
+                                        <dd>{{ props.selected.chemicals_included ? 'Included' : 'Billed separately' }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Active pools</dt>
+                                        <dd>{{ props.selected.pools }}</dd>
+                                    </div>
                                 </dl>
                                 <p v-if="props.selected.description" class="mt-2 text-muted-foreground">{{ props.selected.description }}</p>
                             </section>
@@ -283,19 +321,25 @@ function destroyService() {
                             </div>
                         </div>
 
-                        <label class="flex items-center gap-2"><input v-model="form.chemicals_included" type="checkbox" /> Chemicals included in price</label>
+                        <label class="flex items-center gap-2"
+                            ><input v-model="form.chemicals_included" type="checkbox" /> Chemicals included in price</label
+                        >
 
                         <div>
                             <span class="text-xs font-medium text-muted-foreground">At-pool field steps</span>
                             <div class="mt-1 grid grid-cols-2 gap-1">
-                                <label v-for="(label, key) in moduleLabels" :key="key" class="flex items-center gap-2"><input v-model="form.field_modules[key]" type="checkbox" /> {{ label }}</label>
+                                <label v-for="(label, key) in moduleLabels" :key="key" class="flex items-center gap-2"
+                                    ><input v-model="form.field_modules[key]" type="checkbox" /> {{ label }}</label
+                                >
                             </div>
                         </div>
 
                         <div>
                             <div class="mb-1 flex items-center justify-between">
                                 <span class="text-xs font-medium text-muted-foreground">Task checklist</span>
-                                <Button type="button" size="sm" variant="outline" @click="form.tasks.push('')"><Plus class="mr-1 size-3.5" /> Task</Button>
+                                <Button type="button" size="sm" variant="outline" @click="form.tasks.push('')"
+                                    ><Plus class="mr-1 size-3.5" /> Task</Button
+                                >
                             </div>
                             <div class="space-y-1.5">
                                 <div v-for="(task, i) in form.tasks" :key="i" class="flex gap-2">
@@ -307,10 +351,17 @@ function destroyService() {
 
                         <div class="grid gap-1.5">
                             <Label for="desc">Description</Label>
-                            <textarea id="desc" v-model="form.description" rows="2" class="rounded-md border border-input bg-background px-3 py-2 text-sm"></textarea>
+                            <textarea
+                                id="desc"
+                                v-model="form.description"
+                                rows="2"
+                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            ></textarea>
                         </div>
 
-                        <label class="flex items-center gap-2"><input v-model="form.is_active" type="checkbox" /> Active (offered to new pools)</label>
+                        <label class="flex items-center gap-2"
+                            ><input v-model="form.is_active" type="checkbox" /> Active (offered to new pools)</label
+                        >
 
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>

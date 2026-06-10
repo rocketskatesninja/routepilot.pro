@@ -58,7 +58,13 @@ function openCharge() {
     chargeOpen.value = true;
 }
 function submitCharge() {
-    chargeForm.post('/balances/charges', { preserveScroll: true, onSuccess: () => { chargeOpen.value = false; chargeForm.reset(); } });
+    chargeForm.post('/balances/charges', {
+        preserveScroll: true,
+        onSuccess: () => {
+            chargeOpen.value = false;
+            chargeForm.reset();
+        },
+    });
 }
 </script>
 
@@ -125,7 +131,9 @@ function submitCharge() {
                                 <h3 class="mb-1 font-medium">Unpaid visits</h3>
                                 <ul class="space-y-1 text-muted-foreground">
                                     <li v-for="(v, i) in props.selected.visits" :key="i" class="flex justify-between">
-                                        <span>{{ v.pool }} <span class="text-xs">· {{ v.date }}</span></span>
+                                        <span
+                                            >{{ v.pool }} <span class="text-xs">· {{ v.date }}</span></span
+                                        >
                                         <span>{{ money(v.price) }}</span>
                                     </li>
                                 </ul>
@@ -135,7 +143,8 @@ function submitCharge() {
                                 <h3 class="mb-1 font-medium">Manual charges</h3>
                                 <ul class="space-y-1 text-muted-foreground">
                                     <li v-for="(c, i) in props.selected.charges" :key="i" class="flex justify-between">
-                                        <span>{{ c.description }}</span><span>{{ money(c.amount) }}</span>
+                                        <span>{{ c.description }}</span
+                                        ><span>{{ money(c.amount) }}</span>
                                     </li>
                                 </ul>
                             </section>
@@ -170,7 +179,11 @@ function submitCharge() {
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitCharge">
                         <div class="grid gap-1.5">
                             <Label for="ch_cust">Customer</Label>
-                            <select id="ch_cust" v-model="chargeForm.customer_id" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select
+                                id="ch_cust"
+                                v-model="chargeForm.customer_id"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            >
                                 <option value="">Select…</option>
                                 <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
                             </select>
