@@ -83,6 +83,7 @@ interface PoolDetail {
         notes: string | null;
         service_log: { id: number; on: string | null; description: string; cost: number }[];
     }[];
+    targets: Record<string, { min?: number; max?: number }>;
     latest_reading: {
         taken_on: string | null;
         free_chlorine: number | null;
@@ -363,6 +364,33 @@ function submitService() {
     });
 }
 const labelize = (s: string) => s.replace('_', ' ');
+
+// --- per-pool chemistry targets ---
+const chemParams = [
+    { key: 'free_chlorine', label: 'Free chlorine' },
+    { key: 'ph', label: 'pH' },
+    { key: 'alkalinity', label: 'Alkalinity' },
+    { key: 'calcium_hardness', label: 'Calcium' },
+    { key: 'cyanuric_acid', label: 'CYA' },
+    { key: 'salt', label: 'Salt' },
+];
+const targetsOpen = ref(false);
+const targetsForm = useForm<{ targets: Record<string, { min: string; max: string }> }>({ targets: {} });
+function openTargets() {
+    if (!props.selected) return;
+    const t: Record<string, { min: string; max: string }> = {};
+    for (const p of chemParams) {
+        const cur = props.selected.targets[p.key];
+        t[p.key] = { min: cur?.min != null ? String(cur.min) : '', max: cur?.max != null ? String(cur.max) : '' };
+    }
+    targetsForm.targets = t;
+    targetsForm.clearErrors();
+    targetsOpen.value = true;
+}
+function submitTargets() {
+    if (!props.selected) return;
+    targetsForm.post(`/pools/${props.selected.id}/targets`, { preserveScroll: true, onSuccess: () => (targetsOpen.value = false) });
+}
 </script>
 
 <template>
@@ -417,7 +445,7 @@ const labelize = (s: string) => s.replace('_', ' ');
             </div>
 
             <Sheet
-                :open="props.selected !== null && !formOpen && !subFormOpen && !equipOpen && !serviceOpen"
+                :open="props.selected !== null && !formOpen && !subFormOpen && !equipOpen && !serviceOpen && !targetsOpen"
                 @update:open="(open: boolean) => !open && closeDrawer()"
             >
                 <SheetContent class="w-full overflow-y-auto sm:max-w-md">
@@ -428,8 +456,9 @@ const labelize = (s: string) => s.replace('_', ' ');
                         </SheetHeader>
 
                         <div class="mt-4 space-y-5 text-sm">
-                            <div v-if="props.canManage" class="flex gap-2">
+                            <div v-if="props.canManage" class="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button size="sm" variant="outline" @click="openTargets">Targets</Button>
                                 <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyPool"
                                     ><Trash2 class="mr-1 size-3.5" /> Remove</Button
                                 >
@@ -645,6 +674,27 @@ const labelize = (s: string) => s.replace('_', ' ');
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="serviceOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="serviceForm.processing">Save</Button>
+                        </div>
+                    </form>
+                </SheetContent>
+            </Sheet>
+
+            <!-- per-pool chemistry targets -->
+            <Sheet v-model:open="targetsOpen">
+                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Chemistry targets</SheetTitle>
+                        <SheetDescription>Override the default target ranges for this pool. Blank = use defaults.</SheetDescription>
+                    </SheetHeader>
+                    <form class="mt-4 space-y-3 text-sm" @submit.prevent="submitTargets">
+                        <div v-for="p in chemParams" :key="p.key" class="grid grid-cols-3 items-center gap-3">
+                            <Label class="text-muted-foreground">{{ p.label }}</Label>
+                            <Input v-model="targetsForm.targets[p.key].min" type="number" step="0.1" placeholder="min" />
+                            <Input v-model="targetsForm.targets[p.key].max" type="number" step="0.1" placeholder="max" />
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="targetsOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="targetsForm.processing">Save targets</Button>
                         </div>
                     </form>
                 </SheetContent>

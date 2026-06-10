@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('pools', [PoolController::class, 'store'])->name('pools.store');
     Route::patch('pools/{pool}', [PoolController::class, 'update'])->name('pools.update');
     Route::delete('pools/{pool}', [PoolController::class, 'destroy'])->name('pools.destroy');
+    Route::post('pools/{pool}/targets', [PoolController::class, 'updateTargets'])->name('pools.targets');
     Route::post('equipment', [EquipmentController::class, 'store'])->name('equipment.store');
     Route::patch('equipment/{equipment}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('equipment/{equipment}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');

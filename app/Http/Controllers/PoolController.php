@@ -95,6 +95,35 @@ class PoolController extends Controller
         return back()->with('success', 'Pool removed.');
     }
 
+    /** Save per-pool chemistry target overrides (blanks fall back to defaults). */
+    public function updateTargets(Request $request, Pool $pool): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $validated = $request->validate([
+            'targets' => ['array'],
+            'targets.*.min' => ['nullable', 'numeric', 'min:0', 'max:50000'],
+            'targets.*.max' => ['nullable', 'numeric', 'min:0', 'max:50000'],
+        ]);
+
+        $ranges = [];
+        foreach (['free_chlorine', 'ph', 'alkalinity', 'calcium_hardness', 'cyanuric_acid', 'salt'] as $param) {
+            $min = $validated['targets'][$param]['min'] ?? null;
+            $max = $validated['targets'][$param]['max'] ?? null;
+            $override = array_filter([
+                'min' => $min !== null ? (float) $min : null,
+                'max' => $max !== null ? (float) $max : null,
+            ], fn ($v): bool => $v !== null);
+            if ($override !== []) {
+                $ranges[$param] = $override;
+            }
+        }
+
+        $pool->update(['custom_target_ranges' => $ranges === [] ? null : $ranges]);
+
+        return back()->with('success', 'Chemistry targets saved.');
+    }
+
     /** @return list<array{id: int, name: string}> */
     private function customerOptions(): array
     {
@@ -224,6 +253,7 @@ class PoolController extends Controller
                     'cost' => (float) $l->cost,
                 ])->all(),
             ])->all(),
+            'targets' => $pool->custom_target_ranges ?? [],
             'latest_reading' => $reading !== null ? [
                 'taken_on' => $reading->created_at?->toDateString(),
                 'free_chlorine' => $reading->free_chlorine,
