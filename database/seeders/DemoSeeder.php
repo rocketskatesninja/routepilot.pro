@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\ChemicalInventory;
 use App\Models\Customer;
+use App\Models\ManualCharge;
 use App\Models\Pool;
 use App\Models\ServiceLocation;
 use App\Models\ServiceSubscription;
@@ -49,7 +51,7 @@ class DemoSeeder extends Seeder
         app()->instance('tenant', $tenant);
         app()->instance('tenant_id', $tenant->id);
 
-        User::factory()->for($tenant)->create([
+        $admin = User::factory()->for($tenant)->create([
             'first_name' => 'Sarah', 'last_name' => 'Owner', 'email' => 'admin@sunshine.test',
         ]);
 
@@ -72,6 +74,21 @@ class DemoSeeder extends Seeder
             'field_modules' => ['tasks' => false, 'chemistry' => true, 'treatments' => true, 'photos' => false],
         ]);
 
+        // Chemical stock — Cal Hypo intentionally below its reorder threshold.
+        foreach ([
+            ['Liquid Chlorine', 'gal', 60, 15, 2.20, 4.50],
+            ['Muriatic Acid', 'gal', 24, 6, 1.80, 4.00],
+            ['Cal Hypo', 'lbs', 8, 10, 3.10, 6.50],
+            ['Cyanuric Acid', 'lbs', 40, 10, 2.40, 5.00],
+            ['Soda Ash', 'lbs', 35, 10, 1.10, 3.00],
+        ] as [$chemName, $chemUnit, $stock, $reorder, $cost, $sell]) {
+            ChemicalInventory::create([
+                'chemical_name' => $chemName, 'unit' => $chemUnit, 'current_stock' => $stock,
+                'reorder_threshold' => $reorder, 'cost_per_unit' => $cost, 'sell_price' => $sell, 'is_active' => true,
+            ]);
+        }
+
+        $firstCustomer = null;
         $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
         $names = [
             ['Robert', 'Anderson'], ['Jennifer', 'Lee'], ['Michael', 'Cruz'], ['Patricia', 'Diaz'],
@@ -91,6 +108,7 @@ class DemoSeeder extends Seeder
                     'first_name' => $first, 'last_name' => $last, 'email' => 'customer@sunshine.test',
                 ]);
                 $customer->forceFill(['user_id' => $portalUser->id])->save();
+                $firstCustomer = $customer;
             }
 
             $pool = Pool::factory()->for($tenant)->for($customer)->create([
@@ -120,6 +138,14 @@ class DemoSeeder extends Seeder
                     'alkalinity' => 90 + $i * 3, 'calcium_hardness' => 250, 'water_temperature' => 82,
                 ]);
             }
+        }
+
+        // A manual charge so the first customer carries a richer balance.
+        if ($firstCustomer !== null) {
+            ManualCharge::create([
+                'customer_id' => $firstCustomer->id, 'description' => 'Filter cartridge replacement',
+                'amount' => 89.00, 'taxable' => true, 'occurred_on' => Carbon::now()->subWeek(), 'created_by' => $admin->id,
+            ]);
         }
 
         // Materialize the upcoming schedule from the subscriptions.
