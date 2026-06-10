@@ -9,11 +9,16 @@ use Database\Factories\PoolFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Pool — a body of water serviced for a customer. Tenant-scoped.
  * `custom_target_ranges` overrides the tenant/global chemistry targets.
+ *
+ * @property array<string, array{min?: float|int, max?: float|int}>|null $custom_target_ranges
+ * @property-read ServiceLocation|null $serviceLocation
  */
 class Pool extends Model
 {
@@ -54,5 +59,33 @@ class Pool extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    /** @return HasOne<ServiceLocation, $this> */
+    public function serviceLocation(): HasOne
+    {
+        return $this->hasOne(ServiceLocation::class);
+    }
+
+    /** @return HasMany<ServiceSubscription, $this> */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(ServiceSubscription::class);
+    }
+
+    /**
+     * The pool's [lat, lng] for routing, or null if it has no geocoded
+     * service location. A 0/null coordinate is treated as unset.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    public function coordinates(): ?array
+    {
+        $loc = $this->serviceLocation;
+        if ($loc === null || $loc->lat === null || $loc->lng === null || ($loc->lat === 0.0 && $loc->lng === 0.0)) {
+            return null;
+        }
+
+        return [(float) $loc->lat, (float) $loc->lng];
     }
 }

@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * Resolved by session (staff) or custom domain / subdomain (public) — see
  * ResolveTenant. All tenant-owned data is scoped via the BelongsToTenant
  * trait on child models.
+ *
+ * @property array<string, mixed>|null $settings
  */
 class Tenant extends Model
 {
