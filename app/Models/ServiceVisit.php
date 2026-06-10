@@ -11,11 +11,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * ServiceVisit — the record of work done at a pool: checklist tasks,
  * the chemical reading, treatments applied, and photos. A null
  * route_stop_id means an ad-hoc (off-route) visit.
+ *
+ * @property Carbon|null $visited_at
+ * @property Carbon|null $completed_at
+ * @property Carbon|null $paid_at
  */
 class ServiceVisit extends Model
 {

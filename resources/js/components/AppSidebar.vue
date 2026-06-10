@@ -26,7 +26,7 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
         { title: 'Schedule', href: '/dashboard', icon: CalendarDays },
         { title: 'Pools', href: '/pools', icon: Waves },
-        { title: 'People', href: '/dashboard', icon: Users },
+        { title: 'People', href: '/people', icon: Users },
         { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Billing', href: '/dashboard', icon: Banknote },
     ],
