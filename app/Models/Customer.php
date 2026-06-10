@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $zip
  * @property string|null $notes
  * @property int|null $user_id
+ * @property bool $email_opt_out
  */
 class Customer extends Model
 {
@@ -37,7 +38,7 @@ class Customer extends Model
     protected $fillable = [
         'user_id', 'company_id', 'first_name', 'last_name', 'email', 'phone',
         'address_line1', 'address_line2', 'city', 'state', 'zip', 'lat', 'lng',
-        'notes', 'admin_notes', 'security_code', 'bill_chemicals', 'onboarded_at',
+        'notes', 'admin_notes', 'security_code', 'bill_chemicals', 'onboarded_at', 'email_opt_out',
     ];
 
     /** @return array<string, string> */
@@ -48,6 +49,7 @@ class Customer extends Model
             'lng' => 'float',
             'bill_chemicals' => 'boolean',
             'onboarded_at' => 'datetime',
+            'email_opt_out' => 'boolean',
         ];
     }
 

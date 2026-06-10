@@ -7,11 +7,19 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * MailCampaign — a record of one mailing send: subject, audience, and the
  * delivery tallies fed back from the queue (recipient / sent / failed).
  * tenant_id is null for platform-wide (super-admin) sends.
+ *
+ * @property string $subject
+ * @property string $audience
+ * @property int $recipient_count
+ * @property int $sent_count
+ * @property int $failed_count
+ * @property Carbon|null $sent_at
  */
 class MailCampaign extends Model
 {

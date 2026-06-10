@@ -5,7 +5,7 @@ import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Banknote, Bot, Building2, CalendarDays, ClipboardList, FileText, FlaskConical, LayoutGrid, Map, Settings, ShieldCheck, Users, Waves } from 'lucide-vue-next';
+import { Banknote, Bot, Building2, CalendarDays, ClipboardList, FileText, FlaskConical, LayoutGrid, Mail, Map, Settings, ShieldCheck, Users, Waves } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
 
@@ -32,6 +32,7 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Inventory', href: '/inventory', icon: FlaskConical },
         { title: 'Reports', href: '/reports', icon: FileText },
         { title: 'Balances', href: '/balances', icon: Banknote },
+        { title: 'Mail', href: '/mail', icon: Mail },
         { title: 'Assistant', href: '/assistant', icon: Bot },
         { title: 'Company', href: '/company', icon: Building2 },
     ],

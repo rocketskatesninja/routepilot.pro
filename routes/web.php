@@ -7,7 +7,9 @@ use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\MailController;
 use App\Http\Controllers\PeopleController;
+use App\Models\Customer;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScheduleController;
@@ -19,6 +21,13 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
+
+// Public one-click unsubscribe (signed) — sets the marketing suppression flag.
+Route::get('unsubscribe/{customer}', function (Customer $customer) {
+    $customer->forceFill(['email_opt_out' => true])->save();
+
+    return response('You have been unsubscribed from marketing emails.');
+})->name('unsubscribe')->middleware('signed');
 
 // Role-adaptive dashboard + back-office (staff). Tenant is resolved from the
 // session user by ResolveTenant.
@@ -40,6 +49,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
     Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
     Route::post('customers/{customer}/portal', [CustomerController::class, 'grantPortal'])->name('customers.portal');
+    Route::get('mail', [MailController::class, 'index'])->name('mail.index');
+    Route::post('mail', [MailController::class, 'send'])->name('mail.send');
     Route::post('agents', [AgentController::class, 'store'])->name('agents.store');
     Route::patch('agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
     Route::delete('agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
