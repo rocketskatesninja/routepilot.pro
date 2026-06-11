@@ -64,13 +64,8 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
 <template>
     <Head title="Reports" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.visits.total} completed visits`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div>
-                <h1 class="text-xl font-semibold">Reports</h1>
-                <p class="text-sm text-muted-foreground">{{ props.visits.total }} completed visits</p>
-            </div>
-
             <MasterDetail
                 :has-selection="props.selected !== null"
                 :selection-key="props.selected?.id ?? null"

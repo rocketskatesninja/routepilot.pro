@@ -152,17 +152,11 @@ function submitAdjust() {
 <template>
     <Head title="Inventory" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.items.total} chemicals`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-xl font-semibold">Inventory</h1>
-                    <p class="text-sm text-muted-foreground">{{ props.items.total }} chemicals</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Input v-model="search" type="search" placeholder="Search chemicals…" class="max-w-xs" />
-                    <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Chemical</Button>
-                </div>
+            <div class="flex items-center justify-end gap-2">
+                <Input v-model="search" type="search" placeholder="Search chemicals…" class="max-w-xs" />
+                <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Chemical</Button>
             </div>
 
             <MasterDetail

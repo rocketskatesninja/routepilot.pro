@@ -78,13 +78,9 @@ function submitCharge() {
 <template>
     <Head title="Balances" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.balances.length} customers owe`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-end justify-between gap-4">
-                <div>
-                    <h1 class="text-xl font-semibold">Balances</h1>
-                    <p class="text-sm text-muted-foreground">{{ props.balances.length }} customers owe</p>
-                </div>
+            <div class="flex items-end justify-end gap-4">
                 <div class="flex items-end gap-3">
                     <Button v-if="props.canManage" size="sm" variant="outline" @click="openCharge"><Plus class="mr-1 size-4" /> Charge</Button>
                     <Button v-if="props.canManage" size="sm" variant="outline" @click="exportCsv"><Download class="mr-1 size-4" /> Export</Button>

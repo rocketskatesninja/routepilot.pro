@@ -398,17 +398,11 @@ function submitTargets() {
 <template>
     <Head title="Pools" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.pools.total} total`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-xl font-semibold">Pools</h1>
-                    <p class="text-sm text-muted-foreground">{{ props.pools.total }} total</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <Input v-model="search" type="search" placeholder="Search pools…" class="max-w-xs" />
-                    <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Pool</Button>
-                </div>
+            <div class="flex items-center justify-end gap-2">
+                <Input v-model="search" type="search" placeholder="Search pools…" class="max-w-xs" />
+                <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Pool</Button>
             </div>
 
             <MasterDetail

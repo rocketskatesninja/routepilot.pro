@@ -8,6 +8,7 @@ import { computed } from 'vue';
 
 defineProps<{
     breadcrumbs?: BreadcrumbItemType[];
+    meta?: string;
 }>();
 
 const page = usePage();
@@ -39,6 +40,7 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
                     </BreadcrumbList>
                 </Breadcrumb>
             </template>
+            <span v-if="meta" class="text-sm text-muted-foreground">{{ meta }}</span>
         </div>
         <Link
             href="/notifications"
