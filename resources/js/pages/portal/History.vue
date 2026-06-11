@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import MasterDetail from '@/components/MasterDetail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
@@ -61,47 +61,53 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                 <p class="text-sm text-muted-foreground">{{ props.visits.total }} completed visits</p>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted/50 text-left text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-2 font-medium">Date</th>
-                            <th class="px-4 py-2 font-medium">Pool</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="v in props.visits.data"
-                            :key="v.id"
-                            class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                            :class="{ 'bg-muted/60': props.selected?.id === v.id }"
-                            @click="open(v.id)"
-                        >
-                            <td class="px-4 py-2.5 font-medium">{{ v.on }}</td>
-                            <td class="px-4 py-2.5 text-muted-foreground">{{ v.pool }}</td>
-                        </tr>
-                        <tr v-if="props.visits.data.length === 0">
-                            <td colspan="2" class="px-4 py-10 text-center text-muted-foreground">
-                                <Droplets class="mx-auto mb-2 size-6 opacity-50" />
-                                No visits yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <MasterDetail
+                :has-selection="props.selected !== null"
+                :selection-key="props.selected?.id ?? null"
+                empty-text="Select a visit to see details."
+                @close="closeDrawer"
+            >
+                <template #list>
+                    <div class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <th class="px-4 py-2 font-medium">Date</th>
+                                    <th class="px-4 py-2 font-medium">Pool</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="v in props.visits.data"
+                                    :key="v.id"
+                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                    :class="{ 'bg-muted/60': props.selected?.id === v.id }"
+                                    @click="open(v.id)"
+                                >
+                                    <td class="px-4 py-2.5 font-medium">{{ v.on }}</td>
+                                    <td class="px-4 py-2.5 text-muted-foreground">{{ v.pool }}</td>
+                                </tr>
+                                <tr v-if="props.visits.data.length === 0">
+                                    <td colspan="2" class="px-4 py-10 text-center text-muted-foreground">
+                                        <Droplets class="mx-auto mb-2 size-6 opacity-50" />
+                                        No visits yet.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
 
-            <Sheet :open="props.selected !== null" @update:open="(o: boolean) => !o && closeDrawer()">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <template v-if="props.selected">
-                        <SheetHeader>
-                            <SheetTitle>{{ props.selected.pool }}</SheetTitle>
-                            <SheetDescription
-                                >{{ props.selected.on
-                                }}<template v-if="props.selected.agent"> · {{ props.selected.agent }}</template></SheetDescription
-                            >
-                        </SheetHeader>
+                <template #detail>
+                    <div v-if="props.selected">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
+                            <p class="text-sm text-muted-foreground">
+                                {{ props.selected.on }}<template v-if="props.selected.agent"> · {{ props.selected.agent }}</template>
+                            </p>
+                        </div>
 
-                        <div class="mt-4 space-y-5 text-sm">
+                        <div class="space-y-5 text-sm">
                             <section v-if="props.selected.reading">
                                 <h3 class="mb-2 font-medium">Water chemistry</h3>
                                 <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
@@ -157,9 +163,9 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                 </div>
                             </section>
                         </div>
-                    </template>
-                </SheetContent>
-            </Sheet>
+                    </div>
+                </template>
+            </MasterDetail>
         </div>
     </AppLayout>
 </template>
