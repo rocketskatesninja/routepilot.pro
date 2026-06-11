@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Mail\InvoiceMail;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Tenant;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -39,5 +43,26 @@ class InvoiceController extends Controller
         ]);
 
         return $pdf->download("invoice-{$invoice->number}.pdf");
+    }
+
+    /** Email the invoice (branded PDF + signed pay link) to the customer. */
+    public function email(Request $request, Invoice $invoice): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $invoice->load('customer');
+        $email = $invoice->customer->email;
+        if (! is_string($email) || $email === '') {
+            return back()->with('error', 'This customer has no email address on file.');
+        }
+
+        $payUrl = URL::signedRoute('pay.link', ['customer' => $invoice->getAttribute('customer_id')]);
+        Mail::to($email)->queue(new InvoiceMail($invoice, $payUrl));
+
+        if ($invoice->status === 'draft') {
+            $invoice->update(['status' => 'sent']);
+        }
+
+        return back()->with('success', 'Invoice emailed to '.$email.'.');
     }
 }

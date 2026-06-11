@@ -50,6 +50,7 @@ function generateInvoice() {
     router.post(`/balances/${props.selected.id}/invoice`, {}, { preserveScroll: true });
 }
 const exportCsv = () => window.open('/balances/export', '_blank');
+const emailInvoice = (id: number) => router.post(`/invoices/${id}/email`, {}, { preserveScroll: true });
 
 // --- add manual charge ---
 const chargeOpen = ref(false);
@@ -168,10 +169,19 @@ function submitCharge() {
                             <section v-if="props.selected.invoices.length">
                                 <h3 class="mb-1 font-medium">Invoices</h3>
                                 <ul class="space-y-1 text-muted-foreground">
-                                    <li v-for="inv in props.selected.invoices" :key="inv.id" class="flex justify-between">
-                                        <a :href="`/invoices/${inv.id}/pdf`" target="_blank" class="text-foreground hover:underline"
-                                            >{{ inv.number }} <span class="text-xs capitalize text-muted-foreground">· {{ inv.status }}</span></a
-                                        >
+                                    <li v-for="inv in props.selected.invoices" :key="inv.id" class="flex items-center justify-between">
+                                        <span class="flex items-center gap-2">
+                                            <a :href="`/invoices/${inv.id}/pdf`" target="_blank" class="text-foreground hover:underline"
+                                                >{{ inv.number }} <span class="text-xs capitalize text-muted-foreground">· {{ inv.status }}</span></a
+                                            >
+                                            <button
+                                                v-if="props.canManage"
+                                                class="text-xs text-sky-600 hover:underline dark:text-sky-400"
+                                                @click="emailInvoice(inv.id)"
+                                            >
+                                                Email
+                                            </button>
+                                        </span>
                                         <span
                                             >{{ money(inv.total)
                                             }}<span v-if="inv.balance > 0" class="text-amber-600 dark:text-amber-400">

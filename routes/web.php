@@ -11,6 +11,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PublicPayController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\MailController;
@@ -45,6 +46,10 @@ Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->mid
 
 // Stripe webhook — fails closed (signature-verified), idempotent. CSRF-exempt.
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
+// Public, signed "pay your bill" link emailed to customers (no login).
+Route::get('pay/thanks', fn () => view('pay.thanks'))->name('pay.thanks');
+Route::get('pay/{customer}', [PublicPayController::class, 'pay'])->whereNumber('customer')->middleware('signed')->name('pay.link');
 
 // Role-adaptive dashboard + back-office (staff). Tenant is resolved from the
 // session user by ResolveTenant.
@@ -99,6 +104,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
     Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'download'])->name('invoices.pdf');
+    Route::post('invoices/{invoice}/email', [InvoiceController::class, 'email'])->name('invoices.email');
     Route::get('balances/export', [BalanceController::class, 'exportCsv'])->name('balances.export');
 
     // Customer portal.
