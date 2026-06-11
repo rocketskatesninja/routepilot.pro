@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Actions\RecordPayment;
+use App\Actions\ChargeAutopayCustomer;
 use App\Models\Customer;
-use App\Models\PaymentMethod;
 use App\Models\Tenant;
-use App\Services\BillingService;
 use App\Services\StripeService;
 use Illuminate\Console\Command;
 
 /**
  * Autopay run — charge the saved card of every autopay-enabled customer who
- * carries a balance, off-session, and settle on success. A decline leaves the
- * balance unpaid (the customer can still pay manually; richer dunning is TODO).
+ * carries a balance (off-session) and settle on success. Declines are dunned
+ * by ChargeAutopayCustomer and retried by app:retry-autopay.
  */
 class ChargeAutopay extends Command
 {
@@ -23,7 +21,7 @@ class ChargeAutopay extends Command
 
     protected $description = 'Charge saved cards for autopay-enabled customers with an outstanding balance';
 
-    public function handle(BillingService $billing, StripeService $stripe, RecordPayment $recordPayment): int
+    public function handle(ChargeAutopayCustomer $charger, StripeService $stripe): int
     {
         if (! $stripe->configured()) {
             $this->warn('Stripe is not configured — skipping autopay.');
@@ -32,9 +30,9 @@ class ChargeAutopay extends Command
         }
 
         $charged = 0;
-        $failed = 0;
+        $declined = 0;
 
-        Tenant::query()->each(function (Tenant $tenant) use ($billing, $stripe, $recordPayment, &$charged, &$failed): void {
+        Tenant::query()->each(function (Tenant $tenant) use ($charger, &$charged, &$declined): void {
             app()->instance('tenant_id', $tenant->id);
 
             Customer::query()
@@ -42,35 +40,17 @@ class ChargeAutopay extends Command
                 ->whereNotNull('stripe_customer_id')
                 ->whereNotNull('default_payment_method_id')
                 ->get()
-                ->each(function (Customer $customer) use ($tenant, $billing, $stripe, $recordPayment, &$charged, &$failed): void {
-                    $amount = $billing->outstandingForCustomer($customer);
-                    if ($amount <= 0) {
-                        return;
-                    }
-
-                    $pm = PaymentMethod::query()->find($customer->getAttribute('default_payment_method_id'));
-                    if ($pm === null) {
-                        return;
-                    }
-
-                    $result = $stripe->chargeOffSession(
-                        (string) $customer->getAttribute('stripe_customer_id'),
-                        (string) $pm->getAttribute('stripe_payment_method_id'),
-                        $amount,
-                        (int) $customer->id,
-                        (int) $tenant->id,
-                    );
-
-                    if ($result !== null && $result['status'] === 'succeeded') {
-                        $recordPayment->handle($customer, 'card', null, $result['id']);
+                ->each(function (Customer $customer) use ($charger, &$charged, &$declined): void {
+                    $result = $charger->handle($customer);
+                    if ($result === 'charged') {
                         $charged++;
-                    } else {
-                        $failed++;
+                    } elseif ($result === 'declined') {
+                        $declined++;
                     }
                 });
         });
 
-        $this->info("Autopay: {$charged} charged, {$failed} failed.");
+        $this->info("Autopay: {$charged} charged, {$declined} declined.");
 
         return self::SUCCESS;
     }

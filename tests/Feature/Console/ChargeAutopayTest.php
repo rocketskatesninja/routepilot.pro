@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Mail\PaymentFailedMail;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
@@ -13,12 +14,14 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     config(['services.stripe.secret' => 'sk_test_x']);
     $this->tenant = Tenant::factory()->create();
     app()->instance('tenant_id', $this->tenant->id);
     $agent = User::factory()->agent()->for($this->tenant)->create();
+    $this->admin = User::factory()->for($this->tenant)->create();
 
     $this->customer = Customer::factory()->for($this->tenant)->create(['email' => 'h@x.test']);
     $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
@@ -40,13 +43,37 @@ test('autopay charges the saved card and settles the balance', function () {
     expect(Payment::query()->where('customer_id', $this->customer->id)->where('stripe_payment_intent_id', 'pi_ok')->exists())->toBeTrue();
 });
 
-test('a declined autopay charge leaves the balance unpaid', function () {
+test('a declined autopay charge duns the customer', function () {
+    Mail::fake();
     Http::fake(['api.stripe.com/v1/payment_intents' => Http::response(['error' => ['payment_intent' => ['id' => 'pi_no', 'status' => 'requires_payment_method']]], 402)]);
 
     $this->artisan('app:charge-autopay')->assertSuccessful();
 
     expect(app(BillingService::class)->outstandingForCustomer($this->customer->fresh()))->toBe(50.0);
-    expect(Payment::query()->where('customer_id', $this->customer->id)->where('method', 'card')->exists())->toBeFalse();
+    expect(Payment::query()->where('customer_id', $this->customer->id)->where('status', 'failed')->exists())->toBeTrue();
+    Mail::assertQueued(PaymentFailedMail::class);
+    expect($this->admin->notifications()->count())->toBe(1);
+});
+
+test('retry recharges a recently-declined customer and recovers', function () {
+    Payment::create(['customer_id' => $this->customer->id, 'amount' => 50, 'status' => 'failed', 'method' => 'card', 'failure_reason' => 'x']);
+    Http::fake(['api.stripe.com/v1/payment_intents' => Http::response(['id' => 'pi_retry', 'status' => 'succeeded'], 200)]);
+
+    $this->artisan('app:retry-autopay')->assertSuccessful();
+
+    expect(app(BillingService::class)->outstandingForCustomer($this->customer->fresh()))->toBe(0.0);
+});
+
+test('retry gives up after three failures', function () {
+    for ($i = 0; $i < 3; $i++) {
+        Payment::create(['customer_id' => $this->customer->id, 'amount' => 50, 'status' => 'failed', 'method' => 'card', 'failure_reason' => 'x']);
+    }
+    Http::fake(['api.stripe.com/*' => Http::response(['id' => 'pi_x', 'status' => 'succeeded'], 200)]);
+
+    $this->artisan('app:retry-autopay')->assertSuccessful();
+
+    Http::assertNothingSent();
+    expect(app(BillingService::class)->outstandingForCustomer($this->customer->fresh()))->toBe(50.0);
 });
 
 test('a customer without autopay is not charged', function () {
