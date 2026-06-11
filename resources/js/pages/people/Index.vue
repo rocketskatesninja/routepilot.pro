@@ -87,20 +87,20 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
 
 // --- selection + email ---
-const selected = ref<string[]>([]);
+const picked = ref<string[]>([]);
 const keyFor = (p: PersonRow) => `${p.person_type}:${p.id}`;
-const isSelected = (p: PersonRow) => selected.value.includes(keyFor(p));
+const isSelected = (p: PersonRow) => picked.value.includes(keyFor(p));
 function toggleSelect(p: PersonRow) {
     const k = keyFor(p);
-    const i = selected.value.indexOf(k);
-    if (i === -1) selected.value.push(k);
-    else selected.value.splice(i, 1);
+    const i = picked.value.indexOf(k);
+    if (i === -1) picked.value.push(k);
+    else picked.value.splice(i, 1);
 }
 const pageKeys = computed(() => props.people.data.map(keyFor));
-const allOnPage = computed(() => pageKeys.value.length > 0 && pageKeys.value.every((k) => selected.value.includes(k)));
+const allOnPage = computed(() => pageKeys.value.length > 0 && pageKeys.value.every((k) => picked.value.includes(k)));
 function toggleAll() {
-    if (allOnPage.value) selected.value = selected.value.filter((k) => !pageKeys.value.includes(k));
-    else selected.value = [...new Set([...selected.value, ...pageKeys.value])];
+    if (allOnPage.value) picked.value = picked.value.filter((k) => !pageKeys.value.includes(k));
+    else picked.value = [...new Set([...picked.value, ...pageKeys.value])];
 }
 
 const emailOpen = ref(false);
@@ -111,23 +111,23 @@ const emailForm = useForm<{ audience: string; subject: string; body: string; rec
     recipients: [],
 });
 const audienceOptions = computed(() => [
-    ...(selected.value.length ? [{ key: 'selected', label: 'Selected people', count: selected.value.length }] : []),
+    ...(picked.value.length ? [{ key: 'selected', label: 'Selected people', count: picked.value.length }] : []),
     ...props.audiences,
 ]);
 const emailCount = computed(() => audienceOptions.value.find((a) => a.key === emailForm.audience)?.count ?? 0);
 function openEmail() {
-    emailForm.audience = selected.value.length ? 'selected' : (props.audiences[0]?.key ?? 'customers');
+    emailForm.audience = picked.value.length ? 'selected' : (props.audiences[0]?.key ?? 'customers');
     emailForm.clearErrors();
     emailOpen.value = true;
 }
 function submitEmail() {
-    emailForm.recipients = emailForm.audience === 'selected' ? [...selected.value] : [];
+    emailForm.recipients = emailForm.audience === 'selected' ? [...picked.value] : [];
     emailForm.post('/people/email', {
         preserveScroll: true,
         onSuccess: () => {
             emailOpen.value = false;
             emailForm.reset();
-            selected.value = [];
+            picked.value = [];
         },
     });
 }
@@ -334,7 +334,7 @@ function destroyAgent() {
                     <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
                     <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
                     <Button v-if="props.canEmail" size="sm" variant="outline" @click="openEmail"
-                        ><Mail class="mr-1 size-4" /> Email<span v-if="selected.length"> ({{ selected.length }})</span></Button
+                        ><Mail class="mr-1 size-4" /> Email<span v-if="picked.length"> ({{ picked.length }})</span></Button
                     >
                 </div>
             </div>

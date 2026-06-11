@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -409,53 +410,60 @@ function submitTargets() {
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted/50 text-left text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-2 font-medium">Name</th>
-                            <th class="px-4 py-2 font-medium">Customer</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Type</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
-                            <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="pool in props.pools.data"
-                            :key="pool.id"
-                            class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                            :class="{ 'bg-muted/60': props.selected?.id === pool.id }"
-                            @click="openPool(pool.id)"
-                        >
-                            <td class="px-4 py-2.5 font-medium">{{ pool.name }}</td>
-                            <td class="px-4 py-2.5 text-muted-foreground">{{ pool.customer }}</td>
-                            <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ pool.type.replace('_', ' ') }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ pool.cadence ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ pool.agent ?? '—' }}</td>
-                        </tr>
-                        <tr v-if="props.pools.data.length === 0">
-                            <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
-                                <Waves class="mx-auto mb-2 size-6 opacity-50" />
-                                No pools yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <Sheet
-                :open="props.selected !== null && !formOpen && !subFormOpen && !equipOpen && !serviceOpen && !targetsOpen"
-                @update:open="(open: boolean) => !open && closeDrawer()"
+            <MasterDetail
+                :has-selection="props.selected !== null"
+                :selection-key="props.selected?.id ?? null"
+                :pane-open="!formOpen && !subFormOpen && !equipOpen && !serviceOpen && !targetsOpen"
+                empty-text="Select a pool to see details."
+                @close="closeDrawer"
             >
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <template v-if="props.selected">
-                        <SheetHeader>
-                            <SheetTitle>{{ props.selected.name }}</SheetTitle>
-                            <SheetDescription>{{ props.selected.customer.name }}</SheetDescription>
-                        </SheetHeader>
+                <template #list>
+                    <div class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <th class="px-4 py-2 font-medium">Name</th>
+                                    <th class="px-4 py-2 font-medium">Customer</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Type</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
+                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="pool in props.pools.data"
+                                    :key="pool.id"
+                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                    :class="{ 'bg-muted/60': props.selected?.id === pool.id }"
+                                    @click="openPool(pool.id)"
+                                >
+                                    <td class="px-4 py-2.5 font-medium">{{ pool.name }}</td>
+                                    <td class="px-4 py-2.5 text-muted-foreground">{{ pool.customer }}</td>
+                                    <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
+                                        {{ pool.type.replace('_', ' ') }}
+                                    </td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ pool.cadence ?? '—' }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ pool.agent ?? '—' }}</td>
+                                </tr>
+                                <tr v-if="props.pools.data.length === 0">
+                                    <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
+                                        <Waves class="mx-auto mb-2 size-6 opacity-50" />
+                                        No pools yet.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
 
-                        <div class="mt-4 space-y-5 text-sm">
+                <template #detail>
+                    <div v-if="props.selected">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                            <p class="text-sm text-muted-foreground">{{ props.selected.customer.name }}</p>
+                        </div>
+
+                        <div class="space-y-5 text-sm">
                             <div v-if="props.canManage" class="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Button size="sm" variant="outline" @click="openTargets">Targets</Button>
@@ -602,9 +610,9 @@ function submitTargets() {
                                 </ul>
                             </section>
                         </div>
-                    </template>
-                </SheetContent>
-            </Sheet>
+                    </div>
+                </template>
+            </MasterDetail>
 
             <!-- add equipment -->
             <Sheet v-model:open="equipOpen">
