@@ -25,10 +25,10 @@ use Illuminate\Support\Carbon;
  * for every role dashboard to render real numbers.
  *
  * Logins (all password "password"):
- *   super@routepilot.test     super_admin (platform)
- *   admin@sunshine.test       tenant_admin
- *   marcus@sunshine.test      agent
- *   customer@sunshine.test    customer (portal)
+ *   admin@routepilot.pro      super_admin (platform)
+ *   tenant@routepilot.pro     tenant_admin
+ *   agent@routepilot.pro      agent
+ *   customer@routepilot.pro   customer (portal)
  *
  * Run: php artisan db:seed --class=DemoSeeder
  */
@@ -38,7 +38,7 @@ class DemoSeeder extends Seeder
     {
         // Platform super-admin (no tenant).
         User::factory()->superAdmin()->create([
-            'first_name' => 'Platform', 'last_name' => 'Admin', 'email' => 'super@routepilot.test',
+            'first_name' => 'Platform', 'last_name' => 'Admin', 'email' => 'admin@routepilot.pro',
         ]);
 
         $tenant = Tenant::factory()->create([
@@ -52,11 +52,11 @@ class DemoSeeder extends Seeder
         app()->instance('tenant_id', $tenant->id);
 
         $admin = User::factory()->for($tenant)->create([
-            'first_name' => 'Sarah', 'last_name' => 'Owner', 'email' => 'admin@sunshine.test',
+            'first_name' => 'Sarah', 'last_name' => 'Owner', 'email' => 'tenant@routepilot.pro',
         ]);
 
         $marcus = User::factory()->agent()->for($tenant)->create([
-            'first_name' => 'Marcus', 'last_name' => 'Bennett', 'email' => 'marcus@sunshine.test', 'map_color' => '#0ea5e9',
+            'first_name' => 'Marcus', 'last_name' => 'Bennett', 'email' => 'agent@routepilot.pro', 'map_color' => '#0ea5e9',
         ]);
         $ashley = User::factory()->agent()->for($tenant)->create([
             'first_name' => 'Ashley', 'last_name' => 'Nguyen', 'email' => 'ashley@sunshine.test', 'map_color' => '#f97316',
@@ -105,7 +105,7 @@ class DemoSeeder extends Seeder
             // First customer also gets a portal login.
             if ($i === 0) {
                 $portalUser = User::factory()->customer()->for($tenant)->create([
-                    'first_name' => $first, 'last_name' => $last, 'email' => 'customer@sunshine.test',
+                    'first_name' => $first, 'last_name' => $last, 'email' => 'customer@routepilot.pro',
                 ]);
                 $customer->forceFill(['user_id' => $portalUser->id])->save();
                 $firstCustomer = $customer;
@@ -152,6 +152,6 @@ class DemoSeeder extends Seeder
         app(SubscriptionMaterializer::class)->run($tenant->id, Carbon::now()->addWeeks(2)->toDateString());
 
         $this->command->info('Demo tenant "Sunshine Pools" seeded. Logins (password "password"): '
-            .'super@routepilot.test, admin@sunshine.test, marcus@sunshine.test, customer@sunshine.test');
+            .'admin@routepilot.pro, tenant@routepilot.pro, agent@routepilot.pro, customer@routepilot.pro');
     }
 }
