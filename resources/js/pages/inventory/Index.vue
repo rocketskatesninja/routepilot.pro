@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -164,61 +165,69 @@ function submitAdjust() {
                 </div>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted/50 text-left text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-2 font-medium">Chemical</th>
-                            <th class="px-4 py-2 font-medium">In stock</th>
-                            <th class="px-4 py-2 font-medium">Status</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="item in props.items.data"
-                            :key="item.id"
-                            class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                            :class="{ 'bg-muted/60': props.selected?.id === item.id }"
-                            @click="open(item.id)"
-                        >
-                            <td class="px-4 py-2.5 font-medium">{{ item.name }}</td>
-                            <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
-                            <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="
-                                        item.low
-                                            ? 'bg-red-500/15 text-red-600 dark:text-red-400'
-                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                    "
+            <MasterDetail
+                :has-selection="props.selected !== null"
+                :selection-key="props.selected?.id ?? null"
+                :pane-open="!formOpen"
+                empty-text="Select a chemical to see details."
+                @close="closeDrawer"
+            >
+                <template #list>
+                    <div class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <th class="px-4 py-2 font-medium">Chemical</th>
+                                    <th class="px-4 py-2 font-medium">In stock</th>
+                                    <th class="px-4 py-2 font-medium">Status</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="item in props.items.data"
+                                    :key="item.id"
+                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                    :class="{ 'bg-muted/60': props.selected?.id === item.id }"
+                                    @click="open(item.id)"
                                 >
-                                    {{ item.low ? 'Low' : 'OK' }}
-                                </span>
-                            </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
-                                {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
-                            </td>
-                        </tr>
-                        <tr v-if="props.items.data.length === 0">
-                            <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
-                                <FlaskConical class="mx-auto mb-2 size-6 opacity-50" />
-                                No chemicals in stock.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                                    <td class="px-4 py-2.5 font-medium">{{ item.name }}</td>
+                                    <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <span
+                                            class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                            :class="
+                                                item.low
+                                                    ? 'bg-red-500/15 text-red-600 dark:text-red-400'
+                                                    : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                            "
+                                        >
+                                            {{ item.low ? 'Low' : 'OK' }}
+                                        </span>
+                                    </td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                                        {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
+                                    </td>
+                                </tr>
+                                <tr v-if="props.items.data.length === 0">
+                                    <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
+                                        <FlaskConical class="mx-auto mb-2 size-6 opacity-50" />
+                                        No chemicals in stock.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
 
-            <Sheet :open="props.selected !== null && !formOpen" @update:open="(o: boolean) => !o && closeDrawer()">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <template v-if="props.selected">
-                        <SheetHeader>
-                            <SheetTitle>{{ props.selected.name }}</SheetTitle>
-                            <SheetDescription>{{ props.selected.stock }} {{ props.selected.unit }} in stock</SheetDescription>
-                        </SheetHeader>
+                <template #detail>
+                    <div v-if="props.selected">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                            <p class="text-sm text-muted-foreground">{{ props.selected.stock }} {{ props.selected.unit }} in stock</p>
+                        </div>
 
-                        <div class="mt-4 space-y-5 text-sm">
+                        <div class="space-y-5 text-sm">
                             <div v-if="props.canManage" class="flex gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyChemical"
@@ -272,9 +281,9 @@ function submitAdjust() {
                                 </ul>
                             </section>
                         </div>
-                    </template>
-                </SheetContent>
-            </Sheet>
+                    </div>
+                </template>
+            </MasterDetail>
 
             <!-- create / edit chemical -->
             <Sheet v-model:open="formOpen">

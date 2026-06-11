@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -351,74 +352,78 @@ function destroyAgent() {
                 </button>
             </div>
 
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted/50 text-left text-muted-foreground">
-                        <tr>
-                            <th v-if="props.canEmail" class="w-10 px-4 py-2">
-                                <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
-                            </th>
-                            <th class="px-4 py-2 font-medium">Name</th>
-                            <th class="px-4 py-2 font-medium">Type</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Email</th>
-                            <th class="hidden px-4 py-2 font-medium lg:table-cell">Phone</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="person in props.people.data"
-                            :key="`${person.person_type}-${person.id}`"
-                            class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                            :class="{ 'bg-muted/60': selectedKey === `${person.person_type}-${person.id}` }"
-                            @click="openPerson(person)"
-                        >
-                            <td v-if="props.canEmail" class="px-4 py-2.5" @click.stop>
-                                <input
-                                    type="checkbox"
-                                    :checked="isSelected(person)"
-                                    :aria-label="`Select ${fullName(person)}`"
-                                    @change="toggleSelect(person)"
-                                />
-                            </td>
-                            <td class="px-4 py-2.5 font-medium">{{ fullName(person) }}</td>
-                            <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                    :class="
-                                        person.person_type === 'agent'
-                                            ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                    "
-                                >
-                                    {{ person.person_type }}
-                                </span>
-                            </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
-                        </tr>
-                        <tr v-if="props.people.data.length === 0">
-                            <td :colspan="props.canEmail ? 5 : 4" class="px-4 py-10 text-center text-muted-foreground">
-                                <Users class="mx-auto mb-2 size-6 opacity-50" />
-                                No people yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Read drawer (hidden while the form is open) -->
-            <Sheet
-                :open="props.selected !== null && !formOpen && !agentFormOpen && !emailOpen"
-                @update:open="(open: boolean) => !open && closeDrawer()"
+            <MasterDetail
+                :has-selection="props.selected !== null"
+                :selection-key="selectedKey"
+                :pane-open="!formOpen && !agentFormOpen && !emailOpen"
+                empty-text="Select a person to see details."
+                @close="closeDrawer"
             >
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <template v-if="props.selected">
-                        <SheetHeader>
-                            <SheetTitle>{{ props.selected.name }}</SheetTitle>
-                            <SheetDescription class="capitalize">{{ props.selected.type }}</SheetDescription>
-                        </SheetHeader>
+                <template #list>
+                    <div class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <th v-if="props.canEmail" class="w-10 px-4 py-2">
+                                        <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
+                                    </th>
+                                    <th class="px-4 py-2 font-medium">Name</th>
+                                    <th class="px-4 py-2 font-medium">Type</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Email</th>
+                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">Phone</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="person in props.people.data"
+                                    :key="`${person.person_type}-${person.id}`"
+                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                    :class="{ 'bg-muted/60': selectedKey === `${person.person_type}-${person.id}` }"
+                                    @click="openPerson(person)"
+                                >
+                                    <td v-if="props.canEmail" class="px-4 py-2.5" @click.stop>
+                                        <input
+                                            type="checkbox"
+                                            :checked="isSelected(person)"
+                                            :aria-label="`Select ${fullName(person)}`"
+                                            @change="toggleSelect(person)"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2.5 font-medium">{{ fullName(person) }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <span
+                                            class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                            :class="
+                                                person.person_type === 'agent'
+                                                    ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                                                    : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                            "
+                                        >
+                                            {{ person.person_type }}
+                                        </span>
+                                    </td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
+                                </tr>
+                                <tr v-if="props.people.data.length === 0">
+                                    <td :colspan="props.canEmail ? 5 : 4" class="px-4 py-10 text-center text-muted-foreground">
+                                        <Users class="mx-auto mb-2 size-6 opacity-50" />
+                                        No people yet.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
 
-                        <div class="mt-4 space-y-5 text-sm">
+                <template #detail>
+                    <div v-if="props.selected">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                            <p class="text-sm capitalize text-muted-foreground">{{ props.selected.type }}</p>
+                        </div>
+
+                        <div class="space-y-5 text-sm">
                             <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
@@ -494,9 +499,9 @@ function destroyAgent() {
                                 </section>
                             </template>
                         </div>
-                    </template>
-                </SheetContent>
-            </Sheet>
+                    </div>
+                </template>
+            </MasterDetail>
 
             <!-- Create / edit customer form -->
             <Sheet v-model:open="formOpen">
