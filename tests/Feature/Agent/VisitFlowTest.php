@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Mail\VisitRecapMail;
 use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\InventoryTransaction;
@@ -15,6 +16,7 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -135,4 +137,21 @@ test('an agent cannot work another agent\'s stop', function () {
 
 test('a tenant admin can open any stop', function () {
     $this->actingAs($this->admin)->get("/visit/{$this->stop->id}")->assertOk();
+});
+
+test('completing a visit emails the homeowner a recap', function () {
+    Mail::fake();
+
+    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+
+    Mail::assertQueued(VisitRecapMail::class);
+});
+
+test('an opted-out customer gets no recap email', function () {
+    Mail::fake();
+    $this->pool->customer->update(['email_opt_out' => true]);
+
+    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+
+    Mail::assertNotQueued(VisitRecapMail::class);
 });
