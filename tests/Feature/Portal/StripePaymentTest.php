@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Actions\RecordPayment;
+use App\Mail\PaymentReceiptMail;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Pool;
@@ -12,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -90,4 +93,12 @@ test('the same checkout event is not settled twice (idempotent)', function () {
     stripeSigned($payload)->assertOk();
 
     expect(Payment::query()->where('customer_id', $this->customer->id)->count())->toBe(1);
+});
+
+test('settling a payment emails the customer a receipt', function () {
+    Mail::fake();
+
+    app(RecordPayment::class)->handle($this->customer, 'card', null, 'pi_receipt');
+
+    Mail::assertQueued(PaymentReceiptMail::class);
 });

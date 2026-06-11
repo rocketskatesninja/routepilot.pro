@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Mail\PaymentReceiptMail;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\ManualCharge;
@@ -11,6 +12,7 @@ use App\Models\Payment;
 use App\Models\ServiceVisit;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Record a full-balance payment: settle the customer's unpaid completed
@@ -23,12 +25,12 @@ class RecordPayment
 
     public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null): ?Payment
     {
-        return DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId): ?Payment {
-            $amount = $this->billing->outstandingForCustomer($customer);
-            if ($amount <= 0) {
-                return null;
-            }
+        $amount = $this->billing->outstandingForCustomer($customer);
+        if ($amount <= 0) {
+            return null;
+        }
 
+        $payment = DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId, $amount): Payment {
             ServiceVisit::query()
                 ->whereIn('pool_id', $customer->pools()->pluck('id'))
                 ->where('status', 'completed')
@@ -57,5 +59,18 @@ class RecordPayment
                 'recorded_by' => $userId,
             ]);
         });
+
+        // Transactional receipt (always sent — not a marketing message).
+        $email = $customer->email;
+        if (is_string($email) && $email !== '') {
+            Mail::to($email)->queue(new PaymentReceiptMail(
+                $customer->displayName(),
+                $amount,
+                $customer->tenant->name,
+                now()->toFormattedDateString(),
+            ));
+        }
+
+        return $payment;
     }
 }
