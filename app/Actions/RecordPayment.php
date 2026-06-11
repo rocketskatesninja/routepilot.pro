@@ -21,9 +21,9 @@ class RecordPayment
 {
     public function __construct(private BillingService $billing) {}
 
-    public function handle(Customer $customer, string $method, int $userId): ?Payment
+    public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null): ?Payment
     {
-        return DB::transaction(function () use ($customer, $method, $userId): ?Payment {
+        return DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId): ?Payment {
             $amount = $this->billing->outstandingForCustomer($customer);
             if ($amount <= 0) {
                 return null;
@@ -52,6 +52,7 @@ class RecordPayment
                 'amount' => $amount,
                 'status' => 'succeeded',
                 'method' => $method,
+                'stripe_payment_intent_id' => $stripePaymentIntentId,
                 'paid_at' => now(),
                 'recorded_by' => $userId,
             ]);

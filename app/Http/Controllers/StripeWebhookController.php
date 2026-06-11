@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\RecordPayment;
+use App\Models\Customer;
 use App\Models\StripeEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -17,7 +19,7 @@ use Illuminate\Http\Response;
  */
 class StripeWebhookController extends Controller
 {
-    public function handle(Request $request): Response
+    public function handle(Request $request, RecordPayment $recordPayment): Response
     {
         $secret = (string) config('services.stripe.webhook_secret');
         $payload = (string) $request->getContent();
@@ -42,10 +44,44 @@ class StripeWebhookController extends Controller
             'type' => is_string($event['type'] ?? null) ? $event['type'] : 'unknown',
         ]);
 
-        // TODO (needs live keys): dispatch on $event['type'] —
-        // payment_intent.succeeded → mark Payment/Invoice paid; charge.refunded → …
+        $this->settle($event, $recordPayment);
 
         return response('', 200);
+    }
+
+    /**
+     * On a completed Checkout payment, settle it against the customer's balance.
+     * Customer + tenant come from the session metadata we stamped at creation.
+     *
+     * @param  array<string, mixed>  $event
+     */
+    private function settle(array $event, RecordPayment $recordPayment): void
+    {
+        if (($event['type'] ?? null) !== 'checkout.session.completed') {
+            return;
+        }
+
+        $data = $event['data'] ?? null;
+        $object = is_array($data) ? ($data['object'] ?? null) : null;
+        if (! is_array($object) || ($object['payment_status'] ?? null) !== 'paid') {
+            return;
+        }
+
+        $meta = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
+        $tenantId = (int) ($meta['tenant_id'] ?? 0);
+        $customerId = (int) ($meta['customer_id'] ?? 0);
+        if ($tenantId <= 0 || $customerId <= 0) {
+            return;
+        }
+
+        app()->instance('tenant_id', $tenantId);
+        $customer = Customer::query()->find($customerId);
+        if ($customer === null) {
+            return;
+        }
+
+        $intent = $object['payment_intent'] ?? null;
+        $recordPayment->handle($customer, 'card', null, is_string($intent) ? $intent : null);
     }
 
     /** Verify Stripe's `t=…,v1=…` HMAC-SHA256 signature header. */

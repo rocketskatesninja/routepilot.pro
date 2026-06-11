@@ -7,10 +7,13 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
+use App\Services\BillingService;
+use App\Services\StripeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * Customer portal — the homeowner's own service history. Strictly scoped to
@@ -82,6 +85,37 @@ class PortalController extends Controller
             'requests' => $requests,
             'pools' => $pools,
         ]);
+    }
+
+    public function balance(Request $request, BillingService $billing, StripeService $stripe): Response
+    {
+        $customer = $this->resolveCustomer($request);
+        $breakdown = $billing->breakdownForCustomer($customer);
+
+        return Inertia::render('portal/Balance', [
+            'total' => $breakdown['total'],
+            'visits' => $breakdown['visits'],
+            'charges' => $breakdown['charges'],
+            'can_pay' => $stripe->configured(),
+            'paid' => $request->boolean('paid'),
+        ]);
+    }
+
+    /** Start a Stripe Checkout for the outstanding balance; redirects to Stripe. */
+    public function pay(Request $request, BillingService $billing, StripeService $stripe): SymfonyResponse
+    {
+        $customer = $this->resolveCustomer($request);
+        $amount = $billing->outstandingForCustomer($customer);
+        if ($amount <= 0) {
+            return back()->with('error', 'Your balance is already clear.');
+        }
+
+        $url = $stripe->createBalanceCheckout($customer, $amount, url('/balance?paid=1'), url('/balance'));
+        if ($url === null) {
+            return back()->with('error', 'Online payment is unavailable right now — please contact your service company.');
+        }
+
+        return Inertia::location($url);
     }
 
     /** The customer record for the signed-in portal user (or 403/404). */

@@ -104,6 +104,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Customer portal.
     Route::get('history', [PortalController::class, 'history'])->name('portal.history');
     Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
+    Route::get('balance', [PortalController::class, 'balance'])->name('portal.balance');
+    Route::post('balance/pay', [PortalController::class, 'pay'])->name('portal.pay');
     Route::post('requests', [RequestController::class, 'store'])->name('requests.store');
     Route::post('requests/{serviceRequest}/resolve', [RequestController::class, 'resolve'])->name('requests.resolve');
 

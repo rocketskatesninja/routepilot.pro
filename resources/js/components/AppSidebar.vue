@@ -64,6 +64,7 @@ const navByRole: Record<string, NavItem[]> = {
     customer: [
         { title: 'My Pools', href: '/dashboard', icon: Waves },
         { title: 'Service History', href: '/history', icon: FileText },
+        { title: 'Balance', href: '/balance', icon: Banknote },
         { title: 'Requests', href: '/requests', icon: Inbox },
         { title: 'Assistant', href: '/assistant', icon: Bot },
     ],
