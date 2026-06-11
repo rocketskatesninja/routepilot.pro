@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -97,6 +98,20 @@ class Pool extends Model
     public function equipmentItems(): HasMany
     {
         return $this->hasMany(PoolEquipment::class);
+    }
+
+    /** The most recent chemical reading (through its service visit). */
+    /** @return HasOneThrough<ChemicalReading, ServiceVisit, $this> */
+    public function latestReading(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            ChemicalReading::class,
+            ServiceVisit::class,
+            'pool_id',          // service_visits.pool_id -> pools.id
+            'service_visit_id', // chemical_readings.service_visit_id -> service_visits.id
+            'id',
+            'id',
+        )->latest('chemical_readings.created_at');
     }
 
     /**

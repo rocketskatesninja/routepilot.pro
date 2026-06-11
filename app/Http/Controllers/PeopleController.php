@@ -10,10 +10,12 @@ use App\Models\MailCampaign;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\BillingService;
 use App\Support\PersonListBuilder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +26,7 @@ use Inertia\Response;
  */
 class PeopleController extends Controller
 {
-    public function index(Request $request, PersonListBuilder $builder, SendCampaign $campaigns): Response
+    public function index(Request $request, PersonListBuilder $builder, SendCampaign $campaigns, BillingService $billing): Response
     {
         $user = $request->user();
         if ($user?->isSuperAdmin()) {
@@ -41,6 +43,21 @@ class PeopleController extends Controller
         $search = trim((string) $request->string('search'));
 
         $people = $builder->paginate($tenantId, $type, $search)->withQueryString();
+
+        // Enrich the current page's customer rows with balance + last visit (batched).
+        $customerIds = $people->getCollection()
+            ->filter(fn (object $r): bool => $r->person_type === 'customer')
+            ->map(fn (object $r): int => (int) $r->id)
+            ->values()->all();
+        $balances = $billing->balancesFor($customerIds);
+        $lastVisits = $this->lastVisitsFor($customerIds);
+        $people->setCollection($people->getCollection()->map(function (object $r) use ($balances, $lastVisits): object {
+            $isCustomer = $r->person_type === 'customer';
+            $r->balance = $isCustomer ? ($balances[(int) $r->id] ?? 0.0) : null;
+            $r->last_visit = $isCustomer ? ($lastVisits[(int) $r->id] ?? null) : null;
+
+            return $r;
+        }));
 
         $selected = null;
         $selectedType = (string) $request->string('selected_type');
@@ -63,6 +80,29 @@ class PeopleController extends Controller
             'audiences' => $user?->role === 'tenant_admin' ? $campaigns->audiencesFor($user) : [],
             'recent' => $this->recentCampaigns(),
         ]);
+    }
+
+    /**
+     * Most-recent completed-visit date per customer (one query).
+     *
+     * @param  list<int>  $customerIds
+     * @return array<int, string|null>
+     */
+    private function lastVisitsFor(array $customerIds): array
+    {
+        if ($customerIds === []) {
+            return [];
+        }
+
+        return ServiceVisit::query()
+            ->join('pools', 'service_visits.pool_id', '=', 'pools.id')
+            ->whereIn('pools.customer_id', $customerIds)
+            ->where('service_visits.status', 'completed')
+            ->groupBy('pools.customer_id')
+            ->selectRaw('pools.customer_id as cid, max(service_visits.completed_at) as last')
+            ->pluck('last', 'cid')
+            ->map(fn ($d): ?string => $d !== null ? Carbon::parse((string) $d)->toDateString() : null)
+            ->all();
     }
 
     /** Super-admin platform-wide People (pickable) + broadcast composer. */

@@ -42,12 +42,13 @@ class PoolController extends Controller
                 'customer:id,first_name,last_name',
                 'serviceLocation:id,pool_id,city',
                 'subscriptions' => fn ($q) => $q->where('status', 'active')->with('agent:id,first_name,last_name'),
+                'latestReading',
             ])
             ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString()
-            ->through(fn (Pool $pool) => $this->toRow($pool));
+            ->through(fn (Pool $pool) => $this->toRow($pool, $chem));
 
         $selected = null;
         $selectedId = $request->integer('selected');
@@ -161,9 +162,22 @@ class PoolController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function toRow(Pool $pool): array
+    private function toRow(Pool $pool, ChemistryService $chem): array
     {
         $sub = $pool->subscriptions->first();
+
+        $health = null;
+        $reading = $pool->latestReading;
+        if ($reading !== null) {
+            $lsi = $reading->lsi_score ?? $chem->calculateLSI([
+                'temperature' => $reading->water_temperature,
+                'ph' => $reading->ph,
+                'alkalinity' => $reading->alkalinity,
+                'calcium_hardness' => $reading->calcium_hardness,
+                'salt' => $reading->salt,
+            ]);
+            $health = $chem->getLSIStatus((float) $lsi);
+        }
 
         return [
             'id' => $pool->id,
@@ -174,6 +188,7 @@ class PoolController extends Controller
             'city' => $pool->serviceLocation?->getAttribute('city'),
             'cadence' => $sub?->scheduleLabel(),
             'agent' => $sub !== null ? $this->personName($sub->agent) : null,
+            'health' => $health,
         ];
     }
 

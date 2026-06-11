@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Customer;
 use App\Models\ManualCharge;
+use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceVisit;
 use Illuminate\Support\Collection;
@@ -43,6 +44,56 @@ class BillingService
         $sub = $visit->pool?->subscriptions->firstWhere('status', 'active');
 
         return $sub instanceof ServiceSubscription ? (float) $sub->serviceType->price : 0.0;
+    }
+
+    /**
+     * Outstanding balances for many customers at once — page-bounded, ~4 queries
+     * total (no per-customer N+1). Mirrors outstandingForCustomer's math.
+     *
+     * @param  list<int>  $customerIds
+     * @return array<int, float> customer_id => balance
+     */
+    public function balancesFor(array $customerIds): array
+    {
+        $balances = array_fill_keys($customerIds, 0.0);
+        if ($customerIds === []) {
+            return $balances;
+        }
+
+        // pool_id => customer_id (tenant-scoped; soft-deletes excluded)
+        $poolCustomer = Pool::query()->whereIn('customer_id', $customerIds)->pluck('customer_id', 'id');
+        $poolIds = $poolCustomer->keys()->all();
+
+        if ($poolIds !== []) {
+            // pool_id => first active subscription's serviceType price
+            $price = [];
+            ServiceSubscription::query()->whereIn('pool_id', $poolIds)->where('status', 'active')
+                ->with('serviceType:id,price')->get()
+                ->each(function (ServiceSubscription $s) use (&$price): void {
+                    $pid = (int) $s->getAttribute('pool_id');
+                    if (! isset($price[$pid])) {
+                        $price[$pid] = (float) $s->serviceType->price;
+                    }
+                });
+
+            // pool_id => count of unpaid completed visits
+            $counts = ServiceVisit::query()->whereIn('pool_id', $poolIds)
+                ->where('status', 'completed')->whereNull('paid_at')
+                ->selectRaw('pool_id, count(*) as c')->groupBy('pool_id')->pluck('c', 'pool_id');
+
+            foreach ($poolCustomer as $poolId => $customerId) {
+                $owed = (float) ($counts[$poolId] ?? 0) * ($price[(int) $poolId] ?? 0.0);
+                $balances[(int) $customerId] += $owed;
+            }
+        }
+
+        ManualCharge::query()->whereIn('customer_id', $customerIds)->whereNull('paid_at')
+            ->selectRaw('customer_id, sum(amount) as s')->groupBy('customer_id')->pluck('s', 'customer_id')
+            ->each(function ($sum, $customerId) use (&$balances): void {
+                $balances[(int) $customerId] += (float) $sum;
+            });
+
+        return array_map(fn (float $v): float => round($v, 2), $balances);
     }
 
     /**

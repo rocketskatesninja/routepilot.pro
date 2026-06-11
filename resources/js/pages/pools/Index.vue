@@ -19,6 +19,7 @@ interface PoolRow {
     city: string | null;
     cadence: string | null;
     agent: string | null;
+    health: Health | null;
 }
 
 interface Health {
@@ -422,6 +423,7 @@ function submitTargets() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
+                                    <th class="w-8 px-4 py-2"><span class="sr-only">Health</span></th>
                                     <th class="px-4 py-2 font-medium">Name</th>
                                     <th class="px-4 py-2 font-medium">Customer</th>
                                     <th class="hidden px-4 py-2 font-medium md:table-cell">Type</th>
@@ -437,6 +439,21 @@ function submitTargets() {
                                     :class="{ 'bg-muted/60': props.selected?.id === pool.id }"
                                     @click="openPool(pool.id)"
                                 >
+                                    <td class="px-4 py-2.5">
+                                        <span
+                                            class="inline-block size-2.5 rounded-full"
+                                            :class="
+                                                pool.health
+                                                    ? {
+                                                          'bg-emerald-500': pool.health.color === 'green',
+                                                          'bg-amber-500': pool.health.color === 'amber',
+                                                          'bg-red-500': pool.health.color === 'red',
+                                                      }
+                                                    : 'bg-muted'
+                                            "
+                                            :title="pool.health?.label ?? 'No readings yet'"
+                                        />
+                                    </td>
                                     <td class="px-4 py-2.5 font-medium">{{ pool.name }}</td>
                                     <td class="px-4 py-2.5 text-muted-foreground">{{ pool.customer }}</td>
                                     <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
@@ -446,7 +463,7 @@ function submitTargets() {
                                     <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ pool.agent ?? '—' }}</td>
                                 </tr>
                                 <tr v-if="props.pools.data.length === 0">
-                                    <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td colspan="6" class="px-4 py-10 text-center text-muted-foreground">
                                         <Waves class="mx-auto mb-2 size-6 opacity-50" />
                                         No pools yet.
                                     </td>

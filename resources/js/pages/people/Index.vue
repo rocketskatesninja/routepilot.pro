@@ -19,6 +19,8 @@ interface PersonRow {
     last_name: string | null;
     email: string | null;
     phone: string | null;
+    balance: number | null;
+    last_visit: string | null;
 }
 
 interface CustomerFields {
@@ -90,6 +92,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
 // --- selection + email ---
 const picked = ref<string[]>([]);
 const keyFor = (p: PersonRow) => `${p.person_type}:${p.id}`;
+const money = (n: number) => `$${n.toFixed(2)}`;
 const isSelected = (p: PersonRow) => picked.value.includes(keyFor(p));
 function toggleSelect(p: PersonRow) {
     const k = keyFor(p);
@@ -371,6 +374,8 @@ function destroyAgent() {
                                     <th class="px-4 py-2 font-medium">Type</th>
                                     <th class="hidden px-4 py-2 font-medium md:table-cell">Email</th>
                                     <th class="hidden px-4 py-2 font-medium lg:table-cell">Phone</th>
+                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">Last visit</th>
+                                    <th class="px-4 py-2 text-right font-medium">Balance</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -404,9 +409,16 @@ function destroyAgent() {
                                     </td>
                                     <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
                                     <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.last_visit ?? '—' }}</td>
+                                    <td
+                                        class="px-4 py-2.5 text-right font-medium"
+                                        :class="person.balance && person.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'"
+                                    >
+                                        {{ person.balance != null ? money(person.balance) : '—' }}
+                                    </td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
-                                    <td :colspan="props.canEmail ? 5 : 4" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td :colspan="props.canEmail ? 7 : 6" class="px-4 py-10 text-center text-muted-foreground">
                                         <Users class="mx-auto mb-2 size-6 opacity-50" />
                                         No people yet.
                                     </td>
