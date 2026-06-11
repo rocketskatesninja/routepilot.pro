@@ -112,6 +112,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
     Route::get('balance', [PortalController::class, 'balance'])->name('portal.balance');
     Route::post('balance/pay', [PortalController::class, 'pay'])->name('portal.pay');
+    Route::post('autopay/setup', [PortalController::class, 'setupAutopay'])->name('portal.autopay.setup');
+    Route::get('autopay/complete', [PortalController::class, 'autopayComplete'])->name('portal.autopay.complete');
+    Route::post('autopay/disable', [PortalController::class, 'disableAutopay'])->name('portal.autopay.disable');
     Route::post('requests', [RequestController::class, 'store'])->name('requests.store');
     Route::post('requests/{serviceRequest}/resolve', [RequestController::class, 'resolve'])->name('requests.resolve');
 

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\PaymentMethod;
 use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Services\BillingService;
 use App\Services\StripeService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -92,12 +94,23 @@ class PortalController extends Controller
         $customer = $this->resolveCustomer($request);
         $breakdown = $billing->breakdownForCustomer($customer);
 
+        $card = null;
+        $pmId = $customer->getAttribute('default_payment_method_id');
+        if ($pmId !== null) {
+            $pm = PaymentMethod::query()->find($pmId);
+            if ($pm !== null) {
+                $card = ['brand' => $pm->brand, 'last4' => $pm->last4];
+            }
+        }
+
         return Inertia::render('portal/Balance', [
             'total' => $breakdown['total'],
             'visits' => $breakdown['visits'],
             'charges' => $breakdown['charges'],
             'can_pay' => $stripe->configured(),
             'paid' => $request->boolean('paid'),
+            'autopay' => (bool) $customer->getAttribute('autopay_enabled'),
+            'card' => $card,
         ]);
     }
 
@@ -116,6 +129,50 @@ class PortalController extends Controller
         }
 
         return Inertia::location($url);
+    }
+
+    /** Save a card for autopay via a hosted setup Checkout; redirects to Stripe. */
+    public function setupAutopay(Request $request, StripeService $stripe): SymfonyResponse
+    {
+        $customer = $this->resolveCustomer($request);
+        $url = $stripe->createSetupCheckout($customer, url('/autopay/complete').'?session_id={CHECKOUT_SESSION_ID}', url('/balance'));
+        if ($url === null) {
+            return back()->with('error', 'Card setup is unavailable right now.');
+        }
+
+        return Inertia::location($url);
+    }
+
+    /** Stripe redirects here after a card is saved — store it + enable autopay. */
+    public function autopayComplete(Request $request, StripeService $stripe): RedirectResponse
+    {
+        $customer = $this->resolveCustomer($request);
+        $sessionId = (string) $request->query('session_id');
+        $card = $sessionId !== '' ? $stripe->retrieveSetupCard($sessionId) : null;
+        if ($card === null) {
+            return redirect('/balance')->with('error', 'Your card was not saved — please try again.');
+        }
+
+        $pm = PaymentMethod::create([
+            'customer_id' => $customer->id,
+            'stripe_payment_method_id' => $card['payment_method'],
+            'brand' => $card['brand'],
+            'last4' => $card['last4'],
+            'exp_month' => $card['exp_month'],
+            'exp_year' => $card['exp_year'],
+            'is_default' => true,
+        ]);
+        $customer->forceFill(['autopay_enabled' => true, 'default_payment_method_id' => $pm->id])->save();
+
+        return redirect('/balance')->with('success', 'Autopay is on — card ending '.($card['last4'] ?? '••••').' saved.');
+    }
+
+    public function disableAutopay(Request $request): RedirectResponse
+    {
+        $customer = $this->resolveCustomer($request);
+        $customer->forceFill(['autopay_enabled' => false])->save();
+
+        return back()->with('success', 'Autopay turned off.');
     }
 
     /** The customer record for the signed-in portal user (or 403/404). */

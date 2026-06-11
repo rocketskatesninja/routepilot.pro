@@ -16,3 +16,4 @@ Schedule::command('app:backup-database')->dailyAt('01:00');
 Schedule::command('app:materialize-schedules')->dailyAt('02:00');
 Schedule::command('app:flag-overdue-invoices')->dailyAt('03:00');
 Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00');
+Schedule::command('app:charge-autopay')->monthlyOn(2, '05:00');

@@ -11,6 +11,8 @@ const props = defineProps<{
     charges: { description: string; amount: number }[];
     can_pay: boolean;
     paid: boolean;
+    autopay: boolean;
+    card: { brand: string | null; last4: string | null } | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balance', href: '/balance' }];
@@ -18,6 +20,10 @@ const money = (n: number) => `$${n.toFixed(2)}`;
 
 const payForm = useForm({});
 const pay = () => payForm.post('/balance/pay', { preserveScroll: true });
+const setupForm = useForm({});
+const setupAutopay = () => setupForm.post('/autopay/setup', { preserveScroll: true });
+const disableForm = useForm({});
+const disableAutopay = () => disableForm.post('/autopay/disable', { preserveScroll: true });
 </script>
 
 <template>
@@ -44,6 +50,22 @@ const pay = () => payForm.post('/balance/pay', { preserveScroll: true });
                     Online payment isn't set up yet — please contact your service company.
                 </p>
                 <p v-else class="mt-3 text-sm text-muted-foreground">You're all paid up. Thank you!</p>
+            </div>
+
+            <div v-if="props.can_pay" class="rounded-xl border border-border p-5">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="font-medium">Autopay</div>
+                        <p v-if="props.autopay && props.card" class="text-sm text-muted-foreground">
+                            On · <span class="capitalize">{{ props.card.brand }}</span> ending {{ props.card.last4 }}
+                        </p>
+                        <p v-else class="text-sm text-muted-foreground">Save a card and we'll automatically pay your balance each cycle.</p>
+                    </div>
+                    <Button v-if="!props.autopay" size="sm" variant="outline" :disabled="setupForm.processing" @click="setupAutopay"
+                        >Set up autopay</Button
+                    >
+                    <Button v-else size="sm" variant="outline" :disabled="disableForm.processing" @click="disableAutopay">Turn off</Button>
+                </div>
             </div>
 
             <div v-if="props.visits.length" class="overflow-hidden rounded-xl border border-border">
