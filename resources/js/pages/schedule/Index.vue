@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, Map as MapIcon, RotateCcw, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Map as MapIcon, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
+import { computed, ref, watch } from 'vue';
+import draggable from 'vuedraggable';
 
 interface Stop {
     id: number;
@@ -36,9 +37,19 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Schedule', href: '/schedule' }]
 const busy = ref(false);
 const dateInput = ref<HTMLInputElement | null>(null);
 
+// A local, mutable copy of the routes that drag-and-drop reorders optimistically;
+// it re-syncs from the server (the source of truth) whenever the props change.
+const clone = (routes: RouteCard[]): RouteCard[] => JSON.parse(JSON.stringify(routes));
+const localRoutes = ref<RouteCard[]>(clone(props.routes));
+watch(
+    () => props.routes,
+    (value) => (localRoutes.value = clone(value)),
+);
+
 const isToday = computed(() => props.date === props.today);
 const totalStops = computed(() => props.routes.reduce((n, r) => n + r.total, 0));
 const completedStops = computed(() => props.routes.reduce((n, r) => n + r.completed, 0));
+const doneCount = (stops: Stop[]) => stops.filter((s) => s.status === 'completed').length;
 
 function go(date?: string) {
     router.get('/schedule', date ? { date } : {}, { preserveState: true, preserveScroll: true });
@@ -68,9 +79,22 @@ function materialize() {
     router.post('/schedule/materialize', {}, { preserveScroll: true, onFinish: () => (busy.value = false) });
 }
 
+// Persist the current arrangement after a drag (debounced — a cross-route move
+// fires a change on both lists). Idempotent on the server, so a double send is safe.
+let persistTimer: ReturnType<typeof setTimeout> | undefined;
+function persist() {
+    clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+        router.post(
+            '/schedule/arrange',
+            { routes: localRoutes.value.map((r) => ({ id: r.id, stop_ids: r.stops.map((s) => s.id) })) },
+            { preserveScroll: true, preserveState: true },
+        );
+    }, 120);
+}
+
 const optimize = (id: number) => router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
-const unskipStop = (id: number) => router.post(`/stops/${id}/unskip`, {}, { preserveScroll: true });
 
 const prettyDate = computed(() =>
     new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
@@ -112,10 +136,10 @@ const statusClasses: Record<string, string> = {
         </template>
 
         <div class="flex h-full flex-1 gap-4 p-4">
-            <!-- Left: the day's routes as a vertical list -->
+            <!-- Left: the day's routes as a vertical, drag-and-drop list -->
             <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[26rem] lg:shrink-0">
                 <div
-                    v-if="props.routes.length === 0"
+                    v-if="localRoutes.length === 0"
                     class="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
                 >
                     <CalendarDays class="size-8 opacity-50" />
@@ -125,16 +149,16 @@ const statusClasses: Record<string, string> = {
                     >
                 </div>
 
-                <div v-for="route in props.routes" :key="route.id" class="rounded-xl border border-border">
+                <div v-for="route in localRoutes" :key="route.id" class="rounded-xl border border-border">
                     <div class="flex items-center justify-between border-b border-border px-4 py-2">
                         <div class="flex items-center gap-2">
                             <EntityAvatar :src="route.agent_photo" type="person" :name="route.agent" size="sm" shape="circle" />
                             <span class="font-medium">{{ route.agent }}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-muted-foreground">{{ route.completed }}/{{ route.total }} done</span>
+                            <span class="text-xs text-muted-foreground">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
                             <button
-                                v-if="props.canManage && route.total > 1"
+                                v-if="props.canManage && route.stops.length > 1"
                                 class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                                 title="Optimize order"
                                 @click="optimize(route.id)"
@@ -143,41 +167,52 @@ const statusClasses: Record<string, string> = {
                             </button>
                         </div>
                     </div>
-                    <ul class="divide-y divide-border text-sm">
-                        <li v-for="stop in route.stops" :key="stop.id" class="flex items-center justify-between gap-2 px-4 py-2">
-                            <span class="flex min-w-0 items-center gap-2 truncate">
-                                <span class="text-muted-foreground">{{ stop.order }}.</span>
-                                <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
-                                <span class="truncate"
-                                    >{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
-                                >
-                            </span>
-                            <div class="flex shrink-0 items-center gap-1.5">
-                                <span
-                                    class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                    :class="statusClasses[stop.status] ?? 'bg-muted'"
-                                    >{{ stop.status.replace('_', ' ') }}</span
-                                >
-                                <button
-                                    v-if="props.canManage && stop.status === 'pending'"
-                                    class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"
-                                    title="Skip stop"
-                                    @click="skipStop(stop.id)"
-                                >
-                                    <SkipForward class="size-3.5" />
-                                </button>
-                                <button
-                                    v-else-if="props.canManage && stop.status === 'skipped'"
-                                    class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                                    title="Restore stop"
-                                    @click="unskipStop(stop.id)"
-                                >
-                                    <RotateCcw class="size-3.5" />
-                                </button>
-                            </div>
-                        </li>
-                        <li v-if="route.stops.length === 0" class="px-4 py-3 text-center text-muted-foreground">No stops.</li>
-                    </ul>
+
+                    <draggable
+                        :list="route.stops"
+                        tag="ul"
+                        item-key="id"
+                        group="route-stops"
+                        :animation="150"
+                        :disabled="!props.canManage"
+                        handle=".drag-handle"
+                        ghost-class="bg-muted/60"
+                        class="min-h-[2.75rem] divide-y divide-border text-sm"
+                        @change="persist"
+                    >
+                        <template #item="{ element: stop, index }">
+                            <li class="flex items-center justify-between gap-2 px-4 py-2">
+                                <span class="flex min-w-0 items-center gap-2 truncate">
+                                    <GripVertical
+                                        v-if="props.canManage && stop.status === 'pending'"
+                                        class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                                    />
+                                    <span v-else class="size-4 shrink-0" aria-hidden="true" />
+                                    <span class="text-muted-foreground">{{ index + 1 }}.</span>
+                                    <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
+                                    <span class="truncate"
+                                        >{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
+                                    >
+                                </span>
+                                <div class="flex shrink-0 items-center gap-1.5">
+                                    <span
+                                        class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                        :class="statusClasses[stop.status] ?? 'bg-muted'"
+                                        >{{ stop.status.replace('_', ' ') }}</span
+                                    >
+                                    <button
+                                        v-if="props.canManage && stop.status === 'pending'"
+                                        class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"
+                                        title="Skip stop"
+                                        @click="skipStop(stop.id)"
+                                    >
+                                        <SkipForward class="size-3.5" />
+                                    </button>
+                                </div>
+                            </li>
+                        </template>
+                    </draggable>
+                    <p v-if="route.stops.length === 0" class="px-4 py-3 text-center text-xs text-muted-foreground">No stops — drag one here.</p>
                 </div>
             </div>
 
@@ -185,7 +220,7 @@ const statusClasses: Record<string, string> = {
             <aside class="hidden min-h-0 flex-1 flex-col gap-4 lg:flex">
                 <div class="grid grid-cols-3 gap-3">
                     <div class="rounded-xl border border-border p-3 text-center">
-                        <div class="text-xl font-semibold">{{ props.routes.length }}</div>
+                        <div class="text-xl font-semibold">{{ localRoutes.length }}</div>
                         <div class="text-xs text-muted-foreground">Routes</div>
                     </div>
                     <div class="rounded-xl border border-border p-3 text-center">

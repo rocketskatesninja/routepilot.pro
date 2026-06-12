@@ -11,6 +11,7 @@ use App\Services\SubscriptionMaterializer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -98,15 +99,52 @@ class ScheduleController extends Controller
         return back()->with('success', 'Stop skipped.');
     }
 
-    /** Restore a skipped stop back to pending. */
-    public function unskipStop(Request $request, RouteStop $stop): RedirectResponse
+    /**
+     * Persist a drag-and-drop rearrangement of the day's stops: each route's
+     * new ordered stop ids. A pending stop dragged onto another route is
+     * reassigned to that route's agent; completed/skipped stops keep their
+     * route and only have their order updated. Everything is tenant-scoped.
+     */
+    public function arrange(Request $request): RedirectResponse
     {
         abort_unless($request->user()?->role === 'tenant_admin', 403);
-        abort_if($stop->route === null, 404);
 
-        $stop->update(['status' => 'pending', 'skip_reason' => null]);
+        $validated = $request->validate([
+            'routes' => ['array'],
+            'routes.*.id' => ['required', 'integer'],
+            'routes.*.stop_ids' => ['array'],
+            'routes.*.stop_ids.*' => ['integer'],
+        ]);
 
-        return back()->with('success', 'Stop restored.');
+        $tenantId = (int) $request->user()->tenant_id;
+
+        DB::transaction(function () use ($validated, $tenantId): void {
+            foreach ((array) $validated['routes'] as $r) {
+                if (! is_array($r)) {
+                    continue;
+                }
+                $route = Route::query()->where('tenant_id', $tenantId)->find((int) ($r['id'] ?? 0));
+                if ($route === null) {
+                    continue;
+                }
+                foreach (array_values((array) ($r['stop_ids'] ?? [])) as $i => $stopId) {
+                    $stop = RouteStop::query()
+                        ->whereHas('route', fn ($q) => $q->where('tenant_id', $tenantId))
+                        ->find((int) $stopId);
+                    if ($stop === null) {
+                        continue;
+                    }
+                    $stop->setAttribute('stop_order', $i + 1);
+                    // Only a still-pending stop may change hands; done work stays put.
+                    if ($stop->getAttribute('status') === 'pending') {
+                        $stop->setAttribute('route_id', $route->id);
+                    }
+                    $stop->save();
+                }
+            }
+        });
+
+        return back();
     }
 
     private function authorizeStaff(Request $request): void
