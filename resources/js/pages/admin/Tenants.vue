@@ -73,13 +73,9 @@ function submitEdit() {
 <template>
     <Head title="Tenants" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.tenants.length} companies`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-xl font-semibold">Tenants</h1>
-                    <p class="text-sm text-muted-foreground">{{ props.tenants.length }} companies</p>
-                </div>
+            <div class="flex items-center justify-end gap-4">
                 <Button size="sm" @click="createOpen = true"><Plus class="mr-1 size-4" /> Tenant</Button>
             </div>
 

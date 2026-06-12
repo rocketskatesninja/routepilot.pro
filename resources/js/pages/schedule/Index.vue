@@ -63,8 +63,7 @@ const statusClasses: Record<string, string> = {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h1 class="text-xl font-semibold">Schedule</h1>
+            <div class="flex flex-wrap items-center justify-end gap-3">
                 <div class="flex items-center gap-2">
                     <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
                         ><Sparkles class="mr-1 size-4" /> Generate</Button

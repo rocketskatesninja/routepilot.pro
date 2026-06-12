@@ -113,10 +113,9 @@ function submitEmail() {
 <template>
     <Head title="People" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.people.total} people`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-between gap-4">
-                <h1 class="text-xl font-semibold">People</h1>
+            <div class="flex items-center justify-end gap-4">
                 <div class="flex items-center gap-2">
                     <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
                     <Button size="sm" variant="outline" @click="openEmail"

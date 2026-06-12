@@ -35,13 +35,8 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
 <template>
     <Head title="Leads" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.leads.total} leads`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div>
-                <h1 class="text-xl font-semibold">Leads</h1>
-                <p class="text-sm text-muted-foreground">{{ props.leads.total }} leads</p>
-            </div>
-
             <div class="overflow-hidden rounded-xl border border-border">
                 <table class="w-full text-sm">
                     <thead class="bg-muted/50 text-left text-muted-foreground">

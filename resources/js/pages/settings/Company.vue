@@ -65,10 +65,7 @@ const connectStripe = () => connectForm.post('/company/connect', { preserveScrol
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto w-full max-w-2xl p-4">
-            <h1 class="text-xl font-semibold">Company settings</h1>
-            <p class="text-sm text-muted-foreground">Branding, timezone, sales tax, and AI configuration.</p>
-
-            <form class="mt-5 space-y-5" @submit.prevent="submit">
+            <form class="space-y-5" @submit.prevent="submit">
                 <div class="grid gap-2">
                     <Label for="name">Company name</Label>
                     <Input id="name" v-model="form.name" />

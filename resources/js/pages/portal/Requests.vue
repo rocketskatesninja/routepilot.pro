@@ -41,8 +41,6 @@ function submit() {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4">
-            <h1 class="text-xl font-semibold">Requests</h1>
-
             <!-- new request -->
             <form class="space-y-4 rounded-xl border border-border p-4 text-sm" @submit.prevent="submit">
                 <h2 class="font-medium">Ask your service company</h2>
