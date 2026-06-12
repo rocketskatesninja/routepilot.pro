@@ -4,6 +4,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
+import ImageUpload from '@/components/ImageUpload.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ const form = useForm({
     first_name: user.first_name,
     last_name: user.last_name ?? '',
     email: user.email,
+    photo: null as File | null,
 });
 
 const submit = () => {
@@ -52,6 +54,15 @@ const submit = () => {
                 <HeadingSmall title="Profile information" description="Update your name and email address" />
 
                 <form @submit.prevent="submit" class="space-y-6">
+                    <div class="grid gap-2">
+                        <Label>Profile photo</Label>
+                        <ImageUpload
+                            :model-value="form.photo"
+                            :current="user.avatar ?? null"
+                            shape="circle"
+                            @update:model-value="(f) => (form.photo = f)"
+                        />
+                    </div>
                     <div class="grid gap-2">
                         <Label for="first_name">First name</Label>
                         <Input

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -56,7 +57,7 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var list<string>
      */
-    protected $appends = ['name'];
+    protected $appends = ['name', 'avatar'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -77,6 +78,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getNameAttribute(): string
     {
         return trim($this->first_name.' '.$this->last_name);
+    }
+
+    /** Public URL of the user's avatar, or null. Shared to the frontend (sidebar, etc.). */
+    public function getAvatarAttribute(): ?string
+    {
+        $path = $this->avatar_path;
+
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     public function getPublicNameAttribute(): string

@@ -19,9 +19,11 @@ interface PoolRow {
     type: string;
     sanitizer: string;
     customer: string;
+    customer_photo: string | null;
     city: string | null;
     cadence: string | null;
     agent: string | null;
+    agent_photo: string | null;
     health: Health | null;
 }
 
@@ -462,12 +464,23 @@ function submitTargets() {
                                             <span class="font-medium">{{ pool.name }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-2.5 text-muted-foreground">{{ pool.customer }}</td>
+                                    <td class="px-4 py-2.5 text-muted-foreground">
+                                        <div class="flex items-center gap-2">
+                                            <EntityAvatar :src="pool.customer_photo" type="person" :name="pool.customer" size="sm" shape="circle" />
+                                            <span>{{ pool.customer }}</span>
+                                        </div>
+                                    </td>
                                     <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
                                         {{ pool.type.replace('_', ' ') }}
                                     </td>
                                     <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ pool.cadence ?? '—' }}</td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ pool.agent ?? '—' }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                                        <div v-if="pool.agent" class="flex items-center gap-2">
+                                            <EntityAvatar :src="pool.agent_photo" type="person" :name="pool.agent" size="sm" shape="circle" />
+                                            <span>{{ pool.agent }}</span>
+                                        </div>
+                                        <span v-else>—</span>
+                                    </td>
                                 </tr>
                                 <tr v-if="props.pools.data.length === 0">
                                     <td colspan="6" class="px-4 py-10 text-center text-muted-foreground">

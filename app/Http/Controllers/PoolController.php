@@ -40,9 +40,9 @@ class PoolController extends Controller
 
         $pools = Pool::query()
             ->with([
-                'customer:id,first_name,last_name',
+                'customer:id,first_name,last_name,photo_path',
                 'serviceLocation:id,pool_id,city',
-                'subscriptions' => fn ($q) => $q->where('status', 'active')->with('agent:id,first_name,last_name'),
+                'subscriptions' => fn ($q) => $q->where('status', 'active')->with('agent:id,first_name,last_name,avatar_path'),
                 'latestReading',
             ])
             ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
@@ -187,9 +187,11 @@ class PoolController extends Controller
             'type' => $pool->type,
             'sanitizer' => $pool->sanitizer_type,
             'customer' => $this->personName($pool->customer),
+            'customer_photo' => $this->photoUrl($pool->customer?->getAttribute('photo_path')),
             'city' => $pool->serviceLocation?->getAttribute('city'),
             'cadence' => $sub?->scheduleLabel(),
             'agent' => $sub !== null ? $this->personName($sub->agent) : null,
+            'agent_photo' => $sub?->agent !== null ? $this->photoUrl($sub->agent->getAttribute('avatar_path')) : null,
             'health' => $health,
         ];
     }
