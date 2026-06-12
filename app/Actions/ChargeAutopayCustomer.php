@@ -51,6 +51,7 @@ class ChargeAutopayCustomer
             $amount,
             (int) $customer->id,
             (int) $customer->getAttribute('tenant_id'),
+            $this->stripe->connectAccountFor($customer),
         );
 
         if ($result !== null && $result['status'] === 'succeeded') {

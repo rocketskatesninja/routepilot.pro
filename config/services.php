@@ -48,6 +48,8 @@ return [
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
         'connect_client_id' => env('STRIPE_CONNECT_CLIENT_ID'),
+        // Platform revenue-share on customer payments routed to a connected account.
+        'application_fee_percent' => (float) env('STRIPE_APPLICATION_FEE_PERCENT', 0.5),
     ],
 
 ];

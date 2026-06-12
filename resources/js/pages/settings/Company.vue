@@ -19,6 +19,7 @@ const props = defineProps<{
         has_password: boolean;
         active: boolean;
     };
+    connect: { available: boolean; connected: boolean; charges_enabled: boolean };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Company', href: '/company' }];
@@ -54,6 +55,9 @@ const mailForm = useForm({
     from_name: props.mail.from_name,
 });
 const submitMail = () => mailForm.patch('/company/mail', { preserveScroll: true, onSuccess: () => mailForm.reset('password') });
+
+const connectForm = useForm({});
+const connectStripe = () => connectForm.post('/company/connect', { preserveScroll: true });
 </script>
 
 <template>
@@ -166,6 +170,27 @@ const submitMail = () => mailForm.patch('/company/mail', { preserveScroll: true,
                         <span v-if="mailForm.recentlySuccessful" class="text-sm text-emerald-600">Saved.</span>
                     </div>
                 </form>
+            </div>
+
+            <div v-if="props.connect.available" class="rounded-xl border border-border p-5">
+                <h2 class="font-medium">Payments (Stripe)</h2>
+                <p class="mt-1 text-sm text-muted-foreground">
+                    Connect your Stripe account so customer card payments are deposited to you (a small platform fee applies).
+                </p>
+                <div class="mt-4 flex items-center gap-3">
+                    <span
+                        v-if="props.connect.charges_enabled"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400"
+                    >
+                        ✓ Connected — payouts enabled
+                    </span>
+                    <template v-else>
+                        <span v-if="props.connect.connected" class="text-sm text-amber-600 dark:text-amber-400">Onboarding incomplete</span>
+                        <Button type="button" :disabled="connectForm.processing" @click="connectStripe">
+                            {{ props.connect.connected ? 'Finish Stripe setup' : 'Connect Stripe' }}
+                        </Button>
+                    </template>
+                </div>
             </div>
         </div>
     </AppLayout>

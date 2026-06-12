@@ -9,10 +9,12 @@ use App\Http\Requests\UpdateMailConfigRequest;
 use App\Models\Integration;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
+use App\Services\StripeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * Company settings (tenant_admin) — brand/timezone/tax on the Tenant, AI
@@ -36,7 +38,44 @@ class CompanySettingsController extends Controller
                 'model' => TenantSetting::getFor($tenant->id, 'ai_model') ?? '',
             ],
             'mail' => $this->mailConfig($tenant),
+            'connect' => [
+                'available' => app(StripeService::class)->configured(),
+                'connected' => is_string($tenant->getAttribute('stripe_connect_account_id')) && $tenant->getAttribute('stripe_connect_account_id') !== '',
+                'charges_enabled' => (bool) $tenant->getAttribute('stripe_connect_charges_enabled'),
+            ],
         ]);
+    }
+
+    /** Start (or resume) Stripe Connect onboarding for the tenant. */
+    public function connect(Request $request, StripeService $stripe): SymfonyResponse
+    {
+        $tenant = $this->tenant($request);
+
+        $account = $stripe->createConnectAccount($tenant);
+        if ($account === null) {
+            return back()->with('error', 'Could not start Stripe Connect — try again shortly.');
+        }
+
+        $url = $stripe->createAccountLink($account, url('/company'), url('/company/connect/return'));
+        if ($url === null) {
+            return back()->with('error', 'Could not create the Stripe onboarding link.');
+        }
+
+        return Inertia::location($url);
+    }
+
+    /** Stripe redirects here after onboarding — refresh + store the account status. */
+    public function connectReturn(Request $request, StripeService $stripe): RedirectResponse
+    {
+        $tenant = $this->tenant($request);
+        $enabled = $stripe->refreshConnectStatus($tenant);
+
+        return redirect('/company')->with(
+            'success',
+            $enabled
+                ? 'Stripe connected — customer payments now go to your account.'
+                : 'Stripe onboarding started — finish the remaining steps to enable payouts.',
+        );
     }
 
     public function updateMail(UpdateMailConfigRequest $request): RedirectResponse

@@ -131,6 +131,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
     Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
     Route::patch('company/mail', [CompanySettingsController::class, 'updateMail'])->name('company.mail');
+    Route::post('company/connect', [CompanySettingsController::class, 'connect'])->name('company.connect');
+    Route::get('company/connect/return', [CompanySettingsController::class, 'connectReturn'])->name('company.connect.return');
 
     // Super-admin platform console.
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
