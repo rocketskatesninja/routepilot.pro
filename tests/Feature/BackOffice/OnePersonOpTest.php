@@ -29,3 +29,34 @@ test('a one-person operation can assign a service plan to the tenant_admin thems
     expect(ServiceSubscription::query()->where('pool_id', $this->pool->id)->first()?->assigned_agent_id)
         ->toBe($this->admin->id);
 });
+
+test('reassigning a plan moves its upcoming pending stops to the new tech', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+    $sub = $this->pool->subscriptions()->create([
+        'service_type_id' => $this->serviceType->id,
+        'assigned_agent_id' => $agent->id,
+        'frequency' => 'weekly',
+        'preferred_day' => 'monday',
+        'status' => 'active',
+    ]);
+
+    app(App\Services\SubscriptionMaterializer::class)->run($this->tenant->id);
+
+    $stopsOn = fn (int $id): int => App\Models\RouteStop::query()
+        ->where('service_subscription_id', $sub->id)
+        ->where('status', 'pending')
+        ->whereHas('route', fn ($q) => $q->where('agent_id', $id))
+        ->count();
+
+    expect($stopsOn($agent->id))->toBeGreaterThan(0)->and($stopsOn($this->admin->id))->toBe(0);
+
+    app(App\Actions\UpdateSubscription::class)->handle($sub, [
+        'service_type_id' => $this->serviceType->id,
+        'assigned_agent_id' => $this->admin->id,
+        'frequency' => 'weekly',
+        'preferred_day' => 'monday',
+        'status' => 'active',
+    ]);
+
+    expect($stopsOn($this->admin->id))->toBeGreaterThan(0)->and($stopsOn($agent->id))->toBe(0);
+});
