@@ -31,15 +31,20 @@ class PortalController extends Controller
         $visits = ServiceVisit::query()
             ->whereIn('pool_id', $poolIds)
             ->where('status', 'completed')
-            ->with('pool:id,name')
+            ->with('pool:id,name,photo_path')
             ->latest('completed_at')
             ->paginate(15)
             ->withQueryString()
-            ->through(fn (ServiceVisit $v): array => [
-                'id' => $v->id,
-                'pool' => $v->pool?->getAttribute('name'),
-                'on' => $v->completed_at?->toDateString(),
-            ]);
+            ->through(function (ServiceVisit $v): array {
+                $poolPhoto = $v->pool?->getAttribute('photo_path');
+
+                return [
+                    'id' => $v->id,
+                    'pool' => $v->pool?->getAttribute('name'),
+                    'pool_photo' => is_string($poolPhoto) && $poolPhoto !== '' ? Storage::disk('public')->url($poolPhoto) : null,
+                    'on' => $v->completed_at?->toDateString(),
+                ];
+            });
 
         $selected = null;
         $selectedId = $request->integer('selected');

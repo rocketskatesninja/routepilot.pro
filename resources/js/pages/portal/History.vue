@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -8,6 +9,7 @@ import { Droplets } from 'lucide-vue-next';
 interface VisitRow {
     id: number;
     pool: string | null;
+    pool_photo: string | null;
     on: string | null;
 }
 
@@ -80,7 +82,12 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                     @click="open(v.id)"
                                 >
                                     <td class="px-4 py-2.5 font-medium">{{ v.on }}</td>
-                                    <td class="px-4 py-2.5 text-muted-foreground">{{ v.pool }}</td>
+                                    <td class="px-4 py-2.5 text-muted-foreground">
+                                        <div class="flex items-center gap-2">
+                                            <EntityAvatar :src="v.pool_photo" type="pool" :name="v.pool" size="sm" />
+                                            <span>{{ v.pool }}</span>
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr v-if="props.visits.data.length === 0">
                                     <td colspan="2" class="px-4 py-10 text-center text-muted-foreground">

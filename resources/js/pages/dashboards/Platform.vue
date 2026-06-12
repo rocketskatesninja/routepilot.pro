@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 
 defineProps<{
     stats: { tenants: number; active_tenants: number; users: number; pools: number; visits_this_week: number };
-    recent_tenants: { id: number; name: string; status: string }[];
+    recent_tenants: { id: number; name: string; status: string; logo: string | null }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Platform', href: '/dashboard' }];
@@ -42,7 +43,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Platform', href: '/dashboard' }
                 <h2 class="border-b border-border px-4 py-2 font-medium">Recent tenants</h2>
                 <ul class="divide-y divide-border text-sm">
                     <li v-for="t in recent_tenants" :key="t.id" class="flex items-center justify-between px-4 py-2.5">
-                        <span>{{ t.name }}</span>
+                        <span class="flex items-center gap-2">
+                            <EntityAvatar :src="t.logo" type="tenant" :name="t.name" size="sm" />
+                            <span>{{ t.name }}</span>
+                        </span>
                         <span class="text-xs capitalize text-muted-foreground">{{ t.status }}</span>
                     </li>
                     <li v-if="recent_tenants.length === 0" class="px-4 py-6 text-center text-muted-foreground">No tenants yet.</li>

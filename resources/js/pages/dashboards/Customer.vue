@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
@@ -10,9 +11,9 @@ interface Health {
 
 defineProps<{
     customer_name: string;
-    pools: { id: number; name: string; health: Health | null }[];
+    pools: { id: number; name: string; photo: string | null; health: Health | null }[];
     next_visit: { pool: string | null; date: string | null } | null;
-    recent_visits: { id: number; pool: string | null; completed_on: string | null }[];
+    recent_visits: { id: number; pool: string | null; pool_photo: string | null; completed_on: string | null }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'My Pools', href: '/dashboard' }];
@@ -37,9 +38,17 @@ const healthClasses: Record<Health['color'], string> = {
 
             <div class="grid gap-3 sm:grid-cols-2">
                 <div v-for="pool in pools" :key="pool.id" class="rounded-xl border border-border p-4">
-                    <div class="flex items-center justify-between">
-                        <span class="font-medium">{{ pool.name }}</span>
-                        <span v-if="pool.health" class="rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClasses[pool.health.color]">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="flex min-w-0 items-center gap-2"
+                            ><EntityAvatar :src="pool.photo" type="pool" :name="pool.name" size="sm" /><span class="truncate font-medium">{{
+                                pool.name
+                            }}</span></span
+                        >
+                        <span
+                            v-if="pool.health"
+                            class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                            :class="healthClasses[pool.health.color]"
+                        >
                             {{ pool.health.label }}
                         </span>
                         <span v-else class="text-xs text-muted-foreground">No reading yet</span>
@@ -52,7 +61,10 @@ const healthClasses: Record<Health['color'], string> = {
                 <h2 class="border-b border-border px-4 py-2 font-medium">Recent service</h2>
                 <ul class="divide-y divide-border text-sm">
                     <li v-for="v in recent_visits" :key="v.id" class="flex items-center justify-between px-4 py-2.5">
-                        <span>{{ v.pool }}</span>
+                        <span class="flex items-center gap-2">
+                            <EntityAvatar :src="v.pool_photo" type="pool" :name="v.pool" size="sm" />
+                            <span>{{ v.pool }}</span>
+                        </span>
                         <span class="text-xs text-muted-foreground">{{ v.completed_on }}</span>
                     </li>
                     <li v-if="recent_visits.length === 0" class="px-4 py-6 text-center text-muted-foreground">No visits yet.</li>

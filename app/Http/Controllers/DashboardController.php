@@ -52,6 +52,7 @@ class DashboardController extends Controller
             ],
             'recent_tenants' => Tenant::query()->latest()->limit(5)->get()->map(fn (Tenant $t) => [
                 'id' => $t->id, 'name' => $t->name, 'status' => $t->getAttribute('status'),
+                'logo' => $this->photoUrl($t->getAttribute('logo_path')),
             ])->all(),
         ];
     }
@@ -150,7 +151,7 @@ class DashboardController extends Controller
                 ])));
             }
 
-            return ['id' => $pool->id, 'name' => $pool->name, 'health' => $health];
+            return ['id' => $pool->id, 'name' => $pool->name, 'photo' => $this->photoUrl($pool->getAttribute('photo_path')), 'health' => $health];
         })->all();
 
         $nextStop = RouteStop::query()
@@ -162,10 +163,11 @@ class DashboardController extends Controller
             ->first();
 
         $recent = ServiceVisit::query()
-            ->whereIn('pool_id', $poolIds)->where('status', 'completed')->with('pool:id,name')
+            ->whereIn('pool_id', $poolIds)->where('status', 'completed')->with('pool:id,name,photo_path')
             ->latest('completed_at')->limit(5)->get()
             ->map(fn (ServiceVisit $v) => [
-                'id' => $v->id, 'pool' => $v->pool?->getAttribute('name'), 'completed_on' => $v->completed_at?->toDateString(),
+                'id' => $v->id, 'pool' => $v->pool?->getAttribute('name'),
+                'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')), 'completed_on' => $v->completed_at?->toDateString(),
             ])->all();
 
         return [
