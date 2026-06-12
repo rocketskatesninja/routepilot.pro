@@ -14,6 +14,7 @@ use App\Models\Invoice;
 use App\Services\BillingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -34,6 +35,7 @@ class BalanceController extends Controller
         $rows = $balances->map(fn (array $r): array => [
             'id' => $r['customer']->id,
             'name' => $r['customer']->displayName(),
+            'photo' => $this->photoUrl($r['customer']->getAttribute('photo_path')),
             'balance' => $r['balance'],
             'pools' => $r['customer']->pools->count(),
         ])->all();
@@ -46,6 +48,7 @@ class BalanceController extends Controller
                 $selected = [
                     'id' => $customer->id,
                     'name' => $customer->displayName(),
+                    'photo' => $this->photoUrl($customer->getAttribute('photo_path')),
                     ...$billing->breakdownForCustomer($customer),
                     'invoices' => Invoice::query()
                         ->where('customer_id', $customer->id)
@@ -69,6 +72,12 @@ class BalanceController extends Controller
             'canManage' => $request->user()?->role === 'tenant_admin',
             'customers' => $this->customerOptions(),
         ]);
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     public function addCharge(StoreManualChargeRequest $request, AddManualCharge $action): RedirectResponse

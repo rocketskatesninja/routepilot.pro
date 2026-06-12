@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -9,8 +10,11 @@ interface VisitRow {
     id: number;
     completed_on: string | null;
     pool: string | null;
+    pool_photo: string | null;
     customer: string | null;
+    customer_photo: string | null;
     agent: string | null;
+    agent_photo: string | null;
 }
 
 interface Reading {
@@ -92,9 +96,24 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                                     @click="open(visit.id)"
                                 >
                                     <td class="px-4 py-2.5 font-medium">{{ visit.completed_on }}</td>
-                                    <td class="px-4 py-2.5">{{ visit.pool }}</td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ visit.customer }}</td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ visit.agent }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex items-center gap-2">
+                                            <EntityAvatar :src="visit.pool_photo" type="pool" :name="visit.pool" size="sm" />
+                                            <span>{{ visit.pool }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                                        <div class="flex items-center gap-2">
+                                            <EntityAvatar :src="visit.customer_photo" type="person" :name="visit.customer" size="sm" shape="circle" />
+                                            <span>{{ visit.customer }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                                        <div class="flex items-center gap-2">
+                                            <EntityAvatar :src="visit.agent_photo" type="person" :name="visit.agent" size="sm" shape="circle" />
+                                            <span>{{ visit.agent }}</span>
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr v-if="props.visits.data.length === 0">
                                     <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">

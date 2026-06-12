@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ServiceVisit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,7 +23,7 @@ class ReportController extends Controller
 
         $visits = ServiceVisit::query()
             ->where('status', 'completed')
-            ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name'])
+            ->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
             ->latest('completed_at')
             ->paginate(20)
             ->withQueryString()
@@ -30,8 +31,11 @@ class ReportController extends Controller
                 'id' => $v->id,
                 'completed_on' => $v->completed_at?->toDateString(),
                 'pool' => $v->pool?->name,
+                'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
                 'customer' => $v->pool?->customer?->displayName(),
+                'customer_photo' => $this->photoUrl($v->pool?->customer?->getAttribute('photo_path')),
                 'agent' => $v->agent?->displayName(),
+                'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
             ]);
 
         $selected = null;
@@ -55,6 +59,12 @@ class ReportController extends Controller
     {
         $user = $request->user();
         abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /** @return array<string, mixed> */

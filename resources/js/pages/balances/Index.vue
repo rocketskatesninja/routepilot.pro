@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { ref } from 'vue';
 interface BalanceRow {
     id: number;
     name: string;
+    photo: string | null;
     balance: number;
     pools: number;
 }
@@ -20,6 +22,7 @@ interface BalanceRow {
 interface BalanceDetail {
     id: number;
     name: string;
+    photo: string | null;
     visits: { pool: string; date: string; price: number }[];
     charges: { description: string; amount: number }[];
     total: number;
@@ -114,7 +117,12 @@ function submitCharge() {
                                     :class="{ 'bg-muted/60': props.selected?.id === row.id }"
                                     @click="open(row.id)"
                                 >
-                                    <td class="px-4 py-2.5 font-medium">{{ row.name }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex items-center gap-2.5">
+                                            <EntityAvatar :src="row.photo" type="person" :name="row.name" size="sm" shape="circle" />
+                                            <span class="font-medium">{{ row.name }}</span>
+                                        </div>
+                                    </td>
                                     <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ row.pools }}</td>
                                     <td class="px-4 py-2.5 text-right font-medium">{{ money(row.balance) }}</td>
                                 </tr>
@@ -131,9 +139,12 @@ function submitCharge() {
 
                 <template #detail>
                     <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-sm text-muted-foreground">{{ money(props.selected.total) }} outstanding</p>
+                        <div class="mb-4 flex items-center gap-3">
+                            <EntityAvatar :src="props.selected.photo" type="person" :name="props.selected.name" size="lg" shape="circle" />
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                                <p class="text-sm text-muted-foreground">{{ money(props.selected.total) }} outstanding</p>
+                            </div>
                         </div>
 
                         <div class="space-y-5 text-sm">

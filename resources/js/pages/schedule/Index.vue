@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -10,6 +11,7 @@ interface Stop {
     id: number;
     order: number;
     pool: string | null;
+    pool_photo: string | null;
     customer: string | null;
     status: string;
 }
@@ -17,6 +19,7 @@ interface Stop {
 interface RouteCard {
     id: number;
     agent: string;
+    agent_photo: string | null;
     completed: number;
     total: number;
     stops: Stop[];
@@ -83,7 +86,10 @@ const statusClasses: Record<string, string> = {
             <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <div v-for="route in props.routes" :key="route.id" class="rounded-xl border border-border">
                     <div class="flex items-center justify-between border-b border-border px-4 py-2">
-                        <span class="font-medium">{{ route.agent }}</span>
+                        <div class="flex items-center gap-2">
+                            <EntityAvatar :src="route.agent_photo" type="person" :name="route.agent" size="sm" shape="circle" />
+                            <span class="font-medium">{{ route.agent }}</span>
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-muted-foreground">{{ route.completed }}/{{ route.total }} done</span>
                             <button
@@ -98,10 +104,13 @@ const statusClasses: Record<string, string> = {
                     </div>
                     <ul class="divide-y divide-border text-sm">
                         <li v-for="stop in route.stops" :key="stop.id" class="flex items-center justify-between gap-2 px-4 py-2">
-                            <span class="min-w-0 truncate"
-                                ><span class="mr-2 text-muted-foreground">{{ stop.order }}.</span>{{ stop.pool }}
-                                <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
-                            >
+                            <span class="flex min-w-0 items-center gap-2 truncate">
+                                <span class="text-muted-foreground">{{ stop.order }}.</span>
+                                <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
+                                <span class="truncate"
+                                    >{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
+                                >
+                            </span>
                             <div class="flex shrink-0 items-center gap-1.5">
                                 <span
                                     class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"

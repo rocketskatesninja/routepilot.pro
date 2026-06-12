@@ -11,6 +11,7 @@ use App\Services\SubscriptionMaterializer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,8 +31,8 @@ class ScheduleController extends Controller
         $routes = Route::query()
             ->whereDate('scheduled_date', $date)
             ->with([
-                'agent:id,first_name,last_name',
-                'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name']),
+                'agent:id,first_name,last_name,avatar_path',
+                'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path']),
             ])
             ->get()
             ->map(function (Route $route): array {
@@ -40,12 +41,14 @@ class ScheduleController extends Controller
                 return [
                     'id' => $route->id,
                     'agent' => $route->agent?->displayName() ?? 'Unassigned',
+                    'agent_photo' => $this->photoUrl($route->agent?->getAttribute('avatar_path')),
                     'completed' => $stops->where('status', 'completed')->count(),
                     'total' => $stops->count(),
                     'stops' => $stops->map(fn (RouteStop $s): array => [
                         'id' => $s->id,
                         'order' => $s->stop_order,
                         'pool' => $s->pool?->name,
+                        'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
                         'customer' => $s->pool?->customer?->displayName(),
                         'status' => $s->status,
                     ])->values()->all(),
@@ -96,6 +99,12 @@ class ScheduleController extends Controller
     {
         $user = $request->user();
         abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     private function resolveDate(string $input): string
