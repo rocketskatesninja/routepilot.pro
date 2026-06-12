@@ -6,6 +6,8 @@ namespace App\Actions;
 
 use App\Models\Pool;
 use App\Services\GeocodingService;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -13,7 +15,10 @@ use Illuminate\Support\Facades\DB;
  */
 class CreatePool
 {
-    public function __construct(private readonly GeocodingService $geocoder) {}
+    public function __construct(
+        private readonly GeocodingService $geocoder,
+        private readonly PhotoService $photos,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data  validated pool + location fields
@@ -55,6 +60,11 @@ class CreatePool
         $location = $pool->serviceLocation;
         if ($location !== null) {
             $this->geocoder->locate($location);
+        }
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $pool->forceFill(['photo_path' => $this->photos->store($photo, 'pools')])->save();
         }
 
         return $pool;

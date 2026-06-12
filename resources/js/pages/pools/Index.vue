@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
+import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,11 +10,12 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 interface PoolRow {
     id: number;
     name: string;
+    photo_url: string | null;
     type: string;
     sanitizer: string;
     customer: string;
@@ -54,6 +57,7 @@ interface PoolFields {
 interface PoolDetail {
     id: number;
     name: string;
+    photo_url: string | null;
     type: string;
     volume_gallons: number | null;
     sanitizer: string;
@@ -166,7 +170,10 @@ const form = useForm<Record<string, unknown>>({
     zip: '',
     gate_code: '',
     access_notes: '',
+    photo: null,
 });
+
+const photoFile = computed(() => form.photo as File | null);
 
 function openCreate() {
     form.reset();
@@ -200,6 +207,7 @@ function openEdit() {
     form.zip = f.zip ?? '';
     form.gate_code = f.gate_code ?? '';
     form.access_notes = f.access_notes ?? '';
+    form.photo = null;
     form.clearErrors();
     formMode.value = 'edit';
     formId.value = props.selected.id;
@@ -448,7 +456,12 @@ function submitTargets() {
                                             :title="pool.health?.label ?? 'No readings yet'"
                                         />
                                     </td>
-                                    <td class="px-4 py-2.5 font-medium">{{ pool.name }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex items-center gap-2.5">
+                                            <EntityAvatar :src="pool.photo_url" type="pool" :name="pool.name" size="sm" />
+                                            <span class="font-medium">{{ pool.name }}</span>
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-2.5 text-muted-foreground">{{ pool.customer }}</td>
                                     <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
                                         {{ pool.type.replace('_', ' ') }}
@@ -469,9 +482,12 @@ function submitTargets() {
 
                 <template #detail>
                     <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-sm text-muted-foreground">{{ props.selected.customer.name }}</p>
+                        <div class="mb-4 flex items-center gap-3">
+                            <EntityAvatar :src="props.selected.photo_url" type="pool" :name="props.selected.name" size="lg" />
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                                <p class="text-sm text-muted-foreground">{{ props.selected.customer.name }}</p>
+                            </div>
                         </div>
 
                         <div class="space-y-5 text-sm">
@@ -728,6 +744,11 @@ function submitTargets() {
                     </SheetHeader>
 
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
+                        <ImageUpload
+                            :model-value="photoFile"
+                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            @update:model-value="(f) => (form.photo = f)"
+                        />
                         <div class="grid gap-1.5">
                             <Label for="customer_id">Customer</Label>
                             <select

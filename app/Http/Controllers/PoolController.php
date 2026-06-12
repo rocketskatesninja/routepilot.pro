@@ -20,6 +20,7 @@ use App\Services\ChemistryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -182,6 +183,7 @@ class PoolController extends Controller
         return [
             'id' => $pool->id,
             'name' => $pool->name,
+            'photo_url' => $this->photoUrl($pool->getAttribute('photo_path')),
             'type' => $pool->type,
             'sanitizer' => $pool->sanitizer_type,
             'customer' => $this->personName($pool->customer),
@@ -217,6 +219,7 @@ class PoolController extends Controller
         return [
             'id' => $pool->id,
             'name' => $pool->name,
+            'photo_url' => $this->photoUrl($pool->getAttribute('photo_path')),
             'type' => $pool->type,
             'volume_gallons' => $pool->volume_gallons,
             'sanitizer' => $pool->sanitizer_type,
@@ -301,6 +304,12 @@ class PoolController extends Controller
                 'access_notes' => $location?->getAttribute('access_notes'),
             ],
         ];
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /** Full name of a Customer or User (magic attributes), or an em dash. */

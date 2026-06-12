@@ -6,6 +6,8 @@ namespace App\Actions;
 
 use App\Models\Pool;
 use App\Services\GeocodingService;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Update a pool's specs and its service location (upserted). The owning
@@ -13,7 +15,10 @@ use App\Services\GeocodingService;
  */
 class UpdatePool
 {
-    public function __construct(private readonly GeocodingService $geocoder) {}
+    public function __construct(
+        private readonly GeocodingService $geocoder,
+        private readonly PhotoService $photos,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data  validated pool + location fields
@@ -49,6 +54,14 @@ class UpdatePool
         // Re-geocode only when the address actually moved (or was never geocoded).
         if ($location->wasChanged(['address_line1', 'city', 'state', 'zip']) || $location->getAttribute('lat') === null) {
             $this->geocoder->locate($location);
+        }
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $old = $pool->getAttribute('photo_path');
+            $pool->forceFill([
+                'photo_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'pools'),
+            ])->save();
         }
 
         return $pool;

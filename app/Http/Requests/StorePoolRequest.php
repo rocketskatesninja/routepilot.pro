@@ -40,6 +40,7 @@ class StorePoolRequest extends FormRequest
             'zip' => ['nullable', 'string', 'max:10'],
             'gate_code' => ['nullable', 'string', 'max:60'],
             'access_notes' => ['nullable', 'string', 'max:2000'],
+            'photo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }
