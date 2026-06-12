@@ -22,6 +22,9 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
+        // Server-side Geocoding (+ later the map dashboard). Shared across tenants,
+        // billed to one RoutePilot Google Cloud project. Geocoding no-ops without it.
+        'server_maps_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
     'ses' => [

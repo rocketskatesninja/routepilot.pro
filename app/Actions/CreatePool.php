@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Pool;
+use App\Services\GeocodingService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -12,12 +13,14 @@ use Illuminate\Support\Facades\DB;
  */
 class CreatePool
 {
+    public function __construct(private readonly GeocodingService $geocoder) {}
+
     /**
      * @param  array<string, mixed>  $data  validated pool + location fields
      */
     public function handle(array $data): Pool
     {
-        return DB::transaction(function () use ($data): Pool {
+        $pool = DB::transaction(function () use ($data): Pool {
             $pool = Pool::create([
                 'customer_id' => $data['customer_id'],
                 'name' => $data['name'],
@@ -47,5 +50,13 @@ class CreatePool
 
             return $pool;
         });
+
+        // Geocode outside the transaction so a slow API call never holds a lock.
+        $location = $pool->serviceLocation;
+        if ($location !== null) {
+            $this->geocoder->locate($location);
+        }
+
+        return $pool;
     }
 }

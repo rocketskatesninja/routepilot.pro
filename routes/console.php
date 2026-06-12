@@ -15,6 +15,7 @@ Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')->every
 Schedule::command('app:backup-database')->dailyAt('01:00');
 Schedule::command('app:materialize-schedules')->dailyAt('02:00');
 Schedule::command('app:flag-overdue-invoices')->dailyAt('03:00');
+Schedule::command('app:geocode-locations')->dailyAt('03:30'); // retry any locations missing coordinates
 Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00');
 Schedule::command('app:charge-autopay')->monthlyOn(2, '05:00');
 Schedule::command('app:retry-autopay')->dailyAt('06:00');

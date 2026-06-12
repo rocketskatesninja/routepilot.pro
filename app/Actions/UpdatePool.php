@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Pool;
+use App\Services\GeocodingService;
 
 /**
  * Update a pool's specs and its service location (upserted). The owning
@@ -12,6 +13,8 @@ use App\Models\Pool;
  */
 class UpdatePool
 {
+    public function __construct(private readonly GeocodingService $geocoder) {}
+
     /**
      * @param  array<string, mixed>  $data  validated pool + location fields
      */
@@ -34,7 +37,7 @@ class UpdatePool
             'notes' => $data['notes'] ?? null,
         ]);
 
-        $pool->serviceLocation()->updateOrCreate([], [
+        $location = $pool->serviceLocation()->updateOrCreate([], [
             'address_line1' => $data['address_line1'] ?? null,
             'city' => $data['city'] ?? null,
             'state' => $data['state'] ?? null,
@@ -42,6 +45,11 @@ class UpdatePool
             'gate_code' => $data['gate_code'] ?? null,
             'access_notes' => $data['access_notes'] ?? null,
         ]);
+
+        // Re-geocode only when the address actually moved (or was never geocoded).
+        if ($location->wasChanged(['address_line1', 'city', 'state', 'zip']) || $location->getAttribute('lat') === null) {
+            $this->geocoder->locate($location);
+        }
 
         return $pool;
     }
