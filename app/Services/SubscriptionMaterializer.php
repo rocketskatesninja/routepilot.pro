@@ -35,8 +35,9 @@ class SubscriptionMaterializer
      *                                ahead; capped at 6 months so calendar
      *                                navigation can extend on demand safely.
      */
-    public function run(int $tenantId, ?string $through = null): void
+    public function run(int $tenantId, ?string $through = null): int
     {
+        $created = 0;
         $start = now()->startOfDay();
         $maxEnd = $start->copy()->addMonths(6);
         $end = $through ? Carbon::parse($through)->endOfDay()->min($maxEnd) : $start->copy()->addWeeks(8);
@@ -51,7 +52,7 @@ class SubscriptionMaterializer
             ->whereNotNull('assigned_agent_id')
             ->get();
         if ($subs->isEmpty()) {
-            return;
+            return 0;
         }
 
         // Every existing stop in the window for these subscriptions,
@@ -110,8 +111,11 @@ class SubscriptionMaterializer
                 ]);
 
                 $existingKeys[$key] = true;
+                $created++;
             }
         }
+
+        return $created;
     }
 
     /**

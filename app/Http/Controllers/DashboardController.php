@@ -63,14 +63,21 @@ class DashboardController extends Controller
         $todayRoutes = Route::query()->whereDate('scheduled_date', today())->with('stops:id,route_id,status')->get();
         $stops = $todayRoutes->flatMap(fn (Route $r) => $r->stops);
 
-        // The admin's OWN route for today (one-person operations work their own stops).
+        // The admin's NEXT route with pending work (one-person operations work
+        // their own stops — show today's, or the next day that has stops).
         $myRoute = Route::query()
-            ->where('agent_id', $user->id)->whereDate('scheduled_date', today())
+            ->where('agent_id', $user->id)
+            ->whereDate('scheduled_date', '>=', today())
+            ->whereHas('stops', fn ($q) => $q->where('status', 'pending'))
             ->with(['stops' => fn ($q) => $q->with('pool:id,name,photo_path')->orderBy('stop_order')])
+            ->orderBy('scheduled_date')
             ->first();
         $myStops = $myRoute !== null ? $myRoute->stops : collect();
 
         return [
+            'my_route_label' => $myRoute?->scheduled_date === null
+                ? null
+                : ($myRoute->scheduled_date->isToday() ? 'today' : $myRoute->scheduled_date->isoFormat('ddd, MMM D')),
             'my_stops' => $myStops->map(fn (RouteStop $s) => [
                 'id' => $s->id,
                 'pool' => $s->pool?->getAttribute('name'),

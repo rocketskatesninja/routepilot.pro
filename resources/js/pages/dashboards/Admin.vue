@@ -8,6 +8,7 @@ import { ChevronRight } from 'lucide-vue-next';
 
 defineProps<{
     stats: { today_stops: number; completed_today: number; remaining_today: number; agents: number; customers: number; pools: number };
+    my_route_label: string | null;
     my_stops: { id: number; pool: string | null; pool_photo: string | null; status: string }[];
     recent_visits: {
         id: number;
@@ -74,7 +75,7 @@ const statusClasses: Record<string, string> = {
             </div>
 
             <div v-if="my_stops.length" class="rounded-xl border border-sky-500/40 bg-sky-500/5">
-                <h2 class="border-b border-border px-4 py-2 font-medium">My route today · {{ my_stops.length }} stop(s)</h2>
+                <h2 class="border-b border-border px-4 py-2 font-medium">My route {{ my_route_label }} · {{ my_stops.length }} stop(s)</h2>
                 <ul class="divide-y divide-border text-sm">
                     <li v-for="(stop, i) in my_stops" :key="stop.id">
                         <Link

@@ -68,9 +68,11 @@ class ScheduleController extends Controller
         abort_unless($request->user()?->role === 'tenant_admin', 403);
 
         $through = Carbon::today()->addWeeks(4)->toDateString();
-        $materializer->run((int) $request->user()->tenant_id, $through);
+        $created = $materializer->run((int) $request->user()->tenant_id, $through);
 
-        return back()->with('success', "Schedule generated through {$through}.");
+        return back()->with('success', $created > 0
+            ? "Generated {$created} new stop".($created === 1 ? '' : 's')." through {$through}."
+            : 'Schedule is already up to date — no new stops to add.');
     }
 
     /** Re-order a route's pending stops (nearest-neighbour + 2-opt). */
