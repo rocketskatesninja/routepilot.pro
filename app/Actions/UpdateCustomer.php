@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Customer;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Update a customer's contact/profile fields. Privilege/identity fields
@@ -12,6 +14,8 @@ use App\Models\Customer;
  */
 class UpdateCustomer
 {
+    public function __construct(private readonly PhotoService $photos) {}
+
     /**
      * @param  array<string, mixed>  $data  validated customer fields
      */
@@ -29,6 +33,12 @@ class UpdateCustomer
             'notes' => $data['notes'] ?? null,
             'bill_chemicals' => $data['bill_chemicals'] ?? false,
         ]);
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $old = $customer->getAttribute('photo_path');
+            $customer->forceFill(['photo_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'customers')])->save();
+        }
 
         return $customer;
     }

@@ -55,7 +55,7 @@ class PersonListBuilder
             ->whereNull('deleted_at')
             ->where('tenant_id', $tenantId)
             ->when($search !== '', fn (Builder $q) => $this->whereName($q, $search))
-            ->selectRaw("id, 'customer' as person_type, first_name, last_name, email, phone");
+            ->selectRaw("id, 'customer' as person_type, first_name, last_name, email, phone, photo_path as photo");
     }
 
     private function agents(int $tenantId, string $search): Builder
@@ -64,7 +64,7 @@ class PersonListBuilder
             ->where('tenant_id', $tenantId)
             ->where('role', 'agent')
             ->when($search !== '', fn (Builder $q) => $this->whereName($q, $search))
-            ->selectRaw("id, 'agent' as person_type, first_name, last_name, email, phone");
+            ->selectRaw("id, 'agent' as person_type, first_name, last_name, email, phone, avatar_path as photo");
     }
 
     private function whereName(Builder $query, string $search): Builder

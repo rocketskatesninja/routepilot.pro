@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,6 +56,7 @@ class PeopleController extends Controller
             $isCustomer = $r->person_type === 'customer';
             $r->balance = $isCustomer ? ($balances[(int) $r->id] ?? 0.0) : null;
             $r->last_visit = $isCustomer ? ($lastVisits[(int) $r->id] ?? null) : null;
+            $r->photo_url = $this->photoUrl($r->photo ?? null);
 
             return $r;
         }));
@@ -207,6 +209,7 @@ class PeopleController extends Controller
             'type' => 'customer',
             'id' => $customer->id,
             'name' => $this->personName($customer),
+            'photo_url' => $this->photoUrl($customer->getAttribute('photo_path')),
             'email' => $customer->getAttribute('email'),
             'phone' => $customer->getAttribute('phone'),
             'city' => $customer->getAttribute('city'),
@@ -260,6 +263,7 @@ class PeopleController extends Controller
             'type' => 'agent',
             'id' => $agent->id,
             'name' => $this->personName($agent),
+            'photo_url' => $this->photoUrl($agent->getAttribute('avatar_path')),
             'email' => $agent->getAttribute('email'),
             'phone' => $agent->getAttribute('phone'),
             'is_active' => (bool) $agent->getAttribute('is_active'),
@@ -283,5 +287,11 @@ class PeopleController extends Controller
         $name = trim((string) $person->getAttribute('first_name').' '.(string) $person->getAttribute('last_name'));
 
         return $name !== '' ? $name : '—';
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 }

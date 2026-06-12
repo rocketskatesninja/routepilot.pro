@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
+import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +23,7 @@ interface PersonRow {
     phone: string | null;
     balance: number | null;
     last_visit: string | null;
+    photo_url: string | null;
 }
 
 interface CustomerFields {
@@ -40,6 +43,7 @@ interface CustomerDetail {
     type: 'customer';
     id: number;
     name: string;
+    photo_url: string | null;
     email: string | null;
     phone: string | null;
     city: string | null;
@@ -63,6 +67,7 @@ interface AgentDetail {
     type: 'agent';
     id: number;
     name: string;
+    photo_url: string | null;
     email: string | null;
     phone: string | null;
     is_active: boolean;
@@ -190,6 +195,7 @@ const form = useForm({
     zip: '',
     notes: '',
     bill_chemicals: false,
+    photo: null as File | null,
     pool_name: '',
     pool_type: 'inground',
     pool_volume: '',
@@ -217,6 +223,7 @@ function openEdit() {
     form.zip = f.zip ?? '';
     form.notes = f.notes ?? '';
     form.bill_chemicals = f.bill_chemicals;
+    form.photo = null;
     form.clearErrors();
     formMode.value = 'edit';
     formId.value = props.selected.id;
@@ -273,6 +280,7 @@ const agentForm = useForm({
     map_color: '#0ea5e9',
     is_active: true,
     agent_plus: false,
+    photo: null as File | null,
 });
 
 function openAgentCreate() {
@@ -294,6 +302,7 @@ function openAgentEdit() {
     agentForm.map_color = f.map_color ?? '#0ea5e9';
     agentForm.is_active = f.is_active;
     agentForm.agent_plus = f.agent_plus;
+    agentForm.photo = null;
     agentForm.clearErrors();
     agentFormMode.value = 'edit';
     agentFormId.value = props.selected.id;
@@ -391,7 +400,12 @@ function destroyAgent() {
                                             @change="toggleSelect(person)"
                                         />
                                     </td>
-                                    <td class="px-4 py-2.5 font-medium">{{ fullName(person) }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex items-center gap-2.5">
+                                            <EntityAvatar :src="person.photo_url" type="person" :name="fullName(person)" size="sm" shape="circle" />
+                                            <span class="font-medium">{{ fullName(person) }}</span>
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-2.5">
                                         <span
                                             class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
@@ -427,9 +441,12 @@ function destroyAgent() {
 
                 <template #detail>
                     <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-sm capitalize text-muted-foreground">{{ props.selected.type }}</p>
+                        <div class="mb-4 flex items-center gap-3">
+                            <EntityAvatar :src="props.selected.photo_url" type="person" :name="props.selected.name" size="lg" shape="circle" />
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                                <p class="text-sm capitalize text-muted-foreground">{{ props.selected.type }}</p>
+                            </div>
                         </div>
 
                         <div class="space-y-5 text-sm">
@@ -523,6 +540,12 @@ function destroyAgent() {
                     </SheetHeader>
 
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
+                        <ImageUpload
+                            :model-value="form.photo"
+                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            shape="circle"
+                            @update:model-value="(f) => (form.photo = f)"
+                        />
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="first_name">First name</Label>
@@ -623,6 +646,12 @@ function destroyAgent() {
                         }}</SheetDescription>
                     </SheetHeader>
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitAgent">
+                        <ImageUpload
+                            :model-value="agentForm.photo"
+                            :current="agentFormMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            shape="circle"
+                            @update:model-value="(f) => (agentForm.photo = f)"
+                        />
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="a_first">First name</Label>

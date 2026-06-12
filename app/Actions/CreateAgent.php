@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\User;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Create a field agent. Privilege/identity fields (tenant_id, role,
@@ -13,6 +15,8 @@ use App\Models\User;
  */
 class CreateAgent
 {
+    public function __construct(private readonly PhotoService $photos) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -35,6 +39,11 @@ class CreateAgent
             'email_verified_at' => now(),
         ]);
         $user->save();
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $user->forceFill(['avatar_path' => $this->photos->store($photo, 'agents')])->save();
+        }
 
         return $user;
     }

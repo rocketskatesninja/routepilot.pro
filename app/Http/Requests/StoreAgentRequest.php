@@ -24,6 +24,7 @@ class StoreAgentRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:30'],
             'map_color' => ['nullable', 'string', 'max:30'],
             'agent_plus' => ['boolean'],
+            'photo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }

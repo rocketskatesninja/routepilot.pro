@@ -6,6 +6,8 @@ namespace App\Actions;
 
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -15,12 +17,14 @@ use Illuminate\Support\Facades\DB;
  */
 class CreateCustomer
 {
+    public function __construct(private readonly PhotoService $photos) {}
+
     /**
      * @param  array<string, mixed>  $data  validated customer (+ optional pool) fields
      */
     public function handle(array $data): Customer
     {
-        return DB::transaction(function () use ($data): Customer {
+        $customer = DB::transaction(function () use ($data): Customer {
             $customer = Customer::create([
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'] ?? null,
@@ -53,5 +57,12 @@ class CreateCustomer
 
             return $customer;
         });
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $customer->forceFill(['photo_path' => $this->photos->store($photo, 'customers')])->save();
+        }
+
+        return $customer;
     }
 }

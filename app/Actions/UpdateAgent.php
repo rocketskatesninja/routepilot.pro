@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\User;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Update an agent's profile + the admin-controlled flags (active, Agent+).
@@ -12,6 +14,8 @@ use App\Models\User;
  */
 class UpdateAgent
 {
+    public function __construct(private readonly PhotoService $photos) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -32,6 +36,12 @@ class UpdateAgent
             'agent_plus' => (bool) ($data['agent_plus'] ?? false),
         ]);
         $agent->save();
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $old = $agent->getAttribute('avatar_path');
+            $agent->forceFill(['avatar_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'agents')])->save();
+        }
 
         return $agent;
     }

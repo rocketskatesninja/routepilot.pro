@@ -26,6 +26,7 @@ class UpdateAgentRequest extends FormRequest
             'map_color' => ['nullable', 'string', 'max:30'],
             'is_active' => ['boolean'],
             'agent_plus' => ['boolean'],
+            'photo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }
