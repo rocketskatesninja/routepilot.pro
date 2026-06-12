@@ -10,6 +10,7 @@ use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Services\ChemistryService;
+use App\Services\PhotoService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -26,7 +27,7 @@ class CompleteVisit
         'cyanuric_acid', 'salt', 'tds', 'phosphates', 'water_temperature',
     ];
 
-    public function __construct(private ChemistryService $chem) {}
+    public function __construct(private ChemistryService $chem, private PhotoService $photos) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -78,10 +79,7 @@ class CompleteVisit
             }
 
             foreach ($photos as $photo) {
-                $path = $photo->store('visit-photos/'.$visit->id, 'public');
-                if ($path !== false) {
-                    $visit->photos()->create(['photo_path' => $path]);
-                }
+                $visit->photos()->create(['photo_path' => $this->photos->store($photo, 'visit-photos/'.$visit->id)]);
             }
 
             $stop->update(['status' => 'completed', 'completed_at' => now()]);
