@@ -148,10 +148,14 @@ class PoolController extends Controller
     /** @return list<array{id: int, name: string}> */
     private function agentOptions(): array
     {
+        // Includes tenant_admins so a one-person operation can assign routes to themselves.
         return User::query()
-            ->where('tenant_id', app('tenant_id'))->where('role', 'agent')->where('is_active', true)
-            ->orderBy('first_name')->get(['id', 'first_name', 'last_name'])
-            ->map(fn (User $u): array => ['id' => $u->id, 'name' => $u->displayName()])
+            ->where('tenant_id', app('tenant_id'))->whereIn('role', ['agent', 'tenant_admin'])->where('is_active', true)
+            ->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'role'])
+            ->map(fn (User $u): array => [
+                'id' => $u->id,
+                'name' => $u->role === 'tenant_admin' ? $u->displayName().' (admin)' : $u->displayName(),
+            ])
             ->all();
     }
 

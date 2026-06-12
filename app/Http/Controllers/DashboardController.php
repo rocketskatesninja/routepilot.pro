@@ -35,7 +35,7 @@ class DashboardController extends Controller
             'super_admin' => Inertia::render('dashboards/Platform', $this->platform()),
             'agent' => Inertia::render('dashboards/Agent', $this->agent($user)),
             'customer' => Inertia::render('dashboards/Customer', $this->customer($user, $chem)),
-            default => Inertia::render('dashboards/Admin', $this->admin()),
+            default => Inertia::render('dashboards/Admin', $this->admin($user)),
         };
     }
 
@@ -58,12 +58,25 @@ class DashboardController extends Controller
     }
 
     /** @return array<string, mixed> */
-    private function admin(): array
+    private function admin(User $user): array
     {
         $todayRoutes = Route::query()->whereDate('scheduled_date', today())->with('stops:id,route_id,status')->get();
         $stops = $todayRoutes->flatMap(fn (Route $r) => $r->stops);
 
+        // The admin's OWN route for today (one-person operations work their own stops).
+        $myRoute = Route::query()
+            ->where('agent_id', $user->id)->whereDate('scheduled_date', today())
+            ->with(['stops' => fn ($q) => $q->with('pool:id,name,photo_path')->orderBy('stop_order')])
+            ->first();
+        $myStops = $myRoute !== null ? $myRoute->stops : collect();
+
         return [
+            'my_stops' => $myStops->map(fn (RouteStop $s) => [
+                'id' => $s->id,
+                'pool' => $s->pool?->getAttribute('name'),
+                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
+                'status' => $s->status,
+            ])->values()->all(),
             'stats' => [
                 'today_stops' => $stops->count(),
                 'completed_today' => $stops->where('status', 'completed')->count(),

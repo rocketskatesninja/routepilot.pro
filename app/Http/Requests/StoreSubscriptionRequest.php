@@ -22,7 +22,8 @@ class StoreSubscriptionRequest extends FormRequest
         return [
             'pool_id' => ['required', Rule::exists('pools', 'id')->where('tenant_id', $tenantId)],
             'service_type_id' => ['required', Rule::exists('service_types', 'id')->where('tenant_id', $tenantId)],
-            'assigned_agent_id' => ['nullable', Rule::exists('users', 'id')->where('tenant_id', $tenantId)->where('role', 'agent')],
+            // A one-person operation assigns work to the tenant_admin themselves, so admins are assignable too.
+            'assigned_agent_id' => ['nullable', Rule::exists('users', 'id')->where('tenant_id', $tenantId)->whereIn('role', ['agent', 'tenant_admin'])],
             'frequency' => ['required', 'in:weekly,biweekly,monthly,one_time,seasonal'],
             'preferred_day' => ['nullable', 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday'],
         ];
