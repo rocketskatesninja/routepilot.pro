@@ -14,6 +14,7 @@ use App\Models\ChemicalInventory;
 use App\Models\InventoryTransaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,6 +39,7 @@ class InventoryController extends Controller
             ->through(fn (ChemicalInventory $i) => [
                 'id' => $i->id,
                 'name' => $i->chemical_name,
+                'photo_url' => $this->photoUrl($i->getAttribute('photo_path')),
                 'unit' => $i->unit,
                 'stock' => (float) $i->current_stock,
                 'low' => $i->isLowStock(),
@@ -96,6 +98,12 @@ class InventoryController extends Controller
         abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
     }
 
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
+    }
+
     /** @return array<string, mixed> */
     private function toDetail(ChemicalInventory $item): array
     {
@@ -119,6 +127,7 @@ class InventoryController extends Controller
         return [
             'id' => $item->id,
             'name' => $item->chemical_name,
+            'photo_url' => $this->photoUrl($item->getAttribute('photo_path')),
             'unit' => $item->unit,
             'stock' => $stock,
             'reorder_threshold' => $item->reorder_threshold !== null ? (float) $item->reorder_threshold : null,

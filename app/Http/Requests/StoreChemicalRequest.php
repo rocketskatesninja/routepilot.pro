@@ -24,6 +24,7 @@ class StoreChemicalRequest extends FormRequest
             'cost_per_unit' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'sell_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'supplier' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }

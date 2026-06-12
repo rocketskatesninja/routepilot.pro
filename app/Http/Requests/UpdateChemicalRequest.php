@@ -24,6 +24,7 @@ class UpdateChemicalRequest extends FormRequest
             'sell_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'supplier' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
+            'photo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }

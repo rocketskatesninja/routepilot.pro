@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\ChemicalInventory;
+use App\Services\PhotoService;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Update a chemical's details. Stock level changes go through AdjustStock so
@@ -12,6 +14,8 @@ use App\Models\ChemicalInventory;
  */
 class UpdateChemical
 {
+    public function __construct(private readonly PhotoService $photos) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -26,6 +30,12 @@ class UpdateChemical
             'supplier' => $data['supplier'] ?? null,
             'is_active' => (bool) ($data['is_active'] ?? true),
         ]);
+
+        $photo = $data['photo'] ?? null;
+        if ($photo instanceof UploadedFile) {
+            $old = $chemical->getAttribute('photo_path');
+            $chemical->forceFill(['photo_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'inventory')])->save();
+        }
 
         return $chemical;
     }

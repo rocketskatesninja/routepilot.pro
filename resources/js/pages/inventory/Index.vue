@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
+import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +15,7 @@ import { ref, watch } from 'vue';
 interface InventoryRow {
     id: number;
     name: string;
+    photo_url: string | null;
     unit: string;
     stock: number;
     low: boolean;
@@ -32,6 +35,7 @@ interface InventoryFields {
 interface InventoryDetail {
     id: number;
     name: string;
+    photo_url: string | null;
     unit: string;
     stock: number;
     reorder_threshold: number | null;
@@ -81,6 +85,7 @@ const form = useForm<{
     sell_price: string;
     supplier: string;
     is_active: boolean;
+    photo: File | null;
 }>({
     chemical_name: '',
     unit: 'gal',
@@ -90,6 +95,7 @@ const form = useForm<{
     sell_price: '',
     supplier: '',
     is_active: true,
+    photo: null,
 });
 
 function openCreate() {
@@ -110,6 +116,7 @@ function openEdit() {
     form.sell_price = f.sell_price !== null ? String(f.sell_price) : '';
     form.supplier = f.supplier ?? '';
     form.is_active = f.is_active;
+    form.photo = null;
     form.clearErrors();
     formMode.value = 'edit';
     formId.value = props.selected.id;
@@ -185,7 +192,12 @@ function submitAdjust() {
                                     :class="{ 'bg-muted/60': props.selected?.id === item.id }"
                                     @click="open(item.id)"
                                 >
-                                    <td class="px-4 py-2.5 font-medium">{{ item.name }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex items-center gap-2.5">
+                                            <EntityAvatar :src="item.photo_url" type="inventory" :name="item.name" size="sm" />
+                                            <span class="font-medium">{{ item.name }}</span>
+                                        </div>
+                                    </td>
                                     <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
                                     <td class="px-4 py-2.5">
                                         <span
@@ -216,9 +228,12 @@ function submitAdjust() {
 
                 <template #detail>
                     <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-sm text-muted-foreground">{{ props.selected.stock }} {{ props.selected.unit }} in stock</p>
+                        <div class="mb-4 flex items-center gap-3">
+                            <EntityAvatar :src="props.selected.photo_url" type="inventory" :name="props.selected.name" size="lg" />
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                                <p class="text-sm text-muted-foreground">{{ props.selected.stock }} {{ props.selected.unit }} in stock</p>
+                            </div>
                         </div>
 
                         <div class="space-y-5 text-sm">
@@ -287,6 +302,11 @@ function submitAdjust() {
                         <SheetDescription>Stock changes are logged via Adjust stock.</SheetDescription>
                     </SheetHeader>
                     <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
+                        <ImageUpload
+                            :model-value="form.photo"
+                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            @update:model-value="(f) => (form.photo = f)"
+                        />
                         <div class="grid grid-cols-3 gap-3">
                             <div class="col-span-2 grid gap-1.5">
                                 <Label for="cname">Name</Label>
