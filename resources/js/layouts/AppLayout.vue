@@ -15,6 +15,7 @@ withDefaults(defineProps<Props>(), {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs" :meta="meta">
+        <template #actions><slot name="actions" /></template>
         <ImpersonationBanner />
         <slot />
     </AppLayout>

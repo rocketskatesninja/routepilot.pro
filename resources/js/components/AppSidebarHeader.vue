@@ -19,7 +19,7 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
     <header
         class="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 px-6 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-4"
     >
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-0 items-center gap-2">
             <SidebarTrigger class="-ml-1" />
             <template v-if="breadcrumbs.length > 0">
                 <Breadcrumb>
@@ -40,19 +40,22 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
                     </BreadcrumbList>
                 </Breadcrumb>
             </template>
-            <span v-if="meta" class="text-sm text-muted-foreground">{{ meta }}</span>
+            <span v-if="meta" class="whitespace-nowrap text-sm text-muted-foreground">{{ meta }}</span>
         </div>
-        <Link
-            href="/notifications"
-            class="relative ml-auto rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Notifications"
-        >
-            <Bell class="size-5" />
-            <span
-                v-if="unread > 0"
-                class="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
-                >{{ unread > 9 ? '9+' : unread }}</span
+        <div class="ml-auto flex items-center gap-2">
+            <slot name="actions" />
+            <Link
+                href="/notifications"
+                class="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Notifications"
             >
-        </Link>
+                <Bell class="size-5" />
+                <span
+                    v-if="unread > 0"
+                    class="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    >{{ unread > 9 ? '9+' : unread }}</span
+                >
+            </Link>
+        </div>
     </header>
 </template>
