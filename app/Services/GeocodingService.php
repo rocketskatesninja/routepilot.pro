@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
  * Address → lat/lng geocoding via the Google Maps Geocoding API.
  *
  * The server-side key lives in config('services.google.server_maps_key')
- * (GOOGLE_MAPS_API_KEY). All tenants share one key — simpler than per-tenant
+ * (GOOGLE_MAPS_SERVER_KEY). All tenants share one key — simpler than per-tenant
  * management and bills back to a single RoutePilot Google Cloud project.
  *
  * Every method fails soft: a missing key, unresolvable address, quota, or
@@ -39,7 +39,7 @@ class GeocodingService
 
         $apiKey = config('services.google.server_maps_key');
         if (! is_string($apiKey) || $apiKey === '') {
-            Log::warning('Geocoding skipped — GOOGLE_MAPS_API_KEY is not configured.');
+            Log::warning('Geocoding skipped — GOOGLE_MAPS_SERVER_KEY is not configured.');
 
             return null;
         }
