@@ -59,6 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
     Route::post('routes/{route}/optimize', [ScheduleController::class, 'optimize'])->name('routes.optimize');
     Route::post('stops/{stop}/skip', [ScheduleController::class, 'skipStop'])->name('stops.skip');
+    Route::post('stops/{stop}/unskip', [ScheduleController::class, 'unskipStop'])->name('stops.unskip');
 
     // Agent at-pool visit flow.
     Route::get('visit/{stop}', [VisitController::class, 'show'])->name('visit.show');

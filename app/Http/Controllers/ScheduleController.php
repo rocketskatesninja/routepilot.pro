@@ -57,6 +57,7 @@ class ScheduleController extends Controller
 
         return Inertia::render('schedule/Index', [
             'date' => $date,
+            'today' => Carbon::today()->toDateString(),
             'routes' => $routes,
             'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
@@ -95,6 +96,17 @@ class ScheduleController extends Controller
         $stop->update(['status' => 'skipped', 'skip_reason' => 'Skipped by office']);
 
         return back()->with('success', 'Stop skipped.');
+    }
+
+    /** Restore a skipped stop back to pending. */
+    public function unskipStop(Request $request, RouteStop $stop): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        abort_if($stop->route === null, 404);
+
+        $stop->update(['status' => 'pending', 'skip_reason' => null]);
+
+        return back()->with('success', 'Stop restored.');
     }
 
     private function authorizeStaff(Request $request): void

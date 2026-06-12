@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, Map as MapIcon, RotateCcw, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface Stop {
@@ -27,18 +27,40 @@ interface RouteCard {
 
 const props = defineProps<{
     date: string;
+    today: string;
     routes: RouteCard[];
     canManage: boolean;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Schedule', href: '/schedule' }];
 const busy = ref(false);
+const dateInput = ref<HTMLInputElement | null>(null);
+
+const isToday = computed(() => props.date === props.today);
+const totalStops = computed(() => props.routes.reduce((n, r) => n + r.total, 0));
+const completedStops = computed(() => props.routes.reduce((n, r) => n + r.completed, 0));
+
+function go(date?: string) {
+    router.get('/schedule', date ? { date } : {}, { preserveState: true, preserveScroll: true });
+}
 
 function shift(days: number) {
     const d = new Date(props.date + 'T00:00:00');
     d.setDate(d.getDate() + days);
-    router.get('/schedule', { date: d.toISOString().slice(0, 10) }, { preserveState: true, preserveScroll: true });
+    go(d.toISOString().slice(0, 10));
 }
+
+function openCalendar() {
+    try {
+        dateInput.value?.showPicker();
+    } catch {
+        dateInput.value?.focus();
+    }
+}
+const onPickDate = (e: Event) => {
+    const value = (e.target as HTMLInputElement).value;
+    if (value) go(value);
+};
 
 function materialize() {
     if (busy.value) return;
@@ -48,6 +70,7 @@ function materialize() {
 
 const optimize = (id: number) => router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
+const unskipStop = (id: number) => router.post(`/stops/${id}/unskip`, {}, { preserveScroll: true });
 
 const prettyDate = computed(() =>
     new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
@@ -69,21 +92,39 @@ const statusClasses: Record<string, string> = {
             <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
                 ><Sparkles class="mr-1 size-4" /> Generate</Button
             >
-            <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(-1)"><ChevronLeft class="size-4" /></button>
-            <span class="min-w-44 text-center text-sm font-medium">{{ prettyDate }}</span>
-            <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(1)"><ChevronRight class="size-4" /></button>
+            <div class="flex items-center gap-1">
+                <button class="rounded-md border border-border p-1.5 hover:bg-muted" aria-label="Previous day" @click="shift(-1)">
+                    <ChevronLeft class="size-4" />
+                </button>
+                <button
+                    class="flex min-w-44 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-sm font-medium hover:bg-muted"
+                    @click="openCalendar"
+                >
+                    {{ prettyDate }}
+                    <CalendarDays class="size-3.5 text-muted-foreground" />
+                </button>
+                <input ref="dateInput" type="date" :value="props.date" tabindex="-1" class="sr-only" @change="onPickDate" />
+                <button class="rounded-md border border-border p-1.5 hover:bg-muted" aria-label="Next day" @click="shift(1)">
+                    <ChevronRight class="size-4" />
+                </button>
+                <Button v-if="!isToday" size="sm" variant="ghost" @click="go()">Today</Button>
+            </div>
         </template>
 
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div v-if="props.routes.length === 0" class="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
-                <CalendarDays class="size-8 opacity-50" />
-                <p>No routes scheduled for this day.</p>
-                <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
-                    ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
+        <div class="flex h-full flex-1 gap-4 p-4">
+            <!-- Left: the day's routes as a vertical list -->
+            <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[26rem] lg:shrink-0">
+                <div
+                    v-if="props.routes.length === 0"
+                    class="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
                 >
-            </div>
+                    <CalendarDays class="size-8 opacity-50" />
+                    <p>No routes scheduled for this day.</p>
+                    <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
+                        ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
+                    >
+                </div>
 
-            <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <div v-for="route in props.routes" :key="route.id" class="rounded-xl border border-border">
                     <div class="flex items-center justify-between border-b border-border px-4 py-2">
                         <div class="flex items-center gap-2">
@@ -125,12 +166,45 @@ const statusClasses: Record<string, string> = {
                                 >
                                     <SkipForward class="size-3.5" />
                                 </button>
+                                <button
+                                    v-else-if="props.canManage && stop.status === 'skipped'"
+                                    class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    title="Restore stop"
+                                    @click="unskipStop(stop.id)"
+                                >
+                                    <RotateCcw class="size-3.5" />
+                                </button>
                             </div>
                         </li>
                         <li v-if="route.stops.length === 0" class="px-4 py-3 text-center text-muted-foreground">No stops.</li>
                     </ul>
                 </div>
             </div>
+
+            <!-- Right: route map + day details (reserved space) -->
+            <aside class="hidden min-h-0 flex-1 flex-col gap-4 lg:flex">
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="rounded-xl border border-border p-3 text-center">
+                        <div class="text-xl font-semibold">{{ props.routes.length }}</div>
+                        <div class="text-xs text-muted-foreground">Routes</div>
+                    </div>
+                    <div class="rounded-xl border border-border p-3 text-center">
+                        <div class="text-xl font-semibold">{{ totalStops }}</div>
+                        <div class="text-xs text-muted-foreground">Stops</div>
+                    </div>
+                    <div class="rounded-xl border border-border p-3 text-center">
+                        <div class="text-xl font-semibold text-emerald-600 dark:text-emerald-400">{{ completedStops }}</div>
+                        <div class="text-xs text-muted-foreground">Completed</div>
+                    </div>
+                </div>
+                <div
+                    class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 text-center text-muted-foreground"
+                >
+                    <MapIcon class="size-8 opacity-40" />
+                    <p class="text-sm font-medium">Route map — {{ prettyDate }}</p>
+                    <p class="max-w-xs text-xs">Coming soon: an interactive map of the day's stops, geocoded from each pool's address.</p>
+                </div>
+            </aside>
         </div>
     </AppLayout>
 </template>
