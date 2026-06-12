@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import type { BreadcrumbItemType } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Bell } from 'lucide-vue-next';
@@ -12,6 +12,7 @@ defineProps<{
 }>();
 
 const page = usePage();
+const { isMobile } = useSidebar();
 const unread = computed(() => (page.props.auth as { unread?: number } | undefined)?.unread ?? 0);
 </script>
 
@@ -51,6 +52,7 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
         <div class="ml-auto flex items-center gap-2">
             <slot name="actions" />
             <Link
+                v-if="isMobile"
                 href="/notifications"
                 class="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Notifications"

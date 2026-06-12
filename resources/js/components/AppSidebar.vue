@@ -1,8 +1,17 @@
 <script setup lang="ts">
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
+import NavNotifications from '@/components/NavNotifications.vue';
 import NavUser from '@/components/NavUser.vue';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
+} from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
@@ -17,7 +26,6 @@ import {
     Inbox,
     LayoutGrid,
     Map,
-    Settings,
     ShieldCheck,
     Users,
     Waves,
@@ -73,7 +81,7 @@ const mainNavItems = computed<NavItem[]>(() => {
     return navByRole[role] ?? navByRole.customer;
 });
 
-const footerNavItems: NavItem[] = [{ title: 'Settings', href: '/settings/profile', icon: Settings }];
+const { isMobile } = useSidebar();
 </script>
 
 <template>
@@ -95,7 +103,7 @@ const footerNavItems: NavItem[] = [{ title: 'Settings', href: '/settings/profile
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <NavNotifications v-if="!isMobile" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
