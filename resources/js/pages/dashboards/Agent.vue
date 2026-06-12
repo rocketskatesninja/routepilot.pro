@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
@@ -7,7 +8,7 @@ import { ChevronRight } from 'lucide-vue-next';
 defineProps<{
     agent_name: string;
     stats: { today_total: number; completed_today: number; remaining_today: number; week_completed: number };
-    today_stops: { id: number; pool: string | null; status: string }[];
+    today_stops: { id: number; pool: string | null; pool_photo: string | null; status: string }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Today', href: '/dashboard' }];
@@ -53,9 +54,11 @@ const statusClasses: Record<string, string> = {
                             :href="`/visit/${stop.id}`"
                             class="flex items-center justify-between gap-2 px-4 py-2.5 transition-colors hover:bg-muted/40"
                         >
-                            <span
-                                ><span class="mr-2 text-muted-foreground">{{ i + 1 }}.</span>{{ stop.pool }}</span
-                            >
+                            <span class="flex items-center gap-2">
+                                <span class="text-muted-foreground">{{ i + 1 }}.</span>
+                                <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
+                                <span>{{ stop.pool }}</span>
+                            </span>
                             <span class="flex items-center gap-1.5">
                                 <span
                                     class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"

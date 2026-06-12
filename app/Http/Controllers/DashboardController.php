@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\ChemistryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -71,22 +72,25 @@ class DashboardController extends Controller
                 'pools' => Pool::query()->count(),
             ],
             'recent_visits' => ServiceVisit::query()
-                ->where('status', 'completed')->with(['pool:id,name', 'agent:id,first_name,last_name'])
+                ->where('status', 'completed')->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
                 ->latest('completed_at')->limit(6)->get()
                 ->map(fn (ServiceVisit $v) => [
                     'id' => $v->id,
                     'pool' => $v->pool?->getAttribute('name'),
+                    'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
                     'agent' => $this->name($v->agent),
+                    'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
                     'completed_on' => $v->completed_at?->toDateString(),
                 ])->all(),
             'pending_requests' => ServiceRequest::query()
-                ->where('status', 'pending')->with(['customer:id,first_name,last_name', 'pool:id,name'])
+                ->where('status', 'pending')->with(['customer:id,first_name,last_name,photo_path', 'pool:id,name,photo_path'])
                 ->latest()->limit(8)->get()
                 ->map(fn (ServiceRequest $r) => [
                     'id' => $r->id,
                     'type' => $r->type,
                     'message' => $r->message,
                     'customer' => $r->customer?->displayName(),
+                    'customer_photo' => $this->photoUrl($r->customer?->getAttribute('photo_path')),
                     'pool' => $r->pool?->getAttribute('name'),
                     'preferred_date' => $r->preferred_date?->toDateString(),
                     'on' => $r->created_at?->toDateString(),
@@ -100,7 +104,7 @@ class DashboardController extends Controller
         $route = Route::query()
             ->where('agent_id', $user->id)
             ->whereDate('scheduled_date', today())
-            ->with(['stops' => fn ($q) => $q->with('pool:id,name,customer_id')->orderBy('stop_order')])
+            ->with(['stops' => fn ($q) => $q->with('pool:id,name,customer_id,photo_path')->orderBy('stop_order')])
             ->first();
 
         $weekCompleted = ServiceVisit::query()
@@ -120,6 +124,7 @@ class DashboardController extends Controller
             'today_stops' => $stops->map(fn (RouteStop $s) => [
                 'id' => $s->id,
                 'pool' => $s->pool?->getAttribute('name'),
+                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
                 'status' => $s->status,
             ])->values()->all(),
         ];
@@ -172,6 +177,12 @@ class DashboardController extends Controller
             ] : null,
             'recent_visits' => $recent,
         ];
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     private function name(?User $user): string

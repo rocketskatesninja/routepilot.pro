@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -6,13 +7,22 @@ import { Head, router } from '@inertiajs/vue3';
 
 defineProps<{
     stats: { today_stops: number; completed_today: number; remaining_today: number; agents: number; customers: number; pools: number };
-    recent_visits: { id: number; pool: string | null; agent: string; completed_on: string | null }[];
+    recent_visits: {
+        id: number;
+        pool: string | null;
+        pool_photo: string | null;
+        agent: string;
+        agent_photo: string | null;
+        completed_on: string | null;
+    }[];
     pending_requests: {
         id: number;
         type: string;
         message: string;
         customer: string | null;
+        customer_photo: string | null;
         pool: string | null;
+        pool_photo: string | null;
         preferred_date: string | null;
         on: string | null;
     }[];
@@ -69,7 +79,11 @@ const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}
                             >
                                 {{ r.type === 'hold' ? 'Vacation hold' : 'New service' }}
                             </span>
-                            <span class="ml-2 font-medium">{{ r.customer }}</span>
+                            <span class="ml-2 inline-flex items-center gap-1.5 align-middle font-medium"
+                                ><EntityAvatar :src="r.customer_photo" type="person" :name="r.customer" size="sm" shape="circle" />{{
+                                    r.customer
+                                }}</span
+                            >
                             <span v-if="r.pool" class="text-muted-foreground"> · {{ r.pool }}</span>
                             <p class="mt-0.5 text-muted-foreground">{{ r.message }}</p>
                             <p class="text-xs text-muted-foreground">
@@ -85,9 +99,12 @@ const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}
                 <h2 class="border-b border-border px-4 py-2 font-medium">Recent service visits</h2>
                 <ul class="divide-y divide-border text-sm">
                     <li v-for="v in recent_visits" :key="v.id" class="flex items-center justify-between px-4 py-2.5">
-                        <span
-                            >{{ v.pool }} <span class="text-muted-foreground">· {{ v.agent }}</span></span
-                        >
+                        <span class="flex items-center gap-2">
+                            <EntityAvatar :src="v.pool_photo" type="pool" :name="v.pool" size="sm" />
+                            <span
+                                >{{ v.pool }} <span class="text-muted-foreground">· {{ v.agent }}</span></span
+                            >
+                        </span>
                         <span class="text-xs text-muted-foreground">{{ v.completed_on }}</span>
                     </li>
                     <li v-if="recent_visits.length === 0" class="px-4 py-6 text-center text-muted-foreground">No visits yet.</li>
