@@ -29,7 +29,7 @@ class LeadSubmitted extends Notification
         return [
             'title' => 'New lead: '.$this->lead->name,
             'body' => $this->lead->source.($this->lead->email !== null ? ' · '.$this->lead->email : ''),
-            'url' => '/leads',
+            'url' => '/insights',
         ];
     }
 }

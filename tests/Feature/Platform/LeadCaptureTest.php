@@ -29,16 +29,16 @@ test('an admin sees the leads inbox and updates status', function () {
     $lead = Lead::create(['name' => 'Jo', 'email' => 'jo@x.test', 'source' => 'contact']);
 
     $this->actingAs($this->admin)
-        ->get('/leads')
+        ->get('/insights')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('leads/Index')->has('leads.data', 1));
+        ->assertInertia(fn (Assert $page) => $page->component('reports/Insights')->has('leads', 1));
 
     $this->actingAs($this->admin)->patch("/leads/{$lead->id}", ['status' => 'contacted'])->assertRedirect();
     expect($lead->fresh()?->status)->toBe('contacted');
 });
 
-test('agents cannot see leads', function () {
+test('agents cannot see the leads inbox', function () {
     $agent = User::factory()->agent()->for($this->tenant)->create();
 
-    $this->actingAs($agent)->get('/leads')->assertForbidden();
+    $this->actingAs($agent)->get('/insights')->assertForbidden();
 });

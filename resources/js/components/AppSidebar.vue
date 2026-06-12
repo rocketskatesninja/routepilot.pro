@@ -19,7 +19,6 @@ import {
     Map,
     Settings,
     ShieldCheck,
-    UserPlus,
     Users,
     Waves,
 } from 'lucide-vue-next';
@@ -45,7 +44,6 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Schedule', href: '/schedule', icon: CalendarDays },
         { title: 'Pools', href: '/pools', icon: Waves },
         { title: 'People', href: '/people', icon: Users },
-        { title: 'Leads', href: '/leads', icon: UserPlus },
         { title: 'Services', href: '/services', icon: ClipboardList },
         { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Inventory', href: '/inventory', icon: FlaskConical },

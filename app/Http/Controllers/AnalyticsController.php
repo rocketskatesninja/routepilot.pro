@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Invoice;
+use App\Models\Lead;
 use App\Models\Payment;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
@@ -49,6 +50,17 @@ class AnalyticsController extends Controller
             'active_pools' => Pool::query()->count(),
             'active_agents' => User::query()->where('role', 'agent')->where('is_active', true)->count(),
             'top_agents' => $topAgents,
+            'leads' => Lead::query()->latest()->limit(50)->get()->map(fn (Lead $l): array => [
+                'id' => $l->id,
+                'name' => $l->name,
+                'email' => $l->email,
+                'phone' => $l->getAttribute('phone'),
+                'message' => $l->getAttribute('message'),
+                'source' => $l->source,
+                'status' => $l->status,
+                'on' => $l->created_at?->toDateString(),
+            ])->all(),
+            'new_leads' => Lead::query()->where('status', 'new')->count(),
         ]);
     }
 }

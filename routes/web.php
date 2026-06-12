@@ -97,7 +97,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('inventory/{chemical}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('insights', [AnalyticsController::class, 'index'])->name('insights.index');
-    Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
     Route::patch('leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
     Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
     Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');

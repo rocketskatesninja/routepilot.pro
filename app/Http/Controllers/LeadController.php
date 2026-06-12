@@ -13,8 +13,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /**
  * Public-site leads — captured unauthenticated (by tenant), worked from the
@@ -34,25 +32,6 @@ class LeadController extends Controller
         Notification::send($admins, new LeadSubmitted($lead));
 
         return response()->json(['ok' => true]);
-    }
-
-    public function index(Request $request): Response
-    {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
-
-        $leads = Lead::query()->latest()->paginate(25)->withQueryString()
-            ->through(fn (Lead $l): array => [
-                'id' => $l->id,
-                'name' => $l->name,
-                'email' => $l->email,
-                'phone' => $l->getAttribute('phone'),
-                'message' => $l->getAttribute('message'),
-                'source' => $l->source,
-                'status' => $l->status,
-                'on' => $l->created_at?->toDateString(),
-            ]);
-
-        return Inertia::render('leads/Index', ['leads' => $leads]);
     }
 
     public function updateStatus(Request $request, Lead $lead): RedirectResponse
