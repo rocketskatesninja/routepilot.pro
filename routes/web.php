@@ -11,28 +11,28 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\PublicPayController;
 use App\Http\Controllers\LeadController;
-use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\PublicPayController;
+use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\VisitController;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome');
-})->name('home');
+// Public root: a resolved tenant host renders its landing page; the bare
+// platform host falls back to RoutePilot's own marketing (inside the controller).
+Route::get('/', [PublicSiteController::class, 'show'])->name('home');
 
 // Public one-click unsubscribe (signed) — sets the marketing suppression flag.
 Route::get('unsubscribe/{customer}', function (Customer $customer) {
