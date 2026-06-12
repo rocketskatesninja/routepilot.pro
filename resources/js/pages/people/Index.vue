@@ -329,7 +329,19 @@ function destroyAgent() {
 <template>
     <Head title="People" />
 
-    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.counts.all} people`">
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <template #filters>
+            <button
+                v-for="t in tabs"
+                :key="t.key"
+                class="rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
+                :class="props.filters.type === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
+                @click="setType(t.key)"
+            >
+                {{ t.label }} <span class="opacity-70">{{ props.counts[t.key] }}</span>
+            </button>
+        </template>
+
         <template #actions>
             <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-40 lg:w-52" />
             <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
@@ -340,18 +352,6 @@ function destroyAgent() {
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex gap-1 text-sm">
-                <button
-                    v-for="t in tabs"
-                    :key="t.key"
-                    class="rounded-md px-3 py-1.5 font-medium transition-colors"
-                    :class="props.filters.type === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
-                    @click="setType(t.key)"
-                >
-                    {{ t.label }} <span class="opacity-70">{{ props.counts[t.key] }}</span>
-                </button>
-            </div>
-
             <MasterDetail
                 :has-selection="props.selected !== null"
                 :selection-key="selectedKey"

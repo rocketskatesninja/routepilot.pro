@@ -41,6 +41,12 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
                 </Breadcrumb>
             </template>
             <span v-if="meta" class="whitespace-nowrap text-sm text-muted-foreground">{{ meta }}</span>
+            <template v-if="$slots.filters">
+                <div class="mx-1 h-5 w-px shrink-0 bg-sidebar-border/70"></div>
+                <div class="flex items-center gap-1">
+                    <slot name="filters" />
+                </div>
+            </template>
         </div>
         <div class="ml-auto flex items-center gap-2">
             <slot name="actions" />

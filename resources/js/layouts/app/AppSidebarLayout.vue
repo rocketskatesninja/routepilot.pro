@@ -21,6 +21,7 @@ withDefaults(defineProps<Props>(), {
         <AppContent variant="sidebar">
             <AppSidebarHeader :breadcrumbs="breadcrumbs" :meta="meta">
                 <template #actions><slot name="actions" /></template>
+                <template #filters><slot name="filters" /></template>
             </AppSidebarHeader>
             <slot />
         </AppContent>
