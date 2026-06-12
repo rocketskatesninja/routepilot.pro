@@ -10,6 +10,7 @@ use App\Http\Requests\CompleteVisitRequest;
 use App\Mail\VisitRecapMail;
 use App\Models\ChemicalReading;
 use App\Models\RouteStop;
+use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Notifications\VisitCompleted;
 use App\Services\BillingService;
@@ -19,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -51,8 +53,15 @@ class VisitController extends Controller
             ->latest()
             ->first();
 
+        // If this stop already has a saved visit, load it so the form opens
+        // pre-filled for editing instead of as a blank report.
+        $existing = $stop->serviceVisit()
+            ->with(['chemicalReading', 'treatments', 'tasks', 'photos'])
+            ->first();
+
         return Inertia::render('agent/Visit', [
             'stop' => ['id' => $stop->id, 'status' => $stop->status],
+            'visit' => $existing !== null ? $this->existingVisit($existing) : null,
             'pool' => [
                 'name' => $pool->name,
                 'customer' => $pool->customer?->displayName() ?? '—',
@@ -120,5 +129,51 @@ class VisitController extends Controller
         $user = $request->user();
         $owns = $user !== null && ((int) $stop->route->getAttribute('agent_id') === $user->id || $user->role === 'tenant_admin');
         abort_unless($owns, 403);
+    }
+
+    /**
+     * Shape a saved visit for the form to pre-fill: reading values, treatments,
+     * task done-states, notes, and read-only URLs for already-attached photos.
+     *
+     * @return array<string, mixed>
+     */
+    private function existingVisit(ServiceVisit $visit): array
+    {
+        $reading = $visit->chemicalReading;
+
+        return [
+            'id' => $visit->id,
+            'notes' => $visit->notes,
+            'reading' => $reading !== null ? [
+                'free_chlorine' => $reading->free_chlorine,
+                'total_chlorine' => $reading->total_chlorine,
+                'ph' => $reading->ph,
+                'alkalinity' => $reading->alkalinity,
+                'calcium_hardness' => $reading->calcium_hardness,
+                'cyanuric_acid' => $reading->cyanuric_acid,
+                'salt' => $reading->salt,
+                'water_temperature' => $reading->water_temperature,
+            ] : null,
+            'treatments' => $visit->treatments->map(fn ($t) => [
+                'name' => $t->chemical_name,
+                'amount' => $t->amount,
+                'unit' => $t->unit,
+            ])->values()->all(),
+            'tasks' => $visit->tasks->map(fn ($t) => [
+                'name' => $t->task_name,
+                'done' => (bool) $t->is_completed,
+            ])->values()->all(),
+            'photos' => $visit->photos
+                ->map(fn ($p) => $this->photoUrl($p->getAttribute('photo_path')))
+                ->filter()
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 }

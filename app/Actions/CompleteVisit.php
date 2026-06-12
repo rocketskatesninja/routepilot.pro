@@ -15,9 +15,14 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Complete a route stop: create the ServiceVisit + its chemical reading
- * (LSI computed by the engine), treatments (deducting matching inventory),
- * task checklist, and mark the stop done — all in one transaction.
+ * Complete (or re-complete) a route stop: upsert the ServiceVisit + its
+ * chemical reading (LSI computed by the engine), treatments (deducting matching
+ * inventory), task checklist, and mark the stop done — all in one transaction.
+ *
+ * Re-submitting an already-completed stop UPDATES the existing visit rather than
+ * creating a second one: the reading/tasks/treatments are replaced and any newly
+ * uploaded photos appended. Prior inventory deductions are reversed before the
+ * submitted treatments are re-applied, so editing never double-deducts stock.
  */
 class CompleteVisit
 {
@@ -36,17 +41,31 @@ class CompleteVisit
     public function handle(RouteStop $stop, array $data, User $agent, array $photos = []): ServiceVisit
     {
         return DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
-            $pool = $stop->pool;
+            $visit = $stop->serviceVisit()->first();
 
-            $visit = ServiceVisit::create([
-                'route_stop_id' => $stop->id,
-                'pool_id' => $stop->getAttribute('pool_id'),
-                'agent_id' => $agent->id,
-                'visited_at' => now(),
-                'completed_at' => now(),
-                'status' => 'completed',
-                'notes' => $data['notes'] ?? null,
-            ]);
+            if ($visit === null) {
+                $visit = ServiceVisit::create([
+                    'route_stop_id' => $stop->id,
+                    'pool_id' => $stop->getAttribute('pool_id'),
+                    'agent_id' => $agent->id,
+                    'visited_at' => now(),
+                    'completed_at' => now(),
+                    'status' => 'completed',
+                    'notes' => $data['notes'] ?? null,
+                ]);
+            } else {
+                // Editing an existing visit: reverse its inventory deductions and
+                // wipe replaceable children before re-applying the fresh submission.
+                $this->reverseInventory($visit);
+                $visit->treatments()->delete();
+                $visit->tasks()->delete();
+                $visit->chemicalReading()->delete();
+                $visit->update([
+                    'completed_at' => now(),
+                    'status' => 'completed',
+                    'notes' => $data['notes'] ?? null,
+                ]);
+            }
 
             $reading = $this->readingValues($data);
             if ($reading !== []) {
@@ -116,6 +135,28 @@ class CompleteVisit
         }
 
         return array_values(array_filter($value, 'is_array'));
+    }
+
+    /**
+     * Reverse a visit's prior usage deductions: restore each affected item's
+     * stock by the deducted amount and remove the usage transactions. Symmetric
+     * to deductInventory(), so re-applying the submitted treatments is net-fresh.
+     */
+    private function reverseInventory(ServiceVisit $visit): void
+    {
+        $usages = InventoryTransaction::query()
+            ->where('service_visit_id', $visit->id)
+            ->where('type', 'usage')
+            ->get();
+
+        foreach ($usages as $usage) {
+            $item = $usage->inventory()->first();
+            if ($item !== null) {
+                // quantity was stored negative (e.g. -32); subtracting it restores stock.
+                $item->update(['current_stock' => (float) $item->current_stock - (float) $usage->quantity]);
+            }
+            $usage->delete();
+        }
     }
 
     /** Deduct a treatment from matching inventory (same unit) and log it. */

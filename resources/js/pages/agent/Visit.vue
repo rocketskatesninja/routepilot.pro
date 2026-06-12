@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { FlaskConical, Plus, Sparkles, X } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface Recommendation {
     parameter: string;
@@ -17,8 +17,18 @@ interface Recommendation {
     urgency: string;
 }
 
+interface ExistingVisit {
+    id: number;
+    notes: string | null;
+    reading: Record<string, number | null> | null;
+    treatments: { name: string; amount: number | null; unit: string | null }[];
+    tasks: { name: string; done: boolean }[];
+    photos: string[];
+}
+
 const props = defineProps<{
     stop: { id: number; status: string };
+    visit: ExistingVisit | null;
     pool: {
         name: string;
         customer: string;
@@ -31,6 +41,14 @@ const props = defineProps<{
     service: { name: string | null; tasks: string[] };
     last_reading: { on: string | null; free_chlorine: number | null; ph: number | null; alkalinity: number | null; lsi_score: number | null } | null;
 }>();
+
+const isEditing = computed(() => props.visit !== null);
+
+// String value for a saved reading field (form inputs are strings), '' when unset.
+const readingValue = (key: string): string => {
+    const v = props.visit?.reading?.[key];
+    return v === null || v === undefined ? '' : String(v);
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Today', href: '/dashboard' },
@@ -61,17 +79,22 @@ const form = useForm<{
     notes: string;
     photos: File[];
 }>({
-    free_chlorine: '',
-    total_chlorine: '',
-    ph: '',
-    alkalinity: '',
-    calcium_hardness: '',
-    cyanuric_acid: '',
-    salt: '',
-    water_temperature: '',
-    tasks: props.service.tasks.map((name) => ({ name, done: false })),
-    treatments: [],
-    notes: '',
+    free_chlorine: readingValue('free_chlorine'),
+    total_chlorine: readingValue('total_chlorine'),
+    ph: readingValue('ph'),
+    alkalinity: readingValue('alkalinity'),
+    calcium_hardness: readingValue('calcium_hardness'),
+    cyanuric_acid: readingValue('cyanuric_acid'),
+    salt: readingValue('salt'),
+    water_temperature: readingValue('water_temperature'),
+    // Editing: keep the saved checklist (with its done-states); otherwise seed from the service template.
+    tasks: props.visit ? props.visit.tasks.map((t) => ({ name: t.name, done: t.done })) : props.service.tasks.map((name) => ({ name, done: false })),
+    treatments: (props.visit?.treatments ?? []).map((t) => ({
+        name: t.name,
+        amount: t.amount === null ? '' : String(t.amount),
+        unit: t.unit ?? 'oz',
+    })),
+    notes: props.visit?.notes ?? '',
     photos: [],
 });
 
@@ -214,7 +237,16 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
             <!-- photos -->
             <section class="rounded-xl border border-border p-4">
                 <Label class="text-sm font-medium">Photos</Label>
+                <div v-if="visit && visit.photos.length" class="mt-2">
+                    <p class="mb-1.5 text-xs text-muted-foreground">Already attached</p>
+                    <div class="flex flex-wrap gap-2">
+                        <div v-for="(url, i) in visit.photos" :key="i" class="size-20 overflow-hidden rounded-md border border-border">
+                            <img :src="url" class="h-full w-full object-cover" alt="Saved visit photo" />
+                        </div>
+                    </div>
+                </div>
                 <div class="mt-2">
+                    <p v-if="visit && visit.photos.length" class="mb-1.5 text-xs text-muted-foreground">Add more</p>
                     <MultiImageUpload :model-value="form.photos" @update:model-value="(f) => (form.photos = f)" />
                 </div>
                 <p v-if="form.errors.photos" class="mt-1 text-xs text-red-600">{{ form.errors.photos }}</p>
@@ -231,8 +263,8 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
                 ></textarea>
             </section>
 
-            <Button class="h-12 text-base" :disabled="form.processing || stop.status === 'completed'" @click="complete">
-                <FlaskConical class="mr-2 size-5" /> {{ stop.status === 'completed' ? 'Already completed' : 'Complete visit' }}
+            <Button class="h-12 text-base" :disabled="form.processing" @click="complete">
+                <FlaskConical class="mr-2 size-5" /> {{ isEditing ? 'Update report' : 'Complete visit' }}
             </Button>
         </div>
     </AppLayout>
