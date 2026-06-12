@@ -164,12 +164,12 @@ function destroyService() {
     <Head title="Services" />
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.services.total} service types`">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-end gap-2">
-                <Input v-model="search" type="search" placeholder="Search services…" class="max-w-xs" />
-                <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Service</Button>
-            </div>
+        <template #actions>
+            <Input v-model="search" type="search" placeholder="Search services…" class="h-9 w-44 lg:w-56" />
+            <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Service</Button>
+        </template>
 
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
                 :has-selection="props.selected !== null"
                 :selection-key="props.selected?.id ?? null"

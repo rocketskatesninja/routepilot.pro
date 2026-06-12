@@ -62,18 +62,16 @@ const statusClasses: Record<string, string> = {
     <Head title="Schedule" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex flex-wrap items-center justify-end gap-3">
-                <div class="flex items-center gap-2">
-                    <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
-                        ><Sparkles class="mr-1 size-4" /> Generate</Button
-                    >
-                    <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(-1)"><ChevronLeft class="size-4" /></button>
-                    <span class="min-w-48 text-center text-sm font-medium">{{ prettyDate }}</span>
-                    <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(1)"><ChevronRight class="size-4" /></button>
-                </div>
-            </div>
+        <template #actions>
+            <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
+                ><Sparkles class="mr-1 size-4" /> Generate</Button
+            >
+            <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(-1)"><ChevronLeft class="size-4" /></button>
+            <span class="min-w-44 text-center text-sm font-medium">{{ prettyDate }}</span>
+            <button class="rounded-md border border-border p-1.5 hover:bg-muted" @click="shift(1)"><ChevronRight class="size-4" /></button>
+        </template>
 
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div v-if="props.routes.length === 0" class="flex flex-1 flex-col items-center justify-center gap-3 text-muted-foreground">
                 <CalendarDays class="size-8 opacity-50" />
                 <p>No routes scheduled for this day.</p>

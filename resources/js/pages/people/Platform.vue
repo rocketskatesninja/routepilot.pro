@@ -114,16 +114,14 @@ function submitEmail() {
     <Head title="People" />
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.people.total} people`">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-end gap-4">
-                <div class="flex items-center gap-2">
-                    <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
-                    <Button size="sm" variant="outline" @click="openEmail"
-                        ><Mail class="mr-1 size-4" /> Email<span v-if="selected.length"> ({{ selected.length }})</span></Button
-                    >
-                </div>
-            </div>
+        <template #actions>
+            <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-44 lg:w-56" />
+            <Button size="sm" variant="outline" @click="openEmail"
+                ><Mail class="mr-1 size-4" /> Email<span v-if="selected.length"> ({{ selected.length }})</span></Button
+            >
+        </template>
 
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div class="flex gap-1 text-sm">
                 <button
                     v-for="t in tabs"

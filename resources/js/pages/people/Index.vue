@@ -330,18 +330,16 @@ function destroyAgent() {
     <Head title="People" />
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.counts.all} people`">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-center justify-end gap-4">
-                <div class="flex items-center gap-2">
-                    <Input v-model="search" type="search" placeholder="Search people…" class="max-w-xs" />
-                    <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
-                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
-                    <Button v-if="props.canEmail" size="sm" variant="outline" @click="openEmail"
-                        ><Mail class="mr-1 size-4" /> Email<span v-if="picked.length"> ({{ picked.length }})</span></Button
-                    >
-                </div>
-            </div>
+        <template #actions>
+            <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-40 lg:w-52" />
+            <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
+            <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
+            <Button v-if="props.canEmail" size="sm" variant="outline" @click="openEmail"
+                ><Mail class="mr-1 size-4" /> Email<span v-if="picked.length"> ({{ picked.length }})</span></Button
+            >
+        </template>
 
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div class="flex gap-1 text-sm">
                 <button
                     v-for="t in tabs"

@@ -27,8 +27,6 @@ const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}
     <Head title="Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <h1 class="text-xl font-semibold">Today</h1>
-
             <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
                 <div class="rounded-xl border border-border p-4">
                     <div class="text-2xl font-semibold">{{ stats.today_stops }}</div>

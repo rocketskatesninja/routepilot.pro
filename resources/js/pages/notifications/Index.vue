@@ -37,11 +37,11 @@ const readAll = () => router.post('/notifications/read-all', {}, { preserveScrol
     <Head title="Notifications" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-            <div v-if="props.notifications.some((n) => !n.read)" class="flex items-center justify-end">
-                <Button size="sm" variant="outline" @click="readAll">Mark all read</Button>
-            </div>
+        <template #actions>
+            <Button v-if="props.notifications.some((n) => !n.read)" size="sm" variant="outline" @click="readAll">Mark all read</Button>
+        </template>
 
+        <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
             <div class="overflow-hidden rounded-xl border border-border">
                 <ul class="divide-y divide-border text-sm">
                     <li

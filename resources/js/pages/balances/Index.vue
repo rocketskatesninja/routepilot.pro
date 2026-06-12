@@ -80,18 +80,15 @@ function submitCharge() {
     <Head title="Balances" />
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.balances.length} customers owe`">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="flex items-end justify-end gap-4">
-                <div class="flex items-end gap-3">
-                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openCharge"><Plus class="mr-1 size-4" /> Charge</Button>
-                    <Button v-if="props.canManage" size="sm" variant="outline" @click="exportCsv"><Download class="mr-1 size-4" /> Export</Button>
-                    <div class="text-right">
-                        <div class="text-2xl font-semibold">{{ money(props.total) }}</div>
-                        <div class="text-sm text-muted-foreground">outstanding</div>
-                    </div>
-                </div>
-            </div>
+        <template #actions>
+            <span class="mr-1 whitespace-nowrap text-sm"
+                ><span class="font-semibold">{{ money(props.total) }}</span> <span class="text-muted-foreground">outstanding</span></span
+            >
+            <Button v-if="props.canManage" size="sm" variant="outline" @click="openCharge"><Plus class="mr-1 size-4" /> Charge</Button>
+            <Button v-if="props.canManage" size="sm" variant="outline" @click="exportCsv"><Download class="mr-1 size-4" /> Export</Button>
+        </template>
 
+        <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
                 :has-selection="props.selected !== null"
                 :selection-key="props.selected?.id ?? null"
