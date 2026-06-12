@@ -49,6 +49,37 @@ test('validation rejects a bad brand color', function () {
         ->assertSessionHasErrors('brand_color');
 });
 
+test('an admin can save the business address (geocoding fails soft without a key)', function () {
+    config()->set('services.google.server_maps_key', ''); // force the no-key fail-soft path
+
+    $this->actingAs($this->admin)
+        ->patch('/company', [
+            'name' => 'Sunshine Pools', 'timezone' => 'America/Chicago', 'brand_color' => '#0ea5e9',
+            'tax_rate_percent' => 0, 'ai_provider' => 'anthropic',
+            'address_line1' => '123 Pool Lane', 'address_line2' => 'Suite 100',
+            'city' => 'Austin', 'state' => 'tx', 'postal_code' => '78701',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $this->tenant->refresh();
+    expect($this->tenant->getAttribute('address_line1'))->toBe('123 Pool Lane');
+    expect($this->tenant->getAttribute('city'))->toBe('Austin');
+    expect($this->tenant->getAttribute('state'))->toBe('TX'); // normalized to uppercase
+    expect($this->tenant->getAttribute('lat'))->toBeNull(); // geocode no-op without a key
+    expect($this->tenant->formattedAddress())->toBe('123 Pool Lane, Austin, TX 78701');
+});
+
+test('a partial business address is rejected', function () {
+    $this->actingAs($this->admin)
+        ->patch('/company', [
+            'name' => 'Sunshine Pools', 'timezone' => 'America/Chicago', 'brand_color' => '#0ea5e9',
+            'tax_rate_percent' => 0, 'ai_provider' => 'anthropic',
+            'address_line1' => '123 Pool Lane', // city/state/zip omitted
+        ])
+        ->assertSessionHasErrors(['city', 'state', 'postal_code']);
+});
+
 test('agents cannot access company settings', function () {
     $agent = User::factory()->agent()->for($this->tenant)->create();
 

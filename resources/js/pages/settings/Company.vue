@@ -8,7 +8,18 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 
 const props = defineProps<{
-    company: { name: string; timezone: string | null; brand_color: string | null; tax_rate_percent: number; logo_url: string | null };
+    company: {
+        name: string;
+        timezone: string | null;
+        brand_color: string | null;
+        tax_rate_percent: number;
+        logo_url: string | null;
+        address_line1: string | null;
+        address_line2: string | null;
+        city: string | null;
+        state: string | null;
+        postal_code: string | null;
+    };
     ai: { provider: string; model: string };
     mail: {
         host: string;
@@ -30,6 +41,11 @@ const form = useForm({
     timezone: props.company.timezone ?? 'America/New_York',
     brand_color: props.company.brand_color ?? '#0ea5e9',
     tax_rate_percent: props.company.tax_rate_percent,
+    address_line1: props.company.address_line1 ?? '',
+    address_line2: props.company.address_line2 ?? '',
+    city: props.company.city ?? '',
+    state: props.company.state ?? '',
+    postal_code: props.company.postal_code ?? '',
     ai_provider: props.ai.provider,
     ai_model: props.ai.model,
     logo: null as File | null,
@@ -99,6 +115,48 @@ const connectStripe = () => connectForm.post('/company/connect', { preserveScrol
                         <Input v-model="form.brand_color" class="max-w-32" />
                     </div>
                     <p v-if="form.errors.brand_color" class="text-sm text-red-600">{{ form.errors.brand_color }}</p>
+                </div>
+
+                <div class="border-t border-border pt-5">
+                    <h2 class="mb-1 font-medium">Business address</h2>
+                    <p class="mb-3 text-sm text-muted-foreground">Used to center your public service-area map.</p>
+                    <div class="space-y-4">
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="grid gap-2">
+                                <Label for="addr1">Street address</Label>
+                                <Input id="addr1" v-model="form.address_line1" autocomplete="address-line1" />
+                                <p v-if="form.errors.address_line1" class="text-sm text-red-600">{{ form.errors.address_line1 }}</p>
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="addr2">Suite / unit <span class="font-normal text-muted-foreground">(optional)</span></Label>
+                                <Input id="addr2" v-model="form.address_line2" autocomplete="address-line2" />
+                            </div>
+                        </div>
+                        <div class="grid gap-4 sm:grid-cols-6">
+                            <div class="grid gap-2 sm:col-span-3">
+                                <Label for="city">City</Label>
+                                <Input id="city" v-model="form.city" autocomplete="address-level2" />
+                                <p v-if="form.errors.city" class="text-sm text-red-600">{{ form.errors.city }}</p>
+                            </div>
+                            <div class="grid gap-2 sm:col-span-1">
+                                <Label for="state">State</Label>
+                                <Input
+                                    id="state"
+                                    v-model="form.state"
+                                    maxlength="2"
+                                    placeholder="TX"
+                                    class="uppercase"
+                                    autocomplete="address-level1"
+                                />
+                                <p v-if="form.errors.state" class="text-sm text-red-600">{{ form.errors.state }}</p>
+                            </div>
+                            <div class="grid gap-2 sm:col-span-2">
+                                <Label for="zip">ZIP code</Label>
+                                <Input id="zip" v-model="form.postal_code" placeholder="78701" autocomplete="postal-code" />
+                                <p v-if="form.errors.postal_code" class="text-sm text-red-600">{{ form.errors.postal_code }}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">

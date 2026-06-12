@@ -18,6 +18,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * trait on child models.
  *
  * @property array<string, mixed>|null $settings
+ * @property string|null $address_line1
+ * @property string|null $address_line2
+ * @property string|null $city
+ * @property string|null $state
+ * @property string|null $postal_code
+ * @property float|null $lat
+ * @property float|null $lng
  */
 class Tenant extends Model
 {
@@ -36,6 +43,7 @@ class Tenant extends Model
     protected $fillable = [
         'name', 'slug', 'primary_domain', 'timezone',
         'logo_path', 'brand_color', 'status', 'settings',
+        'address_line1', 'address_line2', 'city', 'state', 'postal_code',
     ];
 
     /** @return array<string, string> */
@@ -43,6 +51,8 @@ class Tenant extends Model
     {
         return [
             'settings' => 'array',
+            'lat' => 'float',
+            'lng' => 'float',
         ];
     }
 
@@ -62,5 +72,20 @@ class Tenant extends Model
     public function pools(): HasMany
     {
         return $this->hasMany(Pool::class);
+    }
+
+    /**
+     * Single-line business address for geocoding / display, or null when no
+     * street address is set. Excludes line 2 (suite) — it confuses geocoders.
+     */
+    public function formattedAddress(): ?string
+    {
+        $parts = array_filter([
+            (string) ($this->getAttribute('address_line1') ?? ''),
+            (string) ($this->getAttribute('city') ?? ''),
+            trim((string) ($this->getAttribute('state') ?? '').' '.(string) ($this->getAttribute('postal_code') ?? '')),
+        ], static fn (string $part): bool => trim($part) !== '');
+
+        return $parts === [] ? null : implode(', ', $parts);
     }
 }

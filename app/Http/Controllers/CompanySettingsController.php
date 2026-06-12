@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateMailConfigRequest;
 use App\Models\Integration;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
+use App\Services\GeocodingService;
 use App\Services\PhotoService;
 use App\Services\StripeService;
 use Illuminate\Http\RedirectResponse;
@@ -36,6 +37,11 @@ class CompanySettingsController extends Controller
                 'brand_color' => $tenant->getAttribute('brand_color'),
                 'tax_rate_percent' => round((float) $tenant->getAttribute('tax_rate') * 100, 2),
                 'logo_url' => $this->photoUrl($tenant->getAttribute('logo_path')),
+                'address_line1' => $tenant->getAttribute('address_line1'),
+                'address_line2' => $tenant->getAttribute('address_line2'),
+                'city' => $tenant->getAttribute('city'),
+                'state' => $tenant->getAttribute('state'),
+                'postal_code' => $tenant->getAttribute('postal_code'),
             ],
             'ai' => [
                 'provider' => TenantSetting::getFor($tenant->id, 'ai_provider') ?? 'anthropic',
@@ -134,7 +140,7 @@ class CompanySettingsController extends Controller
         ];
     }
 
-    public function update(UpdateCompanyRequest $request, PhotoService $photos): RedirectResponse
+    public function update(UpdateCompanyRequest $request, PhotoService $photos, GeocodingService $geocoder): RedirectResponse
     {
         $tenant = $this->tenant($request);
         $data = $request->validated();
@@ -143,10 +149,26 @@ class CompanySettingsController extends Controller
             'name' => $data['name'],
             'timezone' => $data['timezone'],
             'brand_color' => $data['brand_color'],
+            'address_line1' => $data['address_line1'] ?? null,
+            'address_line2' => $data['address_line2'] ?? null,
+            'city' => $data['city'] ?? null,
+            'state' => $data['state'] ?? null,
+            'postal_code' => $data['postal_code'] ?? null,
         ]);
         // tax_rate is not mass-assignable (billing field) — set deliberately.
         $tenant->forceFill(['tax_rate' => round(((float) $data['tax_rate_percent']) / 100, 4)]);
+
+        // Re-geocode only when the address moved (or a present address was never
+        // geocoded). lat/lng are derived (not fillable); a geocode failure or a
+        // cleared address leaves the rest of the save intact.
+        $addressChanged = $tenant->isDirty(['address_line1', 'city', 'state', 'postal_code']);
         $tenant->save();
+
+        if ($addressChanged || ($tenant->getAttribute('lat') === null && $tenant->formattedAddress() !== null)) {
+            $address = $tenant->formattedAddress();
+            $coords = $address !== null ? $geocoder->geocode($address) : null;
+            $tenant->forceFill(['lat' => $coords['lat'] ?? null, 'lng' => $coords['lng'] ?? null])->save();
+        }
 
         $logo = $data['logo'] ?? null;
         if ($logo instanceof UploadedFile) {
