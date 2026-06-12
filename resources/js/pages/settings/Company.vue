@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ImageUpload from '@/components/ImageUpload.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +8,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 
 const props = defineProps<{
-    company: { name: string; timezone: string | null; brand_color: string | null; tax_rate_percent: number };
+    company: { name: string; timezone: string | null; brand_color: string | null; tax_rate_percent: number; logo_url: string | null };
     ai: { provider: string; model: string };
     mail: {
         host: string;
@@ -31,6 +32,7 @@ const form = useForm({
     tax_rate_percent: props.company.tax_rate_percent,
     ai_provider: props.ai.provider,
     ai_model: props.ai.model,
+    logo: null as File | null,
 });
 
 const timezones = [
@@ -66,6 +68,10 @@ const connectStripe = () => connectForm.post('/company/connect', { preserveScrol
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto w-full max-w-2xl p-4">
             <form class="space-y-5" @submit.prevent="submit">
+                <div class="grid gap-2">
+                    <Label>Company logo</Label>
+                    <ImageUpload :model-value="form.logo" :current="props.company.logo_url ?? null" @update:model-value="(f) => (form.logo = f)" />
+                </div>
                 <div class="grid gap-2">
                     <Label for="name">Company name</Label>
                     <Input id="name" v-model="form.name" />

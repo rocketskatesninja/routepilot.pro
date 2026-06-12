@@ -25,6 +25,7 @@ class UpdateCompanyRequest extends FormRequest
             'tax_rate_percent' => ['required', 'numeric', 'min:0', 'max:30'],
             'ai_provider' => ['required', 'in:anthropic,openai'],
             'ai_model' => ['nullable', 'string', 'max:100'],
+            'logo' => ['nullable', 'image', 'max:10240'],
         ];
     }
 }

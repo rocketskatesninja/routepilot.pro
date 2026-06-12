@@ -9,9 +9,12 @@ use App\Http\Requests\UpdateMailConfigRequest;
 use App\Models\Integration;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
+use App\Services\PhotoService;
 use App\Services\StripeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -32,6 +35,7 @@ class CompanySettingsController extends Controller
                 'timezone' => $tenant->getAttribute('timezone'),
                 'brand_color' => $tenant->getAttribute('brand_color'),
                 'tax_rate_percent' => round((float) $tenant->getAttribute('tax_rate') * 100, 2),
+                'logo_url' => $this->photoUrl($tenant->getAttribute('logo_path')),
             ],
             'ai' => [
                 'provider' => TenantSetting::getFor($tenant->id, 'ai_provider') ?? 'anthropic',
@@ -130,7 +134,7 @@ class CompanySettingsController extends Controller
         ];
     }
 
-    public function update(UpdateCompanyRequest $request): RedirectResponse
+    public function update(UpdateCompanyRequest $request, PhotoService $photos): RedirectResponse
     {
         $tenant = $this->tenant($request);
         $data = $request->validated();
@@ -144,10 +148,22 @@ class CompanySettingsController extends Controller
         $tenant->forceFill(['tax_rate' => round(((float) $data['tax_rate_percent']) / 100, 4)]);
         $tenant->save();
 
+        $logo = $data['logo'] ?? null;
+        if ($logo instanceof UploadedFile) {
+            $old = $tenant->getAttribute('logo_path');
+            $tenant->forceFill(['logo_path' => $photos->replace($logo, is_string($old) ? $old : null, 'tenants')])->save();
+        }
+
         TenantSetting::setFor($tenant->id, 'ai_provider', (string) $data['ai_provider']);
         TenantSetting::setFor($tenant->id, 'ai_model', (string) ($data['ai_model'] ?? ''));
 
         return back()->with('success', 'Company settings saved.');
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /** The admin's own tenant. */

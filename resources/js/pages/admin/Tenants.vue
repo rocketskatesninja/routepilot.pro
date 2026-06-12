@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,7 @@ import { ref } from 'vue';
 interface TenantRow {
     id: number;
     name: string;
+    logo_url: string | null;
     slug: string;
     status: string;
     users: number;
@@ -93,8 +95,13 @@ function submitEdit() {
                     <tbody>
                         <tr v-for="t in props.tenants" :key="t.id" class="border-t border-border">
                             <td class="px-4 py-2.5">
-                                <div class="font-medium">{{ t.name }}</div>
-                                <div class="text-xs text-muted-foreground">{{ t.slug }}.routepilot.pro</div>
+                                <div class="flex items-center gap-2.5">
+                                    <EntityAvatar :src="t.logo_url" type="tenant" :name="t.name" size="sm" />
+                                    <div>
+                                        <div class="font-medium">{{ t.name }}</div>
+                                        <div class="text-xs text-muted-foreground">{{ t.slug }}.routepilot.pro</div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-2.5">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(t.status)">{{

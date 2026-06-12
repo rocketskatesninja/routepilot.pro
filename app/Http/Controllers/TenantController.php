@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,6 +32,7 @@ class TenantController extends Controller
             ->map(fn (Tenant $t): array => [
                 'id' => $t->id,
                 'name' => $t->name,
+                'logo_url' => $this->photoUrl($t->getAttribute('logo_path')),
                 'slug' => $t->slug,
                 'status' => $t->getAttribute('status'),
                 'users' => $t->getAttribute('users_count'),
@@ -63,5 +65,11 @@ class TenantController extends Controller
     private function authorizeSuper(Request $request): void
     {
         abort_unless($request->user()?->isSuperAdmin() === true, 403);
+    }
+
+    /** Public URL for a stored photo path, or null when unset. */
+    private function photoUrl(mixed $path): ?string
+    {
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 }
