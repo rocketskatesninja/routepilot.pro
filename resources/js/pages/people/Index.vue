@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -97,7 +98,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
 // --- selection + email ---
 const picked = ref<string[]>([]);
 const keyFor = (p: PersonRow) => `${p.person_type}:${p.id}`;
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = formatMoney;
 const isSelected = (p: PersonRow) => picked.value.includes(keyFor(p));
 function toggleSelect(p: PersonRow) {
     const k = keyFor(p);

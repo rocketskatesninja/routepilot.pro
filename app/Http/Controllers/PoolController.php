@@ -20,7 +20,6 @@ use App\Services\ChemistryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -157,13 +156,6 @@ class PoolController extends Controller
                 'name' => $u->role === 'tenant_admin' ? $u->displayName().' (admin)' : $u->displayName(),
             ])
             ->all();
-    }
-
-    /** Staff-only (tenant_admin / agent); customers use the portal. */
-    private function authorizeStaff(Request $request): void
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
     }
 
     /** @return array<string, mixed> */
@@ -310,12 +302,6 @@ class PoolController extends Controller
                 'access_notes' => $location?->getAttribute('access_notes'),
             ],
         ];
-    }
-
-    /** Public URL for a stored photo path, or null when unset. */
-    private function photoUrl(mixed $path): ?string
-    {
-        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /** Full name of a Customer or User (magic attributes), or an em dash. */

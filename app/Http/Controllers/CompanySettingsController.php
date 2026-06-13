@@ -16,7 +16,6 @@ use App\Services\StripeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -211,12 +210,6 @@ class CompanySettingsController extends Controller
             'changes' => $changes,
             'ip_address' => $request->ip(),
         ]);
-    }
-
-    /** Public URL for a stored photo path, or null when unset. */
-    private function photoUrl(mixed $path): ?string
-    {
-        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /** The admin's own tenant. */

@@ -14,7 +14,6 @@ use App\Models\Invoice;
 use App\Services\BillingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -72,12 +71,6 @@ class BalanceController extends Controller
             'canManage' => $request->user()?->role === 'tenant_admin',
             'customers' => $this->customerOptions(),
         ]);
-    }
-
-    /** Public URL for a stored photo path, or null when unset. */
-    private function photoUrl(mixed $path): ?string
-    {
-        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     public function addCharge(StoreManualChargeRequest $request, AddManualCharge $action): RedirectResponse
@@ -147,11 +140,5 @@ class BalanceController extends Controller
             ->get(['id', 'first_name', 'last_name'])
             ->map(fn (Customer $c): array => ['id' => $c->id, 'name' => $c->displayName()])
             ->all();
-    }
-
-    private function authorizeStaff(Request $request): void
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
     }
 }

@@ -22,7 +22,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -186,11 +185,5 @@ class VisitController extends Controller
                 ->values()
                 ->all(),
         ];
-    }
-
-    /** Public URL for a stored photo path, or null when unset. */
-    private function photoUrl(mixed $path): ?string
-    {
-        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 }

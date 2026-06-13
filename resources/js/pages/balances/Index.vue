@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
@@ -41,7 +42,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }]
 
 const open = (id: number) => router.get('/balances', { selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/balances', {}, { preserveState: true, preserveScroll: true });
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = formatMoney;
 
 const payMethod = ref('cash');
 function recordPayment() {

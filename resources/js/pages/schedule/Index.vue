@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { clone } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -40,7 +41,6 @@ const dateInput = ref<HTMLInputElement | null>(null);
 
 // A local, mutable copy of the routes that drag-and-drop reorders optimistically;
 // it re-syncs from the server (the source of truth) whenever the props change.
-const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const localRoutes = ref<RouteCard[]>(clone(props.routes));
 watch(
     () => props.routes,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -16,7 +17,7 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balance', href: '/balance' }];
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = formatMoney;
 
 const payForm = useForm({});
 const pay = () => payForm.post('/balance/pay', { preserveScroll: true });

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { clone } from '@/lib/utils';
 import LandingImagePicker from '@/components/landing/LandingImagePicker.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
 import type { BrandContext, LiveData, SectionConfig } from '@/components/landing/types';
@@ -41,7 +42,6 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Landing page', href: '/company/landing' },
 ];
 
-const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 const sections = ref<SectionConfig[]>(clone(props.config.sections));
 const seo = ref({ title: props.config.seo.title ?? '', description: props.config.seo.description ?? '', og_image: props.config.seo.og_image });
 const ogUrl = ref(props.ogImageUrl);

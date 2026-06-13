@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
+
 interface Row {
     customer: string;
     balance: number;
@@ -6,7 +8,7 @@ interface Row {
 
 defineProps<{ data: { outstanding_total: number; customer_count: number; top: Row[] } }>();
 
-const money = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+const money = formatMoney;
 </script>
 
 <template>

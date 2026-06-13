@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +72,7 @@ watch(search, (value) => {
 const open = (id: number) =>
     router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/services', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
-const money = (price: string) => `$${Number(price).toFixed(2)}`;
+const money = formatMoney;
 
 const moduleLabels: Record<string, string> = { tasks: 'Tasks', chemistry: 'Chemistry', treatments: 'Treatments', photos: 'Photos' };
 

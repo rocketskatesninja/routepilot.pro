@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
@@ -29,7 +30,7 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Insights', href: '/insights' }];
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = formatMoney;
 
 const cards = [
     { label: 'Revenue this month', value: money(props.revenue_month), accent: 'text-emerald-600 dark:text-emerald-400' },

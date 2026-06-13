@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -70,7 +71,7 @@ watch(search, (value) => {
 const open = (id: number) =>
     router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/inventory', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
-const money = (n: number) => `$${n.toFixed(2)}`;
+const money = formatMoney;
 
 // --- create / edit chemical ---
 const formOpen = ref(false);

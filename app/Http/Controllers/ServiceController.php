@@ -94,13 +94,6 @@ class ServiceController extends Controller
         return back()->with('success', 'Service type removed.');
     }
 
-    /** Staff-only (tenant_admin / agent). */
-    private function authorizeStaff(Request $request): void
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
-    }
-
     /** @return array<string, mixed> */
     private function toDetail(ServiceType $type): array
     {

@@ -14,7 +14,6 @@ use App\Models\ChemicalInventory;
 use App\Models\InventoryTransaction;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,18 +89,6 @@ class InventoryController extends Controller
         $chemical->delete();
 
         return back()->with('success', 'Chemical removed.');
-    }
-
-    private function authorizeStaff(Request $request): void
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true), 403);
-    }
-
-    /** Public URL for a stored photo path, or null when unset. */
-    private function photoUrl(mixed $path): ?string
-    {
-        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 
     /** @return array<string, mixed> */
