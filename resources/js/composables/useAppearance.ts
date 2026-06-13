@@ -3,6 +3,10 @@ import { onMounted, ref } from 'vue';
 type Appearance = 'light' | 'dark' | 'system';
 
 export function updateTheme(value: Appearance) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
     if (value === 'system') {
         const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.classList.toggle('dark', systemTheme === 'dark');
@@ -11,20 +15,21 @@ export function updateTheme(value: Appearance) {
     }
 }
 
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+const getStoredAppearance = (): Appearance | null =>
+    typeof localStorage === 'undefined' ? null : (localStorage.getItem('appearance') as Appearance | null);
 
 const handleSystemThemeChange = () => {
-    const currentAppearance = localStorage.getItem('appearance') as Appearance | null;
-    updateTheme(currentAppearance || 'system');
+    updateTheme(getStoredAppearance() || 'system');
 };
 
 export function initializeTheme() {
-    // Initialize theme from saved preference or default to system...
-    const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
-    updateTheme(savedAppearance || 'system');
+    // Client-only: window/document/localStorage don't exist during SSR.
+    if (typeof window === 'undefined') {
+        return;
+    }
 
-    // Set up system theme change listener...
-    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    updateTheme(getStoredAppearance() || 'system');
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', handleSystemThemeChange);
 }
 
 export function useAppearance() {
@@ -33,8 +38,7 @@ export function useAppearance() {
     onMounted(() => {
         initializeTheme();
 
-        const savedAppearance = localStorage.getItem('appearance') as Appearance | null;
-
+        const savedAppearance = getStoredAppearance();
         if (savedAppearance) {
             appearance.value = savedAppearance;
         }
@@ -42,7 +46,11 @@ export function useAppearance() {
 
     function updateAppearance(value: Appearance) {
         appearance.value = value;
-        localStorage.setItem('appearance', value);
+
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('appearance', value);
+        }
+
         updateTheme(value);
     }
 
