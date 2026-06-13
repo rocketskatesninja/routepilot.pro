@@ -11,6 +11,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
@@ -138,6 +139,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('company/mail', [CompanySettingsController::class, 'updateMail'])->name('company.mail');
     Route::post('company/connect', [CompanySettingsController::class, 'connect'])->name('company.connect');
     Route::get('company/connect/return', [CompanySettingsController::class, 'connectReturn'])->name('company.connect.return');
+
+    // Landing-page builder (tenant_admin). Config save is pure JSON; images
+    // upload via a dedicated endpoint.
+    Route::get('company/landing', [LandingController::class, 'edit'])->name('company.landing.edit');
+    Route::post('company/landing', [LandingController::class, 'update'])->name('company.landing.update');
+    Route::post('company/landing/image', [LandingController::class, 'uploadImage'])->name('company.landing.image');
 
     // Super-admin platform console.
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
