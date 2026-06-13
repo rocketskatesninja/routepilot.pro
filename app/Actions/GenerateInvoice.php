@@ -111,9 +111,17 @@ class GenerateInvoice
         return $sub instanceof ServiceSubscription ? (float) $sub->serviceType->price : 0.0;
     }
 
-    /** Next per-tenant sequential invoice number (the query is tenant-scoped). */
+    /**
+     * Next per-tenant sequential invoice number (the query is tenant-scoped).
+     * Derived from the highest issued number, not count(): robust against
+     * deletes, and within a batch transaction the prior inserts are visible to
+     * this read. The (tenant_id, number) unique index is the final guard.
+     */
     private function nextNumber(): string
     {
-        return 'INV-'.str_pad((string) (Invoice::query()->count() + 1), 5, '0', STR_PAD_LEFT);
+        $last = Invoice::query()->orderByDesc('number')->value('number');
+        $n = is_string($last) ? ((int) substr($last, 4)) + 1 : 1;
+
+        return 'INV-'.str_pad((string) $n, 5, '0', STR_PAD_LEFT);
     }
 }

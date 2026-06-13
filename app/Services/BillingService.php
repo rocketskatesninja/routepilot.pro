@@ -135,8 +135,11 @@ class BillingService
      */
     public function outstandingBalances(): Collection
     {
-        return Customer::query()->with('pools')->get()
-            ->map(fn (Customer $c): array => ['customer' => $c, 'balance' => $this->outstandingForCustomer($c)])
+        $customers = Customer::query()->get();
+        $balances = $this->balancesFor($customers->pluck('id')->all());
+
+        return $customers
+            ->map(fn (Customer $c): array => ['customer' => $c, 'balance' => $balances[$c->id] ?? 0.0])
             ->filter(fn (array $row): bool => $row['balance'] > 0)
             ->sortByDesc('balance')
             ->values();

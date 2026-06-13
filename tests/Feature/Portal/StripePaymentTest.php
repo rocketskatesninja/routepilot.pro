@@ -38,7 +38,7 @@ beforeEach(function () {
 
 function stripeSigned(string $payload): TestResponse
 {
-    $t = '1700000000';
+    $t = (string) time();
     $sig = hash_hmac('sha256', $t.'.'.$payload, 'whsec_test');
 
     return test()->call('POST', '/stripe/webhook', [], [], [], [

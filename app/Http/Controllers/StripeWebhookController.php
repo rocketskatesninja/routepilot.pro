@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\StripeEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Stripe webhook receiver. Fails closed: a request without a valid signature
@@ -39,12 +40,17 @@ class StripeWebhookController extends Controller
             return response('', 200); // already processed — idempotent
         }
 
-        StripeEvent::create([
-            'event_id' => $eventId,
-            'type' => is_string($event['type'] ?? null) ? $event['type'] : 'unknown',
-        ]);
+        // Record + settle in one transaction so a settle() failure rolls back the
+        // event record and Stripe legitimately retries (instead of the redelivery
+        // being skipped as "already processed" with the payment lost).
+        DB::transaction(function () use ($event, $eventId, $recordPayment): void {
+            StripeEvent::create([
+                'event_id' => $eventId,
+                'type' => is_string($event['type'] ?? null) ? $event['type'] : 'unknown',
+            ]);
 
-        $this->settle($event, $recordPayment);
+            $this->settle($event, $recordPayment);
+        });
 
         return response('', 200);
     }
@@ -97,6 +103,11 @@ class StripeWebhookController extends Controller
         $timestamp = $parts['t'] ?? null;
         $signature = $parts['v1'] ?? null;
         if ($timestamp === null || $signature === null) {
+            return false;
+        }
+
+        // Reject stale timestamps (replay window) — 5-minute tolerance, matching Stripe's SDK.
+        if (abs(time() - (int) $timestamp) > 300) {
             return false;
         }
 

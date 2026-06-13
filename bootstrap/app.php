@@ -29,7 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // should redirect back with a notice, not show the bare "page expired" page.
         $exceptions->respond(function (Response $response): Response {
             if ($response->getStatusCode() === 419) {
-                return back()->with('message', 'Your session expired — please sign in again.');
+                return back()->with('error', 'Your session expired — please sign in again.');
             }
 
             return $response;

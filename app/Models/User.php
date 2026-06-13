@@ -49,7 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /** @var list<string> */
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'google_id', 'admin_notes'];
 
     /**
      * `name` is a computed accessor (first + last); append it so the

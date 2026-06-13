@@ -11,7 +11,7 @@ beforeEach(function () {
 
 function signedCall(string $payload): TestResponse
 {
-    $timestamp = '1700000000';
+    $timestamp = (string) time();
     $signature = hash_hmac('sha256', $timestamp.'.'.$payload, 'whsec_test');
 
     return test()->call('POST', '/stripe/webhook', [], [], [], [
@@ -45,7 +45,7 @@ test('a validly-signed webhook is recorded once (idempotent)', function () {
 });
 
 test('a signed webhook with a tampered payload is rejected', function () {
-    $timestamp = '1700000000';
+    $timestamp = (string) time();
     $signature = hash_hmac('sha256', $timestamp.'.'.'{"id":"evt_real"}', 'whsec_test');
 
     $this->call('POST', '/stripe/webhook', [], [], [], [
