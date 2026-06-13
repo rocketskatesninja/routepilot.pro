@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
  *     subdomain redirect dance).
  *  2. PUBLIC — unauthenticated/marketing/portal requests resolve by matching
  *     the request host to a tenant's custom `primary_domain`. Tenant sites on
- *     the platform host are reached by a /s/{slug} PATH (not a subdomain).
+ *     the platform host are reached by a /t/{slug} PATH (not a subdomain).
  *  3. Super admins and the bare main domain pass through with no tenant.
  *
  * User route-model bindings are NOT globally scoped, so we still assert an
@@ -67,7 +67,7 @@ class ResolveTenant
     protected function resolveFromHost(string $host): ?Tenant
     {
         // Public tenants resolve by their own CUSTOM DOMAIN only. Tenant sites on
-        // the platform host are reached by PATH (routepilot.pro/s/{slug}) — not a
+        // the platform host are reached by PATH (routepilot.pro/t/{slug}) — not a
         // subdomain — so there is no {slug}.routepilot.pro fallback here.
         return Tenant::query()->where('primary_domain', $host)->first();
     }

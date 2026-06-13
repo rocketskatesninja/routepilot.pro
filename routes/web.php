@@ -35,8 +35,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PublicSiteController::class, 'show'])->name('home');
 
 // Tenant public sites on the platform host are PATH-based (not subdomains):
-// routepilot.pro/s/{slug}. Custom domains serve the landing at their own root.
-Route::get('s/{tenant:slug}', [PublicSiteController::class, 'showBySlug'])->name('public.site');
+// routepilot.pro/t/{slug}. Custom domains serve the landing at their own root.
+Route::get('t/{tenant:slug}', [PublicSiteController::class, 'showBySlug'])->name('public.site');
 
 // Public one-click unsubscribe (signed) — sets the marketing suppression flag.
 Route::get('unsubscribe/{customer}', function (Customer $customer) {

@@ -19,10 +19,10 @@ test('a tenant custom-domain host renders its landing page', function () {
         );
 });
 
-test('a tenant is reachable by path on the platform host (/s/{slug})', function () {
+test('a tenant is reachable by path on the platform host (/t/{slug})', function () {
     Tenant::factory()->create(['slug' => 'acme', 'name' => 'Acme Pools']);
 
-    $this->get('/s/acme')
+    $this->get('/t/acme')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('public/Landing')
@@ -50,7 +50,7 @@ test('a {slug}.routepilot.pro subdomain no longer resolves a tenant', function (
 test('a suspended tenant site is not public', function () {
     Tenant::factory()->create(['slug' => 'acme', 'status' => 'suspended']);
 
-    $this->get('/s/acme')->assertNotFound();
+    $this->get('/t/acme')->assertNotFound();
 });
 
 test('disabled and unknown sections never reach the public render', function () {
@@ -67,7 +67,7 @@ test('disabled and unknown sections never reach the public render', function () 
     ]));
     app()->forgetInstance('tenant_id');
 
-    $this->get('/s/acme')
+    $this->get('/t/acme')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('public/Landing')

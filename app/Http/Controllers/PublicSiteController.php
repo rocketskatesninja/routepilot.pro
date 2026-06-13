@@ -14,7 +14,7 @@ use Inertia\Response;
 /**
  * The public marketing surface. A tenant's landing is reached either by its own
  * custom domain (resolved by host in ResolveTenant) OR by a PATH on the platform
- * host — routepilot.pro/s/{slug} — NOT a subdomain. The bare platform host falls
+ * host — routepilot.pro/t/{slug} — NOT a subdomain. The bare platform host falls
  * back to RoutePilot's own marketing page.
  *
  * P2: renders the (sanitized) config + SEO. Live-data sections (gallery/stats/
@@ -30,7 +30,7 @@ class PublicSiteController extends Controller
         return $tenant instanceof Tenant ? $this->render($tenant) : Inertia::render('Welcome');
     }
 
-    /** Path-based tenant site on the platform host: routepilot.pro/s/{slug}. */
+    /** Path-based tenant site on the platform host: routepilot.pro/t/{slug}. */
     public function showBySlug(Tenant $tenant): Response
     {
         return $this->render($tenant);
