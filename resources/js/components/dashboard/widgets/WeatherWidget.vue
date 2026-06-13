@@ -31,6 +31,7 @@ defineProps<{ data: { current: Current; hours: Hour[]; days: Day[] } | null }>()
 // out before the daily forecast does.
 const root = ref<HTMLElement | null>(null);
 const availH = ref(Infinity);
+const availW = ref(Infinity);
 let ro: ResizeObserver | null = null;
 onMounted(() => {
     if (!root.value || typeof ResizeObserver === 'undefined') {
@@ -38,6 +39,7 @@ onMounted(() => {
     }
     ro = new ResizeObserver((entries) => {
         availH.value = entries[0].contentRect.height;
+        availW.value = entries[0].contentRect.width;
     });
     ro.observe(root.value);
 });
@@ -45,6 +47,9 @@ onBeforeUnmount(() => ro?.disconnect());
 
 const showDaily = computed(() => availH.value >= 135);
 const showHourly = computed(() => availH.value >= 215);
+// The hourly strip fills the width with as many hours as comfortably fit (~42px
+// each), so it scales with the widget instead of overflowing.
+const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value / 42))));
 </script>
 
 <template>
@@ -63,10 +68,10 @@ const showHourly = computed(() => availH.value >= 215);
                 </div>
             </div>
 
-            <!-- Hourly strip (first to hide when short) -->
-            <div v-show="showHourly && data.hours.length" class="flex gap-3 overflow-x-auto pb-1">
-                <div v-for="h in data.hours" :key="h.hour" class="flex shrink-0 flex-col items-center gap-0.5 text-center">
-                    <div class="text-xs text-muted-foreground">{{ h.hour }}</div>
+            <!-- Hourly strip: fills the width, first to hide when short -->
+            <div v-show="showHourly && data.hours.length" class="flex gap-1">
+                <div v-for="h in data.hours.slice(0, hourCount)" :key="h.hour" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 text-center">
+                    <div class="truncate text-xs text-muted-foreground">{{ h.hour }}</div>
                     <component :is="weatherDescribe(h.code).icon" class="size-5 text-muted-foreground" />
                     <div class="text-xs font-medium tabular-nums">{{ h.temp }}°</div>
                     <div class="text-[10px] tabular-nums" :class="h.precip >= 20 ? 'text-sky-500' : 'text-transparent'">{{ h.precip }}%</div>

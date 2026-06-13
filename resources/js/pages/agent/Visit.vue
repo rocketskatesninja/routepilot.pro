@@ -65,6 +65,9 @@ const readingFields = [
     { key: 'water_temperature', label: 'Temp °F' },
 ] as const;
 
+// Temp shares a row with the Analyze button; the rest fill the grid above.
+const chemFields = readingFields.filter((f) => f.key !== 'water_temperature');
+
 const form = useForm<{
     free_chlorine: string;
     total_chlorine: string;
@@ -179,14 +182,22 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
             <section class="rounded-xl border border-border p-4">
                 <h2 class="mb-3 font-medium">Water test</h2>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div v-for="f in readingFields" :key="f.key" class="grid gap-1">
+                    <div v-for="f in chemFields" :key="f.key" class="grid gap-1">
                         <Label :for="f.key" class="text-xs">{{ f.label }}</Label>
                         <Input :id="f.key" v-model="form[f.key]" type="number" step="0.1" inputmode="decimal" class="text-center" />
                     </div>
                 </div>
-                <Button type="button" variant="outline" size="sm" class="mt-3" :disabled="analyzing" @click="analyze"
-                    ><Sparkles class="mr-1 size-4" /> {{ analyzing ? 'Analyzing…' : 'Analyze + dose' }}</Button
-                >
+                <div class="mt-3 grid grid-cols-2 items-end gap-3 sm:grid-cols-4">
+                    <div class="grid gap-1">
+                        <Label for="water_temperature" class="text-xs">Temp °F</Label>
+                        <Input id="water_temperature" v-model="form.water_temperature" type="number" step="0.1" inputmode="decimal" class="text-center" />
+                    </div>
+                    <div class="sm:col-span-3">
+                        <Button type="button" variant="outline" size="sm" class="w-full sm:w-auto" :disabled="analyzing" @click="analyze"
+                            ><Sparkles class="mr-1 size-4" /> {{ analyzing ? 'Analyzing…' : 'Analyze + dose' }}</Button
+                        >
+                    </div>
+                </div>
 
                 <ul v-if="recommendations.length" class="mt-3 space-y-1.5">
                     <li
