@@ -7,7 +7,6 @@ namespace App\Actions;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -37,7 +36,9 @@ class RegisterTenant
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'] ?? null,
                 'email' => $data['email'],
-                'password' => Hash::make($data['password']),
+                // The User model's 'hashed' cast hashes on assignment (as in
+                // CreateAgent / GrantPortalAccess) — don't double-handle it here.
+                'password' => $data['password'],
             ]);
             $user->forceFill([
                 'tenant_id' => $tenant->id,

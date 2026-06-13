@@ -28,13 +28,7 @@ class ImpersonationController extends Controller
             ->first();
         abort_if($admin === null, 404, 'This tenant has no active admin to impersonate.');
 
-        AuditLog::create([
-            'user_id' => $super->id,
-            'action' => 'impersonate.start',
-            'model_type' => User::class,
-            'model_id' => $admin->id,
-            'ip_address' => $request->ip(),
-        ]);
+        AuditLog::record($super, 'impersonate.start', $admin);
 
         $request->session()->put('impersonator_id', $super->id);
         Auth::login($admin);
@@ -51,13 +45,7 @@ class ImpersonationController extends Controller
 
         $super = User::find($impersonatorId);
         if ($super !== null) {
-            AuditLog::create([
-                'user_id' => $super->id,
-                'action' => 'impersonate.stop',
-                'model_type' => User::class,
-                'model_id' => $request->user()?->id,
-                'ip_address' => $request->ip(),
-            ]);
+            AuditLog::record($super, 'impersonate.stop', $request->user());
             Auth::login($super);
         }
 

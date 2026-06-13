@@ -37,4 +37,22 @@ class AuditLog extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * The single writer for the audit trail — so a sensitive action can't be
+     * logged with a missing or inconsistent field.
+     *
+     * @param  array<string, mixed>|null  $changes
+     */
+    public static function record(?User $user, string $action, ?Model $model = null, ?array $changes = null): self
+    {
+        return self::create([
+            'user_id' => $user?->id,
+            'action' => $action,
+            'model_type' => $model !== null ? $model::class : null,
+            'model_id' => $model?->getKey(),
+            'changes' => $changes,
+            'ip_address' => request()->ip(),
+        ]);
+    }
 }

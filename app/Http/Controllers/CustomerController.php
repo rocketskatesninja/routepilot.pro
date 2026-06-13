@@ -81,13 +81,7 @@ class CustomerController extends Controller
 
     private function audit(Request $request, string $action, Customer $customer): void
     {
-        AuditLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => $action,
-            'model_type' => Customer::class,
-            'model_id' => $customer->id,
-            'ip_address' => $request->ip(),
-        ]);
+        AuditLog::record($request->user(), $action, $customer);
     }
 
     public function grantPortal(GrantPortalRequest $request, Customer $customer, GrantPortalAccess $action): RedirectResponse

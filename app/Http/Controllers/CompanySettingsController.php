@@ -202,14 +202,7 @@ class CompanySettingsController extends Controller
      */
     private function audit(Request $request, Tenant $tenant, string $action, ?array $changes = null): void
     {
-        AuditLog::create([
-            'user_id' => $request->user()?->id,
-            'action' => $action,
-            'model_type' => Tenant::class,
-            'model_id' => $tenant->id,
-            'changes' => $changes,
-            'ip_address' => $request->ip(),
-        ]);
+        AuditLog::record($request->user(), $action, $tenant, $changes);
     }
 
     /** The admin's own tenant. */
