@@ -60,6 +60,7 @@ Route::get('pay/{customer}', [PublicPayController::class, 'pay'])->whereNumber('
 // session user by ResolveTenant.
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('dashboard/layout', [DashboardController::class, 'saveLayout'])->name('dashboard.layout');
     Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
     Route::post('routes/{route}/optimize', [ScheduleController::class, 'optimize'])->name('routes.optimize');

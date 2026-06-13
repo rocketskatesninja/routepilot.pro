@@ -66,7 +66,7 @@ test('pending requests surface on the admin dashboard', function () {
     $this->actingAs($this->admin)
         ->get('/dashboard')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('dashboards/Admin')->has('pending_requests', 1));
+        ->assertInertia(fn (Assert $page) => $page->component('dashboards/Admin')->has('widgets.requests', 1));
 });
 
 test('staff cannot submit a customer request', function () {

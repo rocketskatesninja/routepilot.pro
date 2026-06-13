@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\AssembleDashboardData;
+use App\Actions\SaveDashboardLayout;
+use App\Dashboard\DashboardWidgets;
+use App\Http\Requests\UpdateDashboardLayoutRequest;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
-use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\ChemistryService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -57,66 +61,39 @@ class DashboardController extends Controller
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * The tenant_admin command-center: a per-user customizable widget grid. The
+     * saved layout (or the catalog default) decides which widgets are placed;
+     * AssembleDashboardData computes only the data those widgets need.
+     *
+     * @return array<string, mixed>
+     */
     private function admin(User $user): array
     {
-        $todayRoutes = Route::query()->whereDate('scheduled_date', today())->with('stops:id,route_id,status')->get();
-        $stops = $todayRoutes->flatMap(fn (Route $r) => $r->stops);
-
-        // The admin's NEXT route with pending work (one-person operations work
-        // their own stops — show today's, or the next day that has stops).
-        $myRoute = Route::query()
-            ->where('agent_id', $user->id)
-            ->whereDate('scheduled_date', '>=', today())
-            ->whereHas('stops', fn ($q) => $q->where('status', 'pending'))
-            ->with(['stops' => fn ($q) => $q->with('pool:id,name,photo_path')->orderBy('stop_order')])
-            ->orderBy('scheduled_date')
-            ->first();
-        $myStops = $myRoute !== null ? $myRoute->stops : collect();
+        $layout = DashboardWidgets::layoutFor($user);
+        $enabled = array_values(array_filter(array_map(
+            fn (array $item): ?string => is_string($item['i'] ?? null) ? $item['i'] : null,
+            $layout,
+        )));
 
         return [
-            'my_route_label' => $myRoute?->scheduled_date === null
-                ? null
-                : ($myRoute->scheduled_date->isToday() ? 'today' : $myRoute->scheduled_date->isoFormat('ddd, MMM D')),
-            'my_stops' => $myStops->map(fn (RouteStop $s) => [
-                'id' => $s->id,
-                'pool' => $s->pool?->getAttribute('name'),
-                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
-                'status' => $s->status,
-            ])->values()->all(),
-            'stats' => [
-                'today_stops' => $stops->count(),
-                'completed_today' => $stops->where('status', 'completed')->count(),
-                'remaining_today' => $stops->whereIn('status', ['pending', 'in_progress'])->count(),
-                'agents' => User::query()->where('tenant_id', app('tenant_id'))->where('role', 'agent')->where('is_active', true)->count(),
-                'customers' => Customer::query()->count(),
-                'pools' => Pool::query()->count(),
-            ],
-            'recent_visits' => ServiceVisit::query()
-                ->where('status', 'completed')->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
-                ->latest('completed_at')->limit(6)->get()
-                ->map(fn (ServiceVisit $v) => [
-                    'id' => $v->id,
-                    'pool' => $v->pool?->getAttribute('name'),
-                    'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
-                    'agent' => $this->name($v->agent),
-                    'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
-                    'completed_on' => $v->completed_at?->toDateString(),
-                ])->all(),
-            'pending_requests' => ServiceRequest::query()
-                ->where('status', 'pending')->with(['customer:id,first_name,last_name,photo_path', 'pool:id,name,photo_path'])
-                ->latest()->limit(8)->get()
-                ->map(fn (ServiceRequest $r) => [
-                    'id' => $r->id,
-                    'type' => $r->type,
-                    'message' => $r->message,
-                    'customer' => $r->customer?->displayName(),
-                    'customer_photo' => $this->photoUrl($r->customer?->getAttribute('photo_path')),
-                    'pool' => $r->pool?->getAttribute('name'),
-                    'preferred_date' => $r->preferred_date?->toDateString(),
-                    'on' => $r->created_at?->toDateString(),
-                ])->all(),
+            'layout' => $layout,
+            'catalog' => DashboardWidgets::meta(),
+            'available' => DashboardWidgets::available($user, $enabled),
+            'widgets' => app(AssembleDashboardData::class)->handle($user, $enabled),
         ];
+    }
+
+    /** Persist the acting user's customized dashboard layout. */
+    public function saveLayout(UpdateDashboardLayoutRequest $request, SaveDashboardLayout $action): RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $layout = $request->validated('layout');
+        $action->handle($user, is_array($layout) ? $layout : []);
+
+        return back();
     }
 
     /** @return array<string, mixed> */

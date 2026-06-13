@@ -32,7 +32,13 @@ test('a tenant admin lands on the admin dashboard', function () {
     $this->actingAs($admin)
         ->get('/dashboard')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('dashboards/Admin')->has('stats.today_stops'));
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('dashboards/Admin')
+            ->has('layout')
+            ->has('available')
+            ->has('catalog')
+            ->has('widgets.stats.today_stops')
+        );
 });
 
 test('an agent lands on the agent dashboard with today\'s stops', function () {
