@@ -28,9 +28,17 @@ const tiles = computed(() => [
             v-for="t in tiles"
             :key="t.label"
             class="flex h-full flex-col items-center rounded-lg border border-border bg-background/40 px-3 py-2 text-center"
+            style="container-type: size"
         >
             <div class="text-xs text-muted-foreground">{{ t.label }}</div>
-            <div class="flex flex-1 items-center text-2xl font-semibold tabular-nums" :class="t.accent">{{ t.value }}</div>
+            <!-- The number scales with the tile (container-query units), so it grows as the widget grows. -->
+            <div
+                class="flex flex-1 items-center font-semibold leading-none tabular-nums"
+                :class="t.accent"
+                style="font-size: clamp(1.25rem, min(26cqh, 24cqw), 3.25rem)"
+            >
+                {{ t.value }}
+            </div>
         </div>
     </div>
 </template>

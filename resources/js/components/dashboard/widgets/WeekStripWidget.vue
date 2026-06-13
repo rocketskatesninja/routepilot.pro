@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { weatherDescribe } from '@/composables/useWeatherIcon';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 interface Day {
     date: string;
@@ -14,10 +15,26 @@ interface Day {
 }
 
 defineProps<{ data: { days: Day[] } }>();
+
+// Drop the weather (icon + temps) when the widget is too short to fit everything.
+const root = ref<HTMLElement | null>(null);
+const availH = ref(Infinity);
+let ro: ResizeObserver | null = null;
+onMounted(() => {
+    if (!root.value || typeof ResizeObserver === 'undefined') {
+        return;
+    }
+    ro = new ResizeObserver((entries) => {
+        availH.value = entries[0].contentRect.height;
+    });
+    ro.observe(root.value);
+});
+onBeforeUnmount(() => ro?.disconnect());
+const showWeather = computed(() => availH.value >= 115);
 </script>
 
 <template>
-    <div class="flex h-full items-stretch gap-1.5">
+    <div ref="root" class="flex h-full items-stretch gap-1.5">
         <div
             v-for="d in data.days"
             :key="d.date"
@@ -26,8 +43,8 @@ defineProps<{ data: { days: Day[] } }>();
         >
             <div class="text-xs font-medium uppercase text-muted-foreground">{{ d.dow }}</div>
             <div class="text-lg font-semibold tabular-nums">{{ d.day }}</div>
-            <component :is="weatherDescribe(d.code).icon" v-if="d.code !== null" class="size-4 text-muted-foreground" />
-            <div v-if="d.high !== null" class="text-[11px] leading-none tabular-nums">
+            <component :is="weatherDescribe(d.code).icon" v-if="showWeather && d.code !== null" class="size-4 text-muted-foreground" />
+            <div v-if="showWeather && d.high !== null" class="text-[11px] leading-none tabular-nums">
                 <span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span>
             </div>
             <div
