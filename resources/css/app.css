@@ -7,6 +7,15 @@ html {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* Tighten page gutters on mobile: the back-office page padding (p-4 / px-4 py-6)
+ * is too wide on a phone, so cut it ~80% for the page content (not the header)
+ * inside the sidebar content area. */
+@media (max-width: 767px) {
+    .rp-page-content > :not(header) {
+        padding: 0.2rem !important;
+    }
+}
+
 /*
  * RoutePilot token system.
  *   :root  = "daylight" — high-contrast light theme (also the field app theme)

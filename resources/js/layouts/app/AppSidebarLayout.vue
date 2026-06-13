@@ -18,7 +18,7 @@ withDefaults(defineProps<Props>(), {
 <template>
     <AppShell variant="sidebar">
         <AppSidebar />
-        <AppContent variant="sidebar">
+        <AppContent variant="sidebar" class="rp-page-content">
             <AppSidebarHeader :breadcrumbs="breadcrumbs" :meta="meta">
                 <template #actions><slot name="actions" /></template>
                 <template #filters><slot name="filters" /></template>
