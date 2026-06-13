@@ -28,11 +28,12 @@ class WeatherService
                     'latitude' => $lat,
                     'longitude' => $lng,
                     'current' => 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m',
+                    'hourly' => 'temperature_2m,weather_code,precipitation_probability',
                     'daily' => 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max',
                     'temperature_unit' => 'fahrenheit',
                     'wind_speed_unit' => 'mph',
                     'timezone' => 'auto',
-                    'forecast_days' => 5,
+                    'forecast_days' => 7,
                 ]);
 
                 return $res->ok() ? $this->shape($res->json()) : null;
@@ -91,8 +92,53 @@ class WeatherService
                 'wind' => (int) round($this->num($current['wind_speed_10m'] ?? null)),
                 'code' => (int) $this->num($current['weather_code'] ?? null),
             ],
+            'hours' => $this->hours($raw['hourly'] ?? null, is_string($current['time'] ?? null) ? $current['time'] : null),
             'days' => $days,
         ];
+    }
+
+    /**
+     * The next ~8 hourly entries from the current hour onward.
+     *
+     * @return list<array<string, int|string>>
+     */
+    private function hours(mixed $hourly, ?string $now): array
+    {
+        if (! is_array($hourly)) {
+            return [];
+        }
+        $times = is_array($hourly['time'] ?? null) ? $hourly['time'] : [];
+        $temps = is_array($hourly['temperature_2m'] ?? null) ? $hourly['temperature_2m'] : [];
+        $codes = is_array($hourly['weather_code'] ?? null) ? $hourly['weather_code'] : [];
+        $precip = is_array($hourly['precipitation_probability'] ?? null) ? $hourly['precipitation_probability'] : [];
+
+        // Skip past hours: keep entries at or after the current hour.
+        $nowHour = $now !== null ? substr($now, 0, 13) : null;
+        $start = 0;
+        if ($nowHour !== null) {
+            foreach ($times as $i => $time) {
+                if (is_string($time) && substr($time, 0, 13) >= $nowHour) {
+                    $start = (int) $i;
+                    break;
+                }
+            }
+        }
+
+        $out = [];
+        foreach (array_slice(array_keys($times), $start, 8) as $i) {
+            $time = $times[$i] ?? null;
+            if (! is_string($time)) {
+                continue;
+            }
+            $out[] = [
+                'hour' => Carbon::parse($time)->format('ga'),
+                'temp' => (int) round($this->num($temps[$i] ?? null)),
+                'code' => (int) $this->num($codes[$i] ?? null),
+                'precip' => (int) $this->num($precip[$i] ?? null),
+            ];
+        }
+
+        return $out;
     }
 
     private function num(mixed $v): float

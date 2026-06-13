@@ -45,7 +45,7 @@ class AssembleDashboardData
             $data['recent_visits'] = $this->recentVisits();
         }
         if (in_array('week_strip', $enabled, true)) {
-            $data['week_strip'] = $this->weekStrip();
+            $data['week_strip'] = $this->weekStrip($user);
         }
         if (in_array('today_stops', $enabled, true)) {
             $data['today_stops'] = $this->todayStops();
@@ -64,15 +64,18 @@ class AssembleDashboardData
     }
 
     /**
-     * The next seven days as a strip of stop counts (total + completed).
+     * The next seven days as a strip of stop counts (total + completed), with a
+     * daily weather code per day when the tenant has a geocoded address.
      *
      * @return array<string, mixed>
      */
-    private function weekStrip(): array
+    private function weekStrip(User $user): array
     {
         $routes = Route::query()
             ->whereBetween('scheduled_date', [today(), today()->addDays(6)])
             ->with('stops:id,route_id,status')->get();
+
+        $weatherByDate = $this->weatherCodesByDate($user);
 
         $days = [];
         for ($i = 0; $i < 7; $i++) {
@@ -85,10 +88,32 @@ class AssembleDashboardData
                 'total' => $stops->count(),
                 'completed' => $stops->where('status', 'completed')->count(),
                 'is_today' => $date->isToday(),
+                'code' => $weatherByDate[$date->toDateString()] ?? null,
             ];
         }
 
         return ['days' => $days];
+    }
+
+    /**
+     * Map of date => WMO weather code from the tenant's forecast (empty when no
+     * address/forecast).
+     *
+     * @return array<string, int>
+     */
+    private function weatherCodesByDate(User $user): array
+    {
+        $weather = $this->weather($user);
+        $forecastDays = is_array($weather['days'] ?? null) ? $weather['days'] : [];
+
+        $map = [];
+        foreach ($forecastDays as $day) {
+            if (is_array($day) && isset($day['date'], $day['code'])) {
+                $map[(string) $day['date']] = (int) $day['code'];
+            }
+        }
+
+        return $map;
     }
 
     /** @return list<array<string, mixed>> */

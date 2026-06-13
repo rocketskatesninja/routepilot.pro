@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { weatherDescribe } from '@/composables/useWeatherIcon';
+
 interface Day {
     date: string;
     dow: string;
@@ -6,6 +8,7 @@ interface Day {
     total: number;
     completed: number;
     is_today: boolean;
+    code: number | null;
 }
 
 defineProps<{ data: { days: Day[] } }>();
@@ -21,6 +24,7 @@ defineProps<{ data: { days: Day[] } }>();
         >
             <div class="text-xs font-medium uppercase text-muted-foreground">{{ d.dow }}</div>
             <div class="text-lg font-semibold tabular-nums">{{ d.day }}</div>
+            <component :is="weatherDescribe(d.code).icon" v-if="d.code !== null" class="size-4 text-muted-foreground" />
             <div
                 v-if="d.total"
                 class="text-xs tabular-nums"
