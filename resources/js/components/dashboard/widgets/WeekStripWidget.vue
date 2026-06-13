@@ -9,6 +9,8 @@ interface Day {
     completed: number;
     is_today: boolean;
     code: number | null;
+    high: number | null;
+    low: number | null;
 }
 
 defineProps<{ data: { days: Day[] } }>();
@@ -25,6 +27,9 @@ defineProps<{ data: { days: Day[] } }>();
             <div class="text-xs font-medium uppercase text-muted-foreground">{{ d.dow }}</div>
             <div class="text-lg font-semibold tabular-nums">{{ d.day }}</div>
             <component :is="weatherDescribe(d.code).icon" v-if="d.code !== null" class="size-4 text-muted-foreground" />
+            <div v-if="d.high !== null" class="text-[11px] leading-none tabular-nums">
+                <span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span>
+            </div>
             <div
                 v-if="d.total"
                 class="text-xs tabular-nums"

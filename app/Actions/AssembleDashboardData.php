@@ -75,12 +75,13 @@ class AssembleDashboardData
             ->whereBetween('scheduled_date', [today(), today()->addDays(6)])
             ->with('stops:id,route_id,status')->get();
 
-        $weatherByDate = $this->weatherCodesByDate($user);
+        $weatherByDate = $this->weatherByDate($user);
 
         $days = [];
         for ($i = 0; $i < 7; $i++) {
             $date = today()->addDays($i);
             $stops = $routes->filter(fn (Route $r) => $r->scheduled_date->isSameDay($date))->flatMap(fn (Route $r) => $r->stops);
+            $weather = $weatherByDate[$date->toDateString()] ?? null;
             $days[] = [
                 'date' => $date->toDateString(),
                 'dow' => $date->isoFormat('dd'),
@@ -88,7 +89,9 @@ class AssembleDashboardData
                 'total' => $stops->count(),
                 'completed' => $stops->where('status', 'completed')->count(),
                 'is_today' => $date->isToday(),
-                'code' => $weatherByDate[$date->toDateString()] ?? null,
+                'code' => $weather['code'] ?? null,
+                'high' => $weather['high'] ?? null,
+                'low' => $weather['low'] ?? null,
             ];
         }
 
@@ -96,20 +99,24 @@ class AssembleDashboardData
     }
 
     /**
-     * Map of date => WMO weather code from the tenant's forecast (empty when no
+     * Map of date => {code, high, low} from the tenant's forecast (empty when no
      * address/forecast).
      *
-     * @return array<string, int>
+     * @return array<string, array{code: int, high: int, low: int}>
      */
-    private function weatherCodesByDate(User $user): array
+    private function weatherByDate(User $user): array
     {
         $weather = $this->weather($user);
         $forecastDays = is_array($weather['days'] ?? null) ? $weather['days'] : [];
 
         $map = [];
         foreach ($forecastDays as $day) {
-            if (is_array($day) && isset($day['date'], $day['code'])) {
-                $map[(string) $day['date']] = (int) $day['code'];
+            if (is_array($day) && isset($day['date'], $day['code'], $day['high'], $day['low'])) {
+                $map[(string) $day['date']] = [
+                    'code' => (int) $day['code'],
+                    'high' => (int) $day['high'],
+                    'low' => (int) $day['low'],
+                ];
             }
         }
 
