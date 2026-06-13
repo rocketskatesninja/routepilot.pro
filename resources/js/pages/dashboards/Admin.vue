@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
                 </Button>
                 <div
                     v-if="pickerOpen && addable.length"
-                    class="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+                    class="fixed left-1/2 top-16 z-30 w-[calc(100vw-2rem)] max-w-xs -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-1 sm:w-56 sm:translate-x-0"
                 >
                     <button
                         v-for="w in addable"
