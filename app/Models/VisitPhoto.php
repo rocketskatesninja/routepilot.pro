@@ -13,7 +13,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class VisitPhoto extends Model
 {
     /** @var list<string> */
-    protected $fillable = ['service_visit_id', 'photo_path', 'caption'];
+    protected $fillable = ['service_visit_id', 'photo_path', 'caption', 'is_showcase'];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return ['is_showcase' => 'boolean'];
+    }
 
     /** @return BelongsTo<ServiceVisit, $this> */
     public function serviceVisit(): BelongsTo

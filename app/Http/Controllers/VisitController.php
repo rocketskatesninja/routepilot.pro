@@ -12,9 +12,11 @@ use App\Models\ChemicalReading;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\User;
+use App\Models\VisitPhoto;
 use App\Notifications\VisitCompleted;
 use App\Services\BillingService;
 use App\Services\ChemistryService;
+use App\Support\LandingCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -120,6 +122,21 @@ class VisitController extends Controller
         }
 
         return redirect('/dashboard')->with('success', 'Visit completed.');
+    }
+
+    /** Feature / un-feature a visit photo in the public gallery (tenant_admin curation). */
+    public function toggleShowcase(Request $request, VisitPhoto $photo): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        // VisitPhoto isn't tenant-scoped — assert ownership via its (scoped) visit.
+        $visit = $photo->serviceVisit()->first();
+        abort_if($visit === null, 404);
+
+        $validated = $request->validate(['is_showcase' => ['required', 'boolean']]);
+        $photo->update(['is_showcase' => (bool) $validated['is_showcase']]);
+        LandingCache::forget((int) $visit->getAttribute('tenant_id'));
+
+        return back();
     }
 
     /** The stop must belong to this tenant and be worked by this agent (or an admin). */

@@ -69,6 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('visit/{stop}', [VisitController::class, 'show'])->name('visit.show');
     Route::post('visit/{stop}/analyze', [VisitController::class, 'analyze'])->name('visit.analyze');
     Route::post('visit/{stop}/complete', [VisitController::class, 'complete'])->name('visit.complete');
+    Route::post('photos/{photo}/showcase', [VisitController::class, 'toggleShowcase'])->name('photos.showcase');
     Route::post('subscriptions', [SubscriptionController::class, 'store'])->name('subscriptions.store');
     Route::patch('subscriptions/{subscription}', [SubscriptionController::class, 'update'])->name('subscriptions.update');
     Route::delete('subscriptions/{subscription}', [SubscriptionController::class, 'destroy'])->name('subscriptions.destroy');

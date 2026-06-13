@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\AssembleLandingData;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Support\LandingConfig;
@@ -23,20 +24,20 @@ use Inertia\Response;
 class PublicSiteController extends Controller
 {
     /** Root: a custom-domain host → that tenant's landing; bare host → RoutePilot marketing. */
-    public function show(): Response
+    public function show(AssembleLandingData $assemble): Response
     {
         $tenant = app()->has('tenant') ? app('tenant') : null;
 
-        return $tenant instanceof Tenant ? $this->render($tenant) : Inertia::render('Welcome');
+        return $tenant instanceof Tenant ? $this->render($tenant, $assemble) : Inertia::render('Welcome');
     }
 
     /** Path-based tenant site on the platform host: routepilot.pro/t/{slug}. */
-    public function showBySlug(Tenant $tenant): Response
+    public function showBySlug(Tenant $tenant, AssembleLandingData $assemble): Response
     {
-        return $this->render($tenant);
+        return $this->render($tenant, $assemble);
     }
 
-    private function render(Tenant $tenant): Response
+    private function render(Tenant $tenant, AssembleLandingData $assemble): Response
     {
         abort_unless($tenant->getAttribute('status') === 'active', 404);
 
@@ -52,7 +53,7 @@ class PublicSiteController extends Controller
         return Inertia::render('public/Landing', [
             'sections' => $sections,
             'seo' => $this->seo($config, $tenant),
-            'live' => ['contactAction' => '/public/'.$tenant->slug.'/leads'],
+            'live' => $assemble->handle($tenant, $config),
             // Brand (name / logo / color) arrives via the shared `tenant` prop.
         ]);
     }

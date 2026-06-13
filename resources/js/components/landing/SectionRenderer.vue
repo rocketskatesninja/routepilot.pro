@@ -3,8 +3,12 @@ import type { Component } from 'vue';
 import ContactSection from './sections/ContactSection.vue';
 import CtaSection from './sections/CtaSection.vue';
 import FaqSection from './sections/FaqSection.vue';
+import GallerySection from './sections/GallerySection.vue';
 import HeroSection from './sections/HeroSection.vue';
+import ServiceAreaSection from './sections/ServiceAreaSection.vue';
 import ServicesSection from './sections/ServicesSection.vue';
+import StatsSection from './sections/StatsSection.vue';
+import TeamSection from './sections/TeamSection.vue';
 import TestimonialsSection from './sections/TestimonialsSection.vue';
 import type { BrandContext, LiveData, SectionConfig } from './types';
 
@@ -15,11 +19,14 @@ defineProps<{
     editing?: boolean;
 }>();
 
-// key → component. Live-data sections (stats, gallery, team, service_area) are
-// added in P3; until then they're simply skipped (no entry here).
+// key → component. Unknown keys are skipped by the renderer.
 const registry: Record<string, Component> = {
     hero: HeroSection,
+    stats: StatsSection,
     services: ServicesSection,
+    gallery: GallerySection,
+    team: TeamSection,
+    service_area: ServiceAreaSection,
     testimonials: TestimonialsSection,
     faq: FaqSection,
     cta: CtaSection,
