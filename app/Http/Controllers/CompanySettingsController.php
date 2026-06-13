@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateCompanyRequest;
 use App\Http\Requests\UpdateMailConfigRequest;
+use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
@@ -71,6 +72,8 @@ class CompanySettingsController extends Controller
             return back()->with('error', 'Could not create the Stripe onboarding link.');
         }
 
+        $this->audit($request, $tenant, 'company.stripe.connect_started');
+
         return Inertia::location($url);
     }
 
@@ -79,6 +82,8 @@ class CompanySettingsController extends Controller
     {
         $tenant = $this->tenant($request);
         $enabled = $stripe->refreshConnectStatus($tenant);
+
+        $this->audit($request, $tenant, 'company.stripe.onboarding_returned', ['charges_enabled' => $enabled]);
 
         return redirect('/company')->with(
             'success',
@@ -114,6 +119,8 @@ class CompanySettingsController extends Controller
                 ],
             ],
         );
+
+        $this->audit($request, $tenant, 'company.mail.updated', ['host' => $data['host']]);
 
         return back()->with('success', 'Mail settings saved.');
     }
@@ -156,7 +163,9 @@ class CompanySettingsController extends Controller
             'postal_code' => $data['postal_code'] ?? null,
         ]);
         // tax_rate is not mass-assignable (billing field) — set deliberately.
-        $tenant->forceFill(['tax_rate' => round(((float) $data['tax_rate_percent']) / 100, 4)]);
+        $oldTaxRate = round((float) $tenant->getAttribute('tax_rate'), 4);
+        $newTaxRate = round(((float) $data['tax_rate_percent']) / 100, 4);
+        $tenant->forceFill(['tax_rate' => $newTaxRate]);
 
         // Re-geocode only when the address moved (or a present address was never
         // geocoded). lat/lng are derived (not fillable); a geocode failure or a
@@ -179,7 +188,29 @@ class CompanySettingsController extends Controller
         TenantSetting::setFor($tenant->id, 'ai_provider', (string) $data['ai_provider']);
         TenantSetting::setFor($tenant->id, 'ai_model', (string) ($data['ai_model'] ?? ''));
 
+        // Audit the billing-sensitive field (the tax rate flows into invoices).
+        if ($oldTaxRate !== $newTaxRate) {
+            $this->audit($request, $tenant, 'company.tax_rate.updated', ['from' => $oldTaxRate, 'to' => $newTaxRate]);
+        }
+
         return back()->with('success', 'Company settings saved.');
+    }
+
+    /**
+     * Record a sensitive company-settings change in the audit trail.
+     *
+     * @param  array<string, mixed>|null  $changes
+     */
+    private function audit(Request $request, Tenant $tenant, string $action, ?array $changes = null): void
+    {
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => $action,
+            'model_type' => Tenant::class,
+            'model_id' => $tenant->id,
+            'changes' => $changes,
+            'ip_address' => $request->ip(),
+        ]);
     }
 
     /** Public URL for a stored photo path, or null when unset. */

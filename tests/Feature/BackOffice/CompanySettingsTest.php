@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Models\User;
@@ -85,4 +86,27 @@ test('agents cannot access company settings', function () {
 
     $this->actingAs($agent)->get('/company')->assertForbidden();
     $this->actingAs($agent)->patch('/company', [])->assertForbidden();
+});
+
+test('changing the tax rate is audited (and an unchanged rate is not)', function () {
+    $this->tenant->forceFill(['tax_rate' => 0.05])->save();
+
+    // A real change records an audit entry with the from/to.
+    $this->actingAs($this->admin)->patch('/company', [
+        'name' => 'Sunshine Pools', 'timezone' => 'America/Chicago', 'brand_color' => '#0ea5e9',
+        'tax_rate_percent' => 8.25, 'ai_provider' => 'anthropic',
+    ])->assertRedirect();
+
+    $entry = AuditLog::query()->where('action', 'company.tax_rate.updated')->latest('id')->first();
+    expect($entry)->not->toBeNull()
+        ->and($entry->model_id)->toBe($this->tenant->id)
+        ->and($entry->changes)->toMatchArray(['from' => 0.05, 'to' => 0.0825]);
+
+    // Re-saving the same rate does not add another entry.
+    $this->actingAs($this->admin)->patch('/company', [
+        'name' => 'Sunshine Pools', 'timezone' => 'America/Chicago', 'brand_color' => '#0ea5e9',
+        'tax_rate_percent' => 8.25, 'ai_provider' => 'anthropic',
+    ])->assertRedirect();
+
+    expect(AuditLog::query()->where('action', 'company.tax_rate.updated')->count())->toBe(1);
 });
