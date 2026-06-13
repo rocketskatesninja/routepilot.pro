@@ -70,28 +70,46 @@ class DashboardController extends Controller
      */
     private function admin(User $user): array
     {
-        $layout = DashboardWidgets::layoutFor($user);
-        $enabled = array_values(array_filter(array_map(
-            fn (array $item): ?string => is_string($item['i'] ?? null) ? $item['i'] : null,
-            $layout,
-        )));
+        $layouts = DashboardWidgets::layoutsFor($user);
+        $enabled = $this->enabledKeys($layouts);
 
         return [
-            'layout' => $layout,
+            'layouts' => $layouts,
             'catalog' => DashboardWidgets::meta(),
-            'available' => DashboardWidgets::available($user, $enabled),
+            'palette' => DashboardWidgets::palette($user),
             'widgets' => app(AssembleDashboardData::class)->handle($user, $enabled),
         ];
     }
 
-    /** Persist the acting user's customized dashboard layout. */
+    /**
+     * The union of widget keys across the desktop + mobile layouts — the data to
+     * compute, so whichever layout renders has what it needs.
+     *
+     * @param  array{desktop: list<array<string, int|string>>, mobile: list<array<string, int|string>>}  $layouts
+     * @return list<string>
+     */
+    private function enabledKeys(array $layouts): array
+    {
+        $keys = [];
+        foreach ([...$layouts['desktop'], ...$layouts['mobile']] as $item) {
+            $i = $item['i'] ?? null;
+            if (is_string($i)) {
+                $keys[$i] = true;
+            }
+        }
+
+        return array_keys($keys);
+    }
+
+    /** Persist the acting user's customized dashboard layout for one mode. */
     public function saveLayout(UpdateDashboardLayoutRequest $request, SaveDashboardLayout $action): RedirectResponse
     {
         $user = $request->user();
         abort_if($user === null, 403);
 
         $layout = $request->validated('layout');
-        $action->handle($user, is_array($layout) ? $layout : []);
+        $mode = $request->validated('mode');
+        $action->handle($user, is_string($mode) ? $mode : 'desktop', is_array($layout) ? $layout : []);
 
         return back();
     }

@@ -21,6 +21,7 @@ class UpdateDashboardLayoutRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'mode' => ['nullable', 'in:desktop,mobile'],
             'layout' => ['present', 'array', 'max:40'],
             'layout.*.i' => ['required', 'string', 'max:40'],
             'layout.*.x' => ['required', 'integer'],

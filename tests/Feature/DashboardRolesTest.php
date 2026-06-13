@@ -34,8 +34,9 @@ test('a tenant admin lands on the admin dashboard', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboards/Admin')
-            ->has('layout')
-            ->has('available')
+            ->has('layouts.desktop')
+            ->has('layouts.mobile')
+            ->has('palette')
             ->has('catalog')
             ->has('widgets.stats.today_stops')
         );

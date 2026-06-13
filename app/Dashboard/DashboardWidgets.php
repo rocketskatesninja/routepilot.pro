@@ -28,7 +28,7 @@ class DashboardWidgets
         'notifications' => ['label' => 'Notifications', 'icon' => 'Bell', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
     ];
 
-    /** Default starter grid per role (12-col grid). */
+    /** Default starter grid per role, desktop (12-col grid). */
     private const DEFAULTS = [
         'tenant_admin' => [
             ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
@@ -36,6 +36,17 @@ class DashboardWidgets
             ['i' => 'requests', 'x' => 8, 'y' => 3, 'w' => 4, 'h' => 6],
             ['i' => 'my_route', 'x' => 0, 'y' => 9, 'w' => 6, 'h' => 5],
             ['i' => 'recent_visits', 'x' => 6, 'y' => 9, 'w' => 6, 'h' => 5],
+        ],
+    ];
+
+    /** Default starter grid per role, mobile — widgets stacked full-width. */
+    private const DEFAULTS_MOBILE = [
+        'tenant_admin' => [
+            ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],
+            ['i' => 'route_map', 'x' => 0, 'y' => 5, 'w' => 12, 'h' => 6],
+            ['i' => 'requests', 'x' => 0, 'y' => 11, 'w' => 12, 'h' => 5],
+            ['i' => 'my_route', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 5],
+            ['i' => 'recent_visits', 'x' => 0, 'y' => 21, 'w' => 12, 'h' => 4],
         ],
     ];
 
@@ -73,25 +84,49 @@ class DashboardWidgets
     }
 
     /**
-     * The user's saved layout (sanitized to their role's widgets) or the default.
+     * The user's desktop + mobile layouts (sanitized to their role's widgets),
+     * or the per-mode defaults. Tolerates the legacy flat-array shape (treated
+     * as the desktop layout).
      *
-     * @return list<array<string, int|string>>
+     * @return array{desktop: list<array<string, int|string>>, mobile: list<array<string, int|string>>}
      */
-    public static function layoutFor(User $user): array
+    public static function layoutsFor(User $user): array
     {
         $role = (string) $user->getAttribute('role');
         $allowed = self::keysForRole($role);
-
         $saved = $user->getAttribute('dashboard_layout');
-        if (is_array($saved) && $saved !== []) {
-            $clean = self::sanitize($saved, $allowed);
-            if ($clean !== []) {
-                return $clean;
-            }
+
+        // Legacy flat-array shape → treat as the desktop layout.
+        if (is_array($saved) && array_is_list($saved)) {
+            $desktop = self::sanitize($saved, $allowed);
+
+            return [
+                'desktop' => $desktop !== [] ? $desktop : self::defaultLayout($role, $allowed, 'desktop'),
+                'mobile' => self::defaultLayout($role, $allowed, 'mobile'),
+            ];
         }
 
+        $savedDesktop = is_array($saved) && is_array($saved['desktop'] ?? null) ? self::sanitize($saved['desktop'], $allowed) : [];
+        $savedMobile = is_array($saved) && is_array($saved['mobile'] ?? null) ? self::sanitize($saved['mobile'], $allowed) : [];
+
+        return [
+            'desktop' => $savedDesktop !== [] ? $savedDesktop : self::defaultLayout($role, $allowed, 'desktop'),
+            'mobile' => $savedMobile !== [] ? $savedMobile : self::defaultLayout($role, $allowed, 'mobile'),
+        ];
+    }
+
+    /**
+     * The per-mode default layout for a role, role-filtered.
+     *
+     * @param  list<string>  $allowed
+     * @return list<array<string, int|string>>
+     */
+    private static function defaultLayout(string $role, array $allowed, string $mode): array
+    {
+        $source = $mode === 'mobile' ? (self::DEFAULTS_MOBILE[$role] ?? []) : (self::DEFAULTS[$role] ?? []);
+
         $out = [];
-        foreach (self::DEFAULTS[$role] ?? [] as $item) {
+        foreach ($source as $item) {
             if (in_array($item['i'], $allowed, true)) {
                 $out[] = $item;
             }
@@ -101,17 +136,17 @@ class DashboardWidgets
     }
 
     /**
-     * Widgets available to ADD (role-allowed, not already placed).
+     * Every widget a role may place, with display meta (the front-end filters
+     * out the ones already in the active layout).
      *
-     * @param  list<string>  $enabled
      * @return list<array<string, mixed>>
      */
-    public static function available(User $user, array $enabled): array
+    public static function palette(User $user): array
     {
         $role = (string) $user->getAttribute('role');
         $out = [];
         foreach (self::CATALOG as $key => $w) {
-            if (in_array($role, $w['roles'], true) && ! in_array($key, $enabled, true)) {
+            if (in_array($role, $w['roles'], true)) {
                 $out[] = ['key' => $key, 'label' => $w['label'], 'icon' => $w['icon'], 'w' => $w['w'], 'h' => $w['h'], 'minW' => $w['minW'], 'minH' => $w['minH']];
             }
         }

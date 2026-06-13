@@ -30,11 +30,12 @@ test('the admin dashboard renders the default widget grid', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboards/Admin')
-            ->has('layout', 5)
+            ->has('layouts.desktop', 5)
+            ->has('layouts.mobile', 5)
             ->has('catalog.stats')
             ->has('catalog.route_map')
             ->has('catalog.weather')
-            ->has('available', 5) // the opt-in widgets (week_strip, today_stops, weather, billing, notifications)
+            ->has('palette', 10) // every widget the role may add
             ->has('widgets.stats.today_stops')
             ->has('widgets.route_map.markers')
             ->has('widgets.recent_visits')
@@ -43,18 +44,18 @@ test('the admin dashboard renders the default widget grid', function () {
 
 test('saving a layout sanitizes unknown keys and clamps geometry', function () {
     $this->actingAs($this->admin)
-        ->post('/dashboard/layout', ['layout' => [
+        ->post('/dashboard/layout', ['mode' => 'desktop', 'layout' => [
             ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 99, 'h' => 1],   // w over-max, h under-min
             ['i' => 'requests', 'x' => 0, 'y' => 5, 'w' => 6, 'h' => 5],
             ['i' => 'bogus', 'x' => 0, 'y' => 0, 'w' => 4, 'h' => 4],     // unknown -> dropped
         ]])
         ->assertRedirect();
 
-    $layout = collect($this->admin->refresh()->dashboard_layout);
+    $desktop = collect($this->admin->refresh()->dashboard_layout['desktop']);
 
-    expect($layout->pluck('i')->sort()->values()->all())->toBe(['requests', 'stats']);
+    expect($desktop->pluck('i')->sort()->values()->all())->toBe(['requests', 'stats']);
 
-    $stats = $layout->firstWhere('i', 'stats');
+    $stats = $desktop->firstWhere('i', 'stats');
     expect($stats['w'])->toBe(12)   // clamped down from 99
         ->and($stats['h'])->toBe(2); // clamped up to minH
 });
@@ -63,24 +64,52 @@ test('a saved layout is per-user', function () {
     $other = User::factory()->for($this->tenant)->create();
 
     $this->actingAs($this->admin)
-        ->post('/dashboard/layout', ['layout' => [['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3]]])
+        ->post('/dashboard/layout', ['mode' => 'desktop', 'layout' => [['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3]]])
         ->assertRedirect();
 
-    expect($this->admin->refresh()->dashboard_layout)->toHaveCount(1)
+    expect($this->admin->refresh()->dashboard_layout['desktop'])->toHaveCount(1)
         ->and($other->refresh()->dashboard_layout)->toBeNull();
 });
 
-test('only the placed widgets compute data; the rest are offered to add', function () {
+test('desktop and mobile layouts are saved independently', function () {
+    $this->actingAs($this->admin)
+        ->post('/dashboard/layout', ['mode' => 'desktop', 'layout' => [['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3]]])
+        ->assertRedirect();
+    $this->actingAs($this->admin)
+        ->post('/dashboard/layout', ['mode' => 'mobile', 'layout' => [
+            ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],
+            ['i' => 'requests', 'x' => 0, 'y' => 5, 'w' => 12, 'h' => 5],
+        ]])
+        ->assertRedirect();
+
+    $saved = $this->admin->refresh()->dashboard_layout;
+    expect($saved['desktop'])->toHaveCount(1)    // desktop preserved when mobile is saved
+        ->and($saved['mobile'])->toHaveCount(2);
+});
+
+test('a legacy flat layout is read as the desktop layout', function () {
     $this->admin->forceFill(['dashboard_layout' => [['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3]]])->save();
+
+    $layouts = DashboardWidgets::layoutsFor($this->admin);
+    expect($layouts['desktop'])->toHaveCount(1)
+        ->and($layouts['mobile'])->not->toBeEmpty(); // mobile falls back to its default
+});
+
+test('only the placed widgets compute data; the rest are offered to add', function () {
+    $this->admin->forceFill(['dashboard_layout' => [
+        'desktop' => [['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3]],
+        'mobile' => [['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5]],
+    ]])->save();
 
     $this->actingAs($this->admin)
         ->get('/dashboard')
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboards/Admin')
-            ->has('layout', 1)
+            ->has('layouts.desktop', 1)
+            ->has('layouts.mobile', 1)
             ->has('widgets.stats')
             ->missing('widgets.my_route')
-            ->has('available', 9)
+            ->has('palette', 10)
         );
 });
 
@@ -158,7 +187,7 @@ test('the widget catalog role-filters', function () {
         ->and(DashboardWidgets::keysForRole('agent'))->toBe(['stats']);
 
     $agent = User::factory()->agent()->for($this->tenant)->create();
-    expect(collect(DashboardWidgets::available($agent, []))->pluck('key')->all())->toBe(['stats']);
+    expect(collect(DashboardWidgets::palette($agent))->pluck('key')->all())->toBe(['stats']);
 });
 
 test('assembled widget data is tenant-scoped and lazy', function () {
