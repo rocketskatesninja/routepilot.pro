@@ -30,9 +30,13 @@ use App\Http\Controllers\VisitController;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 
-// Public root: a resolved tenant host renders its landing page; the bare
+// Public root: a custom-domain host renders that tenant's landing; the bare
 // platform host falls back to RoutePilot's own marketing (inside the controller).
 Route::get('/', [PublicSiteController::class, 'show'])->name('home');
+
+// Tenant public sites on the platform host are PATH-based (not subdomains):
+// routepilot.pro/s/{slug}. Custom domains serve the landing at their own root.
+Route::get('s/{tenant:slug}', [PublicSiteController::class, 'showBySlug'])->name('public.site');
 
 // Public one-click unsubscribe (signed) — sets the marketing suppression flag.
 Route::get('unsubscribe/{customer}', function (Customer $customer) {

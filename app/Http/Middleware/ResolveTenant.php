@@ -17,9 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
  *  1. STAFF — an authenticated non-super-admin user carries their tenant in
  *     the session; we bind directly from $user->tenant_id (slug-free, no
  *     subdomain redirect dance).
- *  2. PUBLIC — unauthenticated/marketing/portal hosts resolve by matching
- *     the request host to a tenant's custom `primary_domain`, then falling
- *     back to a `slug.routepilot.pro` subdomain.
+ *  2. PUBLIC — unauthenticated/marketing/portal requests resolve by matching
+ *     the request host to a tenant's custom `primary_domain`. Tenant sites on
+ *     the platform host are reached by a /s/{slug} PATH (not a subdomain).
  *  3. Super admins and the bare main domain pass through with no tenant.
  *
  * User route-model bindings are NOT globally scoped, so we still assert an
@@ -66,20 +66,10 @@ class ResolveTenant
      */
     protected function resolveFromHost(string $host): ?Tenant
     {
-        $tenant = Tenant::query()->where('primary_domain', $host)->first();
-        if ($tenant) {
-            return $tenant;
-        }
-
-        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST) ?: '';
-        if ($appHost !== '' && str_ends_with($host, '.'.$appHost)) {
-            $slug = substr($host, 0, -1 * (strlen($appHost) + 1));
-            if ($slug !== '' && $slug !== 'www') {
-                return Tenant::query()->where('slug', $slug)->first();
-            }
-        }
-
-        return null;
+        // Public tenants resolve by their own CUSTOM DOMAIN only. Tenant sites on
+        // the platform host are reached by PATH (routepilot.pro/s/{slug}) — not a
+        // subdomain — so there is no {slug}.routepilot.pro fallback here.
+        return Tenant::query()->where('primary_domain', $host)->first();
     }
 
     protected function bind(Tenant $tenant): void

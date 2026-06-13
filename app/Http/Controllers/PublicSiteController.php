@@ -12,22 +12,39 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The public marketing surface. On a resolved tenant host (custom domain or
- * {slug}.routepilot.pro — bound by ResolveTenant) the root renders that
- * tenant's section-based landing page (SSR); on the bare platform host it
- * falls back to RoutePilot's own marketing page.
+ * The public marketing surface. A tenant's landing is reached either by its own
+ * custom domain (resolved by host in ResolveTenant) OR by a PATH on the platform
+ * host — routepilot.pro/s/{slug} — NOT a subdomain. The bare platform host falls
+ * back to RoutePilot's own marketing page.
  *
- * P1: renders the (sanitized) config + SEO. Live-data sections (gallery/stats/
- * team/map) are assembled in P3 via AssembleLandingData.
+ * P2: renders the (sanitized) config + SEO. Live-data sections (gallery/stats/
+ * team/map) are assembled in P3.
  */
 class PublicSiteController extends Controller
 {
+    /** Root: a custom-domain host → that tenant's landing; bare host → RoutePilot marketing. */
     public function show(): Response
     {
         $tenant = app()->has('tenant') ? app('tenant') : null;
-        if (! $tenant instanceof Tenant) {
-            return Inertia::render('Welcome');
-        }
+
+        return $tenant instanceof Tenant ? $this->render($tenant) : Inertia::render('Welcome');
+    }
+
+    /** Path-based tenant site on the platform host: routepilot.pro/s/{slug}. */
+    public function showBySlug(Tenant $tenant): Response
+    {
+        return $this->render($tenant);
+    }
+
+    private function render(Tenant $tenant): Response
+    {
+        abort_unless($tenant->getAttribute('status') === 'active', 404);
+
+        // Bind the tenant so the shared `tenant` prop, brand injection, and any
+        // tenant-scoped section data resolve correctly (the path route reaches
+        // here without ResolveTenant having bound a tenant by host).
+        app()->instance('tenant', $tenant);
+        app()->instance('tenant_id', $tenant->id);
 
         $config = LandingConfig::fromStored(TenantSetting::getFor($tenant->id, 'landing'));
         $sections = array_map(self::withImageUrls(...), LandingConfig::enabledOrdered($config));
