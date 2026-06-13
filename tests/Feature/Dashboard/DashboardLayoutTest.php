@@ -29,14 +29,14 @@ test('the admin dashboard renders the default widget grid', function () {
         ->get('/dashboard')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dashboards/Admin')
+            ->component('dashboards/Grid')
             ->has('layouts.desktop', 5)
             ->has('layouts.mobile', 5)
             ->has('catalog.stats')
             ->has('catalog.route_map')
             ->has('catalog.weather')
             ->has('palette', 10) // every widget the role may add
-            ->has('widgets.stats.today_stops')
+            ->has('widgets.stats.tiles')
             ->has('widgets.route_map.markers')
             ->has('widgets.recent_visits')
         );
@@ -104,7 +104,7 @@ test('only the placed widgets compute data; the rest are offered to add', functi
     $this->actingAs($this->admin)
         ->get('/dashboard')
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dashboards/Admin')
+            ->component('dashboards/Grid')
             ->has('layouts.desktop', 1)
             ->has('layouts.mobile', 1)
             ->has('widgets.stats')
@@ -183,11 +183,13 @@ test('guests cannot save a dashboard layout', function () {
 });
 
 test('the widget catalog role-filters', function () {
-    expect(DashboardWidgets::keysForRole('tenant_admin'))->toContain('stats', 'my_route', 'requests', 'recent_visits')
-        ->and(DashboardWidgets::keysForRole('agent'))->toBe(['stats']);
+    expect(DashboardWidgets::keysForRole('tenant_admin'))->toContain('stats', 'my_route', 'requests')->not->toContain('agent_stats', 'platform_stats')
+        ->and(DashboardWidgets::keysForRole('agent'))->toContain('agent_stats', 'agent_route', 'weather')->not->toContain('stats', 'requests')
+        ->and(DashboardWidgets::keysForRole('customer'))->toContain('my_pools', 'next_visit', 'account_balance')
+        ->and(DashboardWidgets::keysForRole('super_admin'))->toContain('platform_stats', 'recent_tenants');
 
     $agent = User::factory()->agent()->for($this->tenant)->create();
-    expect(collect(DashboardWidgets::palette($agent))->pluck('key')->all())->toBe(['stats']);
+    expect(collect(DashboardWidgets::palette($agent))->pluck('key')->all())->toContain('agent_stats', 'agent_route');
 });
 
 test('assembled widget data is tenant-scoped and lazy', function () {
@@ -197,7 +199,7 @@ test('assembled widget data is tenant-scoped and lazy', function () {
 
     $data = app(AssembleDashboardData::class)->handle($this->admin, ['stats']);
 
-    expect($data['stats']['agents'])->toBe(1)        // only this tenant's active agent
+    expect($data['stats']['tiles'][3])->toMatchArray(['label' => 'Agents', 'value' => 1]) // only this tenant's active agent
         ->and($data)->toHaveKey('stats')
         ->and($data)->not->toHaveKey('my_route');     // only the enabled widget was computed
 });

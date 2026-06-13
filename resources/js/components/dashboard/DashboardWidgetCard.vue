@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import {
+    Banknote,
     Bell,
+    Building2,
+    CalendarDays,
     CalendarRange,
     CloudSun,
     DollarSign,
@@ -10,6 +13,7 @@ import {
     LayoutGrid,
     ListChecks,
     Map,
+    Waves,
     X,
     type LucideIcon,
 } from 'lucide-vue-next';
@@ -19,7 +23,9 @@ const props = defineProps<{ title: string; icon: string; editing?: boolean }>();
 defineEmits<{ remove: [] }>();
 
 // Catalog icon names (from App\Dashboard\DashboardWidgets) → lucide components.
-const ICONS: Record<string, LucideIcon> = { LayoutGrid, Map, Inbox, FileText, CalendarRange, ListChecks, CloudSun, DollarSign, Bell };
+const ICONS: Record<string, LucideIcon> = {
+    LayoutGrid, Map, Inbox, FileText, CalendarRange, ListChecks, CloudSun, DollarSign, Bell, Waves, CalendarDays, Banknote, Building2,
+};
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>
 

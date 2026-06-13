@@ -16,16 +16,30 @@ class DashboardWidgets
 {
     /** key => {label, icon (lucide), minW, minH, w, h (defaults), roles[]}. */
     private const CATALOG = [
-        'stats' => ['label' => 'Stats overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['tenant_admin', 'agent']],
+        'stats' => ['label' => 'Stats overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['tenant_admin']],
         'route_map' => ['label' => "Today's route map", 'icon' => 'Map', 'minW' => 4, 'minH' => 4, 'w' => 8, 'h' => 6, 'roles' => ['tenant_admin']],
         'my_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'requests' => ['label' => 'Customer requests', 'icon' => 'Inbox', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'recent_visits' => ['label' => 'Recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['tenant_admin']],
         'week_strip' => ['label' => 'Week at a glance', 'icon' => 'CalendarRange', 'minW' => 4, 'minH' => 2, 'w' => 8, 'h' => 3, 'roles' => ['tenant_admin']],
         'today_stops' => ['label' => "Today's stops", 'icon' => 'ListChecks', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 6, 'roles' => ['tenant_admin']],
-        'weather' => ['label' => 'Weather', 'icon' => 'CloudSun', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
+        'weather' => ['label' => 'Weather', 'icon' => 'CloudSun', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin', 'agent']],
         'billing_summary' => ['label' => 'Outstanding balances', 'icon' => 'DollarSign', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
         'notifications' => ['label' => 'Notifications', 'icon' => 'Bell', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
+
+        // agent (field PWA)
+        'agent_stats' => ['label' => 'My day', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['agent']],
+        'agent_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 6, 'roles' => ['agent']],
+
+        // customer (portal)
+        'my_pools' => ['label' => 'My pools', 'icon' => 'Waves', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
+        'next_visit' => ['label' => 'Next visit', 'icon' => 'CalendarDays', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
+        'account_balance' => ['label' => 'Account balance', 'icon' => 'Banknote', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
+        'customer_visits' => ['label' => 'Recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
+
+        // super_admin (platform)
+        'platform_stats' => ['label' => 'Platform overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['super_admin']],
+        'recent_tenants' => ['label' => 'Recent tenants', 'icon' => 'Building2', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 5, 'roles' => ['super_admin']],
     ];
 
     /** Default starter grid per role, desktop (12-col grid). */
@@ -37,6 +51,21 @@ class DashboardWidgets
             ['i' => 'my_route', 'x' => 0, 'y' => 9, 'w' => 6, 'h' => 5],
             ['i' => 'recent_visits', 'x' => 6, 'y' => 9, 'w' => 6, 'h' => 5],
         ],
+        'agent' => [
+            ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
+            ['i' => 'agent_route', 'x' => 0, 'y' => 3, 'w' => 8, 'h' => 6],
+            ['i' => 'weather', 'x' => 8, 'y' => 3, 'w' => 4, 'h' => 6],
+        ],
+        'customer' => [
+            ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
+            ['i' => 'next_visit', 'x' => 0, 'y' => 4, 'w' => 6, 'h' => 3],
+            ['i' => 'account_balance', 'x' => 6, 'y' => 4, 'w' => 6, 'h' => 3],
+            ['i' => 'customer_visits', 'x' => 0, 'y' => 7, 'w' => 12, 'h' => 4],
+        ],
+        'super_admin' => [
+            ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
+            ['i' => 'recent_tenants', 'x' => 0, 'y' => 3, 'w' => 12, 'h' => 5],
+        ],
     ];
 
     /** Default starter grid per role, mobile — widgets stacked full-width. */
@@ -47,6 +76,21 @@ class DashboardWidgets
             ['i' => 'requests', 'x' => 0, 'y' => 11, 'w' => 12, 'h' => 5],
             ['i' => 'my_route', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 5],
             ['i' => 'recent_visits', 'x' => 0, 'y' => 21, 'w' => 12, 'h' => 4],
+        ],
+        'agent' => [
+            ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
+            ['i' => 'agent_route', 'x' => 0, 'y' => 4, 'w' => 12, 'h' => 7],
+            ['i' => 'weather', 'x' => 0, 'y' => 11, 'w' => 12, 'h' => 5],
+        ],
+        'customer' => [
+            ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
+            ['i' => 'next_visit', 'x' => 0, 'y' => 4, 'w' => 12, 'h' => 3],
+            ['i' => 'account_balance', 'x' => 0, 'y' => 7, 'w' => 12, 'h' => 3],
+            ['i' => 'customer_visits', 'x' => 0, 'y' => 10, 'w' => 12, 'h' => 4],
+        ],
+        'super_admin' => [
+            ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],
+            ['i' => 'recent_tenants', 'x' => 0, 'y' => 5, 'w' => 12, 'h' => 6],
         ],
     ];
 
