@@ -22,6 +22,9 @@ class LandingConfig
     /** Live metric keys the stats section may surface. */
     public const METRICS = ['pools_serviced', 'visits_completed', 'years_active'];
 
+    /** Hero background presets (images in public/assets/images/hero-presets). */
+    public const HERO_PRESETS = ['backyard', 'cityscape', 'infinity', 'islands', 'night', 'patio', 'resort', 'skyline', 'sunset', 'tiles', 'underwater', 'water'];
+
     private const CAP = ['items' => 20, 'faq' => 30, 'gallery' => 24, 'team' => 12];
 
     /**
@@ -36,7 +39,7 @@ class LandingConfig
             'seo' => ['title' => null, 'description' => null, 'og_image' => null],
             'theme' => ['accent' => 'brand', 'hero_style' => 'image-right', 'show_logo' => true],
             'sections' => [
-                ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'image_path' => null],
+                ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
                 ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => self::METRICS],
                 ['key' => 'services', 'enabled' => true, 'heading' => 'What we do', 'items' => [
                     ['title' => 'Weekly maintenance', 'body' => 'Full chemical balancing, skimming, and equipment checks on a dependable schedule.', 'icon' => 'droplet'],
@@ -198,7 +201,14 @@ class LandingConfig
                 'subhead' => self::str($raw['subhead'] ?? null, 240),
                 'cta_label' => self::str($raw['cta_label'] ?? null, 40),
                 'cta_anchor' => self::str($raw['cta_anchor'] ?? null, 40),
+                'bg_type' => in_array($raw['bg_type'] ?? null, ['preset', 'image', 'gradient'], true) ? $raw['bg_type'] : 'preset',
+                'preset' => in_array($raw['preset'] ?? null, self::HERO_PRESETS, true) ? $raw['preset'] : 'backyard',
                 'image_path' => self::imagePath($raw['image_path'] ?? null),
+                'gradient_start' => self::hex($raw['gradient_start'] ?? null, '#0f172a'),
+                'gradient_end' => self::hex($raw['gradient_end'] ?? null, '#0369a1'),
+                'headline_size' => in_array($raw['headline_size'] ?? null, ['sm', 'md', 'lg', 'xl'], true) ? $raw['headline_size'] : 'lg',
+                'headline_max_width' => self::int($raw['headline_max_width'] ?? null, 32, 80, 56),
+                'effects' => self::effects($raw['effects'] ?? null),
             ],
             'stats' => $base + [
                 'heading' => $heading,
@@ -304,5 +314,28 @@ class LandingConfig
     private static function imagePath(mixed $v): ?string
     {
         return is_string($v) && preg_match('#^landing/[\w/-]+\.(jpe?g|png|webp)$#i', $v) === 1 ? $v : null;
+    }
+
+    private static function hex(mixed $v, string $default): string
+    {
+        return is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) === 1 ? $v : $default;
+    }
+
+    /**
+     * Hero effect toggles (+ overlay opacity).
+     *
+     * @return array<string, bool|int>
+     */
+    private static function effects(mixed $raw): array
+    {
+        $e = is_array($raw) ? $raw : [];
+
+        return [
+            'dark_overlay' => (bool) ($e['dark_overlay'] ?? false),
+            'overlay_opacity' => self::int($e['overlay_opacity'] ?? null, 0, 90, 40),
+            'cta_glow' => (bool) ($e['cta_glow'] ?? false),
+            'scroll_cue' => (bool) ($e['scroll_cue'] ?? false),
+            'ken_burns' => (bool) ($e['ken_burns'] ?? false),
+        ];
     }
 }

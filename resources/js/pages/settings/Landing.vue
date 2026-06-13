@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Check, ChevronDown, Eye, EyeOff, GripVertical, Loader2, Plus, Star, Trash2 } from 'lucide-vue-next';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Eye, EyeOff, GripVertical, Loader2, Lock, Plus, RotateCw, Star, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import draggable from 'vuedraggable';
 import '../../../css/landing.css';
@@ -80,6 +80,28 @@ const METRICS: [string, string][] = [
     ['visits_completed', 'Visits completed'],
     ['years_active', 'Years in business'],
 ];
+const HERO_PRESETS = [
+    'backyard',
+    'cityscape',
+    'infinity',
+    'islands',
+    'night',
+    'patio',
+    'resort',
+    'skyline',
+    'sunset',
+    'tiles',
+    'underwater',
+    'water',
+];
+const strOr = (v: unknown, d: string): string => (typeof v === 'string' && v !== '' ? v : d);
+const numOr = (v: unknown, d: number): number => (typeof v === 'number' ? v : d);
+function fxOf(s: SectionConfig): Record<string, unknown> {
+    if (typeof s.effects !== 'object' || s.effects === null || Array.isArray(s.effects)) {
+        s.effects = {};
+    }
+    return s.effects as Record<string, unknown>;
+}
 
 // --- mutation helpers (operate on local draft state; preview is reactive) ---
 function itemsOf(s: SectionConfig): Record<string, unknown>[] {
@@ -256,13 +278,149 @@ function save() {
                                             <Label>Button target</Label><Input v-model="s.cta_anchor" placeholder="contact" />
                                         </div>
                                     </div>
-                                    <div class="grid gap-1">
-                                        <Label>Background image</Label
-                                        ><LandingImagePicker
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="grid gap-1">
+                                            <Label>Headline size</Label>
+                                            <div class="flex gap-1">
+                                                <button
+                                                    v-for="sz in ['sm', 'md', 'lg', 'xl']"
+                                                    :key="sz"
+                                                    type="button"
+                                                    class="flex-1 rounded-md border py-1 text-xs uppercase"
+                                                    :class="
+                                                        (s.headline_size || 'lg') === sz
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-border'
+                                                    "
+                                                    @click="s.headline_size = sz"
+                                                >
+                                                    {{ sz }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="grid gap-1">
+                                            <Label>Width · {{ numOr(s.headline_max_width, 56) }}rem</Label>
+                                            <input
+                                                type="range"
+                                                min="32"
+                                                max="80"
+                                                :value="numOr(s.headline_max_width, 56)"
+                                                class="mt-2 w-full"
+                                                @input="s.headline_max_width = Number(($event.target as HTMLInputElement).value)"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="grid gap-1.5">
+                                        <Label>Background</Label>
+                                        <div class="flex gap-1">
+                                            <button
+                                                v-for="[bt, bl] in [
+                                                    ['preset', 'Preset'],
+                                                    ['image', 'Upload'],
+                                                    ['gradient', 'Gradient'],
+                                                ]"
+                                                :key="bt"
+                                                type="button"
+                                                class="flex-1 rounded-md border py-1 text-xs"
+                                                :class="
+                                                    (s.bg_type || 'preset') === bt ? 'border-primary bg-primary/10 text-primary' : 'border-border'
+                                                "
+                                                @click="s.bg_type = bt"
+                                            >
+                                                {{ bl }}
+                                            </button>
+                                        </div>
+                                        <div v-if="(s.bg_type || 'preset') === 'preset'" class="grid grid-cols-4 gap-2">
+                                            <button
+                                                v-for="p in HERO_PRESETS"
+                                                :key="p"
+                                                type="button"
+                                                class="overflow-hidden rounded-md border-2"
+                                                :class="(s.preset || 'backyard') === p ? 'border-primary' : 'border-transparent'"
+                                                @click="s.preset = p"
+                                            >
+                                                <img
+                                                    :src="`/assets/images/hero-presets/${p}.jpg`"
+                                                    :alt="p"
+                                                    loading="lazy"
+                                                    class="h-11 w-full object-cover"
+                                                />
+                                            </button>
+                                        </div>
+                                        <LandingImagePicker
+                                            v-else-if="s.bg_type === 'image'"
                                             :url="heroUrl(s)"
                                             label="hero image"
                                             @uploaded="(e) => onHeroUpload(s, e)"
                                         />
+                                        <div v-else class="grid grid-cols-2 gap-3">
+                                            <div class="grid gap-1">
+                                                <Label class="text-xs">Top color</Label
+                                                ><input
+                                                    type="color"
+                                                    :value="strOr(s.gradient_start, '#0f172a')"
+                                                    class="h-9 w-full rounded border border-input"
+                                                    @input="s.gradient_start = ($event.target as HTMLInputElement).value"
+                                                />
+                                            </div>
+                                            <div class="grid gap-1">
+                                                <Label class="text-xs">Bottom color</Label
+                                                ><input
+                                                    type="color"
+                                                    :value="strOr(s.gradient_end, '#0369a1')"
+                                                    class="h-9 w-full rounded border border-input"
+                                                    @input="s.gradient_end = ($event.target as HTMLInputElement).value"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid gap-1.5">
+                                        <Label>Effects</Label>
+                                        <label class="flex items-center gap-2"
+                                            ><input
+                                                type="checkbox"
+                                                :checked="!!fxOf(s).ken_burns"
+                                                @change="fxOf(s).ken_burns = ($event.target as HTMLInputElement).checked"
+                                            />
+                                            Ken Burns zoom</label
+                                        >
+                                        <label class="flex items-center gap-2"
+                                            ><input
+                                                type="checkbox"
+                                                :checked="!!fxOf(s).cta_glow"
+                                                @change="fxOf(s).cta_glow = ($event.target as HTMLInputElement).checked"
+                                            />
+                                            Button glow</label
+                                        >
+                                        <label class="flex items-center gap-2"
+                                            ><input
+                                                type="checkbox"
+                                                :checked="!!fxOf(s).scroll_cue"
+                                                @change="fxOf(s).scroll_cue = ($event.target as HTMLInputElement).checked"
+                                            />
+                                            Scroll-down arrow</label
+                                        >
+                                        <label class="flex items-center gap-2"
+                                            ><input
+                                                type="checkbox"
+                                                :checked="!!fxOf(s).dark_overlay"
+                                                @change="fxOf(s).dark_overlay = ($event.target as HTMLInputElement).checked"
+                                            />
+                                            Dark overlay</label
+                                        >
+                                        <div v-if="fxOf(s).dark_overlay" class="pl-6">
+                                            <Label class="text-xs">Overlay · {{ fxOf(s).overlay_opacity ?? 40 }}%</Label>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="90"
+                                                :value="numOr(fxOf(s).overlay_opacity, 40)"
+                                                class="mt-1 w-full"
+                                                @input="fxOf(s).overlay_opacity = Number(($event.target as HTMLInputElement).value)"
+                                            />
+                                        </div>
                                     </div>
                                 </template>
 
@@ -440,11 +598,12 @@ function save() {
             <aside class="sticky top-4 hidden flex-1 xl:block">
                 <div class="overflow-hidden rounded-xl border border-border shadow-lg">
                     <div class="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                        <span class="flex gap-1"
-                            ><span class="size-2.5 rounded-full bg-red-400"></span><span class="size-2.5 rounded-full bg-amber-400"></span
-                            ><span class="size-2.5 rounded-full bg-emerald-400"></span
-                        ></span>
-                        <span class="ml-2 truncate rounded bg-background px-2 py-0.5">routepilot.pro/t/{{ brand.slug }}</span>
+                        <ArrowLeft class="size-3.5" />
+                        <ArrowRight class="size-3.5 opacity-40" />
+                        <RotateCw class="size-3.5" />
+                        <span class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-background px-3 py-1">
+                            <Lock class="size-3 text-emerald-600" /> routepilot.pro/t/{{ brand.slug }}
+                        </span>
                     </div>
                     <div class="h-[calc(100vh-9rem)] overflow-y-auto bg-background">
                         <div class="preview-live landing-scale">
