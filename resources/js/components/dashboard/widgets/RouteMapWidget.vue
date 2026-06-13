@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { loadGoogleMaps } from '@/composables/useGoogleMap';
+import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
@@ -38,6 +38,9 @@ onMounted(async () => {
         const single = points.length === 1;
 
         const opts: Record<string, unknown> = { disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative' };
+        if (isDarkMode()) {
+            opts.styles = DARK_MAP_STYLE;
+        }
         if (single) {
             opts.center = points[0];
             opts.zoom = 13;

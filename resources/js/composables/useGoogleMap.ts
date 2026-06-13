@@ -1,5 +1,28 @@
 type Ctor = new (...args: unknown[]) => unknown;
 
+/** Whether the site is currently in dark mode (the .dark class on <html>). */
+export function isDarkMode(): boolean {
+    return typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+}
+
+/** A dark Google Maps style array, applied when the site is in dark mode. */
+export const DARK_MAP_STYLE: Array<Record<string, unknown>> = [
+    { elementType: 'geometry', stylers: [{ color: '#1f2733' }] },
+    { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#8a97a8' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#141a22' }] },
+    { featureType: 'administrative', elementType: 'geometry', stylers: [{ color: '#5a6678' }] },
+    { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#aeb8c6' }] },
+    { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#7c8696' }] },
+    { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#16202b' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2b3543' }] },
+    { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#9aa6b4' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a4656' }] },
+    { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2b3543' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e161f' }] },
+    { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4a5664' }] },
+];
+
 export interface GLatLngBounds {
     extend(p: { lat: number; lng: number }): void;
 }

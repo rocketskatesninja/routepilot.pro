@@ -65,7 +65,7 @@ const trust = ['Licensed & Insured', '5-Star Rated', 'CPO Certified', 'Same-Day 
         <img v-if="bgImage" :src="bgImage" alt="" class="absolute inset-0 h-full w-full object-cover" :class="fx.ken_burns ? 'ken-burns' : ''" />
         <div v-else class="absolute inset-0" :style="gradientStyle"></div>
         <div v-if="fx.dark_overlay" class="absolute inset-0 bg-black" :style="overlayStyle"></div>
-        <div v-if="fx.dot_matrix" class="hero-dots pointer-events-none absolute inset-0"></div>
+        <div v-if="fx.dot_matrix" class="hero-dots pointer-events-none absolute inset-0" :class="fx.ken_burns ? 'ken-burns' : ''"></div>
         <div v-if="fx.vignette" class="hero-vignette pointer-events-none absolute inset-0"></div>
 
         <!-- Ambient blobs -->

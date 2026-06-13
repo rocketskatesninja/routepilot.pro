@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { loadGoogleMaps } from '@/composables/useGoogleMap';
+import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
@@ -27,7 +27,14 @@ onMounted(async () => {
         const m = g.maps;
         const center = { lat: area.value.lat as number, lng: area.value.lng as number };
         const brand = props.brand.color || '#0ea5e9';
-        const map = new m.Map(mapEl.value, { center, zoom: 11, disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative' });
+        const map = new m.Map(mapEl.value, {
+            center,
+            zoom: 11,
+            disableDefaultUI: true,
+            zoomControl: true,
+            gestureHandling: 'cooperative',
+            styles: isDarkMode() ? DARK_MAP_STYLE : undefined,
+        });
         const layers: unknown[] = [];
         layers.push(new m.Marker({ position: center, map }));
         layers.push(

@@ -18,7 +18,8 @@ html {
     :root {
         --background: 0 0% 100%;
         --foreground: 222 47% 11%;
-        --card: 0 0% 100%;
+        /* Panels are a light gray so they read as surfaces on the white page (mirrors the dark theme, where cards are lighter than the bg). */
+        --card: 210 24% 96%;
         --card-foreground: 222 47% 11%;
         --popover: 0 0% 100%;
         --popover-foreground: 222 47% 11%;
