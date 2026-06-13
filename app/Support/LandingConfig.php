@@ -336,6 +336,9 @@ class LandingConfig
             'cta_glow' => (bool) ($e['cta_glow'] ?? false),
             'scroll_cue' => (bool) ($e['scroll_cue'] ?? false),
             'ken_burns' => (bool) ($e['ken_burns'] ?? false),
+            'dot_matrix' => (bool) ($e['dot_matrix'] ?? false),
+            'vignette' => (bool) ($e['vignette'] ?? false),
+            'grain' => (bool) ($e['grain'] ?? false),
         ];
     }
 }

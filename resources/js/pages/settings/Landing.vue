@@ -411,6 +411,30 @@ function save() {
                                                 />
                                                 Dark overlay</label
                                             >
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).dot_matrix"
+                                                    @change="fxOf(s).dot_matrix = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Dot matrix</label
+                                            >
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).vignette"
+                                                    @change="fxOf(s).vignette = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Vignette</label
+                                            >
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).grain"
+                                                    @change="fxOf(s).grain = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Film grain</label
+                                            >
                                         </div>
                                         <div v-if="fxOf(s).dark_overlay">
                                             <Label class="text-xs">Overlay · {{ fxOf(s).overlay_opacity ?? 40 }}%</Label>
