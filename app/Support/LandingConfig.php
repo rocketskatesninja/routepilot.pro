@@ -338,7 +338,6 @@ class LandingConfig
             'ken_burns' => (bool) ($e['ken_burns'] ?? false),
             'dot_matrix' => (bool) ($e['dot_matrix'] ?? false),
             'vignette' => (bool) ($e['vignette'] ?? false),
-            'grain' => (bool) ($e['grain'] ?? false),
         ];
     }
 }
