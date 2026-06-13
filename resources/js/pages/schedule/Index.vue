@@ -125,6 +125,7 @@ const statusClasses: Record<string, string> = {
             <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
                 ><Sparkles class="mr-1 size-4" /> Generate</Button
             >
+            <Button v-if="!isToday" size="sm" variant="ghost" @click="go()">Today</Button>
             <div class="flex items-center gap-1">
                 <button class="rounded-md border border-border p-1.5 hover:bg-muted" aria-label="Previous day" @click="shift(-1)">
                     <ChevronLeft class="size-4" />
@@ -140,7 +141,6 @@ const statusClasses: Record<string, string> = {
                 <button class="rounded-md border border-border p-1.5 hover:bg-muted" aria-label="Next day" @click="shift(1)">
                     <ChevronRight class="size-4" />
                 </button>
-                <Button v-if="!isToday" size="sm" variant="ghost" @click="go()">Today</Button>
             </div>
         </template>
 
