@@ -35,6 +35,7 @@ class PublicSiteController extends Controller
         return Inertia::render('public/Landing', [
             'sections' => $sections,
             'seo' => $this->seo($config, $tenant),
+            'live' => ['contactAction' => '/public/'.$tenant->slug.'/leads'],
             // Brand (name / logo / color) arrives via the shared `tenant` prop.
         ]);
     }

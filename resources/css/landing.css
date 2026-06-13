@@ -1,0 +1,274 @@
+/*
+ * RoutePilot public landing — shared section effects, ported from the legacy
+ * tenant site so the new Vue/Tailwind page keeps the same character. The brand
+ * color flows through --tenant-primary = hsl(var(--brand)) (injected per tenant
+ * server-side in app.blade.php; falls back to sky).
+ */
+:root {
+    --tenant-primary: hsl(var(--brand, 199 89% 48%));
+}
+
+/* Whole landing scaled up for impact (legacy used 125%). */
+.landing-scale {
+    font-size: 112.5%;
+}
+
+/* Hero entrance */
+@keyframes rp-hero-in {
+    from {
+        opacity: 0;
+        transform: translateY(36px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.hero-animate {
+    animation: rp-hero-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+    opacity: 0;
+}
+.hero-d1 {
+    animation-delay: 0.05s;
+}
+.hero-d2 {
+    animation-delay: 0.2s;
+}
+.hero-d3 {
+    animation-delay: 0.35s;
+}
+.hero-d4 {
+    animation-delay: 0.5s;
+}
+.hero-d5 {
+    animation-delay: 0.65s;
+}
+
+/* Ambient drifting blobs */
+@keyframes rp-blob {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(28px, -32px) scale(1.07);
+    }
+    66% {
+        transform: translate(-18px, 22px) scale(0.94);
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+}
+.blob {
+    animation: rp-blob 11s ease-in-out infinite;
+}
+.blob-2 {
+    animation: rp-blob 15s ease-in-out infinite reverse;
+    animation-delay: -4s;
+}
+.blob-3 {
+    animation: rp-blob 13s ease-in-out infinite;
+    animation-delay: -7s;
+}
+
+/* Scroll reveal */
+.reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition:
+        opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+    opacity: 1;
+    transform: none;
+}
+.stagger-children > * {
+    opacity: 0;
+    transform: translateY(20px);
+    transition:
+        opacity 0.5s ease,
+        transform 0.5s ease;
+}
+.stagger-children.is-visible > * {
+    opacity: 1;
+    transform: none;
+}
+.stagger-children.is-visible > *:nth-child(1) {
+    transition-delay: 0s;
+}
+.stagger-children.is-visible > *:nth-child(2) {
+    transition-delay: 0.08s;
+}
+.stagger-children.is-visible > *:nth-child(3) {
+    transition-delay: 0.16s;
+}
+.stagger-children.is-visible > *:nth-child(4) {
+    transition-delay: 0.24s;
+}
+.stagger-children.is-visible > *:nth-child(5) {
+    transition-delay: 0.32s;
+}
+.stagger-children.is-visible > *:nth-child(6) {
+    transition-delay: 0.4s;
+}
+
+/* Gradient accent underline under section headings */
+.section-heading {
+    position: relative;
+    padding-bottom: 0.75rem;
+}
+.section-heading::after {
+    content: '';
+    display: block;
+    width: 3rem;
+    height: 3px;
+    border-radius: 2px;
+    margin: 0.5rem auto 0;
+    background: var(--tenant-primary);
+}
+
+/* Card hover lift */
+.card-hover {
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease;
+}
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* Glassmorphism trust badges */
+.trust-badge {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+.trust-badge:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* CTA button shimmer + hover */
+@keyframes rp-shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+.btn-cta {
+    position: relative;
+    overflow: hidden;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+.btn-cta:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.btn-cta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
+    background-size: 200% 100%;
+    animation: rp-shimmer 3s ease-in-out infinite;
+}
+
+/* CTA glow pulse */
+@keyframes rp-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+    50% {
+        box-shadow: 0 0 22px 6px rgba(255, 255, 255, 0.18);
+    }
+}
+.btn-glow {
+    animation: rp-glow 2.8s 1.3s ease-in-out infinite;
+}
+
+/* Stat value glow */
+.stat-value {
+    text-shadow: 0 0 24px color-mix(in srgb, var(--tenant-primary) 35%, transparent);
+}
+
+/* Testimonial quote mark */
+.testimonial-card::before {
+    content: '\201C';
+    position: absolute;
+    top: -0.5rem;
+    left: 1rem;
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+    opacity: 0.08;
+    color: var(--tenant-primary);
+}
+
+/* Team card hover */
+.team-card {
+    transition: transform 0.25s ease;
+}
+.team-card:hover {
+    transform: translateY(-4px) scale(1.03);
+}
+
+/* Ken Burns slow zoom for hero images */
+@keyframes rp-ken {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+.ken-burns {
+    animation: rp-ken 20s ease-in-out infinite;
+}
+
+/* Scroll cue bounce */
+@keyframes rp-bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(10px);
+    }
+}
+.scroll-cue {
+    animation:
+        rp-hero-in 0.75s 0.65s both,
+        rp-bounce 2s 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-animate,
+    .blob,
+    .blob-2,
+    .blob-3,
+    .btn-cta::after,
+    .btn-glow,
+    .ken-burns,
+    .scroll-cue,
+    .reveal,
+    .stagger-children > * {
+        animation: none !important;
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
