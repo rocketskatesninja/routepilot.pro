@@ -26,16 +26,24 @@ export interface GoogleMaps {
  * window/document, which would break SSR).
  */
 export function loadGoogleMaps(key: string): Promise<GoogleMaps> {
-    const w = window as unknown as { google?: GoogleMaps; __rpMapsPromise?: Promise<void> };
+    const w = window as unknown as {
+        google?: GoogleMaps;
+        __rpMapsPromise?: Promise<void>;
+        __rpMapsReady?: () => void;
+    };
     if (w.google?.maps) {
         return Promise.resolve(w.google);
     }
     if (!w.__rpMapsPromise) {
         w.__rpMapsPromise = new Promise<void>((resolve, reject) => {
+            // Google's documented async pattern: load with loading=async and a
+            // global callback that fires once google.maps is ready. Avoids the
+            // "loaded without loading=async" performance warning and the
+            // onload-fires-before-maps-is-ready race.
+            w.__rpMapsReady = () => resolve();
             const s = document.createElement('script');
-            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`;
+            s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&loading=async&callback=__rpMapsReady`;
             s.async = true;
-            s.onload = () => resolve();
             s.onerror = () => reject(new Error('Google Maps failed to load'));
             document.head.appendChild(s);
         });
