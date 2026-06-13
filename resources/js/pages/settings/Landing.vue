@@ -378,39 +378,41 @@ function save() {
 
                                     <div class="grid gap-1.5">
                                         <Label>Effects</Label>
-                                        <label class="flex items-center gap-2"
-                                            ><input
-                                                type="checkbox"
-                                                :checked="!!fxOf(s).ken_burns"
-                                                @change="fxOf(s).ken_burns = ($event.target as HTMLInputElement).checked"
-                                            />
-                                            Ken Burns zoom</label
-                                        >
-                                        <label class="flex items-center gap-2"
-                                            ><input
-                                                type="checkbox"
-                                                :checked="!!fxOf(s).cta_glow"
-                                                @change="fxOf(s).cta_glow = ($event.target as HTMLInputElement).checked"
-                                            />
-                                            Button glow</label
-                                        >
-                                        <label class="flex items-center gap-2"
-                                            ><input
-                                                type="checkbox"
-                                                :checked="!!fxOf(s).scroll_cue"
-                                                @change="fxOf(s).scroll_cue = ($event.target as HTMLInputElement).checked"
-                                            />
-                                            Scroll-down arrow</label
-                                        >
-                                        <label class="flex items-center gap-2"
-                                            ><input
-                                                type="checkbox"
-                                                :checked="!!fxOf(s).dark_overlay"
-                                                @change="fxOf(s).dark_overlay = ($event.target as HTMLInputElement).checked"
-                                            />
-                                            Dark overlay</label
-                                        >
-                                        <div v-if="fxOf(s).dark_overlay" class="pl-6">
+                                        <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).ken_burns"
+                                                    @change="fxOf(s).ken_burns = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Ken Burns zoom</label
+                                            >
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).cta_glow"
+                                                    @change="fxOf(s).cta_glow = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Button glow</label
+                                            >
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).scroll_cue"
+                                                    @change="fxOf(s).scroll_cue = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Scroll-down arrow</label
+                                            >
+                                            <label class="flex items-center gap-2"
+                                                ><input
+                                                    type="checkbox"
+                                                    :checked="!!fxOf(s).dark_overlay"
+                                                    @change="fxOf(s).dark_overlay = ($event.target as HTMLInputElement).checked"
+                                                />
+                                                Dark overlay</label
+                                            >
+                                        </div>
+                                        <div v-if="fxOf(s).dark_overlay">
                                             <Label class="text-xs">Overlay · {{ fxOf(s).overlay_opacity ?? 40 }}%</Label>
                                             <input
                                                 type="range"
