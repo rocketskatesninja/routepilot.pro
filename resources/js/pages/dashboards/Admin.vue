@@ -144,8 +144,8 @@ onBeforeUnmount(() => {
         <template #actions>
             <p v-if="editing" class="mr-1 hidden text-sm text-muted-foreground lg:block">Editing the {{ deviceMode }} layout · drag to move, corner to resize</p>
 
-            <!-- Choose which layout to edit -->
-            <div v-if="editing" class="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+            <!-- Choose which layout to edit (desktop only; on a phone you edit the mobile layout directly) -->
+            <div v-if="editing" class="hidden items-center gap-0.5 rounded-md border border-border p-0.5 sm:flex">
                 <button
                     type="button"
                     class="rounded p-1.5 transition-colors"
@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
 
             <div v-if="editing" class="relative">
                 <Button size="sm" variant="outline" :disabled="!addable.length" @click="pickerOpen = !pickerOpen">
-                    <Plus class="mr-1 size-4" /> Add widget
+                    <Plus class="size-4 sm:mr-1" /> <span class="hidden sm:inline">Add widget</span>
                 </Button>
                 <div
                     v-if="pickerOpen && addable.length"
