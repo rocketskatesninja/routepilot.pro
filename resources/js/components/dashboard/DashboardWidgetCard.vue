@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import { FileText, GripVertical, Inbox, LayoutGrid, Map, X, type LucideIcon } from 'lucide-vue-next';
+import {
+    Bell,
+    CalendarRange,
+    CloudSun,
+    DollarSign,
+    FileText,
+    GripVertical,
+    Inbox,
+    LayoutGrid,
+    ListChecks,
+    Map,
+    X,
+    type LucideIcon,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{ title: string; icon: string; editing?: boolean }>();
 defineEmits<{ remove: [] }>();
 
 // Catalog icon names (from App\Dashboard\DashboardWidgets) → lucide components.
-const ICONS: Record<string, LucideIcon> = { LayoutGrid, Map, Inbox, FileText };
+const ICONS: Record<string, LucideIcon> = { LayoutGrid, Map, Inbox, FileText, CalendarRange, ListChecks, CloudSun, DollarSign, Bell };
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>
 

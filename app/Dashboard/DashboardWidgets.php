@@ -21,6 +21,11 @@ class DashboardWidgets
         'my_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'requests' => ['label' => 'Customer requests', 'icon' => 'Inbox', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'recent_visits' => ['label' => 'Recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['tenant_admin']],
+        'week_strip' => ['label' => 'Week at a glance', 'icon' => 'CalendarRange', 'minW' => 4, 'minH' => 2, 'w' => 8, 'h' => 3, 'roles' => ['tenant_admin']],
+        'today_stops' => ['label' => "Today's stops", 'icon' => 'ListChecks', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 6, 'roles' => ['tenant_admin']],
+        'weather' => ['label' => 'Weather', 'icon' => 'CloudSun', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
+        'billing_summary' => ['label' => 'Outstanding balances', 'icon' => 'DollarSign', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
+        'notifications' => ['label' => 'Notifications', 'icon' => 'Bell', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
     ];
 
     /** Default starter grid per role (12-col grid). */

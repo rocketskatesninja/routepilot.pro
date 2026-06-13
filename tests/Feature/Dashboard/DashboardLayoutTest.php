@@ -33,7 +33,8 @@ test('the admin dashboard renders the default widget grid', function () {
             ->has('layout', 5)
             ->has('catalog.stats')
             ->has('catalog.route_map')
-            ->has('available', 0)
+            ->has('catalog.weather')
+            ->has('available', 5) // the opt-in widgets (week_strip, today_stops, weather, billing, notifications)
             ->has('widgets.stats.today_stops')
             ->has('widgets.route_map.markers')
             ->has('widgets.recent_visits')
@@ -79,8 +80,36 @@ test('only the placed widgets compute data; the rest are offered to add', functi
             ->has('layout', 1)
             ->has('widgets.stats')
             ->missing('widgets.my_route')
-            ->has('available', 4)
+            ->has('available', 9)
         );
+});
+
+test('the week strip covers seven days of stop counts', function () {
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => null, 'scheduled_date' => today()]);
+    RouteStop::factory()->for($route)->for($pool)->create(['stop_order' => 1, 'status' => 'completed']);
+    RouteStop::factory()->for($route)->for($pool)->create(['stop_order' => 2, 'status' => 'pending']);
+
+    $strip = app(AssembleDashboardData::class)->handle($this->admin, ['week_strip'])['week_strip'];
+
+    expect($strip['days'])->toHaveCount(7)
+        ->and($strip['days'][0])->toMatchArray(['total' => 2, 'completed' => 1, 'is_today' => true]);
+});
+
+test('the billing summary reports zero when nothing is outstanding', function () {
+    $summary = app(AssembleDashboardData::class)->handle($this->admin, ['billing_summary'])['billing_summary'];
+
+    expect($summary)->toMatchArray(['outstanding_total' => 0.0, 'customer_count' => 0])
+        ->and($summary['top'])->toBe([]);
+});
+
+test('weather degrades to null without a business address', function () {
+    $this->tenant->forceFill(['lat' => null, 'lng' => null])->save();
+
+    $data = app(AssembleDashboardData::class)->handle($this->admin, ['weather']);
+
+    expect($data['weather'])->toBeNull();
 });
 
 test('the route map widget assembles geocoded stops, HQ, and the maps key', function () {
