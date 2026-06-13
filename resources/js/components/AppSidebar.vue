@@ -54,7 +54,6 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Pools', href: '/pools', icon: Waves },
         { title: 'People', href: '/people', icon: Users },
         { title: 'Services', href: '/services', icon: ClipboardList },
-        { title: 'Routes', href: '/dashboard', icon: Map },
         { title: 'Inventory', href: '/inventory', icon: FlaskConical },
         { title: 'Reports', href: '/reports', icon: FileText },
         { title: 'Insights', href: '/insights', icon: BarChart3 },
