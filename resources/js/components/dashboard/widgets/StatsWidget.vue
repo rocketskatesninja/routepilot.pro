@@ -23,14 +23,14 @@ const tiles = computed(() => [
 </script>
 
 <template>
-    <div class="grid h-full grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    <div class="grid h-full auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <div
             v-for="t in tiles"
             :key="t.label"
-            class="flex flex-col justify-center rounded-lg border border-border bg-background/40 px-3 py-2"
+            class="flex h-full flex-col items-center rounded-lg border border-border bg-background/40 px-3 py-2 text-center"
         >
-            <div class="text-2xl font-semibold tabular-nums" :class="t.accent">{{ t.value }}</div>
             <div class="text-xs text-muted-foreground">{{ t.label }}</div>
+            <div class="flex flex-1 items-center text-2xl font-semibold tabular-nums" :class="t.accent">{{ t.value }}</div>
         </div>
     </div>
 </template>
