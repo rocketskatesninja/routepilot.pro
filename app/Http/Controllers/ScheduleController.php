@@ -29,38 +29,39 @@ class ScheduleController extends Controller
 
         $date = $this->resolveDate((string) $request->string('date'));
 
+        // Admins manage assignments by dragging stops on/off the per-day
+        // "unassigned" route (agent_id null) — ensure it exists so it's always a
+        // drop target. Agents only read, so no need to create it for them.
+        $canManage = $request->user()?->role === 'tenant_admin';
+        if ($canManage) {
+            $this->unassignedRoute((int) $request->user()->tenant_id, $date);
+        }
+
         $routes = Route::query()
             ->whereDate('scheduled_date', $date)
+            ->whereNotNull('agent_id')
             ->with([
                 'agent:id,first_name,last_name,avatar_path',
                 'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path']),
             ])
             ->get()
-            ->map(function (Route $route): array {
-                $stops = $route->stops;
+            ->map(fn (Route $route): array => $this->presentRoute($route))
+            ->all();
 
-                return [
-                    'id' => $route->id,
-                    'agent' => $route->agent?->displayName() ?? 'Unassigned',
-                    'agent_photo' => $this->photoUrl($route->agent?->getAttribute('avatar_path')),
-                    'completed' => $stops->where('status', 'completed')->count(),
-                    'total' => $stops->count(),
-                    'stops' => $stops->map(fn (RouteStop $s): array => [
-                        'id' => $s->id,
-                        'order' => $s->stop_order,
-                        'pool' => $s->pool?->name,
-                        'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
-                        'customer' => $s->pool?->customer?->displayName(),
-                        'status' => $s->status,
-                    ])->values()->all(),
-                ];
-            })->all();
+        $unassignedRoute = Route::query()
+            ->whereDate('scheduled_date', $date)
+            ->whereNull('agent_id')
+            ->with([
+                'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path']),
+            ])
+            ->first();
 
         return Inertia::render('schedule/Index', [
             'date' => $date,
             'today' => Carbon::today()->toDateString(),
             'routes' => $routes,
-            'canManage' => $request->user()?->role === 'tenant_admin',
+            'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : null,
+            'canManage' => $canManage,
         ]);
     }
 
@@ -145,6 +146,52 @@ class ScheduleController extends Controller
         });
 
         return back();
+    }
+
+    /**
+     * Shape one route (agent or the agent_id-null "unassigned" bucket) for the
+     * day view. An unassigned route reports a null agent + label.
+     *
+     * @return array<string, mixed>
+     */
+    private function presentRoute(Route $route): array
+    {
+        $stops = $route->stops;
+
+        return [
+            'id' => $route->id,
+            'agent' => $route->agent?->displayName(),
+            'agent_photo' => $this->photoUrl($route->agent?->getAttribute('avatar_path')),
+            'completed' => $stops->where('status', 'completed')->count(),
+            'total' => $stops->count(),
+            'stops' => $stops->map(fn (RouteStop $s): array => [
+                'id' => $s->id,
+                'order' => $s->stop_order,
+                'pool' => $s->pool?->name,
+                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
+                'customer' => $s->pool?->customer?->displayName(),
+                'status' => $s->status,
+            ])->values()->all(),
+        ];
+    }
+
+    /** The per-day unassigned route (agent_id null), created on first use. */
+    private function unassignedRoute(int $tenantId, string $date): Route
+    {
+        $route = Route::query()
+            ->where('tenant_id', $tenantId)
+            ->whereNull('agent_id')
+            ->whereDate('scheduled_date', $date)
+            ->first();
+
+        if ($route === null) {
+            // tenant_id is deliberately not fillable (charter: privilege fields
+            // via forceFill at controlled sites).
+            $route = new Route(['agent_id' => null, 'scheduled_date' => $date, 'status' => 'scheduled']);
+            $route->forceFill(['tenant_id' => $tenantId])->save();
+        }
+
+        return $route;
     }
 
     private function authorizeStaff(Request $request): void

@@ -111,9 +111,8 @@ test('two subscriptions for one pool with different agents both materialize on t
         ->and(RouteStop::whereIn('route_id', $june9Routes->pluck('id'))->count())->toBe(2);
 });
 
-test('paused, unassigned, and foreign-tenant subscriptions do not materialize', function () {
+test('paused and foreign-tenant subscriptions do not materialize', function () {
     makeSub(['status' => 'paused']);
-    makeSub(['assigned_agent_id' => null]);
 
     $other = Tenant::factory()->create();
     $otherCustomer = Customer::factory()->for($other)->create();
@@ -125,4 +124,16 @@ test('paused, unassigned, and foreign-tenant subscriptions do not materialize', 
     $this->materializer->run($this->tenant->id);
 
     expect(RouteStop::count())->toBe(0);
+});
+
+test('agentless subscriptions materialize onto the per-day unassigned route', function () {
+    // No assigned agent: the office still needs these to surface, so they land
+    // on the agent_id-null "unassigned" route to be dragged onto an agent later.
+    makeSub(['assigned_agent_id' => null, 'frequency' => 'weekly', 'preferred_day' => 'tuesday']);
+
+    $this->materializer->run($this->tenant->id);
+
+    $stops = RouteStop::with('route')->get();
+    expect($stops)->toHaveCount(8)
+        ->and($stops->every(fn ($s) => $s->route->agent_id === null))->toBeTrue();
 });

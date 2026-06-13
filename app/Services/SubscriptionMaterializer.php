@@ -45,11 +45,13 @@ class SubscriptionMaterializer
         // Explicitly tenant-filtered and scope-bypassed: this runs from the
         // nightly job (no tenant bound) as well as HTTP, and must behave
         // identically in both.
+        // Active subscriptions without an assigned agent are still materialized —
+        // their stops land on the per-day "unassigned" route (agent_id null) so
+        // the office can drag them onto an agent.
         $subs = ServiceSubscription::query()
             ->withoutGlobalScopes()
             ->where('tenant_id', $tenantId)
             ->where('status', 'active')
-            ->whereNotNull('assigned_agent_id')
             ->get();
         if ($subs->isEmpty()) {
             return 0;
@@ -83,18 +85,21 @@ class SubscriptionMaterializer
                     continue;
                 }
 
-                $routeKey = $sub->assigned_agent_id.'|'.$dateStr;
+                $agentId = $sub->assigned_agent_id;
+                $routeKey = ($agentId ?? 'unassigned').'|'.$dateStr;
                 if (! isset($routes[$routeKey])) {
                     $route = Route::query()->withoutGlobalScopes()
                         ->where('tenant_id', $tenantId)
-                        ->where('agent_id', $sub->assigned_agent_id)
+                        ->when($agentId !== null,
+                            fn ($q) => $q->where('agent_id', $agentId),
+                            fn ($q) => $q->whereNull('agent_id'))
                         ->whereDate('scheduled_date', $dateStr)
                         ->first();
 
                     if (! $route) {
                         // tenant_id is deliberately not fillable (charter:
                         // privilege fields via forceFill at controlled sites).
-                        $route = new Route(['agent_id' => $sub->assigned_agent_id, 'scheduled_date' => $dateStr, 'status' => 'scheduled']);
+                        $route = new Route(['agent_id' => $agentId, 'scheduled_date' => $dateStr, 'status' => 'scheduled']);
                         $route->forceFill(['tenant_id' => $tenantId])->save();
                     }
 

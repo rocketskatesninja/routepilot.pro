@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\UpdateSubscription;
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\SubscriptionMaterializer;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -40,9 +43,9 @@ test('reassigning a plan moves its upcoming pending stops to the new tech', func
         'status' => 'active',
     ]);
 
-    app(App\Services\SubscriptionMaterializer::class)->run($this->tenant->id);
+    app(SubscriptionMaterializer::class)->run($this->tenant->id);
 
-    $stopsOn = fn (int $id): int => App\Models\RouteStop::query()
+    $stopsOn = fn (int $id): int => RouteStop::query()
         ->where('service_subscription_id', $sub->id)
         ->where('status', 'pending')
         ->whereHas('route', fn ($q) => $q->where('agent_id', $id))
@@ -50,7 +53,7 @@ test('reassigning a plan moves its upcoming pending stops to the new tech', func
 
     expect($stopsOn($agent->id))->toBeGreaterThan(0)->and($stopsOn($this->admin->id))->toBe(0);
 
-    app(App\Actions\UpdateSubscription::class)->handle($sub, [
+    app(UpdateSubscription::class)->handle($sub, [
         'service_type_id' => $this->serviceType->id,
         'assigned_agent_id' => $this->admin->id,
         'frequency' => 'weekly',

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Map as MapIcon, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, Map as MapIcon, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -19,7 +19,7 @@ interface Stop {
 
 interface RouteCard {
     id: number;
-    agent: string;
+    agent: string | null;
     agent_photo: string | null;
     completed: number;
     total: number;
@@ -30,6 +30,7 @@ const props = defineProps<{
     date: string;
     today: string;
     routes: RouteCard[];
+    unassigned: RouteCard | null;
     canManage: boolean;
 }>();
 
@@ -39,11 +40,19 @@ const dateInput = ref<HTMLInputElement | null>(null);
 
 // A local, mutable copy of the routes that drag-and-drop reorders optimistically;
 // it re-syncs from the server (the source of truth) whenever the props change.
-const clone = (routes: RouteCard[]): RouteCard[] => JSON.parse(JSON.stringify(routes));
+const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value));
 const localRoutes = ref<RouteCard[]>(clone(props.routes));
 watch(
     () => props.routes,
     (value) => (localRoutes.value = clone(value)),
+);
+
+// The per-day "unassigned" bucket is just a route whose agent_id is null; it
+// rides the same drag group so a stop dragged onto/off it is (un)assigned.
+const localUnassigned = ref<RouteCard | null>(props.unassigned ? clone(props.unassigned) : null);
+watch(
+    () => props.unassigned,
+    (value) => (localUnassigned.value = value ? clone(value) : null),
 );
 
 const isToday = computed(() => props.date === props.today);
@@ -85,11 +94,11 @@ let persistTimer: ReturnType<typeof setTimeout> | undefined;
 function persist() {
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
-        router.post(
-            '/schedule/arrange',
-            { routes: localRoutes.value.map((r) => ({ id: r.id, stop_ids: r.stops.map((s) => s.id) })) },
-            { preserveScroll: true, preserveState: true },
-        );
+        const routes = localRoutes.value.map((r) => ({ id: r.id, stop_ids: r.stops.map((s) => s.id) }));
+        if (localUnassigned.value) {
+            routes.push({ id: localUnassigned.value.id, stop_ids: localUnassigned.value.stops.map((s) => s.id) });
+        }
+        router.post('/schedule/arrange', { routes }, { preserveScroll: true, preserveState: true });
     }, 120);
 }
 
@@ -139,7 +148,7 @@ const statusClasses: Record<string, string> = {
             <!-- Left: the day's routes as a vertical, drag-and-drop list -->
             <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[26rem] lg:shrink-0">
                 <div
-                    v-if="localRoutes.length === 0"
+                    v-if="localRoutes.length === 0 && !localUnassigned"
                     class="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
                 >
                     <CalendarDays class="size-8 opacity-50" />
@@ -147,6 +156,60 @@ const statusClasses: Record<string, string> = {
                     <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
                         ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
                     >
+                </div>
+
+                <!-- Unassigned bucket: the day's stops on no agent. A persistent
+                     drop target — dragging a stop here un-assigns it. -->
+                <div v-if="localUnassigned" class="rounded-xl border border-dashed border-border bg-muted/20">
+                    <div class="flex items-center justify-between border-b border-border px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                <Inbox class="size-4" />
+                            </span>
+                            <span class="font-medium">Unassigned stops</span>
+                        </div>
+                        <span class="text-xs text-muted-foreground">{{ localUnassigned.stops.length }}</span>
+                    </div>
+
+                    <draggable
+                        :list="localUnassigned.stops"
+                        tag="ul"
+                        item-key="id"
+                        group="route-stops"
+                        :animation="150"
+                        :disabled="!props.canManage"
+                        handle=".drag-handle"
+                        ghost-class="bg-muted/60"
+                        class="min-h-[2.75rem] divide-y divide-border text-sm"
+                        @change="persist"
+                    >
+                        <template #item="{ element: stop, index }">
+                            <li class="flex items-center justify-between gap-2 px-4 py-2">
+                                <span class="flex min-w-0 items-center gap-2 truncate">
+                                    <GripVertical
+                                        v-if="props.canManage && stop.status === 'pending'"
+                                        class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                                    />
+                                    <span v-else class="size-4 shrink-0" aria-hidden="true" />
+                                    <span class="text-muted-foreground">{{ index + 1 }}.</span>
+                                    <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
+                                    <span class="truncate"
+                                        >{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
+                                    >
+                                </span>
+                                <div class="flex shrink-0 items-center gap-1.5">
+                                    <span
+                                        class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                        :class="statusClasses[stop.status] ?? 'bg-muted'"
+                                        >{{ stop.status.replace('_', ' ') }}</span
+                                    >
+                                </div>
+                            </li>
+                        </template>
+                    </draggable>
+                    <p v-if="localUnassigned.stops.length === 0" class="px-4 py-3 text-center text-xs text-muted-foreground">
+                        No unassigned stops for this day.
+                    </p>
                 </div>
 
                 <div v-for="route in localRoutes" :key="route.id" class="rounded-xl border border-border">
