@@ -154,7 +154,9 @@ class PortalController extends Controller
         $customer = $this->resolveCustomer($request);
         $sessionId = (string) $request->query('session_id');
         $card = $sessionId !== '' ? $stripe->retrieveSetupCard($sessionId) : null;
-        if ($card === null) {
+        // session_id is user-supplied: only accept a session we stamped for THIS
+        // customer, so a card from someone else's setup session can't be attached.
+        if ($card === null || ($card['customer_id'] ?? null) !== $customer->id) {
             return redirect('/balance')->with('error', 'Your card was not saved — please try again.');
         }
 

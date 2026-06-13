@@ -42,14 +42,21 @@ function hexToHslChannels(hex: string): string | null {
 }
 
 export function applyBrand(brandColor: string | null | undefined): void {
-    if (typeof document === 'undefined' || !brandColor) {
+    if (typeof document === 'undefined') {
         return;
     }
 
-    const channels = hexToHslChannels(brandColor);
+    const root = document.documentElement.style;
+    const channels = brandColor ? hexToHslChannels(brandColor) : null;
     if (channels) {
-        document.documentElement.style.setProperty('--brand', channels);
-        document.documentElement.style.setProperty('--primary', channels);
-        document.documentElement.style.setProperty('--ring', channels);
+        root.setProperty('--brand', channels);
+        root.setProperty('--primary', channels);
+        root.setProperty('--ring', channels);
+    } else {
+        // No tenant brand (or it was cleared, e.g. stopping impersonation) — fall
+        // back to the theme's default tokens instead of keeping the prior color.
+        root.removeProperty('--brand');
+        root.removeProperty('--primary');
+        root.removeProperty('--ring');
     }
 }

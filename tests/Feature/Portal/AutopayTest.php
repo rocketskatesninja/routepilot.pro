@@ -31,6 +31,7 @@ test('setting up autopay creates a Stripe customer and redirects to setup Checko
 test('completing setup saves the card and enables autopay', function () {
     Http::fake([
         'api.stripe.com/v1/checkout/sessions/cs_1*' => Http::response([
+            'metadata' => ['customer_id' => (string) $this->customer->id],
             'setup_intent' => ['payment_method' => ['id' => 'pm_1', 'card' => ['brand' => 'visa', 'last4' => '4242', 'exp_month' => 12, 'exp_year' => 2030]]],
         ], 200),
     ]);
@@ -44,6 +45,24 @@ test('completing setup saves the card and enables autopay', function () {
     $fresh = $this->customer->fresh();
     expect((bool) $fresh?->getAttribute('autopay_enabled'))->toBeTrue();
     expect($fresh?->getAttribute('default_payment_method_id'))->toBe($pm?->id);
+});
+
+test('a setup session belonging to another customer is rejected', function () {
+    $other = Customer::factory()->for($this->tenant)->create();
+
+    Http::fake([
+        'api.stripe.com/v1/checkout/sessions/cs_evil*' => Http::response([
+            'metadata' => ['customer_id' => (string) $other->id], // someone else's session
+            'setup_intent' => ['payment_method' => ['id' => 'pm_victim', 'card' => ['brand' => 'visa', 'last4' => '1111', 'exp_month' => 1, 'exp_year' => 2031]]],
+        ], 200),
+    ]);
+
+    $this->actingAs($this->user)->get('/autopay/complete?session_id=cs_evil')
+        ->assertRedirect('/balance')
+        ->assertSessionHas('error');
+
+    expect(PaymentMethod::query()->where('customer_id', $this->customer->id)->exists())->toBeFalse();
+    expect((bool) $this->customer->fresh()?->getAttribute('autopay_enabled'))->toBeFalse();
 });
 
 test('disabling autopay turns it off', function () {

@@ -132,7 +132,7 @@ class StripeService
     /**
      * Read the saved card off a completed setup Checkout session.
      *
-     * @return array{payment_method: string, brand: ?string, last4: ?string, exp_month: ?int, exp_year: ?int}|null
+     * @return array{payment_method: string, customer_id: ?int, brand: ?string, last4: ?string, exp_month: ?int, exp_year: ?int}|null
      */
     public function retrieveSetupCard(string $sessionId): ?array
     {
@@ -153,9 +153,13 @@ class StripeService
             return null;
         }
         $card = is_array($pm['card'] ?? null) ? $pm['card'] : [];
+        // The customer id we stamped into the session metadata — the caller
+        // asserts it matches the acting customer (session_id is user-supplied).
+        $metaCustomerId = $response->json('metadata.customer_id');
 
         return [
             'payment_method' => $pm['id'],
+            'customer_id' => is_numeric($metaCustomerId) ? (int) $metaCustomerId : null,
             'brand' => is_string($card['brand'] ?? null) ? $card['brand'] : null,
             'last4' => is_string($card['last4'] ?? null) ? $card['last4'] : null,
             'exp_month' => is_int($card['exp_month'] ?? null) ? $card['exp_month'] : null,

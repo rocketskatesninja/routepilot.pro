@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
@@ -40,6 +40,16 @@ createInertiaApp({
     progress: {
         color: '#0ea5e9',
     },
+});
+
+// Re-apply the tenant brand on every Inertia visit — the tenant changes on
+// impersonation start/stop and cross-tenant navigation. Only act when the
+// shared tenant prop is present (skip partial reloads that omit it).
+router.on('navigate', (event) => {
+    const props = event.detail.page.props as { tenant?: Tenant | null };
+    if ('tenant' in props) {
+        applyBrand(props.tenant?.brand_color);
+    }
 });
 
 // This will set light / dark mode on page load...
