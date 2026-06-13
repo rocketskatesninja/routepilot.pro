@@ -4,6 +4,18 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
+        {{-- Apply the saved theme before first paint so dark mode never flashes white on load/refresh. --}}
+        <script>
+            (function () {
+                try {
+                    var a = localStorage.getItem('appearance');
+                    if (a === 'dark' || ((!a || a === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        document.documentElement.classList.add('dark');
+                    }
+                } catch (e) {}
+            })();
+        </script>
+
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
