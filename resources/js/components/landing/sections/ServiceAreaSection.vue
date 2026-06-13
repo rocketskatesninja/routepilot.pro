@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
@@ -15,30 +16,6 @@ const subheading = computed(() => area.value?.radiusLabel || c.value.radius_labe
 
 const mapEl = ref<HTMLElement | null>(null);
 
-type Ctor = new (...args: unknown[]) => unknown;
-interface GoogleMaps {
-    maps: { Map: Ctor; Marker: Ctor; Circle: Ctor };
-}
-
-function loadMaps(key: string): Promise<void> {
-    const w = window as unknown as { google?: GoogleMaps; __rpMapsPromise?: Promise<void> };
-    if (w.google?.maps) {
-        return Promise.resolve();
-    }
-    if (w.__rpMapsPromise) {
-        return w.__rpMapsPromise;
-    }
-    w.__rpMapsPromise = new Promise<void>((resolve, reject) => {
-        const s = document.createElement('script');
-        s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`;
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error('Google Maps failed to load'));
-        document.head.appendChild(s);
-    });
-    return w.__rpMapsPromise;
-}
-
 // Client-only: the JS map is initialized after mount; SSR renders the address
 // + container only (no window/document at setup).
 onMounted(async () => {
@@ -46,11 +23,7 @@ onMounted(async () => {
         return;
     }
     try {
-        await loadMaps(mapsKey.value as string);
-        const g = (window as unknown as { google?: GoogleMaps }).google;
-        if (!g) {
-            return;
-        }
+        const g = await loadGoogleMaps(mapsKey.value as string);
         const m = g.maps;
         const center = { lat: area.value.lat as number, lng: area.value.lng as number };
         const brand = props.brand.color || '#0ea5e9';

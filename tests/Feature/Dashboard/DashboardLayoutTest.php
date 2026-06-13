@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 use App\Actions\AssembleDashboardData;
 use App\Dashboard\DashboardWidgets;
+use App\Models\Customer;
+use App\Models\Pool;
+use App\Models\Route;
+use App\Models\RouteStop;
+use App\Models\ServiceLocation;
 use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -25,10 +30,12 @@ test('the admin dashboard renders the default widget grid', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboards/Admin')
-            ->has('layout', 4)
+            ->has('layout', 5)
             ->has('catalog.stats')
+            ->has('catalog.route_map')
             ->has('available', 0)
             ->has('widgets.stats.today_stops')
+            ->has('widgets.route_map.markers')
             ->has('widgets.recent_visits')
         );
 });
@@ -72,8 +79,45 @@ test('only the placed widgets compute data; the rest are offered to add', functi
             ->has('layout', 1)
             ->has('widgets.stats')
             ->missing('widgets.my_route')
-            ->has('available', 3)
+            ->has('available', 4)
         );
+});
+
+test('the route map widget assembles geocoded stops, HQ, and the maps key', function () {
+    config(['services.google.browser_maps_key' => 'browser-test-key']);
+    $this->tenant->forceFill(['lat' => 33.5, 'lng' => -112.0])->save();
+
+    $agent = User::factory()->agent()->for($this->tenant)->create(['map_color' => '#ff0000']);
+    $customer = Customer::factory()->for($this->tenant)->create();
+
+    $geocoded = Pool::factory()->for($this->tenant)->for($customer)->create(['name' => 'Sunny Pool']);
+    ServiceLocation::factory()->for($geocoded)->create(['lat' => 33.6, 'lng' => -112.1]);
+    $unmapped = Pool::factory()->for($this->tenant)->for($customer)->create(); // no service location
+
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $agent->id, 'scheduled_date' => today()]);
+    RouteStop::factory()->for($route)->for($geocoded)->create(['stop_order' => 1, 'status' => 'pending']);
+    RouteStop::factory()->for($route)->for($unmapped)->create(['stop_order' => 2, 'status' => 'pending']);
+
+    $map = app(AssembleDashboardData::class)->handle($this->admin, ['route_map'])['route_map'];
+
+    expect($map['maps_key'])->toBe('browser-test-key')
+        ->and($map['hq'])->toMatchArray(['lat' => 33.5, 'lng' => -112.0])
+        ->and($map['markers'])->toHaveCount(1)                 // the unmapped stop is dropped
+        ->and($map['markers'][0])->toMatchArray([
+            'order' => 1,
+            'pool' => 'Sunny Pool',
+            'color' => '#ff0000',
+            'agent' => $agent->displayName(),
+        ]);
+});
+
+test('the route map degrades without a maps key', function () {
+    config(['services.google.browser_maps_key' => null]);
+
+    $map = app(AssembleDashboardData::class)->handle($this->admin, ['route_map'])['route_map'];
+
+    expect($map['maps_key'])->toBeNull()
+        ->and($map['markers'])->toBe([]);
 });
 
 test('guests cannot save a dashboard layout', function () {

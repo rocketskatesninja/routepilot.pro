@@ -29,6 +29,9 @@ class AssembleDashboardData
         if (in_array('stats', $enabled, true)) {
             $data['stats'] = $this->stats($user);
         }
+        if (in_array('route_map', $enabled, true)) {
+            $data['route_map'] = $this->routeMap($user);
+        }
         if (in_array('my_route', $enabled, true)) {
             $data['my_route'] = $this->myRoute($user);
         }
@@ -56,6 +59,66 @@ class AssembleDashboardData
             'customers' => Customer::query()->count(),
             'pools' => Pool::query()->count(),
         ];
+    }
+
+    /**
+     * Today's stops across all agents, as numbered map markers colored by agent,
+     * plus the tenant HQ. Stops without geocoded coordinates are dropped. The
+     * browser maps key rides along so the widget is self-contained; the widget
+     * degrades gracefully when it's absent.
+     *
+     * @return array<string, mixed>
+     */
+    private function routeMap(User $user): array
+    {
+        $browserKey = config('services.google.browser_maps_key');
+
+        $routes = Route::query()
+            ->whereDate('scheduled_date', today())
+            ->with([
+                'agent:id,first_name,last_name,map_color',
+                'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name', 'pool.serviceLocation:id,pool_id,lat,lng']),
+            ])
+            ->get();
+
+        $markers = [];
+        foreach ($routes as $route) {
+            $color = $this->agentColor($route->agent);
+            $agent = $route->agent !== null ? $this->name($route->agent) : null;
+            foreach ($route->stops as $stop) {
+                $coords = $stop->pool?->coordinates();
+                if ($coords === null) {
+                    continue;
+                }
+                $markers[] = [
+                    'lat' => $coords[0],
+                    'lng' => $coords[1],
+                    'order' => $stop->stop_order,
+                    'pool' => $stop->pool->getAttribute('name'),
+                    'status' => $stop->status,
+                    'agent' => $agent,
+                    'color' => $color,
+                ];
+            }
+        }
+
+        $tenant = $user->tenant;
+        $hq = $tenant !== null && $tenant->lat !== null && $tenant->lng !== null
+            ? ['lat' => $tenant->lat, 'lng' => $tenant->lng, 'label' => $tenant->formattedAddress()]
+            : null;
+
+        return [
+            'maps_key' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
+            'hq' => $hq,
+            'markers' => $markers,
+        ];
+    }
+
+    private function agentColor(?User $agent): string
+    {
+        $color = $agent?->getAttribute('map_color');
+
+        return is_string($color) && $color !== '' ? $color : '#0ea5e9';
     }
 
     /** @return array<string, mixed> */

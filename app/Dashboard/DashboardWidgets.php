@@ -17,6 +17,7 @@ class DashboardWidgets
     /** key => {label, icon (lucide), minW, minH, w, h (defaults), roles[]}. */
     private const CATALOG = [
         'stats' => ['label' => 'Stats overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['tenant_admin', 'agent']],
+        'route_map' => ['label' => "Today's route map", 'icon' => 'Map', 'minW' => 4, 'minH' => 4, 'w' => 8, 'h' => 6, 'roles' => ['tenant_admin']],
         'my_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'requests' => ['label' => 'Customer requests', 'icon' => 'Inbox', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'recent_visits' => ['label' => 'Recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['tenant_admin']],
@@ -26,9 +27,10 @@ class DashboardWidgets
     private const DEFAULTS = [
         'tenant_admin' => [
             ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
-            ['i' => 'my_route', 'x' => 0, 'y' => 3, 'w' => 6, 'h' => 5],
-            ['i' => 'requests', 'x' => 6, 'y' => 3, 'w' => 6, 'h' => 5],
-            ['i' => 'recent_visits', 'x' => 0, 'y' => 8, 'w' => 12, 'h' => 4],
+            ['i' => 'route_map', 'x' => 0, 'y' => 3, 'w' => 8, 'h' => 6],
+            ['i' => 'requests', 'x' => 8, 'y' => 3, 'w' => 4, 'h' => 6],
+            ['i' => 'my_route', 'x' => 0, 'y' => 9, 'w' => 6, 'h' => 5],
+            ['i' => 'recent_visits', 'x' => 6, 'y' => 9, 'w' => 6, 'h' => 5],
         ],
     ];
 

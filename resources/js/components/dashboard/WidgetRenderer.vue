@@ -3,12 +3,14 @@ import { computed, type Component } from 'vue';
 import MyRouteWidget from './widgets/MyRouteWidget.vue';
 import RecentVisitsWidget from './widgets/RecentVisitsWidget.vue';
 import RequestsWidget from './widgets/RequestsWidget.vue';
+import RouteMapWidget from './widgets/RouteMapWidget.vue';
 import StatsWidget from './widgets/StatsWidget.vue';
 
 const props = defineProps<{ widgetKey: string; data: unknown }>();
 
 const registry: Record<string, Component> = {
     stats: StatsWidget,
+    route_map: RouteMapWidget,
     my_route: MyRouteWidget,
     requests: RequestsWidget,
     recent_visits: RecentVisitsWidget,
