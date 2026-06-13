@@ -119,6 +119,7 @@ class ChemistryService
     public function analyzeReading(array $reading, ?array $ranges = null): array
     {
         $ranges ??= self::DEFAULT_RANGES;
+        $reading = $this->withCombinedChlorine($reading);
         $analysis = [];
 
         foreach ($ranges as $param => $range) {
@@ -149,6 +150,24 @@ class ChemistryService
     }
 
     /**
+     * Combined chlorine (chloramines) is derived, not stored: total − free.
+     * Inject it so the combined_chlorine target range is actually evaluated.
+     *
+     * @param  array<string, float|int|null>  $reading
+     * @return array<string, float|int|null>
+     */
+    private function withCombinedChlorine(array $reading): array
+    {
+        $total = $reading['total_chlorine'] ?? null;
+        $free = $reading['free_chlorine'] ?? null;
+        if ($total !== null && $free !== null && ! isset($reading['combined_chlorine'])) {
+            $reading['combined_chlorine'] = max(0.0, (float) $total - (float) $free);
+        }
+
+        return $reading;
+    }
+
+    /**
      * Trend analysis over the pool's last 12 readings: direction,
      * average, and chronic out-of-range detection (>= 3 of last 12).
      *
@@ -159,6 +178,7 @@ class ChemistryService
     public function analyzeTrends(int $poolId, array $currentReading, ?array $ranges = null): array
     {
         $ranges ??= self::DEFAULT_RANGES;
+        $currentReading = $this->withCombinedChlorine($currentReading);
 
         $history = ChemicalReading::query()
             ->whereHas('serviceVisit', fn ($q) => $q->where('pool_id', $poolId))
@@ -178,8 +198,16 @@ class ChemistryService
                 continue;
             }
 
-            $column = self::COLUMN_MAP[$param] ?? $param;
-            $historicalValues = $history->pluck($column)->filter(fn ($v) => $v !== null)->values();
+            // combined_chlorine is derived (total − free), so compute it per
+            // historical reading rather than plucking a non-existent column.
+            $historicalValues = $param === 'combined_chlorine'
+                ? $history->map(function (ChemicalReading $r): ?float {
+                    $total = $r->getAttribute('total_chlorine');
+                    $free = $r->getAttribute('free_chlorine');
+
+                    return $total !== null && $free !== null ? max(0.0, (float) $total - (float) $free) : null;
+                })->filter(fn ($v) => $v !== null)->values()
+                : $history->pluck(self::COLUMN_MAP[$param] ?? $param)->filter(fn ($v) => $v !== null)->values();
             if ($historicalValues->isEmpty()) {
                 continue;
             }

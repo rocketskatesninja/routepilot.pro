@@ -61,6 +61,17 @@ test('reading analysis classifies low / normal / high against default ranges', f
         ->and($analysis)->not->toHaveKey('salt'); // absent params are skipped
 });
 
+test('combined chlorine is derived (total − free) and analyzed against its range', function () {
+    $analysis = $this->chem->analyzeReading([
+        'free_chlorine' => 1.0,
+        'total_chlorine' => 3.0, // combined = 2.0 ppm → over the 0.5 max → high
+    ]);
+
+    expect($analysis)->toHaveKey('combined_chlorine')
+        ->and($analysis['combined_chlorine'])->toMatchArray(['value' => 2.0, 'status' => 'high'])
+        ->and($analysis['free_chlorine']['status'])->toBe('normal');
+});
+
 test('custom ranges override classification', function () {
     $ranges = ChemistryService::DEFAULT_RANGES;
     $ranges['ph']['max'] = 8.0;
