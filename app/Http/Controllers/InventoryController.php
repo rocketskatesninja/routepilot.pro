@@ -29,10 +29,17 @@ class InventoryController extends Controller
 
         $search = trim((string) $request->string('search'));
 
-        $items = ChemicalInventory::query()
+        $query = ChemicalInventory::query()
             ->where('is_active', true)
-            ->when($search !== '', fn ($q) => $q->where('chemical_name', 'like', '%'.$search.'%'))
-            ->orderBy('chemical_name')
+            ->when($search !== '', fn ($q) => $q->where('chemical_name', 'like', '%'.$search.'%'));
+
+        $sort = $this->applySort($query, $request, [
+            'name' => 'chemical_name',
+            'stock' => 'current_stock',
+            'cost' => 'cost_per_unit',
+        ], 'name');
+
+        $items = $query
             ->paginate(20)
             ->withQueryString()
             ->through(fn (ChemicalInventory $i) => [
@@ -58,6 +65,7 @@ class InventoryController extends Controller
             'items' => $items,
             'selected' => $selected,
             'filters' => ['search' => $search],
+            'sort' => $sort,
             'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
     }

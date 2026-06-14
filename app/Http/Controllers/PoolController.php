@@ -37,15 +37,22 @@ class PoolController extends Controller
 
         $search = trim((string) $request->string('search'));
 
-        $pools = Pool::query()
+        $query = Pool::query()
             ->with([
                 'customer:id,first_name,last_name,photo_path',
                 'serviceLocation:id,pool_id,city',
                 'subscriptions' => fn ($q) => $q->where('status', 'active')->with('agent:id,first_name,last_name,avatar_path'),
                 'latestReading',
             ])
-            ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
-            ->orderBy('name')
+            ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'));
+
+        $sort = $this->applySort($query, $request, [
+            'name' => 'name',
+            'type' => 'type',
+            'customer' => fn ($q, $dir) => $q->orderBy(Customer::query()->select('first_name')->whereColumn('customers.id', 'pools.customer_id'), $dir),
+        ], 'name');
+
+        $pools = $query
             ->paginate(20)
             ->withQueryString()
             ->through(fn (Pool $pool) => $this->toRow($pool, $chem));
@@ -67,6 +74,7 @@ class PoolController extends Controller
             'pools' => $pools,
             'selected' => $selected,
             'filters' => ['search' => $search],
+            'sort' => $sort,
             'customers' => $this->customerOptions(),
             'serviceTypes' => $this->serviceTypeOptions(),
             'agents' => $this->agentOptions(),

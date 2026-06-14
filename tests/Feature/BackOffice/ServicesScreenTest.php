@@ -78,3 +78,29 @@ test('customers are denied the Services screen', function () {
 
     $this->actingAs($portalUser)->get('/services')->assertForbidden();
 });
+
+test('column sort orders the list and is reported back to the view', function () {
+    ServiceType::factory()->for($this->tenant)->create(['name' => 'Alpha', 'price' => 50]);
+    ServiceType::factory()->for($this->tenant)->create(['name' => 'Zulu', 'price' => 10]);
+
+    $this->actingAs($this->admin)
+        ->get('/services?sort=name&dir=desc')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('sort', ['key' => 'name', 'dir' => 'desc'])
+            ->where('services.data.0.name', 'Zulu')
+            ->where('services.data.1.name', 'Alpha')
+        );
+
+    $this->actingAs($this->admin)
+        ->get('/services?sort=price&dir=asc')
+        ->assertInertia(fn (Assert $page) => $page->where('services.data.0.name', 'Zulu')); // cheapest first
+});
+
+test('an unknown sort key falls back to the default (no arbitrary column)', function () {
+    ServiceType::factory()->for($this->tenant)->create(['name' => 'Beta']);
+
+    $this->actingAs($this->admin)
+        ->get('/services?sort=price);DROP+TABLE&dir=desc')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('sort.key', 'name'));
+});

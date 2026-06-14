@@ -2,6 +2,7 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -87,6 +88,7 @@ const props = defineProps<{
     counts: { all: number; customers: number; agents: number };
     selected: CustomerDetail | AgentDetail | null;
     filters: { search: string; type: 'all' | 'customers' | 'agents' };
+    sort: { key: string; dir: string };
     canManage: boolean;
     canEmail: boolean;
     audiences: { key: string; label: string; count: number }[];
@@ -414,10 +416,10 @@ function destroyAgent() {
                                     <th v-if="emailOpen" class="w-10 px-4 py-2">
                                         <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
                                     </th>
-                                    <th class="px-4 py-2 font-medium">Name</th>
-                                    <th class="px-4 py-2 font-medium">Type</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Email</th>
-                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">Phone</th>
+                                    <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
+                                    <SortableTh sort-key="type" :active="props.sort">Type</SortableTh>
+                                    <SortableTh sort-key="email" :active="props.sort" class="hidden md:table-cell">Email</SortableTh>
+                                    <SortableTh sort-key="phone" :active="props.sort" class="hidden lg:table-cell">Phone</SortableTh>
                                     <th class="hidden px-4 py-2 font-medium lg:table-cell">Last visit</th>
                                     <th class="px-4 py-2 text-right font-medium">Balance</th>
                                 </tr>
@@ -710,7 +712,9 @@ function destroyAgent() {
                                     <div class="flex justify-between gap-2">
                                         <dt>Phone</dt>
                                         <dd v-if="props.selected.phone">
-                                            <a :href="telLink(props.selected.phone)" class="text-primary hover:underline">{{ props.selected.phone }}</a>
+                                            <a :href="telLink(props.selected.phone)" class="text-primary hover:underline">{{
+                                                props.selected.phone
+                                            }}</a>
                                         </dd>
                                         <dd v-else>—</dd>
                                     </div>
@@ -737,7 +741,8 @@ function destroyAgent() {
                                                 class="-mx-1 flex justify-between rounded px-1 py-0.5 hover:bg-muted hover:text-foreground"
                                                 title="Open report"
                                             >
-                                                <span>{{ visit.pool }}</span><span>{{ visit.completed_on }}</span>
+                                                <span>{{ visit.pool }}</span
+                                                ><span>{{ visit.completed_on }}</span>
                                             </Link>
                                         </li>
                                     </ul>

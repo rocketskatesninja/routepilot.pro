@@ -39,6 +39,25 @@ class BalanceController extends Controller
             'pools' => $r['customer']->pools->count(),
         ])->all();
 
+        // The list is computed in the billing service, not a DB query, so it
+        // sorts in memory. Default: highest balance first.
+        $sortKey = (string) $request->string('sort');
+        if (! in_array($sortKey, ['name', 'pools', 'balance'], true)) {
+            $sortKey = 'balance';
+            $sortDir = 'desc';
+        } else {
+            $sortDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
+        }
+        usort($rows, fn (array $a, array $b): int => match ($sortKey) {
+            'name' => strcasecmp((string) $a['name'], (string) $b['name']),
+            'pools' => $a['pools'] <=> $b['pools'],
+            default => $a['balance'] <=> $b['balance'],
+        });
+        if ($sortDir === 'desc') {
+            $rows = array_reverse($rows);
+        }
+        $sort = ['key' => $sortKey, 'dir' => $sortDir];
+
         $selected = null;
         $selectedId = $request->integer('selected');
         if ($selectedId > 0) {
@@ -68,6 +87,7 @@ class BalanceController extends Controller
             'balances' => $rows,
             'total' => round((float) $balances->sum(fn (array $r): float => $r['balance']), 2),
             'selected' => $selected,
+            'sort' => $sort,
             'canManage' => $request->user()?->role === 'tenant_admin',
             'customers' => $this->customerOptions(),
         ]);

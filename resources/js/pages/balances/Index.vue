@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ const props = defineProps<{
     selected: BalanceDetail | null;
     canManage: boolean;
     customers: { id: number; name: string }[];
+    sort: { key: string; dir: string };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }];
@@ -114,9 +116,9 @@ function closePane() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th class="px-4 py-2 font-medium">Customer</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Pools</th>
-                                    <th class="px-4 py-2 text-right font-medium">Balance</th>
+                                    <SortableTh sort-key="name" :active="props.sort">Customer</SortableTh>
+                                    <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
+                                    <SortableTh sort-key="balance" :active="props.sort" align="right" class="text-right">Balance</SortableTh>
                                 </tr>
                             </thead>
                             <tbody>

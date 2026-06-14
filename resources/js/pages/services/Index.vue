@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MasterDetail from '@/components/MasterDetail.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +54,7 @@ const props = defineProps<{
     services: { data: ServiceRow[]; total: number };
     selected: ServiceDetail | null;
     filters: { search: string };
+    sort: { key: string; dir: string };
     canManage: boolean;
 }>();
 
@@ -191,11 +193,11 @@ function destroyService() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th class="px-4 py-2 font-medium">Name</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Category</th>
-                                    <th class="px-4 py-2 font-medium">Price</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Pools</th>
-                                    <th class="px-4 py-2 font-medium">Status</th>
+                                    <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
+                                    <SortableTh sort-key="category" :active="props.sort" class="hidden md:table-cell">Category</SortableTh>
+                                    <SortableTh sort-key="price" :active="props.sort">Price</SortableTh>
+                                    <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
+                                    <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
                                 </tr>
                             </thead>
                             <tbody>

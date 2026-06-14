@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
@@ -47,6 +48,7 @@ interface VisitDetail {
 const props = defineProps<{
     visits: { data: VisitRow[]; total: number };
     selected: VisitDetail | null;
+    sort: { key: string; dir: string };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Reports', href: '/reports' }];
@@ -84,10 +86,10 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th class="px-4 py-2 font-medium">Date</th>
-                                    <th class="px-4 py-2 font-medium">Pool</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Customer</th>
-                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
+                                    <SortableTh sort-key="date" :active="props.sort">Date</SortableTh>
+                                    <SortableTh sort-key="pool" :active="props.sort">Pool</SortableTh>
+                                    <SortableTh sort-key="customer" :active="props.sort" class="hidden md:table-cell">Customer</SortableTh>
+                                    <SortableTh sort-key="agent" :active="props.sort" class="hidden lg:table-cell">Agent</SortableTh>
                                 </tr>
                             </thead>
                             <tbody>

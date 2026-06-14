@@ -2,6 +2,7 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -106,6 +107,7 @@ const props = defineProps<{
     pools: { data: PoolRow[]; total: number };
     selected: PoolDetail | null;
     filters: { search: string };
+    sort: { key: string; dir: string };
     customers: { id: number; name: string }[];
     serviceTypes: { id: number; name: string }[];
     agents: { id: number; name: string }[];
@@ -452,9 +454,9 @@ function submitTargets() {
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
                                     <th class="w-8 px-4 py-2"><span class="sr-only">Health</span></th>
-                                    <th class="px-4 py-2 font-medium">Name</th>
-                                    <th class="px-4 py-2 font-medium">Customer</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Type</th>
+                                    <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
+                                    <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
+                                    <SortableTh sort-key="type" :active="props.sort" class="hidden md:table-cell">Type</SortableTh>
                                     <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
                                     <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
                                 </tr>

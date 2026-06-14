@@ -20,9 +20,10 @@ class PersonListBuilder
 {
     /**
      * @param  'all'|'customers'|'agents'  $type
+     * @param  'name'|'type'|'email'|'phone'  $sortKey
      * @return LengthAwarePaginator<int, \stdClass>
      */
-    public function paginate(int $tenantId, string $type = 'all', string $search = '', int $perPage = 20): LengthAwarePaginator
+    public function paginate(int $tenantId, string $type = 'all', string $search = '', int $perPage = 20, string $sortKey = 'name', string $sortDir = 'asc'): LengthAwarePaginator
     {
         $query = match ($type) {
             'customers' => $this->customers($tenantId, $search),
@@ -30,12 +31,17 @@ class PersonListBuilder
             default => $this->customers($tenantId, $search)->unionAll($this->agents($tenantId, $search)),
         };
 
+        $base = DB::query()->fromSub($query, 'people');
+        $dir = $sortDir === 'desc' ? 'desc' : 'asc';
+        match ($sortKey) {
+            'email' => $base->orderBy('email', $dir)->orderBy('first_name'),
+            'phone' => $base->orderBy('phone', $dir)->orderBy('first_name'),
+            'type' => $base->orderBy('person_type', $dir)->orderBy('first_name')->orderBy('last_name'),
+            default => $base->orderBy('first_name', $dir)->orderBy('last_name', $dir),
+        };
+
         /** @var LengthAwarePaginator<int, \stdClass> $paginator */
-        $paginator = DB::query()
-            ->fromSub($query, 'people')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->paginate($perPage);
+        $paginator = $base->paginate($perPage);
 
         return $paginator;
     }

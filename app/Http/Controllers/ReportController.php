@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
+use App\Models\Pool;
 use App\Models\ServiceVisit;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,10 +23,25 @@ class ReportController extends Controller
     {
         $this->authorizeStaff($request);
 
-        $visits = ServiceVisit::query()
+        $query = ServiceVisit::query()
             ->where('status', 'completed')
-            ->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
-            ->latest('completed_at')
+            ->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path', 'agent:id,first_name,last_name,avatar_path']);
+
+        // Relation columns sort via correlated subqueries — no joins, so the
+        // tenant scope's `tenant_id` stays unambiguous.
+        $sort = $this->applySort($query, $request, [
+            'date' => 'completed_at',
+            'pool' => fn ($q, $dir) => $q->orderBy(Pool::query()->select('name')->whereColumn('pools.id', 'service_visits.pool_id'), $dir),
+            'customer' => fn ($q, $dir) => $q->orderBy(
+                Customer::query()->select('first_name')
+                    ->whereIn('customers.id', Pool::query()->select('customer_id')->whereColumn('pools.id', 'service_visits.pool_id'))
+                    ->limit(1),
+                $dir,
+            ),
+            'agent' => fn ($q, $dir) => $q->orderBy(User::query()->select('first_name')->whereColumn('users.id', 'service_visits.agent_id'), $dir),
+        ], 'date', 'desc');
+
+        $visits = $query
             ->paginate(20)
             ->withQueryString()
             ->through(fn (ServiceVisit $v) => [
@@ -51,6 +69,7 @@ class ReportController extends Controller
         return Inertia::render('reports/Index', [
             'visits' => $visits,
             'selected' => $selected,
+            'sort' => $sort,
         ]);
     }
 

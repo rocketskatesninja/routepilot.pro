@@ -30,11 +30,19 @@ class ServiceController extends Controller
 
         $search = trim((string) $request->string('search'));
 
-        $services = ServiceType::query()
+        $query = ServiceType::query()
             ->withCount(['subscriptions as active_pools_count' => fn ($q) => $q->where('status', 'active')])
-            ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
-            ->orderByDesc('is_active')
-            ->orderBy('name')
+            ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'));
+
+        $sort = $this->applySort($query, $request, [
+            'name' => 'name',
+            'category' => 'category',
+            'price' => 'price',
+            'pools' => 'active_pools_count',
+            'status' => 'is_active',
+        ], 'name');
+
+        $services = $query
             ->paginate(20)
             ->withQueryString()
             ->through(fn (ServiceType $type) => [
@@ -62,6 +70,7 @@ class ServiceController extends Controller
             'services' => $services,
             'selected' => $selected,
             'filters' => ['search' => $search],
+            'sort' => $sort,
             'canManage' => $request->user()?->role === 'tenant_admin',
         ]);
     }

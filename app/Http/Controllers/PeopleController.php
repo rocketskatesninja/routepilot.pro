@@ -42,7 +42,13 @@ class PeopleController extends Controller
         }
         $search = trim((string) $request->string('search'));
 
-        $people = $builder->paginate($tenantId, $type, $search)->withQueryString();
+        $sortKey = (string) $request->string('sort');
+        if (! in_array($sortKey, ['name', 'type', 'email', 'phone'], true)) {
+            $sortKey = 'name';
+        }
+        $sortDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
+
+        $people = $builder->paginate($tenantId, $type, $search, 20, $sortKey, $sortDir)->withQueryString();
 
         // Enrich the current page's customer rows with balance + last visit (batched).
         $customerIds = $people->getCollection()
@@ -76,6 +82,7 @@ class PeopleController extends Controller
             'counts' => $builder->counts($tenantId, $search),
             'selected' => $selected,
             'filters' => ['search' => $search, 'type' => $type],
+            'sort' => ['key' => $sortKey, 'dir' => $sortDir],
             'canManage' => $user?->role === 'tenant_admin',
             'canEmail' => $user?->role === 'tenant_admin',
             'audiences' => $user?->role === 'tenant_admin' ? $campaigns->audiencesFor($user) : [],

@@ -2,6 +2,7 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +54,7 @@ const props = defineProps<{
     items: { data: InventoryRow[]; total: number };
     selected: InventoryDetail | null;
     filters: { search: string };
+    sort: { key: string; dir: string };
     canManage: boolean;
 }>();
 
@@ -188,10 +190,10 @@ function submitAdjust() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th class="px-4 py-2 font-medium">Chemical</th>
-                                    <th class="px-4 py-2 font-medium">In stock</th>
+                                    <SortableTh sort-key="name" :active="props.sort">Chemical</SortableTh>
+                                    <SortableTh sort-key="stock" :active="props.sort">In stock</SortableTh>
                                     <th class="px-4 py-2 font-medium">Status</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Cost</th>
+                                    <SortableTh sort-key="cost" :active="props.sort" class="hidden md:table-cell">Cost</SortableTh>
                                 </tr>
                             </thead>
                             <tbody>
