@@ -8,19 +8,23 @@ defineProps<{
     description?: string;
 }>();
 
-// Carousel of real app screens — 5s each, slow crossfade.
-const shots = [
-    '/assets/images/screenshots/route-map.png',
-    '/assets/images/screenshots/reports.png',
-    '/assets/images/screenshots/dashboard.png',
-    '/assets/images/screenshots/pools.png',
-];
+// Carousels of real app screens — 5s each, slow crossfade. Each frame has a
+// light + dark capture; the dark one shows when the page is in dark mode.
+const shots = ['dashboard', 'route-map', 'reports', 'pools'];
+const phones = ['phone-day', 'phone-route', 'phone-portal'];
 const current = ref(0);
+const phoneCurrent = ref(0);
 let timer: ReturnType<typeof setInterval> | undefined;
 onMounted(() => {
-    timer = setInterval(() => (current.value = (current.value + 1) % shots.length), 5000);
+    timer = setInterval(() => {
+        current.value = (current.value + 1) % shots.length;
+        phoneCurrent.value = (phoneCurrent.value + 1) % phones.length;
+    }, 5000);
 });
 onBeforeUnmount(() => clearInterval(timer));
+
+const light = (name: string) => `/assets/images/screenshots/${name}.png`;
+const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 </script>
 
 <template>
@@ -49,7 +53,7 @@ onBeforeUnmount(() => clearInterval(timer));
                 <span><span class="text-sky-300">Route</span><span class="text-orange-400">Pilot</span></span>
             </Link>
 
-            <!-- Product showcase: the real app, desktop + mobile -->
+            <!-- Product showcase: the real app, desktop + mobile, light/dark aware -->
             <div class="relative z-10 my-8 flex flex-1 items-center justify-center">
                 <div class="relative mx-auto w-full max-w-2xl">
                     <div class="overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40 [rotate:-1.5deg]">
@@ -63,24 +67,49 @@ onBeforeUnmount(() => clearInterval(timer));
                                 <Lock class="size-3 text-emerald-400" /> routepilot.pro
                             </span>
                         </div>
-                        <div class="relative aspect-[16/10] bg-white">
-                            <img
-                                v-for="(s, i) in shots"
-                                :key="s"
-                                :src="s"
-                                alt="RoutePilot app"
-                                loading="lazy"
-                                class="duration-[1200ms] absolute inset-0 size-full object-cover object-top transition-opacity ease-in-out"
-                                :class="i === current ? 'opacity-100' : 'opacity-0'"
-                            />
+                        <div class="relative aspect-[16/10] bg-white dark:bg-slate-900">
+                            <template v-for="(name, i) in shots" :key="name">
+                                <img
+                                    :src="light(name)"
+                                    alt="RoutePilot app"
+                                    loading="lazy"
+                                    class="duration-[1200ms] absolute inset-0 size-full object-cover object-top transition-opacity ease-in-out dark:hidden"
+                                    :class="i === current ? 'opacity-100' : 'opacity-0'"
+                                />
+                                <img
+                                    :src="dark(name)"
+                                    alt="RoutePilot app"
+                                    loading="lazy"
+                                    class="duration-[1200ms] absolute inset-0 hidden size-full object-cover object-top transition-opacity ease-in-out dark:block"
+                                    :class="i === current ? 'opacity-100' : 'opacity-0'"
+                                />
+                            </template>
                         </div>
                     </div>
-                    <img
-                        src="/assets/images/screenshots/agent-mobile.png"
-                        alt="RoutePilot mobile app"
-                        loading="lazy"
-                        class="absolute -bottom-6 right-2 w-24 rounded-[1.4rem] border-4 border-slate-800 shadow-2xl [rotate:4deg] sm:w-28"
-                    />
+
+                    <!-- phone carousel -->
+                    <div
+                        class="absolute -bottom-6 right-2 w-24 overflow-hidden rounded-[1.4rem] border-4 border-slate-800 shadow-2xl [rotate:4deg] sm:w-28"
+                    >
+                        <div class="relative aspect-[390/640] bg-white dark:bg-slate-900">
+                            <template v-for="(name, i) in phones" :key="name">
+                                <img
+                                    :src="light(name)"
+                                    alt="RoutePilot mobile"
+                                    loading="lazy"
+                                    class="duration-[1200ms] absolute inset-0 size-full object-cover object-top transition-opacity ease-in-out dark:hidden"
+                                    :class="i === phoneCurrent ? 'opacity-100' : 'opacity-0'"
+                                />
+                                <img
+                                    :src="dark(name)"
+                                    alt="RoutePilot mobile"
+                                    loading="lazy"
+                                    class="duration-[1200ms] absolute inset-0 hidden size-full object-cover object-top transition-opacity ease-in-out dark:block"
+                                    :class="i === phoneCurrent ? 'opacity-100' : 'opacity-0'"
+                                />
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
 
