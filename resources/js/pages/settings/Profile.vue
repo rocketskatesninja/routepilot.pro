@@ -17,6 +17,7 @@ interface Props {
     mustVerifyEmail: boolean;
     status?: string;
     className?: string;
+    canDeleteAccount?: boolean;
 }
 
 defineProps<Props>();
@@ -130,7 +131,7 @@ const submit = () => {
                 </form>
             </div>
 
-            <DeleteUser />
+            <DeleteUser v-if="canDeleteAccount" />
         </SettingsLayout>
     </AppLayout>
 </template>

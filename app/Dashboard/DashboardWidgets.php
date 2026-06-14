@@ -20,7 +20,7 @@ class DashboardWidgets
         'route_map' => ['label' => "Today's route map", 'icon' => 'Map', 'minW' => 4, 'minH' => 4, 'w' => 8, 'h' => 6, 'roles' => ['tenant_admin']],
         'my_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
         'requests' => ['label' => 'Customer requests', 'icon' => 'Inbox', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
-        'recent_visits' => ['label' => 'Recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['tenant_admin']],
+        'recent_visits' => ['label' => 'Recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['tenant_admin']],
         'week_strip' => ['label' => 'Week at a glance', 'icon' => 'CalendarRange', 'minW' => 4, 'minH' => 2, 'w' => 8, 'h' => 3, 'roles' => ['tenant_admin']],
         'today_stops' => ['label' => "Today's stops", 'icon' => 'ListChecks', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 6, 'roles' => ['tenant_admin']],
         'weather' => ['label' => 'Weather', 'icon' => 'CloudSun', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin', 'agent']],
@@ -30,13 +30,13 @@ class DashboardWidgets
         // agent (field PWA)
         'agent_stats' => ['label' => 'My day', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['agent']],
         'agent_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 6, 'roles' => ['agent']],
-        'agent_visits' => ['label' => 'My recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 4, 'roles' => ['agent']],
+        'agent_visits' => ['label' => 'My recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 4, 'roles' => ['agent']],
 
         // customer (portal)
         'my_pools' => ['label' => 'My pools', 'icon' => 'Waves', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
         'next_visit' => ['label' => 'Next visit', 'icon' => 'CalendarDays', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
         'account_balance' => ['label' => 'Account balance', 'icon' => 'Banknote', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
-        'customer_visits' => ['label' => 'Recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
+        'customer_visits' => ['label' => 'Recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
 
         // super_admin (platform)
         'platform_stats' => ['label' => 'Platform overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['super_admin']],

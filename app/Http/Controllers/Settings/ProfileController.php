@@ -23,7 +23,14 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'canDeleteAccount' => $this->canSelfDelete($request),
         ]);
+    }
+
+    /** Agents and the platform super-admin cannot self-delete their account. */
+    private function canSelfDelete(Request $request): bool
+    {
+        return ! in_array($request->user()?->role, ['agent', 'super_admin'], true);
     }
 
     /**
@@ -54,6 +61,8 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        abort_unless($this->canSelfDelete($request), 403, 'This account type cannot be self-deleted.');
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);

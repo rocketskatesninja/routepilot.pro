@@ -14,6 +14,7 @@ use App\Models\EquipmentServiceLog;
 use App\Models\Pool;
 use App\Models\PoolEquipment;
 use App\Models\ServiceSubscription;
+use App\Models\ServiceVisit;
 use App\Services\ChemistryService;
 use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
@@ -186,6 +187,7 @@ class PoolController extends Controller
         }
 
         $location = $pool->serviceLocation;
+        $lastReportId = ServiceVisit::query()->where('pool_id', $pool->id)->where('status', 'completed')->latest('completed_at')->value('id');
 
         return [
             'id' => $pool->id,
@@ -250,6 +252,7 @@ class PoolController extends Controller
                 'ph' => $reading->ph,
                 'alkalinity' => $reading->alkalinity,
                 'health' => $health,
+                'last_report_id' => $lastReportId,
             ] : null,
             // Raw values for the edit form.
             'fields' => [

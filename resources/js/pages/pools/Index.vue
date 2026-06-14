@@ -10,11 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { agentLink, customerLink } from '@/lib/links';
+import { agentLink, customerLink, reportLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
+import { FileText, Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface PoolRow {
@@ -103,6 +103,7 @@ interface PoolDetail {
         ph: number | null;
         alkalinity: number | null;
         health: Health | null;
+        last_report_id: number | null;
     } | null;
     fields: PoolFields;
 }
@@ -807,12 +808,21 @@ function submitTargets() {
                             </div>
 
                             <section v-if="props.selected.latest_reading?.health" class="rounded-lg border border-border p-3">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="healthClasses[props.selected.latest_reading.health.color]"
-                                >
-                                    {{ props.selected.latest_reading.health.label }}
-                                </span>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span
+                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                        :class="healthClasses[props.selected.latest_reading.health.color]"
+                                    >
+                                        {{ props.selected.latest_reading.health.label }}
+                                    </span>
+                                    <Link
+                                        v-if="props.selected.latest_reading.last_report_id"
+                                        :href="reportLink(props.selected.latest_reading.last_report_id)"
+                                        class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                    >
+                                        <FileText class="size-3.5" /> Last report
+                                    </Link>
+                                </div>
                                 <dl class="mt-2 grid grid-cols-3 gap-2 text-muted-foreground">
                                     <div>
                                         <dt class="text-xs">Free Cl</dt>

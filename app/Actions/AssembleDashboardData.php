@@ -335,18 +335,7 @@ class AssembleDashboardData
             return [];
         }
 
-        return ServiceVisit::query()
-            ->whereIn('pool_id', $customer->pools->pluck('id'))->where('status', 'completed')
-            ->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
-            ->latest('completed_at')->limit(6)->get()
-            ->map(fn (ServiceVisit $v) => [
-                'id' => $v->id,
-                'pool' => $v->pool?->getAttribute('name'),
-                'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
-                'agent' => $this->name($v->agent),
-                'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
-                'completed_on' => $v->completed_at?->toDateString(),
-            ])->all();
+        return $this->recentActivity(null, $customer->pools->pluck('id')->all(), '/history');
     }
 
     /** The acting customer record (memoized per request). */
@@ -494,41 +483,72 @@ class AssembleDashboardData
             ])->all();
     }
 
-    /** @return list<array<string, mixed>> */
-    private function recentVisits(): array
+    /**
+     * Recent activity — completed visits (each links to its report) + skipped
+     * stops, newest first. Optionally scoped to an agent and/or a set of pools.
+     *
+     * @param  list<int>|null  $poolIds
+     * @return list<array<string, mixed>>
+     */
+    private function recentActivity(?int $agentId, ?array $poolIds, string $reportPath): array
     {
-        return ServiceVisit::query()
-            ->where('status', 'completed')->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
-            ->latest('completed_at')->limit(6)->get()
-            ->map(fn (ServiceVisit $v) => [
-                'id' => $v->id,
+        $visits = ServiceVisit::query()
+            ->where('status', 'completed')
+            ->when($agentId !== null, fn ($q) => $q->where('agent_id', $agentId))
+            ->when($poolIds !== null, fn ($q) => $q->whereIn('pool_id', $poolIds))
+            ->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
+            ->latest('completed_at')->limit(8)->get()
+            ->map(fn (ServiceVisit $v): array => [
+                'key' => 'v'.$v->id,
                 'pool' => $v->pool?->getAttribute('name'),
                 'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
                 'agent' => $this->name($v->agent),
-                'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
-                'completed_on' => $v->completed_at?->toDateString(),
-            ])->all();
+                'on' => $v->completed_at?->toDateString(),
+                'ts' => $v->completed_at?->getTimestamp() ?? 0,
+                'status' => 'completed',
+                'report_url' => $reportPath.'?selected='.$v->id,
+            ]);
+
+        $skipped = RouteStop::query()
+            ->where('status', 'skipped')
+            ->whereHas('route', fn ($r) => $agentId !== null ? $r->where('agent_id', $agentId) : $r)
+            ->when($poolIds !== null, fn ($q) => $q->whereIn('pool_id', $poolIds))
+            ->with(['pool:id,name,photo_path', 'route:id,agent_id', 'route.agent:id,first_name,last_name,avatar_path'])
+            ->latest('updated_at')->limit(8)->get()
+            ->map(fn (RouteStop $s): array => [
+                'key' => 's'.$s->id,
+                'pool' => $s->pool?->getAttribute('name'),
+                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
+                'agent' => $this->name($s->route?->agent),
+                'on' => $s->updated_at?->toDateString(),
+                'ts' => $s->updated_at?->getTimestamp() ?? 0,
+                'status' => 'skipped',
+                'report_url' => null,
+            ]);
+
+        return $visits->concat($skipped)->sortByDesc('ts')->take(6)
+            ->map(fn (array $a): array => collect($a)->except('ts')->all())
+            ->values()->all();
     }
 
     /**
-     * The agent's own recently completed visits (reuses the Recent Visits card).
+     * Recent activity across the tenant (completed visits + skipped stops).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function recentVisits(): array
+    {
+        return $this->recentActivity(null, null, '/reports');
+    }
+
+    /**
+     * The agent's own recent activity.
      *
      * @return list<array<string, mixed>>
      */
     private function agentVisits(User $user): array
     {
-        return ServiceVisit::query()
-            ->where('agent_id', $user->id)
-            ->where('status', 'completed')->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
-            ->latest('completed_at')->limit(6)->get()
-            ->map(fn (ServiceVisit $v) => [
-                'id' => $v->id,
-                'pool' => $v->pool?->getAttribute('name'),
-                'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
-                'agent' => $this->name($v->agent),
-                'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
-                'completed_on' => $v->completed_at?->toDateString(),
-            ])->all();
+        return $this->recentActivity($user->id, null, '/reports');
     }
 
     private function photoUrl(mixed $path): ?string
