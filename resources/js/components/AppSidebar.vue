@@ -10,6 +10,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarRail,
     useSidebar,
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
@@ -27,6 +28,8 @@ import {
     Inbox,
     LayoutGrid,
     Map,
+    PanelLeftClose,
+    PanelLeftOpen,
     ShieldCheck,
     Users,
     Waves,
@@ -82,7 +85,8 @@ const mainNavItems = computed<NavItem[]>(() => {
     return navByRole[role] ?? navByRole.customer;
 });
 
-const { isMobile } = useSidebar();
+const { isMobile, state, toggleSidebar } = useSidebar();
+const collapsed = computed(() => state.value === 'collapsed');
 </script>
 
 <template>
@@ -104,9 +108,18 @@ const { isMobile } = useSidebar();
         </SidebarContent>
 
         <SidebarFooter>
+            <SidebarMenu v-if="!isMobile">
+                <SidebarMenuItem>
+                    <SidebarMenuButton :tooltip="collapsed ? 'Expand sidebar' : 'Collapse sidebar'" @click="toggleSidebar">
+                        <component :is="collapsed ? PanelLeftOpen : PanelLeftClose" />
+                        <span>Collapse</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
             <NavNotifications v-if="!isMobile" />
             <NavUser />
         </SidebarFooter>
+        <SidebarRail />
     </Sidebar>
     <slot />
 </template>

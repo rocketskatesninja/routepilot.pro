@@ -48,6 +48,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            // Sidebar collapsed state, read from the client-set cookie so SSR
+            // renders the right width on first paint (default open).
+            'sidebarOpen' => $request->cookie('sidebar:state', 'true') !== 'false',
             'auth' => [
                 'user' => $user,
                 'role' => $user?->role,
