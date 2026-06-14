@@ -53,7 +53,7 @@ class PoolController extends Controller
         ], 'name');
 
         $pools = $query
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString()
             ->through(fn (Pool $pool) => $this->toRow($pool, $chem));
 

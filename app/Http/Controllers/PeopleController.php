@@ -48,7 +48,7 @@ class PeopleController extends Controller
         }
         $sortDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
 
-        $people = $builder->paginate($tenantId, $type, $search, 20, $sortKey, $sortDir)->withQueryString();
+        $people = $builder->paginate($tenantId, $type, $search, $this->perPage($request), $sortKey, $sortDir)->withQueryString();
 
         // Enrich the current page's customer rows with balance + last visit (batched).
         $customerIds = $people->getCollection()

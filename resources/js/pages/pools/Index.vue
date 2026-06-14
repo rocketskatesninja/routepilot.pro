@@ -2,13 +2,16 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import Pagination from '@/components/Pagination.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useFitRows } from '@/composables/useFitRows';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
+import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -104,7 +107,7 @@ interface PoolDetail {
 }
 
 const props = defineProps<{
-    pools: { data: PoolRow[]; total: number };
+    pools: Paginated<PoolRow>;
     selected: PoolDetail | null;
     filters: { search: string };
     sort: { key: string; dir: string };
@@ -117,6 +120,10 @@ const props = defineProps<{
 type Subscription = PoolDetail['subscriptions'][number];
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pools', href: '/pools' }];
+const { listRef } = useFitRows(
+    () => props.pools.per_page,
+    () => props.pools.total,
+);
 
 const search = ref(props.filters.search);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -449,73 +456,82 @@ function submitTargets() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="overflow-hidden rounded-xl border border-border">
-                        <table class="w-full text-sm">
-                            <thead class="bg-muted/50 text-left text-muted-foreground">
-                                <tr>
-                                    <th class="w-8 px-4 py-2"><span class="sr-only">Health</span></th>
-                                    <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
-                                    <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
-                                    <SortableTh sort-key="type" :active="props.sort" class="hidden md:table-cell">Type</SortableTh>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
-                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="pool in props.pools.data"
-                                    :key="pool.id"
-                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                    :class="{ 'bg-muted/60': props.selected?.id === pool.id }"
-                                    @click="openPool(pool.id)"
-                                >
-                                    <td class="px-4 py-2.5">
-                                        <span
-                                            class="inline-block size-2.5 rounded-full"
-                                            :class="
-                                                pool.health
-                                                    ? {
-                                                          'bg-emerald-500': pool.health.color === 'green',
-                                                          'bg-amber-500': pool.health.color === 'amber',
-                                                          'bg-red-500': pool.health.color === 'red',
-                                                      }
-                                                    : 'bg-muted'
-                                            "
-                                            :title="pool.health?.label ?? 'No readings yet'"
-                                        />
-                                    </td>
-                                    <td class="px-4 py-2.5">
-                                        <div class="flex items-center gap-2.5">
-                                            <EntityAvatar :src="pool.photo_url" type="pool" :name="pool.name" size="sm" />
-                                            <span class="font-medium">{{ pool.name }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-2.5 text-muted-foreground">
-                                        <div class="flex items-center gap-2">
-                                            <EntityAvatar :src="pool.customer_photo" type="person" :name="pool.customer" size="sm" shape="circle" />
-                                            <span>{{ pool.customer }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
-                                        {{ pool.type.replace('_', ' ') }}
-                                    </td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ pool.cadence ?? '—' }}</td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
-                                        <div v-if="pool.agent" class="flex items-center gap-2">
-                                            <EntityAvatar :src="pool.agent_photo" type="person" :name="pool.agent" size="sm" shape="circle" />
-                                            <span>{{ pool.agent }}</span>
-                                        </div>
-                                        <span v-else>—</span>
-                                    </td>
-                                </tr>
-                                <tr v-if="props.pools.data.length === 0">
-                                    <td colspan="6" class="px-4 py-10 text-center text-muted-foreground">
-                                        <Waves class="mx-auto mb-2 size-6 opacity-50" />
-                                        No pools yet.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="flex min-h-0 flex-col gap-3">
+                        <div ref="listRef" class="overflow-hidden rounded-xl border border-border">
+                            <table class="w-full text-sm">
+                                <thead class="bg-muted/50 text-left text-muted-foreground">
+                                    <tr>
+                                        <th class="w-8 px-4 py-2"><span class="sr-only">Health</span></th>
+                                        <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
+                                        <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
+                                        <SortableTh sort-key="type" :active="props.sort" class="hidden md:table-cell">Type</SortableTh>
+                                        <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
+                                        <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="pool in props.pools.data"
+                                        :key="pool.id"
+                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                        :class="{ 'bg-muted/60': props.selected?.id === pool.id }"
+                                        @click="openPool(pool.id)"
+                                    >
+                                        <td class="px-4 py-2.5">
+                                            <span
+                                                class="inline-block size-2.5 rounded-full"
+                                                :class="
+                                                    pool.health
+                                                        ? {
+                                                              'bg-emerald-500': pool.health.color === 'green',
+                                                              'bg-amber-500': pool.health.color === 'amber',
+                                                              'bg-red-500': pool.health.color === 'red',
+                                                          }
+                                                        : 'bg-muted'
+                                                "
+                                                :title="pool.health?.label ?? 'No readings yet'"
+                                            />
+                                        </td>
+                                        <td class="px-4 py-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <EntityAvatar :src="pool.photo_url" type="pool" :name="pool.name" size="sm" />
+                                                <span class="font-medium">{{ pool.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2.5 text-muted-foreground">
+                                            <div class="flex items-center gap-2">
+                                                <EntityAvatar
+                                                    :src="pool.customer_photo"
+                                                    type="person"
+                                                    :name="pool.customer"
+                                                    size="sm"
+                                                    shape="circle"
+                                                />
+                                                <span>{{ pool.customer }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
+                                            {{ pool.type.replace('_', ' ') }}
+                                        </td>
+                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ pool.cadence ?? '—' }}</td>
+                                        <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                                            <div v-if="pool.agent" class="flex items-center gap-2">
+                                                <EntityAvatar :src="pool.agent_photo" type="person" :name="pool.agent" size="sm" shape="circle" />
+                                                <span>{{ pool.agent }}</span>
+                                            </div>
+                                            <span v-else>—</span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="props.pools.data.length === 0">
+                                        <td colspan="6" class="px-4 py-10 text-center text-muted-foreground">
+                                            <Waves class="mx-auto mb-2 size-6 opacity-50" />
+                                            No pools yet.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination :meta="props.pools" />
                     </div>
                 </template>
 

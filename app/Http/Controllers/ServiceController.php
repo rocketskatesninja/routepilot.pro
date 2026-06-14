@@ -43,7 +43,7 @@ class ServiceController extends Controller
         ], 'name');
 
         $services = $query
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString()
             ->through(fn (ServiceType $type) => [
                 'id' => $type->id,

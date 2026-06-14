@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import MasterDetail from '@/components/MasterDetail.vue';
+import Pagination from '@/components/Pagination.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useFitRows } from '@/composables/useFitRows';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
+import { type Paginated } from '@/types/pagination';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ClipboardList, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
@@ -51,7 +54,7 @@ interface ServiceDetail {
 }
 
 const props = defineProps<{
-    services: { data: ServiceRow[]; total: number };
+    services: Paginated<ServiceRow>;
     selected: ServiceDetail | null;
     filters: { search: string };
     sort: { key: string; dir: string };
@@ -59,6 +62,10 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Services', href: '/services' }];
+const { listRef } = useFitRows(
+    () => props.services.per_page,
+    () => props.services.total,
+);
 
 const search = ref(props.filters.search);
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -189,50 +196,55 @@ function destroyService() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="overflow-hidden rounded-xl border border-border">
-                        <table class="w-full text-sm">
-                            <thead class="bg-muted/50 text-left text-muted-foreground">
-                                <tr>
-                                    <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
-                                    <SortableTh sort-key="category" :active="props.sort" class="hidden md:table-cell">Category</SortableTh>
-                                    <SortableTh sort-key="price" :active="props.sort">Price</SortableTh>
-                                    <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
-                                    <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="service in props.services.data"
-                                    :key="service.id"
-                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                    :class="{ 'bg-muted/60': props.selected?.id === service.id }"
-                                    @click="open(service.id)"
-                                >
-                                    <td class="px-4 py-2.5 font-medium">{{ service.name }}</td>
-                                    <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ service.category ?? '—' }}</td>
-                                    <td class="px-4 py-2.5 text-muted-foreground">{{ money(service.price) }}</td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ service.pools }}</td>
-                                    <td class="px-4 py-2.5">
-                                        <span
-                                            class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                            :class="
-                                                service.is_active
-                                                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                    : 'bg-muted text-muted-foreground'
-                                            "
-                                        >
-                                            {{ service.is_active ? 'Active' : 'Inactive' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr v-if="props.services.data.length === 0">
-                                    <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
-                                        <ClipboardList class="mx-auto mb-2 size-6 opacity-50" />
-                                        No service types yet.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="flex min-h-0 flex-col gap-3">
+                        <div ref="listRef" class="overflow-hidden rounded-xl border border-border">
+                            <table class="w-full text-sm">
+                                <thead class="bg-muted/50 text-left text-muted-foreground">
+                                    <tr>
+                                        <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
+                                        <SortableTh sort-key="category" :active="props.sort" class="hidden md:table-cell">Category</SortableTh>
+                                        <SortableTh sort-key="price" :active="props.sort">Price</SortableTh>
+                                        <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
+                                        <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr
+                                        v-for="service in props.services.data"
+                                        :key="service.id"
+                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                        :class="{ 'bg-muted/60': props.selected?.id === service.id }"
+                                        @click="open(service.id)"
+                                    >
+                                        <td class="px-4 py-2.5 font-medium">{{ service.name }}</td>
+                                        <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
+                                            {{ service.category ?? '—' }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-muted-foreground">{{ money(service.price) }}</td>
+                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ service.pools }}</td>
+                                        <td class="px-4 py-2.5">
+                                            <span
+                                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                                :class="
+                                                    service.is_active
+                                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                        : 'bg-muted text-muted-foreground'
+                                                "
+                                            >
+                                                {{ service.is_active ? 'Active' : 'Inactive' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="props.services.data.length === 0">
+                                        <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
+                                            <ClipboardList class="mx-auto mb-2 size-6 opacity-50" />
+                                            No service types yet.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination :meta="props.services" />
                     </div>
                 </template>
 

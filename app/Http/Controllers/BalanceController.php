@@ -14,6 +14,7 @@ use App\Models\Invoice;
 use App\Services\BillingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -62,6 +63,17 @@ class BalanceController extends Controller
             $rows = array_reverse($rows);
         }
 
+        // Paginate the (sorted) owing list in memory so it pages like the others.
+        $owingPerPage = $this->perPage($request);
+        $owingPage = max(1, $request->integer('page'));
+        $owing = new LengthAwarePaginator(
+            array_slice($rows, ($owingPage - 1) * $owingPerPage, $owingPerPage),
+            count($rows),
+            $owingPerPage,
+            $owingPage,
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
+
         // Invoices view: a paginated, sortable, status-filterable list.
         $invoices = null;
         $invoiceSort = null;
@@ -80,7 +92,7 @@ class BalanceController extends Controller
                 'status' => 'status',
                 'customer' => fn ($q, $dir) => $q->orderBy(Customer::query()->select('first_name')->whereColumn('customers.id', 'invoices.customer_id'), $dir),
             ], 'issued', 'desc');
-            $invoices = $query->paginate(20)->withQueryString()->through(fn (Invoice $i): array => [
+            $invoices = $query->paginate($this->perPage($request))->withQueryString()->through(fn (Invoice $i): array => [
                 'id' => $i->id,
                 'number' => $i->number,
                 'customer' => $i->customer?->displayName(),
@@ -148,7 +160,7 @@ class BalanceController extends Controller
 
         return Inertia::render('balances/Index', [
             'view' => $view,
-            'balances' => $rows,
+            'balances' => $owing,
             'invoices' => $invoices,
             'counts' => ['owing' => count($rows), 'invoices' => Invoice::query()->count()],
             'total' => round((float) $balances->sum(fn (array $r): float => $r['balance']), 2),

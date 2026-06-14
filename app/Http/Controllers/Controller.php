@@ -57,4 +57,20 @@ abstract class Controller
     {
         return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
+
+    /**
+     * How many rows a list should request. The front-end measures how many fit
+     * the viewport and sends `?perPage=N` (also cached in a cookie so the first
+     * paint seeds close to the fit); both are clamped to a sane range.
+     */
+    protected function perPage(Request $request, int $default = 12, int $max = 40): int
+    {
+        $n = $request->integer('perPage');
+        if ($n <= 0) {
+            $cookie = (int) $request->cookie('rp_per_page');
+            $n = $cookie > 0 ? $cookie : $default;
+        }
+
+        return max(5, min($max, $n));
+    }
 }

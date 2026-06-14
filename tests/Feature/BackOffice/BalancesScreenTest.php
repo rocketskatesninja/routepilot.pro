@@ -41,9 +41,9 @@ test('lists only customers with an outstanding balance', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('balances/Index')
-            ->has('balances', 1)
-            ->where('balances.0.name', 'Owes Money')
-            ->where('balances.0.balance', 50)
+            ->has('balances.data', 1)
+            ->where('balances.data.0.name', 'Owes Money')
+            ->where('balances.data.0.balance', 50)
             ->where('total', 50)
         );
 });

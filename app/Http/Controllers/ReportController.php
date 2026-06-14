@@ -42,7 +42,7 @@ class ReportController extends Controller
         ], 'date', 'desc');
 
         $visits = $query
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString()
             ->through(fn (ServiceVisit $v) => [
                 'id' => $v->id,

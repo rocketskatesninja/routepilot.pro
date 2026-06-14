@@ -40,7 +40,7 @@ class InventoryController extends Controller
         ], 'name');
 
         $items = $query
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString()
             ->through(fn (ChemicalInventory $i) => [
                 'id' => $i->id,
