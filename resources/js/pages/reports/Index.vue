@@ -3,12 +3,16 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import SortableTh from '@/components/SortableTh.vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { FileText } from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { FileText, Pencil, Plus, X } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface VisitRow {
     id: number;
@@ -45,6 +49,7 @@ interface VisitDetail {
     reading: Reading | null;
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
+    can_edit?: boolean;
 }
 
 const props = defineProps<{
@@ -70,6 +75,53 @@ const readingLabels: Record<keyof Reading, string> = {
     lsi_score: 'LSI',
 };
 const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
+
+// --- edit ---
+const editReadingKeys = [
+    'free_chlorine',
+    'total_chlorine',
+    'ph',
+    'alkalinity',
+    'calcium_hardness',
+    'cyanuric_acid',
+    'salt',
+    'water_temperature',
+] as const;
+
+const editing = ref(false);
+const form = useForm<{
+    completed_on: string;
+    notes: string;
+    reading: Record<string, number | string | null>;
+    treatments: { name: string; amount: number | string; unit: string }[];
+    tasks: { name: string; done: boolean }[];
+}>({
+    completed_on: '',
+    notes: '',
+    reading: {},
+    treatments: [],
+    tasks: [],
+});
+
+function openEdit() {
+    const s = props.selected;
+    if (!s) return;
+    form.completed_on = s.completed_on ?? '';
+    form.notes = s.notes ?? '';
+    form.reading = Object.fromEntries(editReadingKeys.map((k) => [k, s.reading?.[k] ?? null]));
+    form.treatments = s.treatments.map((t) => ({ ...t }));
+    form.tasks = s.tasks.map((t) => ({ ...t }));
+    form.clearErrors();
+    editing.value = true;
+}
+
+function submitEdit() {
+    if (!props.selected) return;
+    form.patch(`/reports/${props.selected.id}`, {
+        preserveScroll: true,
+        onSuccess: () => (editing.value = false),
+    });
+}
 </script>
 
 <template>
@@ -127,12 +179,87 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
 
                 <template #detail>
                     <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
-                            <p class="text-sm text-muted-foreground">{{ props.selected.completed_on }}</p>
+                        <div class="mb-4 flex items-start justify-between gap-2">
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
+                                <p class="text-sm text-muted-foreground">{{ props.selected.completed_on }}</p>
+                            </div>
+                            <Button v-if="props.selected.can_edit && !editing" size="sm" variant="outline" @click="openEdit">
+                                <Pencil class="mr-1 size-3.5" /> Edit
+                            </Button>
                         </div>
 
-                        <div class="space-y-5 text-sm">
+                        <!-- edit form -->
+                        <form v-if="editing" class="space-y-4 text-sm" @submit.prevent="submitEdit">
+                            <div class="grid gap-1.5">
+                                <Label for="r_date">Date</Label>
+                                <Input id="r_date" v-model="form.completed_on" type="date" />
+                            </div>
+                            <div>
+                                <span class="text-xs font-medium text-muted-foreground">Readings</span>
+                                <div class="mt-1 grid grid-cols-3 gap-2">
+                                    <div v-for="k in editReadingKeys" :key="k" class="grid gap-1">
+                                        <Label :for="`r_${k}`" class="text-xs">{{ readingLabels[k] }}</Label>
+                                        <Input :id="`r_${k}`" v-model="form.reading[k]" type="number" step="any" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="mb-1 flex items-center justify-between">
+                                    <span class="text-xs font-medium text-muted-foreground">Treatments</span>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        @click="form.treatments.push({ name: '', amount: '', unit: '' })"
+                                    >
+                                        <Plus class="mr-1 size-3.5" /> Add
+                                    </Button>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <div v-for="(t, i) in form.treatments" :key="i" class="flex gap-2">
+                                        <Input v-model="t.name" placeholder="Chemical" class="flex-1" />
+                                        <Input v-model="t.amount" type="number" step="any" placeholder="Amt" class="w-16" />
+                                        <Input v-model="t.unit" placeholder="Unit" class="w-16" />
+                                        <Button type="button" size="icon" variant="outline" @click="form.treatments.splice(i, 1)"
+                                            ><X class="size-4"
+                                        /></Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="mb-1 flex items-center justify-between">
+                                    <span class="text-xs font-medium text-muted-foreground">Tasks</span>
+                                    <Button type="button" size="sm" variant="outline" @click="form.tasks.push({ name: '', done: false })">
+                                        <Plus class="mr-1 size-3.5" /> Add
+                                    </Button>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <div v-for="(t, i) in form.tasks" :key="i" class="flex items-center gap-2">
+                                        <input v-model="t.done" type="checkbox" />
+                                        <Input v-model="t.name" placeholder="Task" class="flex-1" />
+                                        <Button type="button" size="icon" variant="outline" @click="form.tasks.splice(i, 1)"
+                                            ><X class="size-4"
+                                        /></Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="r_notes">Notes</Label>
+                                <textarea
+                                    id="r_notes"
+                                    v-model="form.notes"
+                                    rows="3"
+                                    class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                ></textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-2">
+                                <Button type="button" variant="outline" @click="editing = false">Cancel</Button>
+                                <Button type="submit" :disabled="form.processing">Save</Button>
+                            </div>
+                        </form>
+
+                        <div v-else class="space-y-5 text-sm">
                             <dl class="grid grid-cols-2 gap-3">
                                 <div>
                                     <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</dt>

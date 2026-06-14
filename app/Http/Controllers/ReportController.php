@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\UpdateReport;
+use App\Http\Requests\UpdateReportRequest;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -63,6 +66,9 @@ class ReportController extends Controller
                 ->find($selectedId);
             if ($visit !== null) {
                 $selected = $this->toDetail($visit);
+                // Admins may edit any report; an agent only their own.
+                $selected['can_edit'] = $this->canManage($request->user())
+                    || (int) $visit->getAttribute('agent_id') === $request->user()?->id;
             }
         }
 
@@ -71,6 +77,13 @@ class ReportController extends Controller
             'selected' => $selected,
             'sort' => $sort,
         ]);
+    }
+
+    public function update(UpdateReportRequest $request, ServiceVisit $visit, UpdateReport $action): RedirectResponse
+    {
+        $action->handle($visit, $request->validated());
+
+        return back()->with('success', 'Report updated.');
     }
 
     /** @return array<string, mixed> */
