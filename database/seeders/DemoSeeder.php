@@ -21,7 +21,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Demo data for kicking the tyres: one tenant (Sunshine Pools) with the
+ * Demo data for kicking the tyres: one tenant (Demo Company) with the
  * four login roles, a handful of customers/pools on weekly service, a
  * materialized schedule, and recent completed visits with readings — enough
  * for every role dashboard to render real numbers.
@@ -44,7 +44,7 @@ class DemoSeeder extends Seeder
         ]);
 
         $tenant = Tenant::factory()->create([
-            'name' => 'Sunshine Pools', 'slug' => 'sunshine',
+            'name' => 'Demo Company', 'slug' => 'demo',
             'brand_color' => '#0ea5e9',
             'settings' => ['hq_lat' => 28.5383, 'hq_lng' => -81.3792], // Orlando, FL
         ]);
@@ -161,7 +161,7 @@ class DemoSeeder extends Seeder
         // Materialize the upcoming schedule from the subscriptions.
         app(SubscriptionMaterializer::class)->run($tenant->id, Carbon::now()->addWeeks(2)->toDateString());
 
-        $this->command->info('Demo tenant "Sunshine Pools" seeded. Logins (password "password"): '
+        $this->command->info('Demo tenant "Demo Company" seeded. Logins (password "password"): '
             .'admin@routepilot.pro, tenant@routepilot.pro, agent@routepilot.pro, customer@routepilot.pro');
     }
 
