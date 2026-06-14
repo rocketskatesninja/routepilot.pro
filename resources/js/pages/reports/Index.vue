@@ -151,25 +151,36 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                     <div v-if="props.selected">
                         <div class="mb-4">
                             <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
-                            <p class="text-sm text-muted-foreground">
-                                <Link
-                                    v-if="props.selected.customer_id"
-                                    :href="customerLink(props.selected.customer_id)"
-                                    class="text-primary hover:underline"
-                                    >{{ props.selected.customer }}</Link
-                                >
-                                <template v-else>{{ props.selected.customer }}</template> · {{ props.selected.completed_on }} ·
-                                <Link
-                                    v-if="props.selected.agent_id"
-                                    :href="agentLink(props.selected.agent_id)"
-                                    class="text-primary hover:underline"
-                                    >{{ props.selected.agent }}</Link
-                                >
-                                <template v-else>{{ props.selected.agent }}</template>
-                            </p>
+                            <p class="text-sm text-muted-foreground">{{ props.selected.completed_on }}</p>
                         </div>
 
                         <div class="space-y-5 text-sm">
+                            <dl class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</dt>
+                                    <dd class="mt-0.5">
+                                        <Link
+                                            v-if="props.selected.customer_id"
+                                            :href="customerLink(props.selected.customer_id)"
+                                            class="text-primary hover:underline"
+                                            >{{ props.selected.customer }}</Link
+                                        >
+                                        <template v-else>{{ props.selected.customer ?? '—' }}</template>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent</dt>
+                                    <dd class="mt-0.5">
+                                        <Link
+                                            v-if="props.selected.agent_id"
+                                            :href="agentLink(props.selected.agent_id)"
+                                            class="text-primary hover:underline"
+                                            >{{ props.selected.agent }}</Link
+                                        >
+                                        <template v-else>{{ props.selected.agent ?? '—' }}</template>
+                                    </dd>
+                                </div>
+                            </dl>
                             <section v-if="props.selected.reading">
                                 <h3 class="mb-1 font-medium">Readings</h3>
                                 <dl class="grid grid-cols-3 gap-2 text-muted-foreground">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -549,15 +550,13 @@ function submitTargets() {
                         />
                         <div class="grid gap-1.5">
                             <Label for="customer_id">Customer</Label>
-                            <select
+                            <Combobox
                                 id="customer_id"
                                 v-model="form.customer_id"
+                                :options="props.customers"
                                 :disabled="formMode === 'edit'"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60"
-                            >
-                                <option value="">Select a customer…</option>
-                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-                            </select>
+                                placeholder="Search customers…"
+                            />
                             <p v-if="form.errors.customer_id" class="text-xs text-red-600">{{ form.errors.customer_id }}</p>
                         </div>
                         <div class="grid gap-1.5">
