@@ -12,7 +12,6 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Eye, EyeOff, GripVertical, Loader2, Lock, Plus, RotateCw, Star, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import draggable from 'vuedraggable';
-import '../../../css/landing.css';
 
 interface Agent {
     id: number;

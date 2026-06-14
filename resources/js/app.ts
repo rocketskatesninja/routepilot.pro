@@ -1,4 +1,9 @@
 import '../css/app.css';
+// Landing styles ship in the global head bundle (not a lazy page chunk) so the
+// hero's `.hero-animate { opacity: 0 }` entrance rule is present at the SSR
+// first paint — otherwise the text paints visible, then the late chunk hides it
+// and fades it back in (a visible "load twice" flash).
+import '../css/landing.css';
 
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';

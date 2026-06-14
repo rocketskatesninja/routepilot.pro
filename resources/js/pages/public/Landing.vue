@@ -4,7 +4,6 @@ import type { BrandContext, LiveData, SectionConfig } from '@/components/landing
 import { useReveal } from '@/composables/useReveal';
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import '../../../css/landing.css';
 
 defineProps<{
     sections: SectionConfig[];
