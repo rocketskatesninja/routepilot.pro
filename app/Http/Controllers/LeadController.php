@@ -36,7 +36,7 @@ class LeadController extends Controller
 
     public function updateStatus(Request $request, Lead $lead): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $validated = $request->validate(['status' => ['required', 'in:new,contacted,converted,archived']]);
         $lead->forceFill(['status' => $validated['status']])->save();

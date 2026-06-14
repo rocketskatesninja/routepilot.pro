@@ -12,7 +12,6 @@ use App\Services\BillingService;
 use App\Services\StripeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -41,7 +40,7 @@ class PortalController extends Controller
                 return [
                     'id' => $v->id,
                     'pool' => $v->pool?->getAttribute('name'),
-                    'pool_photo' => is_string($poolPhoto) && $poolPhoto !== '' ? Storage::disk('public')->url($poolPhoto) : null,
+                    'pool_photo' => $this->photoUrl($poolPhoto),
                     'on' => $v->completed_at?->toDateString(),
                 ];
             });
@@ -224,7 +223,7 @@ class PortalController extends Controller
                 'name' => $t->getAttribute('task_name'),
                 'done' => (bool) $t->getAttribute('is_completed'),
             ])->all(),
-            'photos' => $visit->photos->map(fn ($p): string => Storage::disk('public')->url((string) $p->getAttribute('photo_path')))->all(),
+            'photos' => $visit->photos->map(fn ($p): ?string => $this->photoUrl($p->getAttribute('photo_path')))->all(),
         ];
     }
 }

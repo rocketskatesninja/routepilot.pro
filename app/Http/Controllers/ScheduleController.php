@@ -34,7 +34,7 @@ class ScheduleController extends Controller
         // Admins manage assignments by dragging stops on/off the per-day
         // "unassigned" route (agent_id null) — ensure it exists so it's always a
         // drop target. Agents only read, so no need to create it for them.
-        $canManage = $request->user()?->role === 'tenant_admin';
+        $canManage = $this->canManage($request->user());
         if ($canManage) {
             $this->unassignedRoute((int) $request->user()->tenant_id, $date);
         }
@@ -78,7 +78,7 @@ class ScheduleController extends Controller
     /** Materialize route stops from active subscriptions through 4 weeks out. */
     public function materialize(Request $request, SubscriptionMaterializer $materializer): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $through = Carbon::today()->addWeeks(4)->toDateString();
         $created = $materializer->run((int) $request->user()->tenant_id, $through);
@@ -91,7 +91,7 @@ class ScheduleController extends Controller
     /** Re-order a route's pending stops (nearest-neighbour + 2-opt). */
     public function optimize(Request $request, Route $route, RouteOptimizer $optimizer): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $result = $optimizer->optimize($route);
 
@@ -101,7 +101,7 @@ class ScheduleController extends Controller
     /** Skip a single pending stop. */
     public function skipStop(Request $request, RouteStop $stop): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         // RouteStop isn't globally scoped; its Route is — a foreign stop's route resolves to null.
         abort_if($stop->route === null, 404);
 
@@ -118,7 +118,7 @@ class ScheduleController extends Controller
      */
     public function arrange(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $validated = $request->validate([
             'routes' => ['array'],

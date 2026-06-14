@@ -38,7 +38,7 @@ class AgentController extends Controller
 
     public function destroy(Request $request, User $agent): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         $this->authorizeAgent($request, $agent);
         $agent->delete();
 
@@ -52,7 +52,7 @@ class AgentController extends Controller
      */
     public function updateColor(Request $request, User $agent): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         $this->authorizeAgent($request, $agent);
 
         $validated = $request->validate([

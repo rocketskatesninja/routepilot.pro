@@ -6,7 +6,6 @@ namespace App\Actions;
 
 use App\Models\ChemicalInventory;
 use App\Services\PhotoService;
-use Illuminate\Http\UploadedFile;
 
 /**
  * Update a chemical's details. Stock level changes go through AdjustStock so
@@ -31,11 +30,7 @@ class UpdateChemical
             'is_active' => (bool) ($data['is_active'] ?? true),
         ]);
 
-        $photo = $data['photo'] ?? null;
-        if ($photo instanceof UploadedFile) {
-            $old = $chemical->getAttribute('photo_path');
-            $chemical->forceFill(['photo_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'inventory')])->save();
-        }
+        $this->photos->attach($chemical, $data['photo'] ?? null, 'photo_path', 'inventory');
 
         return $chemical;
     }

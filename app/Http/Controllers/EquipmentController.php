@@ -36,7 +36,7 @@ class EquipmentController extends Controller
 
     public function destroy(Request $request, PoolEquipment $equipment): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         $equipment->delete();
 
         return back()->with('success', 'Equipment removed.');

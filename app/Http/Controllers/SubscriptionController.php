@@ -34,7 +34,7 @@ class SubscriptionController extends Controller
 
     public function destroy(Request $request, ServiceSubscription $subscription): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         $subscription->delete();
 
         return back()->with('success', 'Service plan removed.');

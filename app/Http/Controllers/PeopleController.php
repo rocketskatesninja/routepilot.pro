@@ -12,7 +12,6 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
 use App\Support\PersonListBuilder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -83,9 +82,9 @@ class PeopleController extends Controller
             'selected' => $selected,
             'filters' => ['search' => $search, 'type' => $type],
             'sort' => ['key' => $sortKey, 'dir' => $sortDir],
-            'canManage' => $user?->role === 'tenant_admin',
-            'canEmail' => $user?->role === 'tenant_admin',
-            'audiences' => $user?->role === 'tenant_admin' ? $campaigns->audiencesFor($user) : [],
+            'canManage' => $this->canManage($user),
+            'canEmail' => $this->canManage($user),
+            'audiences' => $this->canManage($user) ? $campaigns->audiencesFor($user) : [],
             'recent' => $this->recentCampaigns(),
         ]);
     }
@@ -207,7 +206,7 @@ class PeopleController extends Controller
         return [
             'type' => 'customer',
             'id' => $customer->id,
-            'name' => $this->personName($customer),
+            'name' => $customer->displayName(),
             'photo_url' => $this->photoUrl($customer->getAttribute('photo_path')),
             'email' => $customer->getAttribute('email'),
             'phone' => $customer->getAttribute('phone'),
@@ -261,7 +260,7 @@ class PeopleController extends Controller
         return [
             'type' => 'agent',
             'id' => $agent->id,
-            'name' => $this->personName($agent),
+            'name' => $agent->displayName(),
             'photo_url' => $this->photoUrl($agent->getAttribute('avatar_path')),
             'email' => $agent->getAttribute('email'),
             'phone' => $agent->getAttribute('phone'),
@@ -279,12 +278,5 @@ class PeopleController extends Controller
                 'agent_plus' => (bool) $agent->getAttribute('agent_plus'),
             ],
         ];
-    }
-
-    private function personName(Model $person): string
-    {
-        $name = trim((string) $person->getAttribute('first_name').' '.(string) $person->getAttribute('last_name'));
-
-        return $name !== '' ? $name : '—';
     }
 }

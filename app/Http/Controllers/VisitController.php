@@ -126,7 +126,7 @@ class VisitController extends Controller
     /** Feature / un-feature a visit photo in the public gallery (tenant_admin curation). */
     public function toggleShowcase(Request $request, VisitPhoto $photo): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         // VisitPhoto isn't tenant-scoped — assert ownership via its (scoped) visit.
         $visit = $photo->serviceVisit()->first();
         abort_if($visit === null, 404);

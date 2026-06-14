@@ -6,7 +6,6 @@ namespace App\Actions;
 
 use App\Models\Customer;
 use App\Services\PhotoService;
-use Illuminate\Http\UploadedFile;
 
 /**
  * Update a customer's contact/profile fields. Privilege/identity fields
@@ -34,11 +33,7 @@ class UpdateCustomer
             'bill_chemicals' => $data['bill_chemicals'] ?? false,
         ]);
 
-        $photo = $data['photo'] ?? null;
-        if ($photo instanceof UploadedFile) {
-            $old = $customer->getAttribute('photo_path');
-            $customer->forceFill(['photo_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'customers')])->save();
-        }
+        $this->photos->attach($customer, $data['photo'] ?? null, 'photo_path', 'customers');
 
         return $customer;
     }

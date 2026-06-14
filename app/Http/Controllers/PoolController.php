@@ -14,10 +14,8 @@ use App\Models\EquipmentServiceLog;
 use App\Models\Pool;
 use App\Models\PoolEquipment;
 use App\Models\ServiceSubscription;
-use App\Models\ServiceType;
-use App\Models\User;
 use App\Services\ChemistryService;
-use Illuminate\Database\Eloquent\Model;
+use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -75,10 +73,10 @@ class PoolController extends Controller
             'selected' => $selected,
             'filters' => ['search' => $search],
             'sort' => $sort,
-            'customers' => $this->customerOptions(),
-            'serviceTypes' => $this->serviceTypeOptions(),
-            'agents' => $this->agentOptions(),
-            'canManage' => $request->user()?->role === 'tenant_admin',
+            'customers' => OptionLists::customers(),
+            'serviceTypes' => OptionLists::serviceTypes(),
+            'agents' => OptionLists::agents(),
+            'canManage' => $this->canManage($request->user()),
         ]);
     }
 
@@ -98,7 +96,7 @@ class PoolController extends Controller
 
     public function destroy(Request $request, Pool $pool): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         $pool->delete();
 
         return back()->with('success', 'Pool removed.');
@@ -107,7 +105,7 @@ class PoolController extends Controller
     /** Save per-pool chemistry target overrides (blanks fall back to defaults). */
     public function updateTargets(Request $request, Pool $pool): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $validated = $request->validate([
             'targets' => ['array'],
@@ -131,39 +129,6 @@ class PoolController extends Controller
         $pool->update(['custom_target_ranges' => $ranges === [] ? null : $ranges]);
 
         return back()->with('success', 'Chemistry targets saved.');
-    }
-
-    /** @return list<array{id: int, name: string}> */
-    private function customerOptions(): array
-    {
-        return Customer::query()
-            ->orderBy('first_name')->orderBy('last_name')
-            ->get(['id', 'first_name', 'last_name'])
-            ->map(fn (Customer $c): array => ['id' => $c->id, 'name' => $c->displayName()])
-            ->all();
-    }
-
-    /** @return list<array{id: int, name: string}> */
-    private function serviceTypeOptions(): array
-    {
-        return ServiceType::query()
-            ->where('is_active', true)->orderBy('name')->get(['id', 'name'])
-            ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name])
-            ->all();
-    }
-
-    /** @return list<array{id: int, name: string}> */
-    private function agentOptions(): array
-    {
-        // Includes tenant_admins so a one-person operation can assign routes to themselves.
-        return User::query()
-            ->where('tenant_id', app('tenant_id'))->whereIn('role', ['agent', 'tenant_admin'])->where('is_active', true)
-            ->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'role'])
-            ->map(fn (User $u): array => [
-                'id' => $u->id,
-                'name' => $u->role === 'tenant_admin' ? $u->displayName().' (admin)' : $u->displayName(),
-            ])
-            ->all();
     }
 
     /** @return array<string, mixed> */
@@ -190,11 +155,11 @@ class PoolController extends Controller
             'photo_url' => $this->photoUrl($pool->getAttribute('photo_path')),
             'type' => $pool->type,
             'sanitizer' => $pool->sanitizer_type,
-            'customer' => $this->personName($pool->customer),
+            'customer' => $pool->customer?->displayName() ?? '—',
             'customer_photo' => $this->photoUrl($pool->customer?->getAttribute('photo_path')),
             'city' => $pool->serviceLocation?->getAttribute('city'),
             'cadence' => $sub?->scheduleLabel(),
-            'agent' => $sub !== null ? $this->personName($sub->agent) : null,
+            'agent' => $sub !== null ? ($sub->agent?->displayName() ?? '—') : null,
             'agent_photo' => $sub?->agent !== null ? $this->photoUrl($sub->agent->getAttribute('avatar_path')) : null,
             'health' => $health,
         ];
@@ -240,7 +205,7 @@ class PoolController extends Controller
             ])),
             'customer' => [
                 'id' => $pool->customer?->getKey(),
-                'name' => $this->personName($pool->customer),
+                'name' => $pool->customer?->displayName() ?? '—',
                 'email' => $pool->customer?->getAttribute('email'),
                 'phone' => $pool->customer?->getAttribute('phone'),
             ],
@@ -253,7 +218,7 @@ class PoolController extends Controller
                 'id' => $sub->id,
                 'service' => $sub->serviceType->name,
                 'schedule' => $sub->scheduleLabel(),
-                'agent' => $this->personName($sub->agent),
+                'agent' => $sub->agent?->displayName() ?? '—',
                 'status' => $sub->status,
                 'service_type_id' => $sub->service_type_id,
                 'agent_id' => $sub->assigned_agent_id,
@@ -311,16 +276,5 @@ class PoolController extends Controller
                 'access_notes' => $location?->getAttribute('access_notes'),
             ],
         ];
-    }
-
-    /** Full name of a Customer or User (magic attributes), or an em dash. */
-    private function personName(?Model $person): string
-    {
-        if ($person === null) {
-            return '—';
-        }
-        $name = trim((string) $person->getAttribute('first_name').' '.(string) $person->getAttribute('last_name'));
-
-        return $name !== '' ? $name : '—';
     }
 }

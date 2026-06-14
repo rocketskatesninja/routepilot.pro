@@ -64,12 +64,6 @@ class Pool extends Model
         ];
     }
 
-    /** @return BelongsTo<Tenant, $this> */
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
-    }
-
     /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {

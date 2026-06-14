@@ -6,7 +6,6 @@ namespace App\Actions;
 
 use App\Models\ChemicalInventory;
 use App\Services\PhotoService;
-use Illuminate\Http\UploadedFile;
 
 /**
  * Add a chemical to the tenant's central stock.
@@ -31,10 +30,7 @@ class CreateChemical
             'is_active' => true,
         ]);
 
-        $photo = $data['photo'] ?? null;
-        if ($photo instanceof UploadedFile) {
-            $chemical->forceFill(['photo_path' => $this->photos->store($photo, 'inventory')])->save();
-        }
+        $this->photos->attach($chemical, $data['photo'] ?? null, 'photo_path', 'inventory');
 
         return $chemical;
     }

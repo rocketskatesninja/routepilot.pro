@@ -6,7 +6,6 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Integration — per-tenant third-party config (AI keys, SMTP, etc.).
@@ -28,11 +27,5 @@ class Integration extends Model
             'config' => 'encrypted:array',
             'is_active' => 'boolean',
         ];
-    }
-
-    /** @return BelongsTo<Tenant, $this> */
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
     }
 }

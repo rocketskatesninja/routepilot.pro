@@ -12,6 +12,7 @@ use App\Http\Requests\StoreManualChargeRequest;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\BillingService;
+use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -167,8 +168,8 @@ class BalanceController extends Controller
             'selected' => $selected,
             'sort' => $view === 'invoices' ? $invoiceSort : ['key' => $owingKey, 'dir' => $owingDir],
             'invoiceStatus' => $invoiceStatus,
-            'canManage' => $request->user()?->role === 'tenant_admin',
-            'customers' => $this->customerOptions(),
+            'canManage' => $this->canManage($request->user()),
+            'customers' => OptionLists::customers(),
         ]);
     }
 
@@ -194,7 +195,7 @@ class BalanceController extends Controller
 
     public function generateInvoice(Request $request, Customer $customer, GenerateInvoice $action): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $invoice = $action->handle($customer);
 
@@ -204,7 +205,7 @@ class BalanceController extends Controller
     /** QuickBooks-friendly CSV of every invoice (tenant-scoped). */
     public function exportCsv(Request $request): StreamedResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $invoices = Invoice::query()->with('customer:id,first_name,last_name')->latest('issued_at')->latest('id')->get();
 
@@ -229,15 +230,5 @@ class BalanceController extends Controller
             }
             fclose($out);
         }, 'invoices.csv', ['Content-Type' => 'text/csv']);
-    }
-
-    /** @return list<array{id: int, name: string}> */
-    private function customerOptions(): array
-    {
-        return Customer::query()
-            ->orderBy('first_name')->orderBy('last_name')
-            ->get(['id', 'first_name', 'last_name'])
-            ->map(fn (Customer $c): array => ['id' => $c->id, 'name' => $c->displayName()])
-            ->all();
     }
 }

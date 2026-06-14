@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -43,6 +44,21 @@ class PhotoService
         $this->delete($oldPath);
 
         return $this->store($file, $directory, $max, $quality);
+    }
+
+    /**
+     * Attach an uploaded photo to a model's path column (store new / replace old),
+     * a no-op when $photo isn't an upload. The privilege-ish path column is set via
+     * forceFill, matching the existing call sites.
+     */
+    public function attach(Model $model, mixed $photo, string $column, string $dir): void
+    {
+        if (! $photo instanceof UploadedFile) {
+            return;
+        }
+
+        $old = $model->getAttribute($column);
+        $model->forceFill([$column => $this->replace($photo, is_string($old) ? $old : null, $dir)])->save();
     }
 
     /** Delete a stored image (no-op for null/empty). */

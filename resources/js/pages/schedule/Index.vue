@@ -3,6 +3,7 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ScheduleMap from '@/components/schedule/ScheduleMap.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { visitStatusClass } from '@/lib/statusColors';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
@@ -211,13 +212,6 @@ function setColor(route: RouteCard, event: Event) {
 const prettyDate = computed(() =>
     new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
 );
-
-const statusClasses: Record<string, string> = {
-    completed: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-    in_progress: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
-    pending: 'bg-muted text-muted-foreground',
-    skipped: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-};
 </script>
 
 <template>
@@ -305,11 +299,9 @@ const statusClasses: Record<string, string> = {
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
-                                    <span
-                                        class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                        :class="statusClasses[stop.status] ?? 'bg-muted'"
-                                        >{{ stop.status.replace('_', ' ') }}</span
-                                    >
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
+                                        stop.status.replace('_', ' ')
+                                    }}</span>
                                 </div>
                             </li>
                         </template>
@@ -387,11 +379,9 @@ const statusClasses: Record<string, string> = {
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
-                                    <span
-                                        class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                        :class="statusClasses[stop.status] ?? 'bg-muted'"
-                                        >{{ stop.status.replace('_', ' ') }}</span
-                                    >
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
+                                        stop.status.replace('_', ' ')
+                                    }}</span>
                                     <button
                                         v-if="props.canManage && stop.status === 'pending'"
                                         class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"

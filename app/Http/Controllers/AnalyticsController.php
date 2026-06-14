@@ -23,7 +23,7 @@ class AnalyticsController extends Controller
 {
     public function index(Request $request, BillingService $billing): Response
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $monthStart = now()->startOfMonth();
         $weekStart = now()->startOfWeek();

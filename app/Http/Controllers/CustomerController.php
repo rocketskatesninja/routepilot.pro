@@ -44,7 +44,7 @@ class CustomerController extends Controller
 
     public function destroy(Request $request, Customer $customer): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $this->audit($request, 'customer.deleted', $customer);
         $customer->delete();
@@ -55,7 +55,7 @@ class CustomerController extends Controller
     /** GDPR/CCPA — download all of a customer's data as JSON (audited). */
     public function export(Request $request, Customer $customer): JsonResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $this->audit($request, 'customer.exported', $customer);
 

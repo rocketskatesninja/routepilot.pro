@@ -43,7 +43,7 @@ class RequestController extends Controller
     public function resolve(Request $request, ServiceRequest $serviceRequest): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user?->role === 'tenant_admin', 403);
+        abort_unless($this->canManage($user), 403);
 
         $serviceRequest->forceFill(['status' => 'resolved', 'resolved_by' => $user->id, 'resolved_at' => now()])->save();
 

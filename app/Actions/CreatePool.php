@@ -7,7 +7,6 @@ namespace App\Actions;
 use App\Models\Pool;
 use App\Services\GeocodingService;
 use App\Services\PhotoService;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -62,10 +61,7 @@ class CreatePool
             $this->geocoder->locate($location);
         }
 
-        $photo = $data['photo'] ?? null;
-        if ($photo instanceof UploadedFile) {
-            $pool->forceFill(['photo_path' => $this->photos->store($photo, 'pools')])->save();
-        }
+        $this->photos->attach($pool, $data['photo'] ?? null, 'photo_path', 'pools');
 
         return $pool;
     }

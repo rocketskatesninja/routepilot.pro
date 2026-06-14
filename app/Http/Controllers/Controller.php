@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -50,6 +51,18 @@ abstract class Controller
             $user !== null && $user->tenant_id !== null && in_array($user->role, ['tenant_admin', 'agent'], true),
             403,
         );
+    }
+
+    /** Admin-only guard — the single definition of the manage trust boundary. */
+    protected function authorizeAdmin(Request $request): void
+    {
+        abort_unless($this->canManage($request->user()), 403);
+    }
+
+    /** Whether the user may manage (tenant_admin). */
+    protected function canManage(?User $user): bool
+    {
+        return $user?->role === 'tenant_admin';
     }
 
     /** Public URL for a stored photo path, or null when unset. */

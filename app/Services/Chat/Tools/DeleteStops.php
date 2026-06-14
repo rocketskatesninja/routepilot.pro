@@ -7,6 +7,7 @@ namespace App\Services\Chat\Tools;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Services\Chat\AiTool;
+use App\Support\Weekday;
 use Illuminate\Support\Carbon;
 
 /**
@@ -45,16 +46,13 @@ class DeleteStops extends AiTool
         ];
     }
 
-    /** Carbon dayOfWeek constants: 0=Sunday through 6=Saturday. */
-    private const DAY_MAP = ['sunday' => 0, 'monday' => 1, 'tuesday' => 2, 'wednesday' => 3, 'thursday' => 4, 'friday' => 5, 'saturday' => 6];
-
     public function execute(array $params, int $tenantId): string
     {
         $customerName = trim((string) ($params['customer_name'] ?? ''));
         $poolName = trim((string) ($params['pool_name'] ?? ''));
         $day = strtolower(trim((string) ($params['day_of_week'] ?? '')));
 
-        $targetDow = self::DAY_MAP[$day] ?? null;
+        $targetDow = Weekday::MAP[$day] ?? null;
         if ($targetDow === null) {
             return "Invalid day: \"{$day}\".";
         }

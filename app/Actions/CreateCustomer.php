@@ -7,7 +7,6 @@ namespace App\Actions;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Services\PhotoService;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -58,10 +57,7 @@ class CreateCustomer
             return $customer;
         });
 
-        $photo = $data['photo'] ?? null;
-        if ($photo instanceof UploadedFile) {
-            $customer->forceFill(['photo_path' => $this->photos->store($photo, 'customers')])->save();
-        }
+        $this->photos->attach($customer, $data['photo'] ?? null, 'photo_path', 'customers');
 
         return $customer;
     }

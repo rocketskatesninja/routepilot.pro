@@ -58,12 +58,6 @@ class Customer extends Model
         return trim($this->first_name.' '.$this->last_name);
     }
 
-    /** @return BelongsTo<Tenant, $this> */
-    public function tenant(): BelongsTo
-    {
-        return $this->belongsTo(Tenant::class);
-    }
-
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {

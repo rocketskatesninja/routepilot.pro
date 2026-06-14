@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
+use App\Support\Weekday;
 use Carbon\Carbon;
 
 /**
@@ -150,8 +151,7 @@ class SubscriptionMaterializer
         }
 
         // Weekly / biweekly — walk days, match the preferred weekday.
-        $dayMap = ['sunday' => 0, 'monday' => 1, 'tuesday' => 2, 'wednesday' => 3, 'thursday' => 4, 'friday' => 5, 'saturday' => 6];
-        $targetDow = $dayMap[$sub->preferred_day ?? 'monday'] ?? 1;
+        $targetDow = Weekday::MAP[$sub->preferred_day ?? 'monday'] ?? 1;
 
         $cursor = $start->copy();
         while ($cursor <= $end) {

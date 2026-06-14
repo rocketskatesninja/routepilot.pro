@@ -71,7 +71,7 @@ class ServiceController extends Controller
             'selected' => $selected,
             'filters' => ['search' => $search],
             'sort' => $sort,
-            'canManage' => $request->user()?->role === 'tenant_admin',
+            'canManage' => $this->canManage($request->user()),
         ]);
     }
 
@@ -91,7 +91,7 @@ class ServiceController extends Controller
 
     public function destroy(Request $request, ServiceType $service): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         // Never cascade-delete subscription history — retire via inactive instead.
         if ($service->subscriptions()->exists()) {

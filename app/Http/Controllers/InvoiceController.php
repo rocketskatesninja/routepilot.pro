@@ -49,7 +49,7 @@ class InvoiceController extends Controller
     /** Email the invoice (branded PDF + signed pay link) to the customer. */
     public function email(Request $request, Invoice $invoice): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $invoice->load('customer');
         $email = $invoice->customer->email;
@@ -70,7 +70,7 @@ class InvoiceController extends Controller
     /** Record an off-platform payment that settles this invoice in full. */
     public function markPaid(Request $request, Invoice $invoice, MarkInvoicePaid $action): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
 
         $method = (string) $request->string('method');
         if (! in_array($method, ['cash', 'check', 'card', 'ach', 'other'], true)) {

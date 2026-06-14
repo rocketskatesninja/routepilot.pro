@@ -7,7 +7,6 @@ namespace App\Actions;
 use App\Models\Pool;
 use App\Services\GeocodingService;
 use App\Services\PhotoService;
-use Illuminate\Http\UploadedFile;
 
 /**
  * Update a pool's specs and its service location (upserted). The owning
@@ -56,13 +55,7 @@ class UpdatePool
             $this->geocoder->locate($location);
         }
 
-        $photo = $data['photo'] ?? null;
-        if ($photo instanceof UploadedFile) {
-            $old = $pool->getAttribute('photo_path');
-            $pool->forceFill([
-                'photo_path' => $this->photos->replace($photo, is_string($old) ? $old : null, 'pools'),
-            ])->save();
-        }
+        $this->photos->attach($pool, $data['photo'] ?? null, 'photo_path', 'pools');
 
         return $pool;
     }

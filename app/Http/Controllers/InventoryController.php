@@ -66,7 +66,7 @@ class InventoryController extends Controller
             'selected' => $selected,
             'filters' => ['search' => $search],
             'sort' => $sort,
-            'canManage' => $request->user()?->role === 'tenant_admin',
+            'canManage' => $this->canManage($request->user()),
         ]);
     }
 
@@ -93,7 +93,7 @@ class InventoryController extends Controller
 
     public function destroy(Request $request, ChemicalInventory $chemical): RedirectResponse
     {
-        abort_unless($request->user()?->role === 'tenant_admin', 403);
+        $this->authorizeAdmin($request);
         $chemical->delete();
 
         return back()->with('success', 'Chemical removed.');
