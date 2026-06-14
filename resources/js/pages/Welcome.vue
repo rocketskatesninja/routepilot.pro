@@ -340,9 +340,12 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                         </ul>
                     </div>
                 </div>
-                <div class="mt-8 flex flex-col items-center justify-between gap-2 border-t border-border pt-6 sm:flex-row">
+                <div class="mt-8 flex flex-col items-center gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
                     <p class="text-sm text-muted-foreground">© {{ new Date().getFullYear() }} RoutePilot. All rights reserved.</p>
-                    <p class="text-xs text-muted-foreground">Made with ☕ for hard-working pool pros everywhere</p>
+                    <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                        <Link href="/privacy" class="transition-colors hover:text-foreground">Privacy</Link>
+                        <Link href="/terms" class="transition-colors hover:text-foreground">Terms</Link>
+                    </div>
                 </div>
             </div>
         </footer>
