@@ -30,6 +30,12 @@ class BalanceController extends Controller
     {
         $this->authorizeStaff($request);
 
+        $view = (string) $request->string('view');
+        if (! in_array($view, ['owing', 'invoices'], true)) {
+            $view = 'owing';
+        }
+
+        // Owing summary: drives the owing list, the header total, and the tab badge.
         $balances = $billing->outstandingBalances();
         $rows = $balances->map(fn (array $r): array => [
             'id' => $r['customer']->id,
@@ -39,31 +45,88 @@ class BalanceController extends Controller
             'pools' => $r['customer']->pools->count(),
         ])->all();
 
-        // The list is computed in the billing service, not a DB query, so it
-        // sorts in memory. Default: highest balance first.
-        $sortKey = (string) $request->string('sort');
-        if (! in_array($sortKey, ['name', 'pools', 'balance'], true)) {
-            $sortKey = 'balance';
-            $sortDir = 'desc';
+        // The owing list is computed (not a query), so it sorts in memory.
+        $owingKey = (string) $request->string('sort');
+        if (! in_array($owingKey, ['name', 'pools', 'balance'], true)) {
+            $owingKey = 'balance';
+            $owingDir = 'desc';
         } else {
-            $sortDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
+            $owingDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
         }
-        usort($rows, fn (array $a, array $b): int => match ($sortKey) {
+        usort($rows, fn (array $a, array $b): int => match ($owingKey) {
             'name' => strcasecmp((string) $a['name'], (string) $b['name']),
             'pools' => $a['pools'] <=> $b['pools'],
             default => $a['balance'] <=> $b['balance'],
         });
-        if ($sortDir === 'desc') {
+        if ($owingDir === 'desc') {
             $rows = array_reverse($rows);
         }
-        $sort = ['key' => $sortKey, 'dir' => $sortDir];
 
+        // Invoices view: a paginated, sortable, status-filterable list.
+        $invoices = null;
+        $invoiceSort = null;
+        $invoiceStatus = '';
+        if ($view === 'invoices') {
+            $statusFilter = (string) $request->string('status');
+            $valid = in_array($statusFilter, ['draft', 'sent', 'overdue', 'paid'], true);
+            $query = Invoice::query()
+                ->with('customer:id,first_name,last_name')
+                ->when($valid, fn ($q) => $q->where('status', $statusFilter));
+            $invoiceSort = $this->applySort($query, $request, [
+                'number' => 'number',
+                'issued' => 'issued_at',
+                'due' => 'due_at',
+                'total' => 'total',
+                'status' => 'status',
+                'customer' => fn ($q, $dir) => $q->orderBy(Customer::query()->select('first_name')->whereColumn('customers.id', 'invoices.customer_id'), $dir),
+            ], 'issued', 'desc');
+            $invoices = $query->paginate(20)->withQueryString()->through(fn (Invoice $i): array => [
+                'id' => $i->id,
+                'number' => $i->number,
+                'customer' => $i->customer?->displayName(),
+                'customer_id' => $i->getAttribute('customer_id'),
+                'issued_on' => $i->issued_at?->toDateString(),
+                'due_on' => $i->due_at?->toDateString(),
+                'total' => (float) $i->total,
+                'balance' => $i->balance(),
+                'status' => $i->status,
+            ]);
+            $invoiceStatus = $valid ? $statusFilter : '';
+        }
+
+        // Detail pane: an invoice (invoices view) or a customer breakdown (owing).
         $selected = null;
         $selectedId = $request->integer('selected');
-        if ($selectedId > 0) {
+        if ($selectedId > 0 && $view === 'invoices') {
+            $invoice = Invoice::query()->with(['customer:id,first_name,last_name', 'lineItems'])->find($selectedId);
+            if ($invoice !== null) {
+                $selected = [
+                    'kind' => 'invoice',
+                    'id' => $invoice->id,
+                    'number' => $invoice->number,
+                    'status' => $invoice->status,
+                    'customer' => $invoice->customer?->displayName(),
+                    'customer_id' => $invoice->getAttribute('customer_id'),
+                    'period_start' => $invoice->period_start?->toDateString(),
+                    'period_end' => $invoice->period_end?->toDateString(),
+                    'issued_on' => $invoice->issued_at?->toDateString(),
+                    'due_on' => $invoice->due_at?->toDateString(),
+                    'subtotal' => (float) $invoice->subtotal,
+                    'tax' => (float) $invoice->tax,
+                    'total' => (float) $invoice->total,
+                    'amount_paid' => (float) $invoice->amount_paid,
+                    'balance' => $invoice->balance(),
+                    'line_items' => $invoice->lineItems->map(fn ($li): array => [
+                        'description' => $li->getAttribute('description'),
+                        'amount' => (float) $li->getAttribute('amount'),
+                    ])->all(),
+                ];
+            }
+        } elseif ($selectedId > 0) {
             $customer = Customer::query()->find($selectedId);
             if ($customer !== null) {
                 $selected = [
+                    'kind' => 'owing',
                     'id' => $customer->id,
                     'name' => $customer->displayName(),
                     'photo' => $this->photoUrl($customer->getAttribute('photo_path')),
@@ -84,10 +147,14 @@ class BalanceController extends Controller
         }
 
         return Inertia::render('balances/Index', [
+            'view' => $view,
             'balances' => $rows,
+            'invoices' => $invoices,
+            'counts' => ['owing' => count($rows), 'invoices' => Invoice::query()->count()],
             'total' => round((float) $balances->sum(fn (array $r): float => $r['balance']), 2),
             'selected' => $selected,
-            'sort' => $sort,
+            'sort' => $view === 'invoices' ? $invoiceSort : ['key' => $owingKey, 'dir' => $owingDir],
+            'invoiceStatus' => $invoiceStatus,
             'canManage' => $request->user()?->role === 'tenant_admin',
             'customers' => $this->customerOptions(),
         ]);

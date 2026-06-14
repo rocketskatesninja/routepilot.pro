@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { composeLink, reportLink, telLink } from '@/lib/links';
+import { composeLink, poolLink, reportLink, telLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -726,7 +726,7 @@ function destroyAgent() {
                                     <h3 class="mb-1 font-medium">Pools ({{ props.selected.pools.length }})</h3>
                                     <ul class="space-y-1 text-muted-foreground">
                                         <li v-for="pool in props.selected.pools" :key="pool.id" class="flex justify-between">
-                                            <span>{{ pool.name }}</span
+                                            <Link :href="poolLink(pool.id)" class="text-primary hover:underline">{{ pool.name }}</Link
                                             ><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
                                         </li>
                                         <li v-if="props.selected.pools.length === 0">No pools.</li>

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\GenerateInvoice;
 use App\Models\Customer;
 use App\Models\ManualCharge;
 use App\Models\Payment;
@@ -12,6 +13,7 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -65,4 +67,61 @@ test('a manual charge cannot target a foreign-tenant customer', function () {
 
 test('agents cannot manage balances', function () {
     $this->actingAs($this->agent)->post('/balances/charges', ['customer_id' => 1, 'description' => 'X', 'amount' => 10])->assertForbidden();
+});
+
+test('the invoices view lists invoices and opens one in the detail pane', function () {
+    $customer = customerWithUnpaidVisit($this->tenant, $this->agent);
+    $invoice = app(GenerateInvoice::class)->handle($customer);
+
+    $this->actingAs($this->admin)
+        ->get('/balances?view=invoices')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('view', 'invoices')
+            ->where('counts.invoices', 1)
+            ->where('invoices.data.0.number', $invoice?->number)
+        );
+
+    $this->actingAs($this->admin)
+        ->get("/balances?view=invoices&selected={$invoice?->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.kind', 'invoice')
+            ->where('selected.id', $invoice?->id)
+            ->has('selected.line_items', 1)
+        );
+});
+
+test('marking an invoice paid settles it and its source visit', function () {
+    $customer = customerWithUnpaidVisit($this->tenant, $this->agent);
+    $invoice = app(GenerateInvoice::class)->handle($customer);
+
+    $this->actingAs($this->admin)
+        ->post("/invoices/{$invoice?->id}/mark-paid", ['method' => 'check'])
+        ->assertRedirect();
+
+    expect($invoice?->fresh()?->status)->toBe('paid')
+        ->and($invoice?->fresh()?->balance())->toBe(0.0)
+        // The source visit is settled, so the customer no longer owes.
+        ->and(app(BillingService::class)->outstandingForCustomer($customer->fresh()))->toBe(0.0);
+
+    $this->assertDatabaseHas('payments', ['invoice_id' => $invoice?->id, 'method' => 'check']);
+});
+
+test('agents cannot mark invoices paid', function () {
+    $customer = customerWithUnpaidVisit($this->tenant, $this->agent);
+    $invoice = app(GenerateInvoice::class)->handle($customer);
+
+    $this->actingAs($this->agent)
+        ->post("/invoices/{$invoice?->id}/mark-paid", ['method' => 'cash'])
+        ->assertForbidden();
+});
+
+test('a foreign-tenant invoice cannot be marked paid', function () {
+    $other = Tenant::factory()->create();
+    app()->instance('tenant_id', $other->id);
+    $foreign = app(GenerateInvoice::class)->handle(customerWithUnpaidVisit($other, User::factory()->agent()->for($other)->create()));
+    app()->instance('tenant_id', $this->tenant->id);
+
+    $this->actingAs($this->admin)
+        ->post("/invoices/{$foreign?->id}/mark-paid", ['method' => 'cash'])
+        ->assertNotFound();
 });

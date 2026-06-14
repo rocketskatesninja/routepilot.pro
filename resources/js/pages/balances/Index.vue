@@ -9,8 +9,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { customerLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CheckCircle2, Download, FileText, Plus } from 'lucide-vue-next';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface BalanceRow {
@@ -21,7 +21,20 @@ interface BalanceRow {
     pools: number;
 }
 
-interface BalanceDetail {
+interface InvoiceRow {
+    id: number;
+    number: string;
+    customer: string | null;
+    customer_id: number | null;
+    issued_on: string | null;
+    due_on: string | null;
+    total: number;
+    balance: number;
+    status: string;
+}
+
+interface OwingDetail {
+    kind: 'owing';
     id: number;
     name: string;
     photo: string | null;
@@ -31,32 +44,100 @@ interface BalanceDetail {
     invoices: { id: number; number: string; status: string; total: number; balance: number; issued_on: string | null }[];
 }
 
-const props = defineProps<{
-    balances: BalanceRow[];
+interface InvoiceDetail {
+    kind: 'invoice';
+    id: number;
+    number: string;
+    status: string;
+    customer: string | null;
+    customer_id: number | null;
+    period_start: string | null;
+    period_end: string | null;
+    issued_on: string | null;
+    due_on: string | null;
+    subtotal: number;
+    tax: number;
     total: number;
-    selected: BalanceDetail | null;
+    amount_paid: number;
+    balance: number;
+    line_items: { description: string; amount: number }[];
+}
+
+const props = defineProps<{
+    view: 'owing' | 'invoices';
+    balances: BalanceRow[];
+    invoices: { data: InvoiceRow[]; total: number } | null;
+    counts: { owing: number; invoices: number };
+    total: number;
+    selected: OwingDetail | InvoiceDetail | null;
+    invoiceStatus: string;
     canManage: boolean;
     customers: { id: number; name: string }[];
     sort: { key: string; dir: string };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }];
-
-const open = (id: number) => router.get('/balances', { selected: id }, { preserveState: true, preserveScroll: true });
-const closeDrawer = () => router.get('/balances', {}, { preserveState: true, preserveScroll: true });
 const money = formatMoney;
+const page = usePage();
+
+// Merge a patch onto the current query and navigate — preserves sort/status/etc.
+function navigate(patch: Record<string, string | number | undefined>) {
+    const url = new URL(page.url, 'http://localhost');
+    for (const [k, v] of Object.entries(patch)) {
+        if (v === undefined || v === '') url.searchParams.delete(k);
+        else url.searchParams.set(k, String(v));
+    }
+    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+}
+
+const open = (id: number) => navigate({ selected: id });
+const closeDrawer = () => navigate({ selected: undefined });
+
+const tabs = [
+    { key: 'owing', label: 'Owing' },
+    { key: 'invoices', label: 'Invoices' },
+] as const;
+function setView(v: 'owing' | 'invoices') {
+    // Each view has its own sort/status/selection, so reset them on switch.
+    navigate({ view: v === 'owing' ? undefined : v, selected: undefined, sort: undefined, dir: undefined, status: undefined, page: undefined });
+}
+
+const statusFilters = [
+    { key: '', label: 'All' },
+    { key: 'sent', label: 'Sent' },
+    { key: 'overdue', label: 'Overdue' },
+    { key: 'paid', label: 'Paid' },
+    { key: 'draft', label: 'Draft' },
+];
+const setStatus = (s: string) => navigate({ status: s || undefined, selected: undefined, page: undefined });
+
+const statusClass = (s: string): string =>
+    ({
+        paid: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+        overdue: 'bg-red-500/15 text-red-600 dark:text-red-400',
+        sent: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
+        draft: 'bg-muted text-muted-foreground',
+    })[s] ?? 'bg-muted text-muted-foreground';
 
 const payMethod = ref('cash');
+
+// --- owing-view actions ---
 function recordPayment() {
-    if (!props.selected) return;
+    if (props.selected?.kind !== 'owing') return;
     router.post(`/balances/${props.selected.id}/pay`, { method: payMethod.value }, { preserveScroll: true, onSuccess: () => closeDrawer() });
 }
 function generateInvoice() {
-    if (!props.selected) return;
+    if (props.selected?.kind !== 'owing') return;
     router.post(`/balances/${props.selected.id}/invoice`, {}, { preserveScroll: true });
 }
 const exportCsv = () => window.open('/balances/export', '_blank');
 const emailInvoice = (id: number) => router.post(`/invoices/${id}/email`, {}, { preserveScroll: true });
+
+// --- invoice-view actions ---
+function markInvoicePaid() {
+    if (props.selected?.kind !== 'invoice') return;
+    router.post(`/invoices/${props.selected.id}/mark-paid`, { method: payMethod.value }, { preserveScroll: true });
+}
 
 // --- add manual charge ---
 const chargeOpen = ref(false);
@@ -81,8 +162,8 @@ function submitCharge() {
     });
 }
 
-// The detail pane is shared: it hosts the add-charge form when one is open,
-// otherwise the selected customer's balance. Closing the pane cancels the form first.
+// The detail pane is shared: it hosts the add-charge form when open, otherwise
+// the selected invoice / customer balance. Closing cancels the form first.
 function closePane() {
     if (chargeOpen.value) {
         chargeOpen.value = false;
@@ -95,7 +176,30 @@ function closePane() {
 <template>
     <Head title="Balances" />
 
-    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.balances.length} customers owe`">
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <template #filters>
+            <button
+                v-for="t in tabs"
+                :key="t.key"
+                class="rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
+                :class="props.view === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
+                @click="setView(t.key)"
+            >
+                {{ t.label }} <span class="opacity-70">{{ props.counts[t.key] }}</span>
+            </button>
+            <div v-if="props.view === 'invoices'" class="ml-2 flex items-center gap-0.5 border-l border-border pl-2">
+                <button
+                    v-for="s in statusFilters"
+                    :key="s.key"
+                    class="rounded px-2 py-1 text-xs font-medium transition-colors"
+                    :class="props.invoiceStatus === s.key ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/60'"
+                    @click="setStatus(s.key)"
+                >
+                    {{ s.label }}
+                </button>
+            </div>
+        </template>
+
         <template #actions>
             <span class="mr-1 whitespace-nowrap text-sm"
                 ><span class="font-semibold">{{ money(props.total) }}</span> <span class="text-muted-foreground">outstanding</span></span
@@ -107,12 +211,60 @@ function closePane() {
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
                 :has-selection="chargeOpen || props.selected !== null"
-                :selection-key="chargeOpen ? 'form' : (props.selected?.id ?? null)"
-                empty-text="Select a customer to see their balance."
+                :selection-key="chargeOpen ? 'form' : props.selected ? `${props.view}-${props.selected.id}` : null"
+                empty-text="Select a row to see details."
                 @close="closePane"
             >
                 <template #list>
-                    <div class="overflow-hidden rounded-xl border border-border">
+                    <!-- Invoices list -->
+                    <div v-if="props.view === 'invoices'" class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <SortableTh sort-key="number" :active="props.sort">Invoice</SortableTh>
+                                    <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
+                                    <SortableTh sort-key="issued" :active="props.sort" class="hidden md:table-cell">Issued</SortableTh>
+                                    <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
+                                    <SortableTh sort-key="total" :active="props.sort" align="right" class="text-right">Total</SortableTh>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="inv in props.invoices?.data ?? []"
+                                    :key="inv.id"
+                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                    :class="{ 'bg-muted/60': props.selected?.kind === 'invoice' && props.selected.id === inv.id }"
+                                    @click="open(inv.id)"
+                                >
+                                    <td class="px-4 py-2.5 font-medium">{{ inv.number }}</td>
+                                    <td class="px-4 py-2.5 text-muted-foreground">{{ inv.customer ?? '—' }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ inv.issued_on ?? '—' }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <span
+                                            class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                            :class="statusClass(inv.status)"
+                                            >{{ inv.status }}</span
+                                        >
+                                    </td>
+                                    <td class="px-4 py-2.5 text-right font-medium">
+                                        {{ money(inv.total)
+                                        }}<span v-if="inv.balance > 0" class="block text-xs font-normal text-amber-600 dark:text-amber-400"
+                                            >{{ money(inv.balance) }} due</span
+                                        >
+                                    </td>
+                                </tr>
+                                <tr v-if="(props.invoices?.data.length ?? 0) === 0">
+                                    <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
+                                        <Receipt class="mx-auto mb-2 size-6 opacity-50" />
+                                        No invoices{{ props.invoiceStatus ? ` with status “${props.invoiceStatus}”` : '' }}.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Owing list -->
+                    <div v-else class="overflow-hidden rounded-xl border border-border">
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
@@ -126,7 +278,7 @@ function closePane() {
                                     v-for="row in props.balances"
                                     :key="row.id"
                                     class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                    :class="{ 'bg-muted/60': props.selected?.id === row.id }"
+                                    :class="{ 'bg-muted/60': props.selected?.kind === 'owing' && props.selected.id === row.id }"
                                     @click="open(row.id)"
                                 >
                                     <td class="px-4 py-2.5">
@@ -185,6 +337,103 @@ function closePane() {
                         </div>
                     </form>
 
+                    <!-- invoice detail -->
+                    <div v-else-if="props.selected?.kind === 'invoice'">
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between gap-2">
+                                <h2 class="text-lg font-semibold">{{ props.selected.number }}</h2>
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                    :class="statusClass(props.selected.status)"
+                                    >{{ props.selected.status }}</span
+                                >
+                            </div>
+                            <p class="text-sm text-muted-foreground">
+                                <Link
+                                    v-if="props.selected.customer_id"
+                                    :href="customerLink(props.selected.customer_id)"
+                                    class="text-primary hover:underline"
+                                    >{{ props.selected.customer }}</Link
+                                >
+                                <template v-else>{{ props.selected.customer }}</template>
+                            </p>
+                        </div>
+
+                        <div class="space-y-5 text-sm">
+                            <dl class="space-y-1 text-muted-foreground">
+                                <div class="flex justify-between">
+                                    <dt>Issued</dt>
+                                    <dd>{{ props.selected.issued_on ?? '—' }}</dd>
+                                </div>
+                                <div class="flex justify-between">
+                                    <dt>Due</dt>
+                                    <dd>{{ props.selected.due_on ?? '—' }}</dd>
+                                </div>
+                                <div v-if="props.selected.period_end" class="flex justify-between">
+                                    <dt>Period</dt>
+                                    <dd>{{ props.selected.period_start ?? '…' }} – {{ props.selected.period_end }}</dd>
+                                </div>
+                            </dl>
+
+                            <section v-if="props.selected.line_items.length">
+                                <h3 class="mb-1 font-medium">Line items</h3>
+                                <ul class="space-y-1 text-muted-foreground">
+                                    <li v-for="(li, i) in props.selected.line_items" :key="i" class="flex justify-between gap-2">
+                                        <span>{{ li.description }}</span
+                                        ><span>{{ money(li.amount) }}</span>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <dl class="space-y-1 border-t border-border pt-2">
+                                <div class="flex justify-between text-muted-foreground">
+                                    <dt>Subtotal</dt>
+                                    <dd>{{ money(props.selected.subtotal) }}</dd>
+                                </div>
+                                <div class="flex justify-between text-muted-foreground">
+                                    <dt>Tax</dt>
+                                    <dd>{{ money(props.selected.tax) }}</dd>
+                                </div>
+                                <div class="flex justify-between font-medium">
+                                    <dt>Total</dt>
+                                    <dd>{{ money(props.selected.total) }}</dd>
+                                </div>
+                                <div v-if="props.selected.amount_paid > 0" class="flex justify-between text-emerald-600 dark:text-emerald-400">
+                                    <dt>Paid</dt>
+                                    <dd>{{ money(props.selected.amount_paid) }}</dd>
+                                </div>
+                                <div v-if="props.selected.balance > 0" class="flex justify-between font-medium text-amber-600 dark:text-amber-400">
+                                    <dt>Balance due</dt>
+                                    <dd>{{ money(props.selected.balance) }}</dd>
+                                </div>
+                            </dl>
+
+                            <div class="flex flex-wrap gap-2 border-t border-border pt-3">
+                                <a :href="`/invoices/${props.selected.id}/pdf`" target="_blank">
+                                    <Button size="sm" variant="outline"><Download class="mr-1 size-3.5" /> PDF</Button>
+                                </a>
+                                <Button v-if="props.canManage" size="sm" variant="outline" @click="emailInvoice(props.selected.id)"
+                                    ><Mail class="mr-1 size-3.5" /> Email</Button
+                                >
+                            </div>
+
+                            <div
+                                v-if="props.canManage && props.selected.status !== 'paid'"
+                                class="flex items-center gap-2 border-t border-border pt-3"
+                            >
+                                <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option value="cash">Cash</option>
+                                    <option value="check">Check</option>
+                                    <option value="card">Card</option>
+                                    <option value="ach">ACH</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <Button size="sm" @click="markInvoicePaid">Mark paid · {{ money(props.selected.balance) }}</Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- owing (customer balance) detail -->
                     <div v-else-if="props.selected">
                         <div class="mb-4 flex items-center gap-3">
                             <EntityAvatar :src="props.selected.photo" type="person" :name="props.selected.name" size="lg" shape="circle" />

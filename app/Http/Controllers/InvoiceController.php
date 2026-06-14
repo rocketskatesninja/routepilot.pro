@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\MarkInvoicePaid;
 use App\Mail\InvoiceMail;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -64,5 +65,20 @@ class InvoiceController extends Controller
         }
 
         return back()->with('success', 'Invoice emailed to '.$email.'.');
+    }
+
+    /** Record an off-platform payment that settles this invoice in full. */
+    public function markPaid(Request $request, Invoice $invoice, MarkInvoicePaid $action): RedirectResponse
+    {
+        abort_unless($request->user()?->role === 'tenant_admin', 403);
+
+        $method = (string) $request->string('method');
+        if (! in_array($method, ['cash', 'check', 'card', 'ach', 'other'], true)) {
+            $method = 'other';
+        }
+
+        $action->handle($invoice, $method, $request->user()->id);
+
+        return back()->with('success', "Invoice {$invoice->number} marked paid.");
     }
 }
