@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFitRows } from '@/composables/useFitRows';
+import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ClipboardList, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 interface ServiceRow {
     id: number;
@@ -67,15 +68,7 @@ const { listRef } = useFitRows(
     () => props.services.total,
 );
 
-const search = ref(props.filters.search);
-let timer: ReturnType<typeof setTimeout> | undefined;
-watch(search, (value) => {
-    clearTimeout(timer);
-    timer = setTimeout(
-        () => router.get('/services', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }),
-        300,
-    );
-});
+const { search } = useListSearch('/services', props.filters.search);
 
 const open = (id: number) =>
     router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });

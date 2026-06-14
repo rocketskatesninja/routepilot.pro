@@ -9,13 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFitRows } from '@/composables/useFitRows';
+import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 interface PoolRow {
     id: number;
@@ -126,15 +127,7 @@ const { listRef } = useFitRows(
     () => props.pools.total,
 );
 
-const search = ref(props.filters.search);
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-watch(search, (value) => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(
-        () => router.get('/pools', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }),
-        300,
-    );
-});
+const { search } = useListSearch('/pools', props.filters.search);
 
 const openPool = (id: number) =>
     router.get('/pools', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });

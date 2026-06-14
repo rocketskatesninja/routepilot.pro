@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFitRows } from '@/composables/useFitRows';
+import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
@@ -15,7 +16,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 
 interface InventoryRow {
     id: number;
@@ -67,15 +68,7 @@ const { listRef } = useFitRows(
     () => props.items.total,
 );
 
-const search = ref(props.filters.search);
-let timer: ReturnType<typeof setTimeout> | undefined;
-watch(search, (value) => {
-    clearTimeout(timer);
-    timer = setTimeout(
-        () => router.get('/inventory', { search: value || undefined }, { preserveState: true, replace: true, preserveScroll: true }),
-        300,
-    );
-});
+const { search } = useListSearch('/inventory', props.filters.search);
 
 const open = (id: number) =>
     router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });

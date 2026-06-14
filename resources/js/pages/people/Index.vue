@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFitRows } from '@/composables/useFitRows';
+import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { composeLink, poolLink, reportLink, telLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
@@ -170,12 +171,7 @@ const tabs = [
     { key: 'agents', label: 'Agents' },
 ] as const;
 
-const search = ref(props.filters.search);
-let timer: ReturnType<typeof setTimeout> | undefined;
-watch(search, (value) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => visit({ search: value || undefined, type: tab() }), 300);
-});
+const { search } = useListSearch('/people', props.filters.search, { extra: () => ({ type: tab() }) });
 
 const tab = () => (props.filters.type === 'all' ? undefined : props.filters.type);
 
