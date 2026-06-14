@@ -179,11 +179,13 @@ function submitCreate() {
 
 const editOpen = ref(false);
 const editId = ref<number | null>(null);
-const editForm = useForm({ name: '', status: 'active' });
+const editForm = useForm({ name: '', slug: '', status: 'active' });
+const slugChanged = computed(() => tenant.value !== null && editForm.slug !== tenant.value.slug);
 function openEdit(t: TenantDetail) {
     emailOpen.value = false;
     createOpen.value = false;
     editForm.name = t.name;
+    editForm.slug = t.slug;
     editForm.status = t.status;
     editForm.clearErrors();
     editId.value = t.id;
@@ -385,6 +387,17 @@ function closePane() {
                             <Label for="tn">Company name</Label>
                             <Input id="tn" v-model="editForm.name" />
                             <p v-if="editForm.errors.name" class="text-xs text-red-600">{{ editForm.errors.name }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="sl">Public slug</Label>
+                            <div class="flex items-center gap-1.5">
+                                <span class="shrink-0 text-xs text-muted-foreground">routepilot.pro/t/</span>
+                                <Input id="sl" v-model="editForm.slug" class="font-mono" />
+                            </div>
+                            <p v-if="editForm.errors.slug" class="text-xs text-red-600">{{ editForm.errors.slug }}</p>
+                            <p v-else-if="slugChanged" class="text-xs text-amber-600 dark:text-amber-500">
+                                ⚠ Changing the slug changes this company's public URL — existing links to the old address will stop working.
+                            </p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="st">Status</Label>

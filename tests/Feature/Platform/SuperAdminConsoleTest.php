@@ -36,10 +36,36 @@ test('a super-admin can suspend a tenant', function () {
     $tenant = Tenant::factory()->create(['status' => 'active']);
 
     $this->actingAs($this->super)
-        ->patch("/tenants/{$tenant->id}", ['name' => $tenant->name, 'status' => 'suspended'])
+        ->patch("/tenants/{$tenant->id}", ['name' => $tenant->name, 'slug' => $tenant->slug, 'status' => 'suspended'])
         ->assertRedirect();
 
     expect($tenant->fresh()?->getAttribute('status'))->toBe('suspended');
+});
+
+test('a super-admin can change a tenant slug (normalized)', function () {
+    $tenant = Tenant::factory()->create(['slug' => 'old-slug']);
+
+    $this->actingAs($this->super)
+        ->patch("/tenants/{$tenant->id}", ['name' => $tenant->name, 'slug' => 'New Brand Name', 'status' => 'active'])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($tenant->fresh()?->slug)->toBe('new-brand-name');
+});
+
+test('slug edits reject reserved words and collisions and bad characters', function () {
+    $a = Tenant::factory()->create(['slug' => 'alpha']);
+    Tenant::factory()->create(['slug' => 'beta']);
+
+    $patch = fn (string $slug) => $this->actingAs($this->super)
+        ->patch("/tenants/{$a->id}", ['name' => $a->name, 'slug' => $slug, 'status' => 'active']);
+
+    $patch('admin')->assertSessionHasErrors('slug');  // reserved
+    $patch('beta')->assertSessionHasErrors('slug');   // taken by another tenant
+    $patch('!!!')->assertSessionHasErrors('slug');    // normalizes to empty → required fails
+    $patch('alpha')->assertSessionHasNoErrors();      // unchanged = fine (ignores self)
+
+    expect($a->fresh()?->slug)->toBe('alpha');
 });
 
 test('a suspended company locks its staff out', function () {
