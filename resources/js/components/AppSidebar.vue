@@ -64,7 +64,7 @@ const navByRole: Record<string, NavItem[]> = {
     ],
     agent: [
         { title: 'Today', href: '/dashboard', icon: CalendarDays },
-        { title: 'My Route', href: '/dashboard', icon: Map },
+        { title: 'My Route', href: '/schedule', icon: Map },
         { title: 'Reports', href: '/reports', icon: FileText },
         { title: 'Assistant', href: '/assistant', icon: Bot },
     ],

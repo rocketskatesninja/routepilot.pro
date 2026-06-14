@@ -49,10 +49,14 @@ const props = defineProps<{
     routes: RouteCard[];
     unassigned: RouteCard | null;
     canManage: boolean;
+    manageAgentId: number | null;
     coords: Record<number, { lat: number; lng: number; address: string | null }>;
     hq: { lat: number; lng: number; label: string | null } | null;
     mapsKey: string | null;
 }>();
+
+// Admins manage every route; an Agent+ manages only their own route card.
+const canManageRoute = (route: RouteCard): boolean => props.canManage || (props.manageAgentId !== null && route.agent_id === props.manageAgentId);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Schedule', href: '/schedule' }];
 const busy = ref(false);
@@ -338,7 +342,7 @@ const prettyDate = computed(() =>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-muted-foreground">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
                             <button
-                                v-if="props.canManage && route.stops.length > 1"
+                                v-if="canManageRoute(route) && route.stops.length > 1"
                                 class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                                 title="Optimize order"
                                 @click="optimize(route.id)"
@@ -354,7 +358,7 @@ const prettyDate = computed(() =>
                         item-key="id"
                         group="route-stops"
                         :animation="150"
-                        :disabled="!props.canManage"
+                        :disabled="!canManageRoute(route)"
                         handle=".drag-handle"
                         ghost-class="bg-muted/60"
                         class="min-h-[2.75rem] divide-y divide-border text-sm"
@@ -368,7 +372,7 @@ const prettyDate = computed(() =>
                             >
                                 <span class="flex min-w-0 items-center gap-2 truncate">
                                     <GripVertical
-                                        v-if="props.canManage && stop.status === 'pending'"
+                                        v-if="canManageRoute(route) && stop.status === 'pending'"
                                         class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
                                     />
                                     <span v-else class="size-4 shrink-0" aria-hidden="true" />
@@ -383,7 +387,7 @@ const prettyDate = computed(() =>
                                         stop.status.replace('_', ' ')
                                     }}</span>
                                     <button
-                                        v-if="props.canManage && stop.status === 'pending'"
+                                        v-if="canManageRoute(route) && stop.status === 'pending'"
                                         class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"
                                         title="Skip stop"
                                         @click.stop="skipStop(stop.id)"

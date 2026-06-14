@@ -69,6 +69,8 @@ class ScheduleController extends Controller
             'routes' => $routeModels->map(fn (Route $route): array => $this->presentRoute($route))->all(),
             'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : null,
             'canManage' => $canManage,
+            // An Agent+ may manage only their own route card; the UI matches this id.
+            'manageAgentId' => $request->user()?->isAgentPlus() ? $request->user()->id : null,
             'coords' => $this->buildCoords($routeModels, $unassignedRoute),
             'hq' => $hq,
             'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
@@ -88,24 +90,44 @@ class ScheduleController extends Controller
             : 'Schedule is already up to date — no new stops to add.');
     }
 
+    /**
+     * Whether the user may manage a given route: admins manage every route, an
+     * Agent+ manages only the route assigned to them.
+     */
+    private function canManageRoute(?User $user, ?Route $route): bool
+    {
+        if ($user === null || $route === null) {
+            return false;
+        }
+        if ($this->canManage($user)) {
+            return true;
+        }
+
+        return $user->isAgentPlus() && (int) $route->getAttribute('agent_id') === $user->id;
+    }
+
     /** Re-order a route's pending stops (nearest-neighbour + 2-opt). */
     public function optimize(Request $request, Route $route, RouteOptimizer $optimizer): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        abort_unless($this->canManageRoute($request->user(), $route), 403);
 
         $result = $optimizer->optimize($route);
 
         return back()->with('success', "Optimized {$result['optimized']} stops · {$result['total_distance_km']} km.");
     }
 
-    /** Skip a single pending stop. */
+    /** Skip a single pending stop (office, or the Agent+ assigned to its route). */
     public function skipStop(Request $request, RouteStop $stop): RedirectResponse
     {
-        $this->authorizeAdmin($request);
         // RouteStop isn't globally scoped; its Route is — a foreign stop's route resolves to null.
         abort_if($stop->route === null, 404);
+        $user = $request->user();
+        abort_unless($this->canManageRoute($user, $stop->route), 403);
 
-        $stop->update(['status' => 'skipped', 'skip_reason' => 'Skipped by office']);
+        $stop->update([
+            'status' => 'skipped',
+            'skip_reason' => $this->canManage($user) ? 'Skipped by office' : 'Skipped by tech',
+        ]);
 
         return back()->with('success', 'Stop skipped.');
     }
@@ -118,7 +140,8 @@ class ScheduleController extends Controller
      */
     public function arrange(Request $request): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        $user = $request->user();
+        abort_unless($this->canManage($user) || $user?->isAgentPlus(), 403);
 
         $validated = $request->validate([
             'routes' => ['array'],
@@ -127,15 +150,20 @@ class ScheduleController extends Controller
             'routes.*.stop_ids.*' => ['integer'],
         ]);
 
-        $tenantId = (int) $request->user()->tenant_id;
+        $tenantId = (int) $user->tenant_id;
+        $isAdmin = $this->canManage($user);
 
-        DB::transaction(function () use ($validated, $tenantId): void {
+        DB::transaction(function () use ($validated, $tenantId, $user, $isAdmin): void {
             foreach ((array) $validated['routes'] as $r) {
                 if (! is_array($r)) {
                     continue;
                 }
                 $route = Route::query()->where('tenant_id', $tenantId)->find((int) ($r['id'] ?? 0));
                 if ($route === null) {
+                    continue;
+                }
+                // An Agent+ may only reorder their OWN route — never another's.
+                if (! $isAdmin && (int) $route->getAttribute('agent_id') !== $user->id) {
                     continue;
                 }
                 foreach (array_values((array) ($r['stop_ids'] ?? [])) as $i => $stopId) {
@@ -145,9 +173,13 @@ class ScheduleController extends Controller
                     if ($stop === null) {
                         continue;
                     }
+                    // Agents never reassign across routes — only reorder stops already on this one.
+                    if (! $isAdmin && (int) $stop->getAttribute('route_id') !== $route->id) {
+                        continue;
+                    }
                     $stop->setAttribute('stop_order', $i + 1);
-                    // Only a still-pending stop may change hands; done work stays put.
-                    if ($stop->getAttribute('status') === 'pending') {
+                    // Only an admin may move a still-pending stop between routes.
+                    if ($isAdmin && $stop->getAttribute('status') === 'pending') {
                         $stop->setAttribute('route_id', $route->id);
                     }
                     $stop->save();

@@ -134,6 +134,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === 'agent';
     }
 
+    /** An Agent+ may self-manage their own route (reorder + skip their stops). */
+    public function isAgentPlus(): bool
+    {
+        return $this->role === 'agent' && (bool) $this->getAttribute('agent_plus');
+    }
+
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
