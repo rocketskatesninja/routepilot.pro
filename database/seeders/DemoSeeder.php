@@ -46,8 +46,10 @@ class DemoSeeder extends Seeder
         $tenant = Tenant::factory()->create([
             'name' => 'Demo Company', 'slug' => 'demo',
             'brand_color' => '#0ea5e9',
-            'settings' => ['hq_lat' => 28.5383, 'hq_lng' => -81.3792], // Orlando, FL
+            'address_line1' => '1937 6th St', 'city' => 'Brunswick', 'state' => 'GA', 'postal_code' => '31520',
+            'settings' => ['hq_lat' => 31.1805, 'hq_lng' => -81.4931], // Brunswick, GA
         ]);
+        $tenant->forceFill(['lat' => 31.1805228, 'lng' => -81.4930654])->save();
 
         // Bind tenant context so tenant-owned models auto-fill tenant_id.
         app()->instance('tenant', $tenant);
@@ -99,7 +101,6 @@ class DemoSeeder extends Seeder
         }
 
         $firstCustomer = null;
-        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
         $names = [
             ['Robert', 'Anderson'], ['Jennifer', 'Lee'], ['Michael', 'Cruz'], ['Patricia', 'Diaz'],
             ['David', 'Park'], ['Linda', 'Vo'], ['James', 'Khan'], ['Maria', 'Flores'],
@@ -108,7 +109,7 @@ class DemoSeeder extends Seeder
         foreach ($names as $i => [$first, $last]) {
             $customer = Customer::factory()->for($tenant)->create([
                 'first_name' => $first, 'last_name' => $last,
-                'email' => strtolower($first).'@example.test', 'phone' => '407-555-01'.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
+                'email' => strtolower($first).'@example.test', 'phone' => '912-555-01'.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
                 'onboarded_at' => now()->subMonths(3),
             ]);
 
@@ -125,15 +126,20 @@ class DemoSeeder extends Seeder
                 'name' => $last.' Pool', 'volume_gallons' => 12000 + $i * 1500,
                 'sanitizer_type' => $i % 3 === 0 ? 'salt' : 'chlorine', 'has_heater' => $i % 2 === 0,
             ]);
+            // Cluster service locations around the Brunswick HQ so route maps read
+            // as one tight territory (not scattered across the state).
             ServiceLocation::factory()->for($pool)->create([
-                'city' => 'Orlando', 'state' => 'FL',
-                'lat' => 28.50 + $i * 0.012, 'lng' => -81.42 + $i * 0.010,
+                'city' => 'Brunswick', 'state' => 'GA',
+                'lat' => round(31.205 - ($i % 4) * 0.016 + intdiv($i, 4) * 0.004, 6),
+                'lng' => round(-81.515 + ($i % 4) * 0.014 + intdiv($i, 4) * 0.010, 6),
                 'gate_code' => (string) (1000 + $i * 7),
             ]);
 
+            // Concentrate the week so a couple of days are genuinely busy across
+            // both agents — Monday gets 6 stops (3 each), Tuesday the rest.
             ServiceSubscription::factory()->for($tenant)->for($pool)->for($weekly)->create([
                 'assigned_agent_id' => $agents[$i % 2]->id,
-                'frequency' => 'weekly', 'preferred_day' => $days[$i % 5], 'status' => 'active',
+                'frequency' => 'weekly', 'preferred_day' => $i < 6 ? 'monday' : 'tuesday', 'status' => 'active',
             ]);
 
             // A couple of recent completed visits with readings for history/health.

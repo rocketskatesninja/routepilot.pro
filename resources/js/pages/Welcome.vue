@@ -129,7 +129,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                     ></div>
                 </div>
 
-                <div class="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-12">
+                <div class="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[1fr_1.3fr] lg:gap-12">
                     <!-- Left: copy -->
                     <div class="text-center lg:text-left">
                         <span
@@ -174,7 +174,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                                     >routepilot.pro/t/demo</span
                                 >
                             </div>
-                            <div class="relative h-[440px] overflow-hidden bg-white">
+                            <div class="relative h-[550px] overflow-hidden bg-white">
                                 <iframe
                                     src="/t/demo"
                                     title="Live RoutePilot demo site"

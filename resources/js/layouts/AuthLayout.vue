@@ -35,21 +35,21 @@ defineProps<{
             </Link>
 
             <!-- Product showcase: the real app, desktop + mobile -->
-            <div class="relative z-10 my-8 flex flex-1 items-center">
-                <div class="relative w-full max-w-lg">
+            <div class="relative z-10 my-8 flex flex-1 items-center justify-center">
+                <div class="relative mx-auto w-full max-w-2xl">
                     <div class="overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40 [rotate:-1.5deg]">
                         <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-2">
                             <span class="size-2.5 rounded-full bg-red-400/90"></span>
                             <span class="size-2.5 rounded-full bg-amber-400/90"></span>
                             <span class="size-2.5 rounded-full bg-green-400/90"></span>
                         </div>
-                        <img src="/assets/images/screenshots/dashboard.png" alt="RoutePilot dashboard" class="block w-full" loading="lazy" />
+                        <img src="/assets/images/screenshots/route-map.png" alt="RoutePilot route map" class="block w-full" loading="lazy" />
                     </div>
                     <img
                         src="/assets/images/screenshots/agent-mobile.png"
                         alt="RoutePilot mobile app"
                         loading="lazy"
-                        class="absolute -bottom-6 right-3 w-24 rounded-[1.4rem] border-4 border-slate-800 shadow-2xl [rotate:4deg] sm:w-28"
+                        class="absolute -bottom-6 right-2 h-44 w-24 rounded-[1.4rem] border-4 border-slate-800 object-cover object-top shadow-2xl [rotate:4deg] sm:h-52 sm:w-28"
                     />
                 </div>
             </div>
