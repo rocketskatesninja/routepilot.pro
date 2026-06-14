@@ -21,9 +21,7 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
         class="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 px-6 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-4"
     >
         <div class="flex min-w-0 items-center gap-2">
-            <!-- Desktop collapse/expand lives on the sidebar itself; on mobile the
-                 off-canvas sheet still needs a header trigger to open it. -->
-            <SidebarTrigger v-if="isMobile" class="-ml-1" />
+            <SidebarTrigger class="-ml-1" />
             <template v-if="breadcrumbs.length > 0">
                 <Breadcrumb>
                     <BreadcrumbList>
