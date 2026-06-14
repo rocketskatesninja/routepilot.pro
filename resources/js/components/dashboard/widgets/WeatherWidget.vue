@@ -48,9 +48,17 @@ onBeforeUnmount(() => ro?.disconnect());
 
 const showDaily = computed(() => availH.value >= 135);
 const showHourly = computed(() => availH.value >= 215);
-// The hourly strip fills the width with as many hours as comfortably fit (~42px
-// each), so it scales with the widget instead of overflowing.
-const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value / 42))));
+
+// The hourly strip GROWS to fill the space: its icons + text scale with the band
+// height (≈ widget minus the current + daily rows), and bigger cells mean fewer
+// hours fit, so the list shortens as the widget expands.
+const hourlyBand = computed(() => Math.max(0, availH.value - 150));
+const hourIcon = computed(() => Math.round(Math.max(20, Math.min(56, hourlyBand.value * 0.42))));
+const hourTemp = computed(() => Math.round(Math.max(12, Math.min(26, hourlyBand.value * 0.2))));
+const hourLabel = computed(() => Math.round(Math.max(11, Math.min(18, hourlyBand.value * 0.14))));
+const hourSmall = computed(() => Math.max(9, hourLabel.value - 2));
+const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value / Math.max(42, hourIcon.value * 1.4)))));
+
 // The daily forecast drops trailing days on a narrow widget (last day first).
 const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value / 52))));
 </script>
@@ -80,12 +88,18 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
                     <div
                         v-for="h in data.hours.slice(0, hourCount)"
                         :key="h.hour"
-                        class="flex min-w-0 flex-1 flex-col items-center justify-evenly text-center"
+                        class="flex min-w-0 flex-1 flex-col items-center justify-evenly text-center leading-none"
                     >
-                        <div class="truncate text-xs text-muted-foreground">{{ h.hour }}</div>
-                        <component :is="weatherDescribe(h.code).icon" class="size-6 text-muted-foreground" />
-                        <div class="text-sm font-medium tabular-nums">{{ h.temp }}°</div>
-                        <div class="text-[10px] tabular-nums" :class="h.precip >= 20 ? 'text-sky-500' : 'text-transparent'">{{ h.precip }}%</div>
+                        <div class="truncate text-muted-foreground" :style="{ fontSize: hourLabel + 'px' }">{{ h.hour }}</div>
+                        <component :is="weatherDescribe(h.code).icon" :size="hourIcon" class="text-muted-foreground" />
+                        <div class="font-medium tabular-nums" :style="{ fontSize: hourTemp + 'px' }">{{ h.temp }}°</div>
+                        <div
+                            class="tabular-nums"
+                            :style="{ fontSize: hourSmall + 'px' }"
+                            :class="h.precip >= 20 ? 'text-sky-500' : 'text-transparent'"
+                        >
+                            {{ h.precip }}%
+                        </div>
                     </div>
                 </div>
             </div>
