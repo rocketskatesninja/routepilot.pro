@@ -109,6 +109,7 @@ class InventoryController extends Controller
                 'quantity' => (float) $t->quantity,
                 'on' => $t->created_at?->toDateString(),
                 'agent' => $t->agent?->displayName(),
+                'agent_id' => $t->agent?->getKey(),
             ])->all();
 
         return [

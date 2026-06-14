@@ -36,6 +36,7 @@ interface MapMarker {
     lng: number;
     order: number;
     pool: string | null;
+    address: string | null;
     status: string;
     agent: string | null;
     agent_id: number | null;
@@ -47,7 +48,7 @@ const props = defineProps<{
     routes: RouteCard[];
     unassigned: RouteCard | null;
     canManage: boolean;
-    coords: Record<number, { lat: number; lng: number }>;
+    coords: Record<number, { lat: number; lng: number; address: string | null }>;
     hq: { lat: number; lng: number; label: string | null } | null;
     mapsKey: string | null;
 }>();
@@ -150,6 +151,7 @@ const mapMarkers = computed<MapMarker[]>(() => {
                 lng: c.lng,
                 order: i + 1,
                 pool: s.pool,
+                address: c.address,
                 status: s.status,
                 agent: route.agent,
                 agent_id: route.agent_id,
@@ -160,6 +162,36 @@ const mapMarkers = computed<MapMarker[]>(() => {
     if (localUnassigned.value) add(localUnassigned.value);
     return out;
 });
+
+// Agent toggles: a map legend whose chips hide/show each route. Keyed by agent
+// id, with the unassigned bucket under the 'unassigned' key.
+type AgentKey = number | 'unassigned';
+const hiddenAgents = ref<Set<AgentKey>>(new Set());
+const keyOf = (id: number | null): AgentKey => id ?? 'unassigned';
+const isAgentHidden = (id: number | null) => hiddenAgents.value.has(keyOf(id));
+function toggleAgent(id: number | null) {
+    const next = new Set(hiddenAgents.value);
+    const k = keyOf(id);
+    if (next.has(k)) {
+        next.delete(k);
+    } else {
+        next.add(k);
+    }
+    hiddenAgents.value = next;
+}
+
+// The legend's entries: each agent with stops, plus the unassigned bucket.
+const mapAgents = computed(() => {
+    const list = localRoutes.value
+        .filter((r) => r.stops.length > 0)
+        .map((r) => ({ id: r.agent_id as number | null, label: r.agent, color: r.color }));
+    if (localUnassigned.value && localUnassigned.value.stops.length > 0) {
+        list.push({ id: null, label: 'Unassigned', color: '#9ca3af' });
+    }
+    return list;
+});
+
+const visibleMarkers = computed(() => mapMarkers.value.filter((m) => !isAgentHidden(m.agent_id)));
 
 // Click-to-focus: clicking a stop pans/zooms the map to its pin (toggle off by
 // clicking it again). The id is shared with the map (highlight) and the list row.
@@ -392,7 +424,22 @@ const statusClasses: Record<string, string> = {
                         <div class="text-xs text-muted-foreground">Completed</div>
                     </div>
                 </div>
-                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="mapMarkers" :colors="agentColors" :focus-id="focusId" />
+                <!-- Map legend / agent toggles: click a chip to hide that route. -->
+                <div v-if="props.mapsKey && mapAgents.length" class="flex flex-wrap gap-1.5">
+                    <button
+                        v-for="a in mapAgents"
+                        :key="a.id ?? 'unassigned'"
+                        type="button"
+                        class="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs font-medium transition-colors"
+                        :class="isAgentHidden(a.id) ? 'text-muted-foreground line-through opacity-50' : 'hover:bg-muted'"
+                        :title="isAgentHidden(a.id) ? `Show ${a.label}` : `Hide ${a.label}`"
+                        @click="toggleAgent(a.id)"
+                    >
+                        <span class="size-2.5 rounded-full" :style="{ backgroundColor: a.color }" />
+                        {{ a.label }}
+                    </button>
+                </div>
+                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="visibleMarkers" :colors="agentColors" :focus-id="focusId" />
             </aside>
         </div>
     </AppLayout>

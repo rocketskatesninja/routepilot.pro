@@ -9,6 +9,7 @@ interface StopMarker {
     lng: number;
     order: number;
     pool: string | null;
+    address: string | null;
     status: string;
     agent: string | null;
     agent_id: number | null;
@@ -45,12 +46,35 @@ let map: GMap | null = null;
 let creating = false;
 // Drawn overlays we own, so a redraw can wipe the previous frame.
 let overlays: Array<{ setMap: (m: unknown) => void }> = [];
+// One reused info window — opening it on a new pin moves it.
+let infoWindow: { setContent: (s: string) => void; open: (o: unknown) => void; close: () => void } | null = null;
 
 function clearOverlays() {
+    infoWindow?.close();
     for (const o of overlays) {
         o.setMap(null);
     }
     overlays = [];
+}
+
+const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
+
+// Pin click → info window: pool, address, agent + a Street View link.
+function openInfo(mk: StopMarker, anchor: unknown) {
+    if (!infoWindow || !map) {
+        return;
+    }
+    const streetView = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mk.lat},${mk.lng}`;
+    const rows = [
+        `<div style="font-weight:600;font-size:13px;color:#0f172a">${esc(mk.pool ?? 'Stop')}</div>`,
+        mk.address ? `<div style="color:#475569">${esc(mk.address)}</div>` : '',
+        mk.agent ? `<div style="color:#475569">Tech: ${esc(mk.agent)}</div>` : '',
+        `<a href="${streetView}" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:none">Street View ↗</a>`,
+    ];
+    infoWindow.setContent(
+        `<div style="display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.35;padding:1px 2px">${rows.join('')}</div>`,
+    );
+    infoWindow.open({ map, anchor });
 }
 
 function draw(fit = true) {
@@ -81,7 +105,8 @@ function draw(fit = true) {
                 strokeWeight: focused ? 3.5 : 2,
             },
             zIndex: focused ? 999 : undefined,
-        }) as unknown as { setMap: (x: unknown) => void };
+        }) as unknown as { setMap: (x: unknown) => void; addListener: (ev: string, cb: () => void) => void };
+        marker.addListener('click', () => openInfo(mk, marker));
         overlays.push(marker);
         bounds.extend(position);
         (groups[mk.agent_id ?? '__unassigned'] ??= []).push(mk);
@@ -151,6 +176,7 @@ async function ensureMap() {
             opts.styles = DARK_MAP_STYLE;
         }
         map = new g.maps.Map(mapEl.value, opts);
+        infoWindow = new g.maps.InfoWindow() as unknown as typeof infoWindow;
         draw();
     } catch {
         /* loading or the API failed — the fallback container stays in place */
@@ -184,6 +210,7 @@ watch(canMap, (now) => {
         clearOverlays();
         map = null;
         g = null;
+        infoWindow = null;
     }
 });
 

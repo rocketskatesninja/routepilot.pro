@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceLocation;
 use App\Models\User;
 use App\Services\RouteOptimizer;
 use App\Services\SubscriptionMaterializer;
@@ -41,7 +42,7 @@ class ScheduleController extends Controller
         $stopLoad = fn ($q) => $q->orderBy('stop_order')->with([
             'pool:id,name,customer_id,photo_path',
             'pool.customer:id,first_name,last_name,photo_path',
-            'pool.serviceLocation:id,pool_id,lat,lng',
+            'pool.serviceLocation:id,pool_id,lat,lng,address_line1,city,state,zip',
         ]);
 
         $routeModels = Route::query()
@@ -194,7 +195,7 @@ class ScheduleController extends Controller
      * via the Route global scope on the queries that built these collections.
      *
      * @param  Collection<int, Route>  $routes
-     * @return array<int, array{lat: float, lng: float}>
+     * @return array<int, array{lat: float, lng: float, address: string|null}>
      */
     private function buildCoords(Collection $routes, ?Route $unassigned): array
     {
@@ -208,12 +209,28 @@ class ScheduleController extends Controller
             foreach ($route->stops as $stop) {
                 $c = $stop->pool->coordinates();
                 if ($c !== null) {
-                    $coords[$stop->id] = ['lat' => $c[0], 'lng' => $c[1]];
+                    $coords[$stop->id] = ['lat' => $c[0], 'lng' => $c[1], 'address' => $this->formatAddress($stop->pool->serviceLocation)];
                 }
             }
         }
 
         return $coords;
+    }
+
+    /** A one-line "street, city, ST zip" address for the map info window. */
+    private function formatAddress(?ServiceLocation $loc): ?string
+    {
+        if ($loc === null) {
+            return null;
+        }
+        $cityState = trim((string) $loc->getAttribute('state').' '.(string) $loc->getAttribute('zip'));
+        $parts = array_filter([
+            $loc->getAttribute('address_line1'),
+            $loc->getAttribute('city'),
+            $cityState !== '' ? $cityState : null,
+        ]);
+
+        return $parts !== [] ? implode(', ', $parts) : null;
     }
 
     /** An agent's chosen route colour, falling back to the brand sky. */

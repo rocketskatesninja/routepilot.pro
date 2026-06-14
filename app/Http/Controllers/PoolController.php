@@ -231,6 +231,7 @@ class PoolController extends Controller
                 $pool->has_auto_fill ? 'Auto-fill' : null,
             ])),
             'customer' => [
+                'id' => $pool->customer?->getKey(),
                 'name' => $this->personName($pool->customer),
                 'email' => $pool->customer?->getAttribute('email'),
                 'phone' => $pool->customer?->getAttribute('phone'),

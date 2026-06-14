@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
@@ -64,7 +65,7 @@ interface PoolDetail {
     sanitizer: string;
     filter: string | null;
     equipment: string[];
-    customer: { name: string; email: string | null; phone: string | null };
+    customer: { id: number | null; name: string; email: string | null; phone: string | null };
     location: { city: string | null; gate_code: string | null; access_notes: string | null } | null;
     subscriptions: {
         id: number;
@@ -796,7 +797,15 @@ function submitTargets() {
                             <EntityAvatar :src="props.selected.photo_url" type="pool" :name="props.selected.name" size="lg" />
                             <div>
                                 <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-sm text-muted-foreground">{{ props.selected.customer.name }}</p>
+                                <p class="text-sm text-muted-foreground">
+                                    <Link
+                                        v-if="props.selected.customer.id"
+                                        :href="customerLink(props.selected.customer.id)"
+                                        class="text-primary hover:underline"
+                                        >{{ props.selected.customer.name }}</Link
+                                    >
+                                    <template v-else>{{ props.selected.customer.name }}</template>
+                                </p>
                             </div>
                         </div>
 
@@ -896,7 +905,13 @@ function submitTargets() {
                                                 >{{ sub.status }}</span
                                             >
                                         </div>
-                                        <div class="text-xs">{{ sub.schedule }} · {{ sub.agent }}</div>
+                                        <div class="text-xs">
+                                            {{ sub.schedule }} ·
+                                            <Link v-if="sub.agent_id" :href="agentLink(sub.agent_id)" class="text-primary hover:underline">{{
+                                                sub.agent
+                                            }}</Link>
+                                            <template v-else>{{ sub.agent }}</template>
+                                        </div>
                                         <div v-if="props.canManage" class="mt-1.5 flex gap-3 text-xs">
                                             <button class="hover:text-foreground" @click="openSubEdit(sub)">Edit</button>
                                             <button class="hover:text-foreground" @click="toggleSub(sub)">

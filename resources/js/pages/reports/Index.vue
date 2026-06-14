@@ -2,8 +2,9 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { FileText } from 'lucide-vue-next';
 
 interface VisitRow {
@@ -33,7 +34,9 @@ interface VisitDetail {
     id: number;
     pool: string | null;
     customer: string | null;
+    customer_id: number | null;
     agent: string | null;
+    agent_id: number | null;
     completed_on: string | null;
     notes: string | null;
     reading: Reading | null;
@@ -131,7 +134,20 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                         <div class="mb-4">
                             <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
                             <p class="text-sm text-muted-foreground">
-                                {{ props.selected.customer }} · {{ props.selected.completed_on }} · {{ props.selected.agent }}
+                                <Link
+                                    v-if="props.selected.customer_id"
+                                    :href="customerLink(props.selected.customer_id)"
+                                    class="text-primary hover:underline"
+                                    >{{ props.selected.customer }}</Link
+                                >
+                                <template v-else>{{ props.selected.customer }}</template> · {{ props.selected.completed_on }} ·
+                                <Link
+                                    v-if="props.selected.agent_id"
+                                    :href="agentLink(props.selected.agent_id)"
+                                    class="text-primary hover:underline"
+                                    >{{ props.selected.agent }}</Link
+                                >
+                                <template v-else>{{ props.selected.agent }}</template>
                             </p>
                         </div>
 

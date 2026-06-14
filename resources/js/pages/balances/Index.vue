@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { customerLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, Download, FileText, Plus } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -186,7 +187,9 @@ function closePane() {
                         <div class="mb-4 flex items-center gap-3">
                             <EntityAvatar :src="props.selected.photo" type="person" :name="props.selected.name" size="lg" shape="circle" />
                             <div>
-                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                                <h2 class="text-lg font-semibold">
+                                    <Link :href="customerLink(props.selected.id)" class="hover:underline">{{ props.selected.name }}</Link>
+                                </h2>
                                 <p class="text-sm text-muted-foreground">{{ money(props.selected.total) }} outstanding</p>
                             </div>
                         </div>

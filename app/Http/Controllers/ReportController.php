@@ -63,7 +63,9 @@ class ReportController extends Controller
             'id' => $visit->id,
             'pool' => $visit->pool?->name,
             'customer' => $visit->pool?->customer?->displayName(),
+            'customer_id' => $visit->pool?->customer?->getKey(),
             'agent' => $visit->agent?->displayName(),
+            'agent_id' => $visit->agent?->getKey(),
             'completed_on' => $visit->completed_at?->toDateString(),
             'notes' => $visit->notes,
             'reading' => $reading !== null ? [

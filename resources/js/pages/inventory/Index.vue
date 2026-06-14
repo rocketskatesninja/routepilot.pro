@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { agentLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref, watch } from 'vue';
 
@@ -44,7 +45,7 @@ interface InventoryDetail {
     supplier: string | null;
     value: number | null;
     low: boolean;
-    transactions: { id: number; type: string; quantity: number; on: string | null; agent: string | null }[];
+    transactions: { id: number; type: string; quantity: number; on: string | null; agent: string | null; agent_id: number | null }[];
     fields: InventoryFields;
 }
 
@@ -349,7 +350,16 @@ function submitAdjust() {
                                 <ul class="space-y-1 text-muted-foreground">
                                     <li v-for="t in props.selected.transactions" :key="t.id" class="flex justify-between">
                                         <span class="capitalize">{{ t.type }} · {{ t.quantity }} {{ props.selected.unit }}</span>
-                                        <span>{{ t.on }}</span>
+                                        <span>
+                                            <template v-if="t.agent">
+                                                <Link v-if="t.agent_id" :href="agentLink(t.agent_id)" class="text-primary hover:underline">{{
+                                                    t.agent
+                                                }}</Link>
+                                                <template v-else>{{ t.agent }}</template>
+                                                ·
+                                            </template>
+                                            {{ t.on }}
+                                        </span>
                                     </li>
                                 </ul>
                             </section>

@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { composeLink, reportLink, telLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Mail, Pencil, Plus, Send, Trash2, Users } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
@@ -140,6 +141,24 @@ function submitEmail() {
         },
     });
 }
+
+// A deep link (?compose=customer:5) opens the email panel pre-targeted at one
+// person — used by the "email" links in other detail panes. Fires on fresh
+// mounts and same-page navigations alike (page.url is reactive).
+const page = usePage();
+watch(
+    () => page.url,
+    (url) => {
+        const compose = new URL(url, 'http://localhost').searchParams.get('compose');
+        if (compose && /^(customer|agent):\d+$/.test(compose)) {
+            picked.value = [compose];
+            emailForm.audience = 'selected';
+            emailForm.clearErrors();
+            emailOpen.value = true;
+        }
+    },
+    { immediate: true },
+);
 
 const tabs = [
     { key: 'all', label: 'All' },
@@ -679,13 +698,21 @@ function destroyAgent() {
                             <section>
                                 <h3 class="mb-1 font-medium">Contact</h3>
                                 <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between">
+                                    <div class="flex justify-between gap-2">
                                         <dt>Email</dt>
-                                        <dd>{{ props.selected.email ?? '—' }}</dd>
+                                        <dd v-if="props.selected.email" class="truncate">
+                                            <Link :href="composeLink(props.selected.id, props.selected.type)" class="text-primary hover:underline">{{
+                                                props.selected.email
+                                            }}</Link>
+                                        </dd>
+                                        <dd v-else>—</dd>
                                     </div>
-                                    <div class="flex justify-between">
+                                    <div class="flex justify-between gap-2">
                                         <dt>Phone</dt>
-                                        <dd>{{ props.selected.phone ?? '—' }}</dd>
+                                        <dd v-if="props.selected.phone">
+                                            <a :href="telLink(props.selected.phone)" class="text-primary hover:underline">{{ props.selected.phone }}</a>
+                                        </dd>
+                                        <dd v-else>—</dd>
                                     </div>
                                 </dl>
                             </section>
@@ -704,9 +731,14 @@ function destroyAgent() {
                                 <section v-if="props.selected.recent_visits.length">
                                     <h3 class="mb-1 font-medium">Recent visits</h3>
                                     <ul class="space-y-1 text-muted-foreground">
-                                        <li v-for="visit in props.selected.recent_visits" :key="visit.id" class="flex justify-between">
-                                            <span>{{ visit.pool }}</span
-                                            ><span>{{ visit.completed_on }}</span>
+                                        <li v-for="visit in props.selected.recent_visits" :key="visit.id">
+                                            <Link
+                                                :href="reportLink(visit.id)"
+                                                class="-mx-1 flex justify-between rounded px-1 py-0.5 hover:bg-muted hover:text-foreground"
+                                                title="Open report"
+                                            >
+                                                <span>{{ visit.pool }}</span><span>{{ visit.completed_on }}</span>
+                                            </Link>
                                         </li>
                                     </ul>
                                 </section>

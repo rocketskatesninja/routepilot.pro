@@ -40,6 +40,7 @@ export interface GoogleMaps {
         Marker: Ctor;
         Circle: Ctor;
         Polyline: Ctor;
+        InfoWindow: Ctor;
         LatLngBounds: new () => GLatLngBounds;
         SymbolPath: { CIRCLE: number };
     };
