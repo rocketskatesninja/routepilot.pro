@@ -3,7 +3,7 @@ import '../css/app.css';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
-import { createApp, h } from 'vue';
+import { createApp, createSSRApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { initializeTheme } from './composables/useAppearance';
 import { applyBrand } from './composables/useBrand';
@@ -32,10 +32,13 @@ createInertiaApp({
         const tenant = props.initialPage.props.tenant as Tenant | null;
         applyBrand(tenant?.brand_color);
 
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .use(ZiggyVue)
-            .mount(el);
+        // Hydrate the server-rendered markup in place when SSR produced it;
+        // otherwise (SSR off / empty shell) do a fresh client render. Using
+        // createApp on SSR'd DOM would discard and re-render it — which replays
+        // the hero entrance animation, making the text appear to "load twice".
+        const vueApp = el.hasChildNodes() ? createSSRApp({ render: () => h(App, props) }) : createApp({ render: () => h(App, props) });
+
+        vueApp.use(plugin).use(ZiggyVue).mount(el);
     },
     progress: {
         color: '#0ea5e9',
