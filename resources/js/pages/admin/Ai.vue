@@ -4,31 +4,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, KeyRound, XCircle } from 'lucide-vue-next';
-import { reactive } from 'vue';
 
 interface KeyStatus {
     configured: boolean;
     source: string;
     hint: string;
 }
-interface TenantRow {
-    id: number;
-    name: string;
-    enabled: boolean;
-    allow_override: boolean;
-    quota: number | string | null;
-    limit: number;
-    used: number;
-}
 
 const props = defineProps<{
     defaults: { provider: string; model: string; default_quota: number };
     keys: Record<string, KeyStatus>;
     modelHints: Record<string, string>;
-    tenants: TenantRow[];
-    period: string;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'AI', href: '/platform/ai' }];
@@ -51,18 +39,6 @@ const save = () =>
         preserveScroll: true,
         onSuccess: () => form.reset('anthropic_key', 'openai_key'),
     });
-
-// --- per-tenant rows (auto-save on change) ---
-const rows = reactive(props.tenants.map((t) => ({ ...t })));
-const limitFor = (r: TenantRow) => (r.quota !== null && r.quota !== '' ? Number(r.quota) : props.defaults.default_quota);
-function saveTenant(r: TenantRow) {
-    const quota = r.quota === null || r.quota === '' ? null : Number(r.quota);
-    router.patch(
-        `/platform/ai/tenants/${r.id}`,
-        { enabled: r.enabled, allow_override: r.allow_override, quota },
-        { preserveScroll: true, preserveState: true },
-    );
-}
 </script>
 
 <template>
@@ -131,59 +107,10 @@ function saveTenant(r: TenantRow) {
             </form>
 
             <!-- Per-tenant -->
-            <div class="rounded-xl border border-border p-5">
-                <div class="mb-4">
-                    <h2 class="text-lg font-semibold">Tenants</h2>
-                    <p class="text-sm text-muted-foreground">Usage for {{ props.period }}. Changes save immediately.</p>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead class="text-left text-muted-foreground">
-                            <tr class="border-b border-border">
-                                <th class="px-2 py-2 font-medium">Company</th>
-                                <th class="px-2 py-2 font-medium">Usage</th>
-                                <th class="px-2 py-2 font-medium">Quota</th>
-                                <th class="px-2 py-2 text-center font-medium">Enabled</th>
-                                <th class="px-2 py-2 text-center font-medium">May override</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="r in rows" :key="r.id" class="border-b border-border/60">
-                                <td class="px-2 py-2 font-medium">{{ r.name }}</td>
-                                <td class="px-2 py-2 text-muted-foreground">{{ r.used }} / {{ limitFor(r) }}</td>
-                                <td class="px-2 py-2">
-                                    <Input
-                                        v-model.number="r.quota"
-                                        type="number"
-                                        min="0"
-                                        class="h-8 w-24"
-                                        :placeholder="`${props.defaults.default_quota}`"
-                                        @change="saveTenant(r)"
-                                    />
-                                </td>
-                                <td class="px-2 py-2 text-center">
-                                    <input v-model="r.enabled" type="checkbox" :aria-label="`AI enabled for ${r.name}`" @change="saveTenant(r)" />
-                                </td>
-                                <td class="px-2 py-2 text-center">
-                                    <input
-                                        v-model="r.allow_override"
-                                        type="checkbox"
-                                        :aria-label="`Allow ${r.name} to override`"
-                                        @change="saveTenant(r)"
-                                    />
-                                </td>
-                            </tr>
-                            <tr v-if="rows.length === 0">
-                                <td colspan="5" class="px-2 py-8 text-center text-muted-foreground">No tenants yet.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p class="mt-3 text-xs text-muted-foreground">
-                    Quota blank = the platform default. "May override" lets a tenant supply their own provider/model/key (advanced).
-                </p>
-            </div>
+            <p class="text-sm text-muted-foreground">
+                Per-tenant AI — usage, quota, on/off, and the override policy — lives on each company's detail panel under
+                <Link href="/people" class="text-primary hover:underline">People → Tenants</Link>.
+            </p>
         </div>
     </AppLayout>
 </template>

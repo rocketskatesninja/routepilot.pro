@@ -11,6 +11,7 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
+use App\Services\PlatformAiSettings;
 use App\Support\PersonListBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -112,7 +113,7 @@ class PeopleController extends Controller
             ->all();
     }
 
-    /** Super-admin platform-wide People (pickable) + broadcast composer. */
+    /** Super-admin platform-wide People (manage + broadcast), table+drawer like the tenant screen. */
     private function platform(Request $request, User $user, SendCampaign $campaigns): Response
     {
         $type = (string) $request->string('type');
@@ -120,6 +121,19 @@ class PeopleController extends Controller
             $type = 'tenants';
         }
         $search = trim((string) $request->string('search'));
+
+        // Selecting a row shows that entity's detail in the drawer (tenant = the
+        // management pane; agent/customer = a read-only card).
+        $selected = null;
+        $selectedId = $request->integer('selected');
+        if ($selectedId > 0) {
+            $selected = match ((string) $request->string('selected_type')) {
+                'tenant' => $this->tenantDetail($selectedId),
+                'agent' => $this->platformPersonDetail('agent', $selectedId),
+                'customer' => $this->platformPersonDetail('customer', $selectedId),
+                default => null,
+            };
+        }
 
         return Inertia::render('people/Platform', [
             'audiences' => $campaigns->audiencesFor($user),
@@ -130,8 +144,80 @@ class PeopleController extends Controller
             ],
             'people' => $this->platformPeople($type, $search),
             'filters' => ['type' => $type, 'search' => $search],
+            'selected' => $selected,
+            'aiDefaultQuota' => app(PlatformAiSettings::class)->defaultQuota(),
             'recent' => $this->recentCampaigns(true),
         ]);
+    }
+
+    /**
+     * Tenant management detail (counts + per-tenant AI) for the drawer.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function tenantDetail(int $id): ?array
+    {
+        $t = Tenant::query()->withCount(['users', 'pools'])->find($id);
+        if ($t === null) {
+            return null;
+        }
+
+        $ai = app(PlatformAiSettings::class)->tenantAi([$t->id])[$t->id]
+            ?? ['enabled' => true, 'allow_override' => false, 'quota' => null, 'limit' => 0, 'used' => 0];
+
+        return [
+            'type' => 'tenant',
+            'id' => $t->id,
+            'name' => $t->name,
+            'slug' => $t->slug,
+            'status' => $t->getAttribute('status'),
+            'pools' => $t->getAttribute('pools_count'),
+            'users' => $t->getAttribute('users_count'),
+            'created' => $t->created_at?->toDateString(),
+            'logo_url' => $this->photoUrl($t->getAttribute('logo_path')),
+            'ai' => $ai,
+        ];
+    }
+
+    /**
+     * Read-only card for an agent/customer (they belong to a tenant).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function platformPersonDetail(string $type, int $id): ?array
+    {
+        if ($type === 'agent') {
+            $u = User::query()->where('role', 'agent')->with('tenant:id,name')->find($id);
+            if ($u === null) {
+                return null;
+            }
+
+            return [
+                'type' => 'agent',
+                'id' => $u->id,
+                'name' => $u->displayName(),
+                'email' => $u->getAttribute('email'),
+                'phone' => $u->getAttribute('phone'),
+                'tenant' => $u->tenant?->name,
+                'photo_url' => $this->photoUrl($u->getAttribute('avatar_path')),
+                'is_active' => (bool) $u->getAttribute('is_active'),
+            ];
+        }
+
+        $c = Customer::query()->with('tenant:id,name')->find($id);
+        if ($c === null) {
+            return null;
+        }
+
+        return [
+            'type' => 'customer',
+            'id' => $c->id,
+            'name' => $c->displayName(),
+            'email' => $c->email,
+            'phone' => $c->getAttribute('phone'),
+            'tenant' => $c->tenant?->name,
+            'photo_url' => $this->photoUrl($c->getAttribute('photo_path')),
+        ];
     }
 
     /**
@@ -150,17 +236,17 @@ class PeopleController extends Controller
                 ->when($search !== '', $nameSearch)
                 ->orderBy('first_name')->orderBy('last_name')
                 ->paginate(25)->withQueryString()
-                ->through(fn (User $u): array => ['key' => 'agent:'.$u->id, 'name' => $u->displayName(), 'sub' => $u->getAttribute('email'), 'meta' => $u->tenant?->name]),
+                ->through(fn (User $u): array => ['key' => 'agent:'.$u->id, 'id' => $u->id, 'type' => 'agent', 'name' => $u->displayName(), 'sub' => $u->getAttribute('email'), 'meta' => $u->tenant?->name]),
             'customers' => Customer::query()->with('tenant:id,name')
                 ->when($search !== '', $nameSearch)
                 ->orderBy('first_name')->orderBy('last_name')
                 ->paginate(25)->withQueryString()
-                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name]),
+                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'id' => $c->id, 'type' => 'customer', 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name]),
             default => Tenant::query()
                 ->when($search !== '', fn ($q) => $q->where('name', 'like', $like))
                 ->orderBy('name')
                 ->paginate(25)->withQueryString()
-                ->through(fn (Tenant $t): array => ['key' => 'tenant:'.$t->id, 'name' => $t->name, 'sub' => $t->getAttribute('status'), 'meta' => $t->slug]),
+                ->through(fn (Tenant $t): array => ['key' => 'tenant:'.$t->id, 'id' => $t->id, 'type' => 'tenant', 'name' => $t->name, 'sub' => $t->getAttribute('status'), 'meta' => $t->slug]),
         };
     }
 

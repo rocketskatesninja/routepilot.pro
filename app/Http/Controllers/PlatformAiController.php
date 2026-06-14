@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\AiUsage;
 use App\Models\AuditLog;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
@@ -27,32 +26,8 @@ class PlatformAiController extends Controller
     {
         $this->authorizeSuper($request);
 
-        $period = now()->format('Y-m');
-
-        // Bulk-load per-tenant AI settings + usage to avoid N+1 across tenants.
-        $settings = TenantSetting::withoutGlobalScopes()
-            ->whereIn('key', ['ai_enabled', 'ai_allow_override', 'ai_monthly_quota'])
-            ->get(['tenant_id', 'key', 'value'])
-            ->groupBy('tenant_id');
-
-        $usage = AiUsage::withoutGlobalScopes()->where('period', $period)->pluck('messages', 'tenant_id');
-
-        $tenants = Tenant::query()->orderBy('name')->get(['id', 'name'])->map(function (Tenant $t) use ($settings, $usage, $platform): array {
-            $s = collect($settings[$t->id] ?? [])->keyBy('key');
-            $override = $s->get('ai_monthly_quota')?->getAttribute('value');
-            $hasOverride = $override !== null && $override !== '';
-
-            return [
-                'id' => $t->id,
-                'name' => $t->name,
-                'enabled' => ($s->get('ai_enabled')?->getAttribute('value') ?? '1') !== '0',
-                'allow_override' => $s->get('ai_allow_override')?->getAttribute('value') === '1',
-                'quota' => $hasOverride ? (int) $override : null,
-                'limit' => $hasOverride ? (int) $override : $platform->defaultQuota(),
-                'used' => (int) ($usage[$t->id] ?? 0),
-            ];
-        })->all();
-
+        // Platform-level config only; per-tenant AI lives on the Tenants console
+        // (each tenant's detail pane), saved via updateTenant() below.
         return Inertia::render('admin/Ai', [
             'defaults' => [
                 'provider' => $platform->provider(),
@@ -61,8 +36,6 @@ class PlatformAiController extends Controller
             ],
             'keys' => $platform->keyStatus(),
             'modelHints' => config('ai.models'),
-            'tenants' => $tenants,
-            'period' => $period,
         ]);
     }
 

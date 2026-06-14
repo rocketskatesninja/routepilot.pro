@@ -12,13 +12,13 @@ beforeEach(function () {
     $this->super->forceFill(['role' => 'super_admin', 'tenant_id' => null])->save();
 });
 
-test('a super-admin sees the tenants list', function () {
+test('a super-admin sees the tenants list on the People screen', function () {
     Tenant::factory()->create(['name' => 'Acme Pools']);
 
     $this->actingAs($this->super)
-        ->get('/tenants')
+        ->get('/people')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('admin/Tenants')->has('tenants'));
+        ->assertInertia(fn (Assert $page) => $page->component('people/Platform')->where('filters.type', 'tenants')->has('people.data'));
 });
 
 test('a super-admin creates a tenant with a pre-verified admin', function () {
@@ -61,13 +61,13 @@ test('a super-admin can impersonate a tenant and return', function () {
     $this->assertAuthenticatedAs($admin);
     expect(AuditLog::query()->where('action', 'impersonate.start')->exists())->toBeTrue();
 
-    $this->post('/impersonate/stop')->assertRedirect('/tenants');
+    $this->post('/impersonate/stop')->assertRedirect('/people');
     $this->assertAuthenticatedAs($this->super);
 });
 
-test('staff cannot reach the platform console', function () {
+test('staff cannot create tenants or reach the AI console', function () {
     $admin = User::factory()->for(Tenant::factory())->create();
 
-    $this->actingAs($admin)->get('/tenants')->assertForbidden();
     $this->actingAs($admin)->post('/tenants', ['company' => 'x', 'first_name' => 'y', 'email' => 'z@z.test', 'password' => 'password123'])->assertForbidden();
+    $this->actingAs($admin)->get('/platform/ai')->assertForbidden();
 });

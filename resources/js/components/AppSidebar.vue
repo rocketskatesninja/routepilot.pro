@@ -44,7 +44,6 @@ const page = usePage<SharedData>();
 const navByRole: Record<string, NavItem[]> = {
     super_admin: [
         { title: 'Platform', href: '/dashboard', icon: ShieldCheck },
-        { title: 'Tenants', href: '/tenants', icon: Building2 },
         { title: 'People', href: '/people', icon: Users },
         { title: 'AI', href: '/platform/ai', icon: Bot },
         { title: 'Assistant', href: '/assistant', icon: Bot },

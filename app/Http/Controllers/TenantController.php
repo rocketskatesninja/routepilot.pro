@@ -9,41 +9,14 @@ use App\Http\Requests\StoreTenantRequest;
 use App\Http\Requests\UpdateTenantRequest;
 use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /**
- * Super-admin platform console — tenant management. Super admins carry no
- * tenant context, so the global TenantScope is inert here and these queries
- * legitimately span every tenant.
+ * Super-admin tenant create/update. Listing + management lives on the super
+ * People screen (people/Platform). Super admins carry no tenant context, so the
+ * global TenantScope is inert here and these writes legitimately span tenants.
  */
 class TenantController extends Controller
 {
-    public function index(Request $request): Response
-    {
-        $this->authorizeSuper($request);
-
-        $tenants = Tenant::query()
-            ->withCount(['users', 'pools'])
-            ->latest()
-            ->get()
-            ->map(fn (Tenant $t): array => [
-                'id' => $t->id,
-                'name' => $t->name,
-                'logo_url' => $this->photoUrl($t->getAttribute('logo_path')),
-                'slug' => $t->slug,
-                'status' => $t->getAttribute('status'),
-                'users' => $t->getAttribute('users_count'),
-                'pools' => $t->getAttribute('pools_count'),
-                'created' => $t->created_at?->toDateString(),
-            ])->all();
-
-        return Inertia::render('admin/Tenants', [
-            'tenants' => $tenants,
-        ]);
-    }
-
     public function store(StoreTenantRequest $request, RegisterTenant $register): RedirectResponse
     {
         // RegisterTenant builds the tenant + its first admin atomically; a

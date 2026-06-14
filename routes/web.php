@@ -152,7 +152,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('company/landing/image', [LandingController::class, 'uploadImage'])->name('company.landing.image');
 
     // Super-admin platform console.
-    Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
     Route::get('platform/ai', [PlatformAiController::class, 'edit'])->name('platform.ai.edit');
     Route::patch('platform/ai', [PlatformAiController::class, 'update'])->name('platform.ai.update');
     Route::patch('platform/ai/tenants/{tenant}', [PlatformAiController::class, 'updateTenant'])->name('platform.ai.tenant');

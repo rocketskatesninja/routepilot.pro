@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\AiUsage;
 use App\Models\PlatformSetting;
+use App\Models\TenantSetting;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
@@ -60,6 +62,47 @@ class PlatformAiSettings
         $value = PlatformSetting::get('ai_default_quota');
 
         return $value !== null && $value !== '' ? max(0, (int) $value) : 500;
+    }
+
+    /**
+     * Per-tenant AI status (settings + this month's usage), keyed by tenant id.
+     *
+     * @param  list<int>  $tenantIds
+     * @return array<int, array{enabled: bool, allow_override: bool, quota: int|null, limit: int, used: int}>
+     */
+    public function tenantAi(array $tenantIds): array
+    {
+        if ($tenantIds === []) {
+            return [];
+        }
+
+        $settings = TenantSetting::withoutGlobalScopes()
+            ->whereIn('tenant_id', $tenantIds)
+            ->whereIn('key', ['ai_enabled', 'ai_allow_override', 'ai_monthly_quota'])
+            ->get(['tenant_id', 'key', 'value'])
+            ->groupBy('tenant_id');
+
+        $usage = AiUsage::withoutGlobalScopes()
+            ->where('period', now()->format('Y-m'))
+            ->whereIn('tenant_id', $tenantIds)
+            ->pluck('messages', 'tenant_id');
+
+        $default = $this->defaultQuota();
+        $out = [];
+        foreach ($tenantIds as $id) {
+            $s = collect($settings[$id] ?? [])->keyBy('key');
+            $override = $s->get('ai_monthly_quota')?->getAttribute('value');
+            $hasOverride = $override !== null && $override !== '';
+            $out[$id] = [
+                'enabled' => ($s->get('ai_enabled')?->getAttribute('value') ?? '1') !== '0',
+                'allow_override' => $s->get('ai_allow_override')?->getAttribute('value') === '1',
+                'quota' => $hasOverride ? (int) $override : null,
+                'limit' => $hasOverride ? (int) $override : $default,
+                'used' => (int) ($usage[$id] ?? 0),
+            ];
+        }
+
+        return $out;
     }
 
     /** Encrypt + store a provider key (empty string clears the managed key). */

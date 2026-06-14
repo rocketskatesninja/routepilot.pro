@@ -49,6 +49,6 @@ class ImpersonationController extends Controller
             Auth::login($super);
         }
 
-        return redirect('/tenants');
+        return redirect('/people');
     }
 }

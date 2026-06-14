@@ -16,11 +16,25 @@ beforeEach(function () {
     $this->admin = User::factory()->for($this->tenant)->create(); // tenant_admin
 });
 
-test('the AI console is super-admin only', function () {
+test('the AI console is super-admin only and platform-level', function () {
     $this->actingAs($this->admin)->get('/platform/ai')->assertForbidden();
     $this->actingAs($this->super)->get('/platform/ai')
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('admin/Ai')->has('defaults')->has('keys')->has('tenants'));
+        ->assertInertia(fn ($page) => $page->component('admin/Ai')->has('defaults')->has('keys')->missing('tenants'));
+});
+
+test('the super People screen carries per-tenant AI in the tenant detail', function () {
+    TenantSetting::setFor($this->tenant->id, 'ai_monthly_quota', '900');
+
+    $this->actingAs($this->super)
+        ->get('/people?selected='.$this->tenant->id.'&selected_type=tenant')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('people/Platform')
+            ->has('aiDefaultQuota')
+            ->where('selected.type', 'tenant')
+            ->where('selected.ai.quota', 900)
+            ->where('selected.ai.enabled', true));
 });
 
 test('saving platform defaults persists provider, model and default quota', function () {
