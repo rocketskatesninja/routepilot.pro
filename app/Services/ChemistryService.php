@@ -266,55 +266,22 @@ class ChemistryService
             // High calcium / CYA can't be reduced chemically — surface a
             // drain/refill recommendation instead of silently skipping.
             if (! $rec) {
-                if (($param === 'calcium_hardness' && $data['value'] > $data['max'])
-                    || ($param === 'cyanuric_acid' && $data['value'] > $data['max'])) {
-                    $rec = [
-                        'parameter' => $data['label'],
-                        'chemical' => 'Partial Drain & Refill',
-                        'amount' => 0.0,
-                        'unit' => '',
-                        'urgency' => 'high',
-                        'action' => 'drain_refill',
-                        'notes' => [],
-                    ];
-                } else {
+                if (! $this->needsDrainRefill($param, $data)) {
                     continue;
                 }
+                $rec = $this->drainRefillSkeleton($data);
             }
 
             $originalAmount = $rec['amount'];
             $adjustments = [];
 
-            $trendData = $trends['parameters'][$param] ?? null;
-            if ($trendData) {
-                if ($trendData['is_chronic']) {
-                    $rec['urgency'] = 'high';
-                    $rec['notes'][] = "{$data['label']} has been out of range in {$trendData['out_of_range_count']} of last {$trendData['readings_count']} visits.";
-                }
-                // Same treatment applied last time didn't move the level — bump 15%.
-                if ($trendData['direction'] === 'stable' && $data['status'] !== 'normal') {
-                    $rec['amount'] *= 1.15;
-                    $adjustments[] = '+15% — previous treatment did not improve level';
-                }
-            }
+            $this->applyTrendAdjustment($rec, $data, $trends['parameters'][$param] ?? null, $adjustments);
 
             if ($weather) {
-                foreach ($this->getWeatherAdjustments($param, $data, $weather, $reading) as $adj) {
-                    $rec['amount'] *= (1 + $adj['factor']);
-                    $adjustments[] = $adj['reason'];
-                }
+                $this->applyWeatherAdjustments($rec, $param, $data, $weather, $reading, $adjustments);
             }
 
-            if ($param === 'calcium_hardness' && $data['value'] > $data['max']) {
-                $rec['action'] = 'drain_refill';
-                $rec['notes'][] = 'Calcium hardness is too high to treat chemically. Partial drain and refill recommended.';
-                $rec['notes'][] = 'Re-test water chemistry after the refill before adding any chemicals.';
-            }
-            if ($param === 'cyanuric_acid' && $data['value'] > $data['max']) {
-                $rec['action'] = 'drain_refill';
-                $rec['notes'][] = 'CYA is too high to reduce chemically. Partial drain and refill recommended.';
-                $rec['notes'][] = 'Re-test water chemistry after the refill before adding any chemicals.';
-            }
+            $this->markDrainRefillIfNeeded($rec, $param, $data);
 
             $rec['original_amount'] = $originalAmount;
             $rec['amount'] = round($rec['amount'], 1);
@@ -324,22 +291,135 @@ class ChemistryService
             $recommendations[] = $rec;
         }
 
-        // A drain/refill resets chemistry — dosing beforehand wastes product.
+        return $this->sortByUrgency($this->suppressForDrainRefill($recommendations));
+    }
+
+    /**
+     * High calcium / CYA can't be lowered chemically — they need a partial drain & refill.
+     *
+     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
+     */
+    private function needsDrainRefill(string $param, array $data): bool
+    {
+        return in_array($param, ['calcium_hardness', 'cyanuric_acid'], true) && $data['value'] > $data['max'];
+    }
+
+    /**
+     * The zero-dose "Partial Drain & Refill" placeholder for a parameter that
+     * can't be treated chemically.
+     *
+     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
+     * @return array<string, mixed>
+     */
+    private function drainRefillSkeleton(array $data): array
+    {
+        return [
+            'parameter' => $data['label'],
+            'chemical' => 'Partial Drain & Refill',
+            'amount' => 0.0,
+            'unit' => '',
+            'urgency' => 'high',
+            'action' => 'drain_refill',
+            'notes' => [],
+        ];
+    }
+
+    /**
+     * Bump urgency + dose when recent history shows the parameter is chronic or
+     * isn't responding to the same treatment.
+     *
+     * @param  array<string, mixed>  $rec
+     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
+     * @param  list<string>  $adjustments
+     */
+    private function applyTrendAdjustment(array &$rec, array $data, mixed $trendData, array &$adjustments): void
+    {
+        if (! $trendData) {
+            return;
+        }
+        if ($trendData['is_chronic']) {
+            $rec['urgency'] = 'high';
+            $rec['notes'][] = "{$data['label']} has been out of range in {$trendData['out_of_range_count']} of last {$trendData['readings_count']} visits.";
+        }
+        // Same treatment applied last time didn't move the level — bump 15%.
+        if ($trendData['direction'] === 'stable' && $data['status'] !== 'normal') {
+            $rec['amount'] *= 1.15;
+            $adjustments[] = '+15% — previous treatment did not improve level';
+        }
+    }
+
+    /**
+     * Scale the dose by any weather-driven multipliers (rain dilution, UV burn-off).
+     *
+     * @param  array<string, mixed>  $rec
+     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
+     * @param  array{daily?: list<array<string, float|int|null>>}  $weather
+     * @param  array<string, float|int|null>  $reading
+     * @param  list<string>  $adjustments
+     */
+    private function applyWeatherAdjustments(array &$rec, string $param, array $data, array $weather, array $reading, array &$adjustments): void
+    {
+        foreach ($this->getWeatherAdjustments($param, $data, $weather, $reading) as $adj) {
+            $rec['amount'] *= (1 + $adj['factor']);
+            $adjustments[] = $adj['reason'];
+        }
+    }
+
+    /**
+     * High calcium / CYA: flag the rec as a drain/refill and explain why.
+     *
+     * @param  array<string, mixed>  $rec
+     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
+     */
+    private function markDrainRefillIfNeeded(array &$rec, string $param, array $data): void
+    {
+        if ($param === 'calcium_hardness' && $data['value'] > $data['max']) {
+            $rec['action'] = 'drain_refill';
+            $rec['notes'][] = 'Calcium hardness is too high to treat chemically. Partial drain and refill recommended.';
+            $rec['notes'][] = 'Re-test water chemistry after the refill before adding any chemicals.';
+        }
+        if ($param === 'cyanuric_acid' && $data['value'] > $data['max']) {
+            $rec['action'] = 'drain_refill';
+            $rec['notes'][] = 'CYA is too high to reduce chemically. Partial drain and refill recommended.';
+            $rec['notes'][] = 'Re-test water chemistry after the refill before adding any chemicals.';
+        }
+    }
+
+    /**
+     * A drain/refill resets chemistry — if any rec calls for one, drop the
+     * other dosing (it may be unnecessary after the refill).
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function suppressForDrainRefill(array $recommendations): array
+    {
         $hasDrainRefill = collect($recommendations)->contains(fn ($r) => ($r['action'] ?? null) === 'drain_refill');
-        if ($hasDrainRefill) {
-            $recommendations = array_values(array_filter(
-                $recommendations,
-                fn ($r) => ($r['action'] ?? null) === 'drain_refill',
-            ));
-            foreach ($recommendations as &$rec) {
-                $rec['notes'][] = 'Other chemistry adjustments are skipped — they may not be needed after the refill.';
-            }
-            unset($rec);
+        if (! $hasDrainRefill) {
+            return $recommendations;
         }
 
-        // Highest urgency first. (The legacy comparator had its operands
-        // reversed and actually sorted low-urgency first, contradicting its
-        // own "Sort by urgency" intent — fixed here.)
+        $recommendations = array_values(array_filter(
+            $recommendations,
+            fn ($r) => ($r['action'] ?? null) === 'drain_refill',
+        ));
+        foreach ($recommendations as &$rec) {
+            $rec['notes'][] = 'Other chemistry adjustments are skipped — they may not be needed after the refill.';
+        }
+        unset($rec);
+
+        return $recommendations;
+    }
+
+    /**
+     * Highest urgency first. (The legacy comparator had its operands reversed
+     * and actually sorted low-urgency first, contradicting its own intent.)
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function sortByUrgency(array $recommendations): array
+    {
         $rank = ['high' => 0, 'medium' => 1, 'normal' => 2];
         usort($recommendations, fn ($a, $b) => ($rank[$a['urgency'] ?? 'normal'] ?? 2) <=> ($rank[$b['urgency'] ?? 'normal'] ?? 2));
 
