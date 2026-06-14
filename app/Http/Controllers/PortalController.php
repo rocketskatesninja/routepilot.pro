@@ -202,6 +202,7 @@ class PortalController extends Controller
         return [
             'id' => $visit->id,
             'pool' => $visit->pool?->getAttribute('name'),
+            'pool_id' => $visit->pool?->getKey(),
             'on' => $visit->completed_at?->toDateString(),
             'agent' => $visit->agent?->displayName(),
             'notes' => $visit->notes,

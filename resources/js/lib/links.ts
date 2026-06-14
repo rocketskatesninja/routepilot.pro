@@ -31,3 +31,8 @@ export function reportLink(id: number | string): string {
 export function telLink(phone: string): string {
     return `tel:${phone.replace(/[^0-9+]/g, '')}`;
 }
+
+/** Portal: the requests page with a new request pre-filled for one pool. */
+export function requestForPoolLink(poolId: number | string): string {
+    return `/requests?pool=${poolId}`;
+}

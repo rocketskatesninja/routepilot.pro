@@ -2,9 +2,10 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { requestForPoolLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { Droplets } from 'lucide-vue-next';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { CalendarPlus, Droplets } from 'lucide-vue-next';
 
 interface VisitRow {
     id: number;
@@ -16,6 +17,7 @@ interface VisitRow {
 interface VisitDetail {
     id: number;
     pool: string | null;
+    pool_id: number | null;
     on: string | null;
     agent: string | null;
     notes: string | null;
@@ -107,6 +109,13 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                             <p class="text-sm text-muted-foreground">
                                 {{ props.selected.on }}<template v-if="props.selected.agent"> · {{ props.selected.agent }}</template>
                             </p>
+                            <Link
+                                v-if="props.selected.pool_id"
+                                :href="requestForPoolLink(props.selected.pool_id)"
+                                class="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                            >
+                                <CalendarPlus class="size-3.5" /> Request service for this pool
+                            </Link>
                         </div>
 
                         <div class="space-y-5 text-sm">

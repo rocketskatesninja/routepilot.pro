@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { Inbox } from 'lucide-vue-next';
+import { watch } from 'vue';
 
 interface ServiceRequest {
     id: number;
@@ -34,6 +35,21 @@ const form = useForm<{ type: string; pool_id: number | string; message: string; 
 function submit() {
     form.post('/requests', { preserveScroll: true, onSuccess: () => form.reset() });
 }
+
+// A deep link from the service-history pane (?pool=5) pre-selects that pool in
+// the new-request form. Reactive to page.url so it works on every navigation.
+const page = usePage();
+watch(
+    () => page.url,
+    (url) => {
+        const poolId = Number(new URL(url, 'http://localhost').searchParams.get('pool'));
+        if (poolId && props.pools.some((p) => p.id === poolId)) {
+            form.pool_id = poolId;
+            form.type = 'service';
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
