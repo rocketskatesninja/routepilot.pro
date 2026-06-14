@@ -16,6 +16,13 @@
             })();
         </script>
 
+        {{-- Critical base styles, applied before app.css loads, so a slow CSS fetch
+             can't flash a white background or an unsized (page-filling) logo. --}}
+        <style>
+            html { background-color: #ffffff; color-scheme: light; }
+            html.dark { background-color: #0d1017; color-scheme: dark; }
+        </style>
+
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <link rel="preconnect" href="https://fonts.bunny.net">
