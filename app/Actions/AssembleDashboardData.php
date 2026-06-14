@@ -28,6 +28,11 @@ class AssembleDashboardData
 
     private bool $customerLoaded = false;
 
+    /** @var array<string, mixed>|null */
+    private ?array $weatherMemo = null;
+
+    private bool $weatherLoaded = false;
+
     /**
      * @param  list<string>  $enabled
      * @return array<string, mixed>
@@ -145,15 +150,25 @@ class AssembleDashboardData
             ])->all();
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * The tenant's forecast, memoized — both the weather and week-strip widgets
+     * use it, so it's computed at most once per request.
+     *
+     * @return array<string, mixed>|null
+     */
     private function weather(User $user): ?array
     {
+        if ($this->weatherLoaded) {
+            return $this->weatherMemo;
+        }
+        $this->weatherLoaded = true;
+
         $tenant = $user->tenant;
         if ($tenant === null || $tenant->lat === null || $tenant->lng === null) {
             return null;
         }
 
-        return app(WeatherService::class)->forecast((float) $tenant->lat, (float) $tenant->lng);
+        return $this->weatherMemo = app(WeatherService::class)->forecast((float) $tenant->lat, (float) $tenant->lng);
     }
 
     /** @return array<string, mixed> */

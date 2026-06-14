@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { Check, Monitor, Pencil, Plus, Smartphone } from 'lucide-vue-next';
+import { Check, LayoutGrid, Monitor, Pencil, Plus, Smartphone } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface LayoutItem {
@@ -200,7 +200,17 @@ onBeforeUnmount(() => {
                 >
                     Mobile layout
                 </div>
+
+                <div
+                    v-if="!activeLayout.length && !editing"
+                    class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center text-muted-foreground"
+                >
+                    <LayoutGrid class="size-8 opacity-50" />
+                    <p class="text-sm">Your dashboard is empty.</p>
+                    <Button size="sm" variant="outline" @click="toggleEdit"><Pencil class="mr-1 size-4" /> Customize</Button>
+                </div>
                 <DashboardGrid
+                    v-else
                     :key="deviceMode"
                     :layout="activeLayout"
                     :editing="editing"
