@@ -54,6 +54,7 @@ class AssembleDashboardData
             // agent
             'agent_stats' => fn () => $this->agentStats($user),
             'agent_route' => fn () => $this->agentRoute($user),
+            'agent_visits' => fn () => $this->agentVisits($user),
             // customer
             'my_pools' => fn () => $this->myPools($user),
             'next_visit' => fn () => $this->nextVisit($user),
@@ -497,6 +498,27 @@ class AssembleDashboardData
     private function recentVisits(): array
     {
         return ServiceVisit::query()
+            ->where('status', 'completed')->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
+            ->latest('completed_at')->limit(6)->get()
+            ->map(fn (ServiceVisit $v) => [
+                'id' => $v->id,
+                'pool' => $v->pool?->getAttribute('name'),
+                'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
+                'agent' => $this->name($v->agent),
+                'agent_photo' => $this->photoUrl($v->agent?->getAttribute('avatar_path')),
+                'completed_on' => $v->completed_at?->toDateString(),
+            ])->all();
+    }
+
+    /**
+     * The agent's own recently completed visits (reuses the Recent Visits card).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function agentVisits(User $user): array
+    {
+        return ServiceVisit::query()
+            ->where('agent_id', $user->id)
             ->where('status', 'completed')->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
             ->latest('completed_at')->limit(6)->get()
             ->map(fn (ServiceVisit $v) => [

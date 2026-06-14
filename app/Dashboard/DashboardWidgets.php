@@ -25,11 +25,12 @@ class DashboardWidgets
         'today_stops' => ['label' => "Today's stops", 'icon' => 'ListChecks', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 6, 'roles' => ['tenant_admin']],
         'weather' => ['label' => 'Weather', 'icon' => 'CloudSun', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin', 'agent']],
         'billing_summary' => ['label' => 'Outstanding balances', 'icon' => 'DollarSign', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
-        'notifications' => ['label' => 'Notifications', 'icon' => 'Bell', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
+        'notifications' => ['label' => 'Notifications', 'icon' => 'Bell', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin', 'agent']],
 
         // agent (field PWA)
         'agent_stats' => ['label' => 'My day', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['agent']],
         'agent_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 6, 'roles' => ['agent']],
+        'agent_visits' => ['label' => 'My recent visits', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 4, 'roles' => ['agent']],
 
         // customer (portal)
         'my_pools' => ['label' => 'My pools', 'icon' => 'Waves', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
@@ -55,6 +56,8 @@ class DashboardWidgets
             ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
             ['i' => 'agent_route', 'x' => 0, 'y' => 3, 'w' => 8, 'h' => 6],
             ['i' => 'weather', 'x' => 8, 'y' => 3, 'w' => 4, 'h' => 6],
+            ['i' => 'agent_visits', 'x' => 0, 'y' => 9, 'w' => 8, 'h' => 4],
+            ['i' => 'notifications', 'x' => 8, 'y' => 9, 'w' => 4, 'h' => 4],
         ],
         'customer' => [
             ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
@@ -81,6 +84,8 @@ class DashboardWidgets
             ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
             ['i' => 'agent_route', 'x' => 0, 'y' => 4, 'w' => 12, 'h' => 7],
             ['i' => 'weather', 'x' => 0, 'y' => 11, 'w' => 12, 'h' => 5],
+            ['i' => 'agent_visits', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 4],
+            ['i' => 'notifications', 'x' => 0, 'y' => 20, 'w' => 12, 'h' => 5],
         ],
         'customer' => [
             ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],

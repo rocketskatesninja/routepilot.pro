@@ -32,6 +32,7 @@ const registry: Record<string, Component> = {
     // agent
     agent_stats: StatsWidget,
     agent_route: MyRouteWidget,
+    agent_visits: RecentVisitsWidget,
     // customer
     my_pools: MyPoolsWidget,
     next_visit: NextVisitWidget,

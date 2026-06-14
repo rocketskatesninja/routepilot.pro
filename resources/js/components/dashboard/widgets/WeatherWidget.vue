@@ -51,6 +51,8 @@ const showHourly = computed(() => availH.value >= 215);
 // The hourly strip fills the width with as many hours as comfortably fit (~42px
 // each), so it scales with the widget instead of overflowing.
 const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value / 42))));
+// The daily forecast drops trailing days on a narrow widget (last day first).
+const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value / 52))));
 </script>
 
 <template>
@@ -71,26 +73,32 @@ const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value
                 </div>
             </div>
 
-            <!-- Hourly strip: grows with the widget height, first to hide when short -->
-            <div v-show="showHourly && data.hours.length" class="flex min-h-0 flex-1 items-center">
-                <div class="flex w-full gap-1">
+            <!-- Hourly strip: expands to fill the space between current + daily;
+                 its cells spread vertically so there's no blank gap. First to hide when short. -->
+            <div v-show="showHourly && data.hours.length" class="flex min-h-0 flex-1">
+                <div class="flex h-full w-full items-stretch gap-1">
                     <div
                         v-for="h in data.hours.slice(0, hourCount)"
                         :key="h.hour"
-                        class="flex min-w-0 flex-1 flex-col items-center gap-0.5 text-center"
+                        class="flex min-w-0 flex-1 flex-col items-center justify-evenly text-center"
                     >
                         <div class="truncate text-xs text-muted-foreground">{{ h.hour }}</div>
-                        <component :is="weatherDescribe(h.code).icon" class="size-5 text-muted-foreground" />
-                        <div class="text-xs font-medium tabular-nums">{{ h.temp }}°</div>
+                        <component :is="weatherDescribe(h.code).icon" class="size-6 text-muted-foreground" />
+                        <div class="text-sm font-medium tabular-nums">{{ h.temp }}°</div>
                         <div class="text-[10px] tabular-nums" :class="h.precip >= 20 ? 'text-sky-500' : 'text-transparent'">{{ h.precip }}%</div>
                     </div>
                 </div>
             </div>
 
-            <!-- 5-day forecast: grows with the widget height -->
-            <div v-show="showDaily" class="flex min-h-0 flex-1 items-center">
-                <div class="grid w-full grid-cols-5 gap-1">
-                    <div v-for="d in data.days.slice(0, 5)" :key="d.date" class="flex flex-col items-center gap-0.5 rounded-md py-1 text-center">
+            <!-- Daily forecast: compact at the bottom (fills only when the hourly is
+                 hidden); drops trailing days on a narrow widget. -->
+            <div v-show="showDaily" class="flex items-center" :class="showHourly ? 'shrink-0' : 'min-h-0 flex-1'">
+                <div class="grid w-full gap-1" :style="{ gridTemplateColumns: `repeat(${dayCount}, minmax(0, 1fr))` }">
+                    <div
+                        v-for="d in data.days.slice(0, dayCount)"
+                        :key="d.date"
+                        class="flex flex-col items-center gap-0.5 rounded-md py-1 text-center"
+                    >
                         <div class="text-xs text-muted-foreground">{{ d.dow }}</div>
                         <component :is="weatherDescribe(d.code).icon" class="size-5 text-muted-foreground" />
                         <div class="text-xs tabular-nums">
