@@ -30,7 +30,8 @@ interface RouteCard {
     stops: Stop[];
 }
 
-interface StopMarker {
+interface MapMarker {
+    id: number;
     lat: number;
     lng: number;
     order: number;
@@ -46,7 +47,7 @@ const props = defineProps<{
     routes: RouteCard[];
     unassigned: RouteCard | null;
     canManage: boolean;
-    markers: StopMarker[];
+    coords: Record<number, { lat: number; lng: number }>;
     hq: { lat: number; lng: number; label: string | null } | null;
     mapsKey: string | null;
 }>();
@@ -132,6 +133,40 @@ const agentColors = computed<Record<number, string>>(() => {
     }
     return out;
 });
+
+// Map markers are computed from the LIVE route lists joined to the server's
+// geocode table — so dragging a stop between agents re-plots it immediately
+// (new colour, new polyline grouping) with no round-trip. Order follows the
+// list position; stops without coordinates are dropped.
+const mapMarkers = computed<MapMarker[]>(() => {
+    const out: MapMarker[] = [];
+    const add = (route: RouteCard) => {
+        route.stops.forEach((s, i) => {
+            const c = props.coords[s.id];
+            if (!c) return;
+            out.push({
+                id: s.id,
+                lat: c.lat,
+                lng: c.lng,
+                order: i + 1,
+                pool: s.pool,
+                status: s.status,
+                agent: route.agent,
+                agent_id: route.agent_id,
+            });
+        });
+    };
+    localRoutes.value.forEach(add);
+    if (localUnassigned.value) add(localUnassigned.value);
+    return out;
+});
+
+// Click-to-focus: clicking a stop pans/zooms the map to its pin (toggle off by
+// clicking it again). The id is shared with the map (highlight) and the list row.
+const focusId = ref<number | null>(null);
+function focusStop(stop: Stop) {
+    focusId.value = focusId.value === stop.id ? null : stop.id;
+}
 
 function setColor(route: RouteCard, event: Event) {
     const hex = (event.target as HTMLInputElement).value;
@@ -220,7 +255,11 @@ const statusClasses: Record<string, string> = {
                         @change="persist"
                     >
                         <template #item="{ element: stop, index }">
-                            <li class="flex items-center justify-between gap-2 px-4 py-2">
+                            <li
+                                class="flex cursor-pointer items-center justify-between gap-2 px-4 py-2 transition-colors"
+                                :class="focusId === stop.id ? 'bg-primary/10 ring-1 ring-inset ring-primary/40' : 'hover:bg-muted/40'"
+                                @click="focusStop(stop)"
+                            >
                                 <span class="flex min-w-0 items-center gap-2 truncate">
                                     <GripVertical
                                         v-if="props.canManage && stop.status === 'pending'"
@@ -298,7 +337,11 @@ const statusClasses: Record<string, string> = {
                         @change="persist"
                     >
                         <template #item="{ element: stop, index }">
-                            <li class="flex items-center justify-between gap-2 px-4 py-2">
+                            <li
+                                class="flex cursor-pointer items-center justify-between gap-2 px-4 py-2 transition-colors"
+                                :class="focusId === stop.id ? 'bg-primary/10 ring-1 ring-inset ring-primary/40' : 'hover:bg-muted/40'"
+                                @click="focusStop(stop)"
+                            >
                                 <span class="flex min-w-0 items-center gap-2 truncate">
                                     <GripVertical
                                         v-if="props.canManage && stop.status === 'pending'"
@@ -321,7 +364,7 @@ const statusClasses: Record<string, string> = {
                                         v-if="props.canManage && stop.status === 'pending'"
                                         class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"
                                         title="Skip stop"
-                                        @click="skipStop(stop.id)"
+                                        @click.stop="skipStop(stop.id)"
                                     >
                                         <SkipForward class="size-3.5" />
                                     </button>
@@ -349,7 +392,7 @@ const statusClasses: Record<string, string> = {
                         <div class="text-xs text-muted-foreground">Completed</div>
                     </div>
                 </div>
-                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="props.markers" :colors="agentColors" />
+                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="mapMarkers" :colors="agentColors" :focus-id="focusId" />
             </aside>
         </div>
     </AppLayout>

@@ -4,6 +4,7 @@ import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
 interface StopMarker {
+    id: number;
     lat: number;
     lng: number;
     order: number;
@@ -25,6 +26,8 @@ const props = defineProps<{
     // Live per-agent colours, keyed by agent id — the schedule page mutates this
     // when the tenant picks a colour, and the map redraws.
     colors: Record<number, string>;
+    // The stop id the list is focusing; its pin is enlarged + the map pans to it.
+    focusId: number | null;
 }>();
 
 const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || props.hq !== null));
@@ -50,7 +53,7 @@ function clearOverlays() {
     overlays = [];
 }
 
-function draw() {
+function draw(fit = true) {
     if (!g || !map) {
         return;
     }
@@ -62,12 +65,22 @@ function draw() {
     const groups: Record<string, StopMarker[]> = {};
     for (const mk of props.markers) {
         const position = { lat: mk.lat, lng: mk.lng };
+        const focused = mk.id === props.focusId;
         const marker = new m.Marker({
             position,
             map,
             title: `${mk.order}. ${mk.pool ?? 'Stop'}${mk.agent ? ` — ${mk.agent}` : ''}`,
-            label: { text: String(mk.order), color: '#ffffff', fontSize: '11px', fontWeight: '600' },
-            icon: { path: m.SymbolPath.CIRCLE, scale: 12, fillColor: markerColorFor(mk), fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2 },
+            label: { text: String(mk.order), color: '#ffffff', fontSize: focused ? '13px' : '11px', fontWeight: '600' },
+            // The focused pin is enlarged with a gold ring so it stands out.
+            icon: {
+                path: m.SymbolPath.CIRCLE,
+                scale: focused ? 17 : 12,
+                fillColor: markerColorFor(mk),
+                fillOpacity: 1,
+                strokeColor: focused ? '#facc15' : '#ffffff',
+                strokeWeight: focused ? 3.5 : 2,
+            },
+            zIndex: focused ? 999 : undefined,
         }) as unknown as { setMap: (x: unknown) => void };
         overlays.push(marker);
         bounds.extend(position);
@@ -106,6 +119,10 @@ function draw() {
         bounds.extend(position);
     }
 
+    // A focus pan owns the viewport; only auto-fit on a normal (re)draw.
+    if (!fit) {
+        return;
+    }
     const count = props.markers.length + (props.hq ? 1 : 0);
     if (count === 1) {
         const p = props.markers[0] ?? props.hq!;
@@ -153,7 +170,8 @@ watch(
         if (!map) {
             await ensureMap();
         } else {
-            draw();
+            // Keep a focused pan steady through drags/recolours; refit otherwise.
+            draw(props.focusId === null);
         }
     },
     { deep: true, flush: 'post' },
@@ -168,6 +186,26 @@ watch(canMap, (now) => {
         g = null;
     }
 });
+
+// Click-to-focus: re-highlight the pin (without refitting bounds) and pan/zoom
+// the map to it. Clearing focus (null) just drops the highlight, leaving the view.
+watch(
+    () => props.focusId,
+    (id) => {
+        if (!map) {
+            return;
+        }
+        draw(false);
+        if (id === null) {
+            return;
+        }
+        const mk = props.markers.find((m) => m.id === id);
+        if (mk) {
+            map.panTo({ lat: mk.lat, lng: mk.lng });
+            map.setZoom(15);
+        }
+    },
+);
 </script>
 
 <template>

@@ -68,7 +68,7 @@ class ScheduleController extends Controller
             'routes' => $routeModels->map(fn (Route $route): array => $this->presentRoute($route))->all(),
             'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : null,
             'canManage' => $canManage,
-            'markers' => $this->buildMarkers($routeModels, $unassignedRoute),
+            'coords' => $this->buildCoords($routeModels, $unassignedRoute),
             'hq' => $hq,
             'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
         ]);
@@ -187,48 +187,33 @@ class ScheduleController extends Controller
     }
 
     /**
-     * The day's stops as map markers: numbered, colored by their agent (status
-     * overrides — completed/skipped — are applied client-side). Stops without
-     * geocoded coordinates are dropped. Unassigned stops ride along with a null
-     * agent so they plot in the neutral colour. Everything is tenant-scoped via
-     * the Route global scope on the queries that built these collections.
+     * Geocoded coordinates for the day's stops, keyed by stop id. The map joins
+     * these to the live (drag-reorderable) route lists client-side, so a stop
+     * dragged between agents re-plots without a round-trip. Stops without
+     * coordinates are omitted (the map simply can't place them). Tenant-scoped
+     * via the Route global scope on the queries that built these collections.
      *
      * @param  Collection<int, Route>  $routes
-     * @return list<array<string, mixed>>
+     * @return array<int, array{lat: float, lng: float}>
      */
-    private function buildMarkers(Collection $routes, ?Route $unassigned): array
+    private function buildCoords(Collection $routes, ?Route $unassigned): array
     {
         $all = $routes->all();
         if ($unassigned !== null) {
             $all[] = $unassigned;
         }
 
-        $markers = [];
+        $coords = [];
         foreach ($all as $route) {
-            $agent = $route->agent;
-            $agentId = $agent?->getKey();
-            $agentName = $agent?->displayName();
-            $color = $this->agentColor($agent);
             foreach ($route->stops as $stop) {
-                $pool = $stop->pool;
-                $coords = $pool->coordinates();
-                if ($coords === null) {
-                    continue;
+                $c = $stop->pool->coordinates();
+                if ($c !== null) {
+                    $coords[$stop->id] = ['lat' => $c[0], 'lng' => $c[1]];
                 }
-                $markers[] = [
-                    'lat' => $coords[0],
-                    'lng' => $coords[1],
-                    'order' => $stop->stop_order,
-                    'pool' => $pool->getAttribute('name'),
-                    'status' => $stop->status,
-                    'agent' => $agentName,
-                    'agent_id' => $agentId,
-                    'color' => $color,
-                ];
             }
         }
 
-        return $markers;
+        return $coords;
     }
 
     /** An agent's chosen route colour, falling back to the brand sky. */
