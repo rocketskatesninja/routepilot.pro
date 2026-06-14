@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
+import { DARK_MAP_BG, DARK_MAP_STYLE, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -174,6 +174,7 @@ async function ensureMap() {
         };
         if (isDarkMode()) {
             opts.styles = DARK_MAP_STYLE;
+            opts.backgroundColor = DARK_MAP_BG;
         }
         map = new g.maps.Map(mapEl.value, opts);
         infoWindow = new g.maps.InfoWindow() as unknown as typeof infoWindow;

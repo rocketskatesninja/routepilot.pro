@@ -5,6 +5,13 @@ export function isDarkMode(): boolean {
     return typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 }
 
+/**
+ * The map div's background while tiles load (and when panning past loaded
+ * tiles). Matches DARK_MAP_STYLE's land colour so dark mode doesn't flash the
+ * light-grey Google default before the map paints.
+ */
+export const DARK_MAP_BG = '#1f2733';
+
 /** A dark Google Maps style array, applied when the site is in dark mode. */
 export const DARK_MAP_STYLE: Array<Record<string, unknown>> = [
     { elementType: 'geometry', stylers: [{ color: '#1f2733' }] },
