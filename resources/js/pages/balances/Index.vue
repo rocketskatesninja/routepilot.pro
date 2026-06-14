@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -296,14 +297,7 @@ function closePane() {
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="ch_cust">Customer</Label>
-                            <select
-                                id="ch_cust"
-                                v-model="chargeForm.customer_id"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                            >
-                                <option value="">Select…</option>
-                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-                            </select>
+                            <Combobox id="ch_cust" v-model="chargeForm.customer_id" :options="props.customers" placeholder="Search customers…" />
                             <p v-if="chargeForm.errors.customer_id" class="text-xs text-red-600">{{ chargeForm.errors.customer_id }}</p>
                         </div>
                         <div class="grid gap-1.5">

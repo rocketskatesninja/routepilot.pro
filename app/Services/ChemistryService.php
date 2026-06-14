@@ -291,7 +291,66 @@ class ChemistryService
             $recommendations[] = $rec;
         }
 
-        return $this->sortByUrgency($this->suppressForDrainRefill($recommendations));
+        return $this->sortByUrgency($this->suppressForDrainRefill($this->mergeSameChemical($recommendations)));
+    }
+
+    /**
+     * Two out-of-range parameters can call for the same product — high pH and
+     * high alkalinity both want muriatic acid. Combine those into one dose so the
+     * agent adds a single amount rather than two separate rows.
+     *
+     * @param  list<array<string, mixed>>  $recommendations
+     * @return list<array<string, mixed>>
+     */
+    private function mergeSameChemical(array $recommendations): array
+    {
+        $rank = ['high' => 3, 'medium' => 2, 'low' => 1];
+        $merged = [];
+
+        foreach ($recommendations as $i => $rec) {
+            // Only positive doses of the same product+unit combine; zero-dose
+            // (drain/refill) recs stay on their own row.
+            $key = (float) ($rec['amount'] ?? 0) > 0
+                ? 'mix:'.$rec['chemical'].'|'.$rec['unit']
+                : 'solo:'.$i;
+
+            if (! isset($merged[$key])) {
+                $merged[$key] = $rec;
+
+                continue;
+            }
+
+            $into = $merged[$key];
+            $into['parameter'] = $this->joinParameters((string) ($into['parameter'] ?? ''), (string) ($rec['parameter'] ?? ''));
+            $into['amount'] = round((float) $into['amount'] + (float) $rec['amount'], 1);
+            $into['original_amount'] = round((float) ($into['original_amount'] ?? $into['amount']) + (float) ($rec['original_amount'] ?? $rec['amount']), 1);
+            $into['notes'] = array_values(array_unique(array_merge($into['notes'] ?? [], $rec['notes'] ?? [])));
+            $into['adjustments'] = array_merge($into['adjustments'] ?? [], $rec['adjustments'] ?? []);
+            $into['was_adjusted'] = (bool) ($into['was_adjusted'] ?? false) || (bool) ($rec['was_adjusted'] ?? false);
+            if (($rank[$rec['urgency'] ?? 'low'] ?? 0) > ($rank[$into['urgency'] ?? 'low'] ?? 0)) {
+                $into['urgency'] = $rec['urgency'];
+            }
+            $into['combined'] = true;
+            $merged[$key] = $into;
+        }
+
+        return array_values($merged);
+    }
+
+    /** Combine parameter labels into one — "pH" + "Total Alkalinity" → "pH & Total Alkalinity". */
+    private function joinParameters(string ...$labels): string
+    {
+        $parts = [];
+        foreach ($labels as $label) {
+            foreach (explode(' & ', $label) as $part) {
+                $part = trim($part);
+                if ($part !== '' && ! in_array($part, $parts, true)) {
+                    $parts[] = $part;
+                }
+            }
+        }
+
+        return implode(' & ', $parts);
     }
 
     /**

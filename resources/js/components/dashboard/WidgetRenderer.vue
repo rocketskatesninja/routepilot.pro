@@ -32,6 +32,7 @@ const registry: Record<string, Component> = {
     // agent
     agent_stats: StatsWidget,
     agent_route: MyRouteWidget,
+    agent_route_map: RouteMapWidget,
     agent_visits: RecentVisitsWidget,
     // customer
     my_pools: MyPoolsWidget,
@@ -47,6 +48,9 @@ const component = computed(() => registry[props.widgetKey] ?? null);
 </script>
 
 <template>
-    <component :is="component" v-if="component" :data="data" />
+    <!-- A freshly-added widget has no data until the layout save round-trips; render a
+         placeholder rather than handing `undefined` to a widget that reads data.length. -->
+    <component :is="component" v-if="component && data !== undefined" :data="data" />
+    <div v-else-if="component" class="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
     <div v-else class="flex h-full items-center justify-center text-sm text-muted-foreground">Unknown widget</div>
 </template>

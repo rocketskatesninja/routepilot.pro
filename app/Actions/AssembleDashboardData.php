@@ -54,6 +54,7 @@ class AssembleDashboardData
             // agent
             'agent_stats' => fn () => $this->agentStats($user),
             'agent_route' => fn () => $this->agentRoute($user),
+            'agent_route_map' => fn () => $this->agentRouteMap($user),
             'agent_visits' => fn () => $this->agentVisits($user),
             // customer
             'my_pools' => fn () => $this->myPools($user),
@@ -388,12 +389,33 @@ class AssembleDashboardData
      *
      * @return array<string, mixed>
      */
+    /** @return array<string, mixed> */
     private function routeMap(User $user): array
+    {
+        return $this->buildRouteMap($user, null);
+    }
+
+    /**
+     * An agent's own route for today, mapped — same shape as the admin route map.
+     *
+     * @return array<string, mixed>
+     */
+    private function agentRouteMap(User $user): array
+    {
+        return $this->buildRouteMap($user, $user->id);
+    }
+
+    /**
+     * @param  int|null  $agentId  restrict to a single agent's route, or null for all
+     * @return array<string, mixed>
+     */
+    private function buildRouteMap(User $user, ?int $agentId): array
     {
         $browserKey = config('services.google.browser_maps_key');
 
         $routes = Route::query()
             ->whereDate('scheduled_date', today())
+            ->when($agentId !== null, fn ($q) => $q->where('agent_id', $agentId))
             ->with([
                 'agent:id,first_name,last_name,map_color',
                 'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name', 'pool.serviceLocation:id,pool_id,lat,lng']),

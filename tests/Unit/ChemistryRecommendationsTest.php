@@ -89,6 +89,27 @@ test('recommendations are sorted highest-urgency first', function () {
         ->and(array_column($result, 'parameter'))->toBe(['Free Chlorine', 'pH', 'Calcium Hardness']);
 });
 
+test('high pH and high alkalinity merge into a single muriatic acid dose', function () {
+    // Both want muriatic acid (8 oz for pH, 12 oz for alkalinity) — the agent
+    // should see one combined 20 oz row, not two.
+    $result = recs($this->chem, $this->pool, ['ph' => 8.0, 'alkalinity' => 180]);
+
+    expect($result)->toHaveCount(1)
+        ->and($result[0]['chemical'])->toBe('Muriatic Acid')
+        ->and($result[0]['unit'])->toBe('oz')
+        ->and($result[0]['amount'])->toBe(20.0)
+        ->and($result[0]['parameter'])->toBe('pH & Total Alkalinity')
+        ->and($result[0]['combined'])->toBeTrue();
+});
+
+test('different products are not merged', function () {
+    // Low chlorine (granular) and high pH (muriatic acid) stay on their own rows.
+    $result = recs($this->chem, $this->pool, ['free_chlorine' => 0.5, 'ph' => 8.0]);
+
+    expect($result)->toHaveCount(2)
+        ->and(array_column($result, 'chemical'))->toBe(['Granular Chlorine (Cal-Hypo)', 'Muriatic Acid']);
+});
+
 test('heavy-rain weather multiplies the chlorine dose and flags the adjustment', function () {
     $weather = ['daily' => [['precipitation_probability_max' => 90, 'temperature_2m_max' => 80, 'uv_index_max' => 5]]];
     $result = recs($this->chem, $this->pool, ['free_chlorine' => 0.5, 'cyanuric_acid' => 50], weather: $weather);
