@@ -20,23 +20,13 @@ use Illuminate\Support\Collection;
  */
 class BillingService
 {
-    /** Total currently owed by a customer (pre-tax). */
+    /**
+     * Total currently owed by a customer (pre-tax). Delegates to the batch
+     * computation so there is one authoritative AR formula.
+     */
     public function outstandingForCustomer(Customer $customer): float
     {
-        $visits = ServiceVisit::query()
-            ->whereIn('pool_id', $customer->pools()->pluck('id'))
-            ->where('status', 'completed')
-            ->whereNull('paid_at')
-            ->with('pool.subscriptions.serviceType')
-            ->get();
-
-        $service = (float) $visits->sum(fn (ServiceVisit $v): float => $this->visitPrice($v));
-        $charges = (float) ManualCharge::query()
-            ->where('customer_id', $customer->id)
-            ->whereNull('paid_at')
-            ->sum('amount');
-
-        return round($service + $charges, 2);
+        return $this->balancesFor([$customer->id])[$customer->id] ?? 0.0;
     }
 
     private function visitPrice(ServiceVisit $visit): float
@@ -48,7 +38,9 @@ class BillingService
 
     /**
      * Outstanding balances for many customers at once — page-bounded, ~4 queries
-     * total (no per-customer N+1). Mirrors outstandingForCustomer's math.
+     * total (no per-customer N+1). The authoritative AR formula: completed-but-
+     * unpaid visits priced from the pool's active subscription, plus uninvoiced
+     * manual charges.
      *
      * @param  list<int>  $customerIds
      * @return array<int, float> customer_id => balance
