@@ -1,19 +1,7 @@
 <script setup lang="ts">
 import { useReveal } from '@/composables/useReveal';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import {
-    ArrowRight,
-    Check,
-    ExternalLink,
-    FileText,
-    FlaskConical,
-    LayoutGrid,
-    MapPin,
-    Move,
-    Package,
-    Route as RouteIcon,
-    Users,
-} from 'lucide-vue-next';
+import { ArrowRight, Check, FileText, FlaskConical, LayoutGrid, MapPin, Move, Package, Route as RouteIcon, Users } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const page = usePage();
@@ -61,14 +49,6 @@ const features = [
     },
 ];
 
-const demoPoints = [
-    'Branded landing page with hero & services',
-    'Real service reports with photo slideshows',
-    'Team profiles and customer testimonials',
-    'Contact form with lead capture',
-    'Fully customizable from the admin panel',
-];
-
 const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day free trial', 'No credit card required'];
 </script>
 
@@ -96,7 +76,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
 
                 <div class="hidden items-center gap-7 text-sm font-medium sm:flex" :class="scrolled ? 'text-muted-foreground' : 'text-sky-100/90'">
                     <a href="#features" class="transition-colors hover:text-foreground">Features</a>
-                    <a href="#demo" class="transition-colors hover:text-foreground">Demo</a>
+                    <a :href="route('public.site', { tenant: 'demo' })" target="_blank" class="transition-colors hover:text-foreground">Demo</a>
                     <a href="#pricing" class="transition-colors hover:text-foreground">Pricing</a>
                 </div>
 
@@ -149,43 +129,78 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                     ></div>
                 </div>
 
-                <div class="relative z-10 mx-auto max-w-3xl text-center">
-                    <span
-                        class="hero-animate hero-d1 mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200"
-                    >
-                        <span class="size-1.5 rounded-full bg-orange-400"></span>
-                        A Punchlist Labs Product
-                    </span>
-                    <h1 class="hero-animate hero-d2 font-bold leading-tight text-white" style="font-size: clamp(2.5rem, 6vw, 4.2rem)">
-                        Manage your routes<br />
-                        <span class="bg-gradient-to-br from-orange-300 to-orange-500 bg-clip-text text-transparent">like a pro</span>
-                    </h1>
-                    <p class="hero-animate hero-d3 mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-sky-100/80">
-                        Route optimization, chemistry tracking, customer management, and real-time service monitoring — all in one platform built for
-                        pool service companies.
-                    </p>
-                    <div class="hero-animate hero-d4 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                        <Link
-                            :href="route('register')"
-                            class="btn-glow inline-flex items-center gap-2 rounded-xl bg-orange-500 px-7 py-3.5 text-base font-bold text-white shadow-lg transition-colors hover:bg-orange-600"
+                <div class="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-12">
+                    <!-- Left: copy -->
+                    <div class="text-center lg:text-left">
+                        <span
+                            class="hero-animate hero-d1 mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-sky-200"
                         >
-                            Start Free Trial <ArrowRight class="size-5" />
-                        </Link>
-                        <Link
-                            :href="route('login')"
-                            class="inline-flex items-center rounded-xl border-2 border-sky-200/30 px-7 py-3.5 text-base font-semibold text-white transition-colors hover:bg-white/10"
-                        >
-                            Sign In
-                        </Link>
+                            <span class="size-1.5 rounded-full bg-orange-400"></span>
+                            A Punchlist Labs Product
+                        </span>
+                        <h1 class="hero-animate hero-d2 font-bold leading-tight text-white" style="font-size: clamp(2.4rem, 5vw, 3.8rem)">
+                            Manage your routes<br />
+                            <span class="bg-gradient-to-br from-orange-300 to-orange-500 bg-clip-text text-transparent">like a pro</span>
+                        </h1>
+                        <p class="hero-animate hero-d3 mx-auto mt-5 max-w-xl text-lg leading-relaxed text-sky-100/80 lg:mx-0">
+                            Route optimization, chemistry tracking, customer management, and real-time service monitoring — all in one platform built
+                            for pool service companies.
+                        </p>
+                        <div class="hero-animate hero-d4 mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
+                            <Link
+                                :href="route('register')"
+                                class="btn-glow inline-flex items-center gap-2 rounded-xl bg-orange-500 px-7 py-3.5 text-base font-bold text-white shadow-lg transition-colors hover:bg-orange-600"
+                            >
+                                Start Free Trial <ArrowRight class="size-5" />
+                            </Link>
+                            <Link
+                                :href="route('login')"
+                                class="inline-flex items-center rounded-xl border-2 border-sky-200/30 px-7 py-3.5 text-base font-semibold text-white transition-colors hover:bg-white/10"
+                            >
+                                Sign In
+                            </Link>
+                        </div>
+                        <p class="hero-animate hero-d5 mt-4 text-sm text-sky-300/60">14-day free trial · No credit card required · Cancel anytime</p>
                     </div>
-                    <p class="hero-animate hero-d5 mt-4 text-sm text-sky-300/60">14-day free trial · No credit card required · Cancel anytime</p>
-                </div>
 
-                <a href="#features" class="scroll-cue absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-white/50" aria-label="Scroll down">
-                    <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                    </svg>
-                </a>
+                    <!-- Right: live preview of a real RoutePilot demo site -->
+                    <div class="hero-animate hero-d3 hidden lg:block">
+                        <div class="overflow-hidden rounded-xl border border-white/15 bg-white shadow-2xl ring-1 ring-black/20">
+                            <div class="flex items-center gap-1.5 border-b border-black/5 bg-slate-100 px-3 py-2">
+                                <span class="size-3 rounded-full bg-red-400"></span>
+                                <span class="size-3 rounded-full bg-amber-400"></span>
+                                <span class="size-3 rounded-full bg-green-400"></span>
+                                <span class="ml-2 flex-1 truncate rounded bg-white px-3 py-1 font-mono text-xs text-slate-500"
+                                    >routepilot.pro/t/demo</span
+                                >
+                            </div>
+                            <div class="relative h-[440px] overflow-hidden bg-white">
+                                <iframe
+                                    src="/t/demo"
+                                    title="Live RoutePilot demo site"
+                                    loading="lazy"
+                                    scrolling="no"
+                                    class="border-0"
+                                    style="width: 142.857%; height: 142.857%; transform: scale(0.7); transform-origin: top left"
+                                ></iframe>
+                                <a
+                                    :href="route('public.site', { tenant: 'demo' })"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="group absolute inset-0 flex items-end justify-center pb-4 transition-colors"
+                                    aria-label="Open the live demo site"
+                                >
+                                    <span
+                                        class="translate-y-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-orange-600 opacity-0 shadow-lg transition-all group-hover:translate-y-0 group-hover:opacity-100"
+                                    >
+                                        Open the live demo →
+                                    </span>
+                                </a>
+                            </div>
+                        </div>
+                        <p class="mt-3 text-center text-xs text-sky-300/60">A real customer-facing site, built and hosted on RoutePilot.</p>
+                    </div>
+                </div>
             </section>
 
             <!-- Features -->
@@ -202,73 +217,6 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                             <h3 class="mb-2 font-bold">{{ f.title }}</h3>
                             <p class="text-sm leading-relaxed text-muted-foreground">{{ f.desc }}</p>
                         </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Demo -->
-            <section id="demo" class="bg-muted/40 py-20">
-                <div class="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2">
-                    <div class="reveal overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
-                        <div class="flex items-center gap-2 border-b border-border bg-muted/60 px-3 py-2">
-                            <span class="size-3 rounded-full bg-red-400"></span>
-                            <span class="size-3 rounded-full bg-amber-400"></span>
-                            <span class="size-3 rounded-full bg-green-400"></span>
-                            <span class="ml-2 flex-1 rounded bg-background px-3 py-1 font-mono text-xs text-muted-foreground"
-                                >demo.routepilot.pro</span
-                            >
-                        </div>
-                        <div class="relative h-[420px] overflow-hidden">
-                            <iframe
-                                src="https://demo.routepilot.pro"
-                                title="RoutePilot demo"
-                                loading="lazy"
-                                class="border-0"
-                                style="width: 138.89%; height: 138.89%; transform: scale(0.72); transform-origin: top left"
-                            ></iframe>
-                            <a
-                                href="https://demo.routepilot.pro"
-                                target="_blank"
-                                rel="noopener"
-                                class="absolute inset-0 flex items-end justify-center pb-4"
-                                style="background: linear-gradient(to top, rgba(15, 23, 42, 0.65) 0%, transparent 45%)"
-                            >
-                                <span
-                                    class="inline-flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-orange-600 shadow-lg"
-                                >
-                                    Open Full Demo <ExternalLink class="size-4" />
-                                </span>
-                            </a>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p class="reveal mb-2 text-sm font-semibold uppercase tracking-widest text-orange-500">Live preview</p>
-                        <h2 class="reveal mb-3 text-2xl font-bold sm:text-3xl" style="transition-delay: 0.1s">See it in action</h2>
-                        <p class="reveal mb-6 leading-relaxed text-muted-foreground" style="transition-delay: 0.2s">
-                            Explore Sunshine Pools — a fully working RoutePilot demo with real service data, chemistry reports, and everything your
-                            future customers will experience.
-                        </p>
-                        <ul class="mb-6 space-y-2.5">
-                            <li
-                                v-for="(p, i) in demoPoints"
-                                :key="p"
-                                class="reveal flex items-center gap-2"
-                                :style="{ transitionDelay: `${0.3 + i * 0.07}s` }"
-                            >
-                                <Check class="size-5 shrink-0 text-orange-500" />
-                                <span>{{ p }}</span>
-                            </li>
-                        </ul>
-                        <a
-                            href="https://demo.routepilot.pro"
-                            target="_blank"
-                            rel="noopener"
-                            class="reveal inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow transition-colors hover:bg-orange-600"
-                            style="transition-delay: 0.6s"
-                        >
-                            Open Live Demo <ExternalLink class="size-4" />
-                        </a>
                     </div>
                 </div>
             </section>
@@ -336,7 +284,14 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                                     >Create account</Link
                                 >
                             </li>
-                            <li><a href="#demo" class="text-muted-foreground transition-colors hover:text-foreground">Live demo</a></li>
+                            <li>
+                                <a
+                                    :href="route('public.site', { tenant: 'demo' })"
+                                    target="_blank"
+                                    class="text-muted-foreground transition-colors hover:text-foreground"
+                                    >Live demo</a
+                                >
+                            </li>
                         </ul>
                     </div>
                 </div>
