@@ -115,7 +115,7 @@ function closePane() {
                                             <EntityAvatar :src="t.logo_url" type="tenant" :name="t.name" size="sm" />
                                             <div>
                                                 <div class="font-medium">{{ t.name }}</div>
-                                                <div class="text-xs text-muted-foreground">{{ t.slug }}.routepilot.pro</div>
+                                                <div class="text-xs text-muted-foreground">routepilot.pro/t/{{ t.slug }}</div>
                                             </div>
                                         </div>
                                     </td>

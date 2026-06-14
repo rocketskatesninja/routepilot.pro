@@ -66,12 +66,15 @@ const setType = (type: PlatformType) =>
     router.get('/people', { type, search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 
 // --- selection + email ---
+// Clicking rows builds a recipient set; the moment anything is ticked the
+// composer docks into the side pane (audience pre-set to "selected people").
 const selected = ref<string[]>([]);
 const isSelected = (key: string) => selected.value.includes(key);
 function toggleSelect(key: string) {
     const i = selected.value.indexOf(key);
     if (i === -1) selected.value.push(key);
     else selected.value.splice(i, 1);
+    if (selected.value.length > 0) emailForm.audience = 'selected';
 }
 const pageKeys = computed(() => props.people.data.map((r) => r.key));
 const allOnPage = computed(() => pageKeys.value.length > 0 && pageKeys.value.every((k) => selected.value.includes(k)));
@@ -81,6 +84,8 @@ function toggleAll() {
 }
 
 const emailOpen = ref(false);
+// The pane is shown for an explicit broadcast OR as soon as people are ticked.
+const showComposer = computed(() => emailOpen.value || selected.value.length > 0);
 const emailForm = useForm<{ audience: string; subject: string; body: string; recipients: string[] }>({
     audience: 'tenants',
     subject: '',
@@ -109,9 +114,11 @@ function submitEmail() {
     });
 }
 
-// The compose form docks into the detail pane rather than overlaying.
+// The compose form docks into the detail pane rather than overlaying. Closing it
+// also clears the selection so the pane fully dismisses.
 function closePane() {
     emailOpen.value = false;
+    selected.value = [];
 }
 </script>
 
@@ -140,9 +147,9 @@ function closePane() {
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="emailOpen"
-                :selection-key="emailOpen ? 'email' : null"
-                empty-text="Tick people or pick an audience, then compose an email."
+                :has-selection="showComposer"
+                :selection-key="showComposer ? 'email' : null"
+                empty-text="Click people to select them, or hit Email to broadcast to a whole audience."
                 @close="closePane"
             >
                 <template #list>
@@ -150,7 +157,7 @@ function closePane() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th v-if="emailOpen" class="w-10 px-4 py-2">
+                                    <th class="w-10 px-4 py-2">
                                         <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
                                     </th>
                                     <th class="px-4 py-2 font-medium">Name</th>
@@ -164,9 +171,11 @@ function closePane() {
                                 <tr
                                     v-for="row in props.people.data"
                                     :key="row.key"
-                                    class="border-t border-border transition-colors hover:bg-muted/40"
+                                    class="cursor-pointer border-t border-border transition-colors"
+                                    :class="isSelected(row.key) ? 'bg-primary/10' : 'hover:bg-muted/40'"
+                                    @click="toggleSelect(row.key)"
                                 >
-                                    <td v-if="emailOpen" class="px-4 py-2.5">
+                                    <td class="px-4 py-2.5" @click.stop>
                                         <input
                                             type="checkbox"
                                             :checked="isSelected(row.key)"
@@ -179,7 +188,7 @@ function closePane() {
                                     <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ row.meta ?? '—' }}</td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
-                                    <td :colspan="emailOpen ? 4 : 3" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
                                         <Users class="mx-auto mb-2 size-6 opacity-50" />
                                         Nobody here.
                                     </td>
@@ -231,7 +240,7 @@ function closePane() {
                             </ul>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="emailOpen = false">Cancel</Button>
+                            <Button type="button" variant="outline" @click="closePane">Cancel</Button>
                             <Button type="submit" :disabled="emailForm.processing || emailCount === 0"
                                 ><Send class="mr-1 size-4" /> Send to {{ emailCount }}</Button
                             >
