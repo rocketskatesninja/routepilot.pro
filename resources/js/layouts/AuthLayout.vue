@@ -1,11 +1,26 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Route as RouteIcon } from 'lucide-vue-next';
+import { ArrowLeft, ArrowRight, Lock, RotateCw, Route as RouteIcon } from 'lucide-vue-next';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineProps<{
     title?: string;
     description?: string;
 }>();
+
+// Carousel of real app screens — 5s each, slow crossfade.
+const shots = [
+    '/assets/images/screenshots/route-map.png',
+    '/assets/images/screenshots/reports.png',
+    '/assets/images/screenshots/dashboard.png',
+    '/assets/images/screenshots/pools.png',
+];
+const current = ref(0);
+let timer: ReturnType<typeof setInterval> | undefined;
+onMounted(() => {
+    timer = setInterval(() => (current.value = (current.value + 1) % shots.length), 5000);
+});
+onBeforeUnmount(() => clearInterval(timer));
 </script>
 
 <template>
@@ -38,18 +53,33 @@ defineProps<{
             <div class="relative z-10 my-8 flex flex-1 items-center justify-center">
                 <div class="relative mx-auto w-full max-w-2xl">
                     <div class="overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40 [rotate:-1.5deg]">
-                        <div class="flex items-center gap-1.5 bg-slate-800 px-3 py-2">
-                            <span class="size-2.5 rounded-full bg-red-400/90"></span>
-                            <span class="size-2.5 rounded-full bg-amber-400/90"></span>
-                            <span class="size-2.5 rounded-full bg-green-400/90"></span>
+                        <div class="flex items-center gap-2 bg-slate-800 px-3 py-2 text-slate-400">
+                            <ArrowLeft class="size-3.5" />
+                            <ArrowRight class="size-3.5 opacity-40" />
+                            <RotateCw class="size-3.5" />
+                            <span
+                                class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-slate-700/70 px-3 py-1 text-xs text-slate-300"
+                            >
+                                <Lock class="size-3 text-emerald-400" /> routepilot.pro
+                            </span>
                         </div>
-                        <img src="/assets/images/screenshots/route-map.png" alt="RoutePilot route map" class="block w-full" loading="lazy" />
+                        <div class="relative aspect-[16/10] bg-white">
+                            <img
+                                v-for="(s, i) in shots"
+                                :key="s"
+                                :src="s"
+                                alt="RoutePilot app"
+                                loading="lazy"
+                                class="duration-[1200ms] absolute inset-0 size-full object-cover object-top transition-opacity ease-in-out"
+                                :class="i === current ? 'opacity-100' : 'opacity-0'"
+                            />
+                        </div>
                     </div>
                     <img
                         src="/assets/images/screenshots/agent-mobile.png"
                         alt="RoutePilot mobile app"
                         loading="lazy"
-                        class="absolute -bottom-6 right-2 h-44 w-24 rounded-[1.4rem] border-4 border-slate-800 object-cover object-top shadow-2xl [rotate:4deg] sm:h-52 sm:w-28"
+                        class="absolute -bottom-6 right-2 w-24 rounded-[1.4rem] border-4 border-slate-800 shadow-2xl [rotate:4deg] sm:w-28"
                     />
                 </div>
             </div>

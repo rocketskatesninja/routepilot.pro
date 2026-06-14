@@ -1,7 +1,21 @@
 <script setup lang="ts">
 import { useReveal } from '@/composables/useReveal';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { ArrowRight, Check, FileText, FlaskConical, LayoutGrid, MapPin, Move, Package, Route as RouteIcon, Users } from 'lucide-vue-next';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Check,
+    FileText,
+    FlaskConical,
+    LayoutGrid,
+    Lock,
+    MapPin,
+    Move,
+    Package,
+    RotateCw,
+    Route as RouteIcon,
+    Users,
+} from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const page = usePage();
@@ -166,13 +180,13 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                     <!-- Right: live preview of a real RoutePilot demo site -->
                     <div class="hero-animate hero-d3 hidden lg:block">
                         <div class="overflow-hidden rounded-xl border border-white/15 bg-white shadow-2xl ring-1 ring-black/20">
-                            <div class="flex items-center gap-1.5 border-b border-black/5 bg-slate-100 px-3 py-2">
-                                <span class="size-3 rounded-full bg-red-400"></span>
-                                <span class="size-3 rounded-full bg-amber-400"></span>
-                                <span class="size-3 rounded-full bg-green-400"></span>
-                                <span class="ml-2 flex-1 truncate rounded bg-white px-3 py-1 font-mono text-xs text-slate-500"
-                                    >routepilot.pro/t/demo</span
-                                >
+                            <div class="flex items-center gap-2 border-b border-black/5 bg-slate-100 px-3 py-2 text-slate-400">
+                                <ArrowLeft class="size-3.5" />
+                                <ArrowRight class="size-3.5 opacity-40" />
+                                <RotateCw class="size-3.5" />
+                                <span class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-white px-3 py-1 text-xs text-slate-500">
+                                    <Lock class="size-3 text-emerald-600" /> routepilot.pro/t/demo
+                                </span>
                             </div>
                             <div class="relative h-[550px] overflow-hidden bg-white">
                                 <iframe
