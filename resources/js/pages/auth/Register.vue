@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GoogleAuthButton from '@/components/GoogleAuthButton.vue';
 import InputError from '@/components/InputError.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -6,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+
+defineProps<{ googleEnabled?: boolean }>();
 
 const form = useForm({
     company: '',
@@ -26,6 +29,15 @@ const submit = () => {
 <template>
     <AuthBase title="Create an account" description="Enter your details below to create your account">
         <Head title="Register" />
+
+        <div v-if="googleEnabled" class="mb-6">
+            <GoogleAuthButton />
+            <div class="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+                <span class="h-px flex-1 bg-border"></span>
+                or sign up with email
+                <span class="h-px flex-1 bg-border"></span>
+            </div>
+        </div>
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
             <div class="grid gap-6">

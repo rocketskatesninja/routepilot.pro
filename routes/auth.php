@@ -29,6 +29,13 @@ Route::middleware('guest')->group(function () {
     Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])
         ->name('auth.google.callback');
 
+    // Google sign-up step 2 — collect the company name for the new tenant.
+    Route::get('auth/google/register', [GoogleAuthController::class, 'register'])
+        ->name('auth.google.register');
+
+    Route::post('auth/google/register', [GoogleAuthController::class, 'registerStore'])
+        ->name('auth.google.register.store');
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
