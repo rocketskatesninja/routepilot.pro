@@ -145,11 +145,6 @@ function openEmail() {
     emailForm.clearErrors();
     emailOpen.value = true;
 }
-function emailOne(key: string) {
-    picked.value = [key];
-    openEmail();
-    emailForm.audience = 'selected';
-}
 function submitEmail() {
     emailForm.recipients = emailForm.audience === 'selected' ? [...picked.value] : [];
     emailForm.post('/people/email', {
@@ -550,9 +545,6 @@ function closePane() {
                                 <dd>{{ person.is_active ? 'Yes' : 'No' }}</dd>
                             </div>
                         </dl>
-                        <Button size="sm" variant="outline" @click="emailOne(`${person.type}:${person.id}`)"
-                            ><Mail class="mr-1 size-3.5" /> Email</Button
-                        >
                     </div>
                 </template>
             </MasterDetail>
