@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
@@ -108,6 +108,11 @@ function submitEmail() {
         },
     });
 }
+
+// The compose form docks into the detail pane rather than overlaying.
+function closePane() {
+    emailOpen.value = false;
+}
 </script>
 
 <template>
@@ -134,51 +139,66 @@ function submitEmail() {
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted/50 text-left text-muted-foreground">
-                        <tr>
-                            <th class="w-10 px-4 py-2"><input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" /></th>
-                            <th class="px-4 py-2 font-medium">Name</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Detail</th>
-                            <th class="hidden px-4 py-2 font-medium lg:table-cell">{{ props.filters.type === 'tenants' ? 'Slug' : 'Tenant' }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="row in props.people.data" :key="row.key" class="border-t border-border transition-colors hover:bg-muted/40">
-                            <td class="px-4 py-2.5">
-                                <input
-                                    type="checkbox"
-                                    :checked="isSelected(row.key)"
-                                    :aria-label="`Select ${row.name}`"
-                                    @change="toggleSelect(row.key)"
-                                />
-                            </td>
-                            <td class="px-4 py-2.5 font-medium">{{ row.name }}</td>
-                            <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ row.sub ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ row.meta ?? '—' }}</td>
-                        </tr>
-                        <tr v-if="props.people.data.length === 0">
-                            <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
-                                <Users class="mx-auto mb-2 size-6 opacity-50" />
-                                Nobody here.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="text-xs text-muted-foreground">
-                Showing {{ props.people.data.length }} of {{ props.people.total }} — search to narrow, then tick people or use a preset.
-            </p>
+            <MasterDetail
+                :has-selection="emailOpen"
+                :selection-key="emailOpen ? 'email' : null"
+                empty-text="Tick people or pick an audience, then compose an email."
+                @close="closePane"
+            >
+                <template #list>
+                    <div class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <th class="w-10 px-4 py-2">
+                                        <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
+                                    </th>
+                                    <th class="px-4 py-2 font-medium">Name</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Detail</th>
+                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">
+                                        {{ props.filters.type === 'tenants' ? 'Slug' : 'Tenant' }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="row in props.people.data"
+                                    :key="row.key"
+                                    class="border-t border-border transition-colors hover:bg-muted/40"
+                                >
+                                    <td class="px-4 py-2.5">
+                                        <input
+                                            type="checkbox"
+                                            :checked="isSelected(row.key)"
+                                            :aria-label="`Select ${row.name}`"
+                                            @change="toggleSelect(row.key)"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2.5 font-medium">{{ row.name }}</td>
+                                    <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ row.sub ?? '—' }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ row.meta ?? '—' }}</td>
+                                </tr>
+                                <tr v-if="props.people.data.length === 0">
+                                    <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
+                                        <Users class="mx-auto mb-2 size-6 opacity-50" />
+                                        Nobody here.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        Showing {{ props.people.data.length }} of {{ props.people.total }} — search to narrow, then tick people or use a preset.
+                    </p>
+                </template>
 
-            <!-- broadcast / selected email -->
-            <Sheet v-model:open="emailOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Email people</SheetTitle>
-                        <SheetDescription>Send to the ticked people or a whole platform audience.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitEmail">
+                <template #detail>
+                    <!-- broadcast / selected email: hosted in the docked pane -->
+                    <form class="space-y-4 text-sm" @submit.prevent="submitEmail">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Email people</h2>
+                            <p class="text-sm text-muted-foreground">Send to the ticked people or a whole platform audience.</p>
+                        </div>
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
                             <select id="aud" v-model="emailForm.audience" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
@@ -217,8 +237,8 @@ function submitEmail() {
                             >
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
+                </template>
+            </MasterDetail>
         </div>
     </AppLayout>
 </template>

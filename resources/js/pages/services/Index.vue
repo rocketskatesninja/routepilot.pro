@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { formatMoney } from '@/lib/utils';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ClipboardList, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
@@ -73,6 +72,16 @@ const open = (id: number) =>
     router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/services', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = formatMoney;
+
+// The detail pane is shared: it hosts the create/edit form when one is open,
+// otherwise the selected item's detail. Closing the pane cancels the form first.
+function closePane() {
+    if (formOpen.value) {
+        formOpen.value = false;
+    } else {
+        closeDrawer();
+    }
+}
 
 const moduleLabels: Record<string, string> = { tasks: 'Tasks', chemistry: 'Chemistry', treatments: 'Treatments', photos: 'Photos' };
 
@@ -172,11 +181,10 @@ function destroyService() {
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="props.selected !== null"
-                :selection-key="props.selected?.id ?? null"
-                :pane-open="!formOpen"
+                :has-selection="formOpen || props.selected !== null"
+                :selection-key="formOpen ? `form-${formMode}` : (props.selected?.id ?? null)"
                 empty-text="Select a service type to see details."
-                @close="closeDrawer"
+                @close="closePane"
             >
                 <template #list>
                     <div class="overflow-hidden rounded-xl border border-border">
@@ -227,71 +235,12 @@ function destroyService() {
                 </template>
 
                 <template #detail>
-                    <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-sm capitalize text-muted-foreground">
-                                {{ props.selected.category ?? 'Service' }} · {{ props.selected.frequency }}
-                            </p>
+                    <!-- create / edit form: hosted in the docked pane, not an overlay -->
+                    <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New service type' : 'Edit service type' }}</h2>
+                            <p class="text-sm text-muted-foreground">A reusable visit template pools subscribe to.</p>
                         </div>
-
-                        <div class="space-y-5 text-sm">
-                            <div v-if="props.canManage" class="flex gap-2">
-                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyService"
-                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
-                                >
-                            </div>
-
-                            <section>
-                                <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between">
-                                        <dt>Price</dt>
-                                        <dd>{{ money(props.selected.price) }}</dd>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <dt>Duration</dt>
-                                        <dd>{{ props.selected.duration_minutes }} min</dd>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <dt>Chemicals</dt>
-                                        <dd>{{ props.selected.chemicals_included ? 'Included' : 'Billed separately' }}</dd>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <dt>Active pools</dt>
-                                        <dd>{{ props.selected.pools }}</dd>
-                                    </div>
-                                </dl>
-                                <p v-if="props.selected.description" class="mt-2 text-muted-foreground">{{ props.selected.description }}</p>
-                            </section>
-
-                            <section>
-                                <h3 class="mb-1 font-medium">Field steps</h3>
-                                <div class="flex flex-wrap gap-1.5">
-                                    <span v-for="m in props.selected.modules" :key="m" class="rounded-md bg-muted px-2 py-0.5 text-xs">{{ m }}</span>
-                                </div>
-                            </section>
-
-                            <section v-if="props.selected.tasks.length">
-                                <h3 class="mb-1 font-medium">Task checklist</h3>
-                                <ul class="list-inside list-disc space-y-0.5 text-muted-foreground">
-                                    <li v-for="(task, i) in props.selected.tasks" :key="i">{{ task }}</li>
-                                </ul>
-                            </section>
-                        </div>
-                    </div>
-                </template>
-            </MasterDetail>
-
-            <!-- create / edit service type -->
-            <Sheet v-model:open="formOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{{ formMode === 'create' ? 'New service type' : 'Edit service type' }}</SheetTitle>
-                        <SheetDescription>A reusable visit template pools subscribe to.</SheetDescription>
-                    </SheetHeader>
-
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
                         <div class="grid gap-1.5">
                             <Label for="name">Name</Label>
                             <Input id="name" v-model="form.name" />
@@ -372,8 +321,62 @@ function destroyService() {
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add service' : 'Save' }}</Button>
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
+
+                    <div v-else-if="props.selected">
+                        <div class="mb-4">
+                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                            <p class="text-sm capitalize text-muted-foreground">
+                                {{ props.selected.category ?? 'Service' }} · {{ props.selected.frequency }}
+                            </p>
+                        </div>
+
+                        <div class="space-y-5 text-sm">
+                            <div v-if="props.canManage" class="flex gap-2">
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyService"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
+                            </div>
+
+                            <section>
+                                <dl class="space-y-1 text-muted-foreground">
+                                    <div class="flex justify-between">
+                                        <dt>Price</dt>
+                                        <dd>{{ money(props.selected.price) }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Duration</dt>
+                                        <dd>{{ props.selected.duration_minutes }} min</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Chemicals</dt>
+                                        <dd>{{ props.selected.chemicals_included ? 'Included' : 'Billed separately' }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Active pools</dt>
+                                        <dd>{{ props.selected.pools }}</dd>
+                                    </div>
+                                </dl>
+                                <p v-if="props.selected.description" class="mt-2 text-muted-foreground">{{ props.selected.description }}</p>
+                            </section>
+
+                            <section>
+                                <h3 class="mb-1 font-medium">Field steps</h3>
+                                <div class="flex flex-wrap gap-1.5">
+                                    <span v-for="m in props.selected.modules" :key="m" class="rounded-md bg-muted px-2 py-0.5 text-xs">{{ m }}</span>
+                                </div>
+                            </section>
+
+                            <section v-if="props.selected.tasks.length">
+                                <h3 class="mb-1 font-medium">Task checklist</h3>
+                                <ul class="list-inside list-disc space-y-0.5 text-muted-foreground">
+                                    <li v-for="(task, i) in props.selected.tasks" :key="i">{{ task }}</li>
+                                </ul>
+                            </section>
+                        </div>
+                    </div>
+                </template>
+            </MasterDetail>
         </div>
     </AppLayout>
 </template>

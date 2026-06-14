@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { formatMoney } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -72,6 +71,16 @@ const open = (id: number) =>
     router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/inventory', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = formatMoney;
+
+// The detail pane is shared: it hosts the create/edit form when one is open,
+// otherwise the selected item's detail. Closing the pane cancels the form first.
+function closePane() {
+    if (formOpen.value) {
+        formOpen.value = false;
+    } else {
+        closeDrawer();
+    }
+}
 
 // --- create / edit chemical ---
 const formOpen = ref(false);
@@ -168,11 +177,10 @@ function submitAdjust() {
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="props.selected !== null"
-                :selection-key="props.selected?.id ?? null"
-                :pane-open="!formOpen"
+                :has-selection="formOpen || props.selected !== null"
+                :selection-key="formOpen ? `form-${formMode}` : (props.selected?.id ?? null)"
                 empty-text="Select a chemical to see details."
-                @close="closeDrawer"
+                @close="closePane"
             >
                 <template #list>
                     <div class="overflow-hidden rounded-xl border border-border">
@@ -228,7 +236,62 @@ function submitAdjust() {
                 </template>
 
                 <template #detail>
-                    <div v-if="props.selected">
+                    <!-- create / edit form: hosted in the docked pane, not an overlay -->
+                    <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New chemical' : 'Edit chemical' }}</h2>
+                            <p class="text-sm text-muted-foreground">Stock changes are logged via Adjust stock.</p>
+                        </div>
+                        <ImageUpload
+                            :model-value="form.photo"
+                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            @update:model-value="(f) => (form.photo = f)"
+                        />
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="col-span-2 grid gap-1.5">
+                                <Label for="cname">Name</Label>
+                                <Input id="cname" v-model="form.chemical_name" />
+                                <p v-if="form.errors.chemical_name" class="text-xs text-red-600">{{ form.errors.chemical_name }}</p>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="cunit">Unit</Label><Input id="cunit" v-model="form.unit" placeholder="gal / lbs" />
+                            </div>
+                        </div>
+                        <div v-if="formMode === 'create'" class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="cstock">Starting stock</Label
+                                ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="creorder">Reorder at</Label
+                                ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
+                            </div>
+                        </div>
+                        <div v-else class="grid gap-1.5">
+                            <Label for="creorder2">Reorder at</Label
+                            ><Input id="creorder2" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="ccost">Cost / unit ($)</Label
+                                ><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="csell">Sell price ($)</Label
+                                ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
+                            </div>
+                        </div>
+                        <div class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
+                        <label v-if="formMode === 'edit'" class="flex items-center gap-2"
+                            ><input v-model="form.is_active" type="checkbox" /> Active</label
+                        >
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add chemical' : 'Save' }}</Button>
+                        </div>
+                    </form>
+
+                    <div v-else-if="props.selected">
                         <div class="mb-4 flex items-center gap-3">
                             <EntityAvatar :src="props.selected.photo_url" type="inventory" :name="props.selected.name" size="lg" />
                             <div>
@@ -294,65 +357,6 @@ function submitAdjust() {
                     </div>
                 </template>
             </MasterDetail>
-
-            <!-- create / edit chemical -->
-            <Sheet v-model:open="formOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{{ formMode === 'create' ? 'New chemical' : 'Edit chemical' }}</SheetTitle>
-                        <SheetDescription>Stock changes are logged via Adjust stock.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
-                        <ImageUpload
-                            :model-value="form.photo"
-                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
-                            @update:model-value="(f) => (form.photo = f)"
-                        />
-                        <div class="grid grid-cols-3 gap-3">
-                            <div class="col-span-2 grid gap-1.5">
-                                <Label for="cname">Name</Label>
-                                <Input id="cname" v-model="form.chemical_name" />
-                                <p v-if="form.errors.chemical_name" class="text-xs text-red-600">{{ form.errors.chemical_name }}</p>
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="cunit">Unit</Label><Input id="cunit" v-model="form.unit" placeholder="gal / lbs" />
-                            </div>
-                        </div>
-                        <div v-if="formMode === 'create'" class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="cstock">Starting stock</Label
-                                ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="creorder">Reorder at</Label
-                                ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
-                            </div>
-                        </div>
-                        <div v-else class="grid gap-1.5">
-                            <Label for="creorder2">Reorder at</Label
-                            ><Input id="creorder2" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="ccost">Cost / unit ($)</Label
-                                ><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="csell">Sell price ($)</Label
-                                ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
-                            </div>
-                        </div>
-                        <div class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
-                        <label v-if="formMode === 'edit'" class="flex items-center gap-2"
-                            ><input v-model="form.is_active" type="checkbox" /> Active</label
-                        >
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add chemical' : 'Save' }}</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
         </div>
     </AppLayout>
 </template>

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Building2, LogIn, Pencil, Plus } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface TenantRow {
     id: number;
@@ -70,6 +70,15 @@ function submitEdit() {
         },
     });
 }
+
+// The forms dock into the detail pane rather than overlaying. Only one is open
+// at a time; closing the pane cancels whichever is open.
+const anyFormOpen = computed(() => createOpen.value || editOpen.value);
+const formKey = computed(() => (createOpen.value ? 'create' : editOpen.value ? `edit-${editId.value}` : null));
+function closePane() {
+    createOpen.value = false;
+    editOpen.value = false;
+}
 </script>
 
 <template>
@@ -81,60 +90,71 @@ function submitEdit() {
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div class="overflow-hidden rounded-xl border border-border">
-                <table class="w-full text-sm">
-                    <thead class="bg-muted/50 text-left text-muted-foreground">
-                        <tr>
-                            <th class="px-4 py-2 font-medium">Company</th>
-                            <th class="px-4 py-2 font-medium">Status</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Pools</th>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Users</th>
-                            <th class="px-4 py-2 text-right font-medium">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="t in props.tenants" :key="t.id" class="border-t border-border">
-                            <td class="px-4 py-2.5">
-                                <div class="flex items-center gap-2.5">
-                                    <EntityAvatar :src="t.logo_url" type="tenant" :name="t.name" size="sm" />
-                                    <div>
-                                        <div class="font-medium">{{ t.name }}</div>
-                                        <div class="text-xs text-muted-foreground">{{ t.slug }}.routepilot.pro</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-4 py-2.5">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(t.status)">{{
-                                    t.status
-                                }}</span>
-                            </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ t.pools }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ t.users }}</td>
-                            <td class="px-4 py-2.5">
-                                <div class="flex justify-end gap-1.5">
-                                    <Button size="sm" variant="outline" @click="impersonate(t)"><LogIn class="mr-1 size-3.5" /> Sign in</Button>
-                                    <Button size="sm" variant="outline" @click="openEdit(t)"><Pencil class="size-3.5" /></Button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr v-if="props.tenants.length === 0">
-                            <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
-                                <Building2 class="mx-auto mb-2 size-6 opacity-50" />
-                                No tenants yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <MasterDetail
+                :has-selection="anyFormOpen"
+                :selection-key="formKey"
+                empty-text="Add a tenant, or edit a row to manage one."
+                @close="closePane"
+            >
+                <template #list>
+                    <div class="overflow-hidden rounded-xl border border-border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                                <tr>
+                                    <th class="px-4 py-2 font-medium">Company</th>
+                                    <th class="px-4 py-2 font-medium">Status</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Pools</th>
+                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Users</th>
+                                    <th class="px-4 py-2 text-right font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="t in props.tenants" :key="t.id" class="border-t border-border">
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex items-center gap-2.5">
+                                            <EntityAvatar :src="t.logo_url" type="tenant" :name="t.name" size="sm" />
+                                            <div>
+                                                <div class="font-medium">{{ t.name }}</div>
+                                                <div class="text-xs text-muted-foreground">{{ t.slug }}.routepilot.pro</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2.5">
+                                        <span
+                                            class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                            :class="statusClass(t.status)"
+                                            >{{ t.status }}</span
+                                        >
+                                    </td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ t.pools }}</td>
+                                    <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ t.users }}</td>
+                                    <td class="px-4 py-2.5">
+                                        <div class="flex justify-end gap-1.5">
+                                            <Button size="sm" variant="outline" @click="impersonate(t)"
+                                                ><LogIn class="mr-1 size-3.5" /> Sign in</Button
+                                            >
+                                            <Button size="sm" variant="outline" @click="openEdit(t)"><Pencil class="size-3.5" /></Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="props.tenants.length === 0">
+                                    <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
+                                        <Building2 class="mx-auto mb-2 size-6 opacity-50" />
+                                        No tenants yet.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </template>
 
-            <!-- create -->
-            <Sheet v-model:open="createOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>New tenant</SheetTitle>
-                        <SheetDescription>Creates the company + its first admin (pre-verified).</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitCreate">
+                <template #detail>
+                    <!-- create tenant: hosted in the docked pane -->
+                    <form v-if="createOpen" class="space-y-4 text-sm" @submit.prevent="submitCreate">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">New tenant</h2>
+                            <p class="text-sm text-muted-foreground">Creates the company + its first admin (pre-verified).</p>
+                        </div>
                         <div class="grid gap-1.5">
                             <Label for="company">Company name</Label>
                             <Input id="company" v-model="createForm.company" />
@@ -159,17 +179,13 @@ function submitEdit() {
                             <Button type="submit" :disabled="createForm.processing">Create tenant</Button>
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
 
-            <!-- edit -->
-            <Sheet v-model:open="editOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Edit tenant</SheetTitle>
-                        <SheetDescription>Suspending locks the company's staff out (you keep impersonation access).</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitEdit">
+                    <!-- edit tenant: hosted in the docked pane -->
+                    <form v-else-if="editOpen" class="space-y-4 text-sm" @submit.prevent="submitEdit">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Edit tenant</h2>
+                            <p class="text-sm text-muted-foreground">Suspending locks the company's staff out (you keep impersonation access).</p>
+                        </div>
                         <div class="grid gap-1.5">
                             <Label for="tn">Company name</Label>
                             <Input id="tn" v-model="editForm.name" />
@@ -188,8 +204,8 @@ function submitEdit() {
                             <Button type="submit" :disabled="editForm.processing">Save</Button>
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
+                </template>
+            </MasterDetail>
         </div>
     </AppLayout>
 </template>

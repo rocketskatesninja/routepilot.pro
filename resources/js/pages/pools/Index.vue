@@ -5,7 +5,6 @@ import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
@@ -129,6 +128,31 @@ watch(search, (value) => {
 const openPool = (id: number) =>
     router.get('/pools', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/pools', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
+
+// The detail pane is shared: it hosts the create/edit/sub-action forms when one
+// is open, otherwise the selected pool's detail. Every form is a sub-action of
+// the selected pool, so only one is open at a time. Closing the pane cancels the
+// open form first; with no form open it deselects the pool.
+const anyFormOpen = computed(() => formOpen.value || subFormOpen.value || equipOpen.value || serviceOpen.value || targetsOpen.value);
+const formKey = computed(() => {
+    if (formOpen.value) return `pool-${formMode.value}`;
+    if (subFormOpen.value) return `sub-${subFormMode.value}`;
+    if (equipOpen.value) return 'equipment';
+    if (serviceOpen.value) return 'service';
+    if (targetsOpen.value) return 'targets';
+    return null;
+});
+function closePane() {
+    if (anyFormOpen.value) {
+        formOpen.value = false;
+        subFormOpen.value = false;
+        equipOpen.value = false;
+        serviceOpen.value = false;
+        targetsOpen.value = false;
+    } else {
+        closeDrawer();
+    }
+}
 
 const healthClasses: Record<Health['color'], string> = {
     green: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
@@ -416,11 +440,10 @@ function submitTargets() {
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="props.selected !== null"
-                :selection-key="props.selected?.id ?? null"
-                :pane-open="!formOpen && !subFormOpen && !equipOpen && !serviceOpen && !targetsOpen"
+                :has-selection="anyFormOpen || props.selected !== null"
+                :selection-key="anyFormOpen ? formKey : (props.selected?.id ?? null)"
                 empty-text="Select a pool to see details."
-                @close="closeDrawer"
+                @close="closePane"
             >
                 <template #list>
                     <div class="overflow-hidden rounded-xl border border-border">
@@ -494,7 +517,281 @@ function submitTargets() {
                 </template>
 
                 <template #detail>
-                    <div v-if="props.selected">
+                    <!-- create / edit pool: hosted in the docked pane, not an overlay -->
+                    <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New pool' : 'Edit pool' }}</h2>
+                            <p class="text-sm text-muted-foreground">Specs, equipment, and the service location.</p>
+                        </div>
+                        <ImageUpload
+                            :model-value="photoFile"
+                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            @update:model-value="(f) => (form.photo = f)"
+                        />
+                        <div class="grid gap-1.5">
+                            <Label for="customer_id">Customer</Label>
+                            <select
+                                id="customer_id"
+                                v-model="form.customer_id"
+                                :disabled="formMode === 'edit'"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60"
+                            >
+                                <option value="">Select a customer…</option>
+                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                            <p v-if="form.errors.customer_id" class="text-xs text-red-600">{{ form.errors.customer_id }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="name">Pool name</Label>
+                            <Input id="name" v-model="form.name" />
+                            <p v-if="form.errors.name" class="text-xs text-red-600">{{ form.errors.name }}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="type">Type</Label>
+                                <select id="type" v-model="form.type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option value="inground">In-ground</option>
+                                    <option value="above_ground">Above ground</option>
+                                    <option value="spa">Spa</option>
+                                    <option value="indoor">Indoor</option>
+                                    <option value="infinity">Infinity</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="volume">Volume (gal)</Label>
+                                <Input id="volume" v-model="form.volume_gallons" type="number" min="0" />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="sanitizer">Sanitizer</Label>
+                                <select
+                                    id="sanitizer"
+                                    v-model="form.sanitizer_type"
+                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                >
+                                    <option value="chlorine">Chlorine</option>
+                                    <option value="salt">Salt</option>
+                                    <option value="bromine">Bromine</option>
+                                    <option value="biguanide">Biguanide</option>
+                                    <option value="ozone">Ozone</option>
+                                    <option value="uv">UV</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="filter">Filter</Label>
+                                <select id="filter" v-model="form.filter_type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option value="">—</option>
+                                    <option value="cartridge">Cartridge</option>
+                                    <option value="sand">Sand</option>
+                                    <option value="de">DE</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="text-xs font-medium text-muted-foreground">Equipment</span>
+                            <div class="mt-1 grid grid-cols-2 gap-1">
+                                <label v-for="e in equipmentToggles" :key="e.key" class="flex items-center gap-2"
+                                    ><input v-model="form[e.key]" type="checkbox" /> {{ e.label }}</label
+                                >
+                            </div>
+                        </div>
+
+                        <div class="grid gap-1.5">
+                            <Label for="paddr">Service address</Label>
+                            <Input id="paddr" v-model="form.address_line1" />
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="grid gap-1.5"><Label for="pcity">City</Label><Input id="pcity" v-model="form.city" /></div>
+                            <div class="grid gap-1.5"><Label for="pstate">State</Label><Input id="pstate" v-model="form.state" maxlength="2" /></div>
+                            <div class="grid gap-1.5"><Label for="pzip">ZIP</Label><Input id="pzip" v-model="form.zip" /></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5"><Label for="gate">Gate code</Label><Input id="gate" v-model="form.gate_code" /></div>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="access">Access notes</Label>
+                            <textarea
+                                id="access"
+                                v-model="form.access_notes"
+                                rows="2"
+                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            ></textarea>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add pool' : 'Save' }}</Button>
+                        </div>
+                    </form>
+
+                    <!-- create / edit service plan -->
+                    <form v-else-if="subFormOpen" class="space-y-4 text-sm" @submit.prevent="submitSub">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">{{ subFormMode === 'create' ? 'New service plan' : 'Edit service plan' }}</h2>
+                            <p class="text-sm text-muted-foreground">The cadence + agent the materializer schedules.</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="sub_service">Service type</Label>
+                            <select
+                                id="sub_service"
+                                v-model="subForm.service_type_id"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            >
+                                <option value="">Select…</option>
+                                <option v-for="t in props.serviceTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+                            </select>
+                            <p v-if="subForm.errors.service_type_id" class="text-xs text-red-600">{{ subForm.errors.service_type_id }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="sub_agent">Agent</Label>
+                            <select
+                                id="sub_agent"
+                                v-model="subForm.assigned_agent_id"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            >
+                                <option value="">Unassigned</option>
+                                <option v-for="a in props.agents" :key="a.id" :value="a.id">{{ a.name }}</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="sub_freq">Frequency</Label>
+                                <select
+                                    id="sub_freq"
+                                    v-model="subForm.frequency"
+                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                >
+                                    <option value="weekly">Weekly</option>
+                                    <option value="biweekly">Biweekly</option>
+                                    <option value="monthly">Monthly</option>
+                                    <option value="one_time">One-time</option>
+                                    <option value="seasonal">Seasonal</option>
+                                </select>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="sub_day">Preferred day</Label>
+                                <select
+                                    id="sub_day"
+                                    v-model="subForm.preferred_day"
+                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
+                                >
+                                    <option value="">Any</option>
+                                    <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div v-if="subFormMode === 'edit'" class="grid gap-1.5">
+                            <Label for="sub_status">Status</Label>
+                            <select id="sub_status" v-model="subForm.status" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div v-if="subFormMode === 'edit'" class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="hold_start">Vacation hold from</Label
+                                ><Input id="hold_start" v-model="subForm.hold_starts_at" type="date" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="hold_end">to</Label>
+                                <Input id="hold_end" v-model="subForm.hold_ends_at" type="date" />
+                                <p v-if="subForm.errors.hold_ends_at" class="text-xs text-red-600">{{ subForm.errors.hold_ends_at }}</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="subFormOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="subForm.processing">{{ subFormMode === 'create' ? 'Add plan' : 'Save' }}</Button>
+                        </div>
+                    </form>
+
+                    <!-- add equipment -->
+                    <form v-else-if="equipOpen" class="space-y-4 text-sm" @submit.prevent="submitEquip">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Add equipment</h2>
+                            <p class="text-sm text-muted-foreground">Track a pump, filter, heater, salt cell, etc.</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="eq_type">Type</Label>
+                            <select
+                                id="eq_type"
+                                v-model="equipForm.type"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
+                            >
+                                <option v-for="t in equipmentTypes" :key="t" :value="t">{{ labelize(t) }}</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5"><Label for="eq_make">Make</Label><Input id="eq_make" v-model="equipForm.make" /></div>
+                            <div class="grid gap-1.5"><Label for="eq_model">Model</Label><Input id="eq_model" v-model="equipForm.model" /></div>
+                        </div>
+                        <div class="grid gap-1.5"><Label for="eq_serial">Serial</Label><Input id="eq_serial" v-model="equipForm.serial" /></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="eq_inst">Installed</Label><Input id="eq_inst" v-model="equipForm.installed_on" type="date" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="eq_warr">Warranty until</Label><Input id="eq_warr" v-model="equipForm.warranty_until" type="date" />
+                            </div>
+                        </div>
+                        <div class="grid gap-1.5"><Label for="eq_notes">Notes</Label><Input id="eq_notes" v-model="equipForm.notes" /></div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="equipOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="equipForm.processing">Add</Button>
+                        </div>
+                    </form>
+
+                    <!-- log service -->
+                    <form v-else-if="serviceOpen" class="space-y-4 text-sm" @submit.prevent="submitService">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Log service</h2>
+                            <p class="text-sm text-muted-foreground">Record a repair or maintenance — optionally bill it.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="sv_on">Date</Label><Input id="sv_on" v-model="serviceForm.serviced_on" type="date" />
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="sv_cost">Cost ($)</Label
+                                ><Input id="sv_cost" v-model="serviceForm.cost" type="number" step="0.01" min="0" />
+                            </div>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="sv_desc">Description</Label>
+                            <Input id="sv_desc" v-model="serviceForm.description" />
+                            <p v-if="serviceForm.errors.description" class="text-xs text-red-600">{{ serviceForm.errors.description }}</p>
+                        </div>
+                        <label class="flex items-center gap-2"
+                            ><input v-model="serviceForm.bill" type="checkbox" /> Bill this repair to the customer</label
+                        >
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="serviceOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="serviceForm.processing">Save</Button>
+                        </div>
+                    </form>
+
+                    <!-- per-pool chemistry targets -->
+                    <form v-else-if="targetsOpen" class="space-y-3 text-sm" @submit.prevent="submitTargets">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Chemistry targets</h2>
+                            <p class="text-sm text-muted-foreground">Override the default target ranges for this pool. Blank = use defaults.</p>
+                        </div>
+                        <div v-for="p in chemParams" :key="p.key" class="grid grid-cols-3 items-center gap-3">
+                            <Label class="text-muted-foreground">{{ p.label }}</Label>
+                            <Input v-model="targetsForm.targets[p.key].min" type="number" step="0.1" placeholder="min" />
+                            <Input v-model="targetsForm.targets[p.key].max" type="number" step="0.1" placeholder="max" />
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="targetsOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="targetsForm.processing">Save targets</Button>
+                        </div>
+                    </form>
+
+                    <div v-else-if="props.selected">
                         <div class="mb-4 flex items-center gap-3">
                             <EntityAvatar :src="props.selected.photo_url" type="pool" :name="props.selected.name" size="lg" />
                             <div>
@@ -653,301 +950,6 @@ function submitTargets() {
                     </div>
                 </template>
             </MasterDetail>
-
-            <!-- add equipment -->
-            <Sheet v-model:open="equipOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Add equipment</SheetTitle>
-                        <SheetDescription>Track a pump, filter, heater, salt cell, etc.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitEquip">
-                        <div class="grid gap-1.5">
-                            <Label for="eq_type">Type</Label>
-                            <select
-                                id="eq_type"
-                                v-model="equipForm.type"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
-                            >
-                                <option v-for="t in equipmentTypes" :key="t" :value="t">{{ labelize(t) }}</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5"><Label for="eq_make">Make</Label><Input id="eq_make" v-model="equipForm.make" /></div>
-                            <div class="grid gap-1.5"><Label for="eq_model">Model</Label><Input id="eq_model" v-model="equipForm.model" /></div>
-                        </div>
-                        <div class="grid gap-1.5"><Label for="eq_serial">Serial</Label><Input id="eq_serial" v-model="equipForm.serial" /></div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="eq_inst">Installed</Label><Input id="eq_inst" v-model="equipForm.installed_on" type="date" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="eq_warr">Warranty until</Label><Input id="eq_warr" v-model="equipForm.warranty_until" type="date" />
-                            </div>
-                        </div>
-                        <div class="grid gap-1.5"><Label for="eq_notes">Notes</Label><Input id="eq_notes" v-model="equipForm.notes" /></div>
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="equipOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="equipForm.processing">Add</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
-
-            <!-- log service -->
-            <Sheet v-model:open="serviceOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Log service</SheetTitle>
-                        <SheetDescription>Record a repair or maintenance — optionally bill it.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitService">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="sv_on">Date</Label><Input id="sv_on" v-model="serviceForm.serviced_on" type="date" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="sv_cost">Cost ($)</Label
-                                ><Input id="sv_cost" v-model="serviceForm.cost" type="number" step="0.01" min="0" />
-                            </div>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="sv_desc">Description</Label>
-                            <Input id="sv_desc" v-model="serviceForm.description" />
-                            <p v-if="serviceForm.errors.description" class="text-xs text-red-600">{{ serviceForm.errors.description }}</p>
-                        </div>
-                        <label class="flex items-center gap-2"
-                            ><input v-model="serviceForm.bill" type="checkbox" /> Bill this repair to the customer</label
-                        >
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="serviceOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="serviceForm.processing">Save</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
-
-            <!-- per-pool chemistry targets -->
-            <Sheet v-model:open="targetsOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Chemistry targets</SheetTitle>
-                        <SheetDescription>Override the default target ranges for this pool. Blank = use defaults.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-3 text-sm" @submit.prevent="submitTargets">
-                        <div v-for="p in chemParams" :key="p.key" class="grid grid-cols-3 items-center gap-3">
-                            <Label class="text-muted-foreground">{{ p.label }}</Label>
-                            <Input v-model="targetsForm.targets[p.key].min" type="number" step="0.1" placeholder="min" />
-                            <Input v-model="targetsForm.targets[p.key].max" type="number" step="0.1" placeholder="max" />
-                        </div>
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="targetsOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="targetsForm.processing">Save targets</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
-
-            <!-- create / edit pool -->
-            <Sheet v-model:open="formOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{{ formMode === 'create' ? 'New pool' : 'Edit pool' }}</SheetTitle>
-                        <SheetDescription>Specs, equipment, and the service location.</SheetDescription>
-                    </SheetHeader>
-
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
-                        <ImageUpload
-                            :model-value="photoFile"
-                            :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
-                            @update:model-value="(f) => (form.photo = f)"
-                        />
-                        <div class="grid gap-1.5">
-                            <Label for="customer_id">Customer</Label>
-                            <select
-                                id="customer_id"
-                                v-model="form.customer_id"
-                                :disabled="formMode === 'edit'"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:opacity-60"
-                            >
-                                <option value="">Select a customer…</option>
-                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-                            </select>
-                            <p v-if="form.errors.customer_id" class="text-xs text-red-600">{{ form.errors.customer_id }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="name">Pool name</Label>
-                            <Input id="name" v-model="form.name" />
-                            <p v-if="form.errors.name" class="text-xs text-red-600">{{ form.errors.name }}</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="type">Type</Label>
-                                <select id="type" v-model="form.type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                                    <option value="inground">In-ground</option>
-                                    <option value="above_ground">Above ground</option>
-                                    <option value="spa">Spa</option>
-                                    <option value="indoor">Indoor</option>
-                                    <option value="infinity">Infinity</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="volume">Volume (gal)</Label>
-                                <Input id="volume" v-model="form.volume_gallons" type="number" min="0" />
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="sanitizer">Sanitizer</Label>
-                                <select
-                                    id="sanitizer"
-                                    v-model="form.sanitizer_type"
-                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                                >
-                                    <option value="chlorine">Chlorine</option>
-                                    <option value="salt">Salt</option>
-                                    <option value="bromine">Bromine</option>
-                                    <option value="biguanide">Biguanide</option>
-                                    <option value="ozone">Ozone</option>
-                                    <option value="uv">UV</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="filter">Filter</Label>
-                                <select id="filter" v-model="form.filter_type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                                    <option value="">—</option>
-                                    <option value="cartridge">Cartridge</option>
-                                    <option value="sand">Sand</option>
-                                    <option value="de">DE</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <span class="text-xs font-medium text-muted-foreground">Equipment</span>
-                            <div class="mt-1 grid grid-cols-2 gap-1">
-                                <label v-for="e in equipmentToggles" :key="e.key" class="flex items-center gap-2"
-                                    ><input v-model="form[e.key]" type="checkbox" /> {{ e.label }}</label
-                                >
-                            </div>
-                        </div>
-
-                        <div class="grid gap-1.5">
-                            <Label for="paddr">Service address</Label>
-                            <Input id="paddr" v-model="form.address_line1" />
-                        </div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div class="grid gap-1.5"><Label for="pcity">City</Label><Input id="pcity" v-model="form.city" /></div>
-                            <div class="grid gap-1.5"><Label for="pstate">State</Label><Input id="pstate" v-model="form.state" maxlength="2" /></div>
-                            <div class="grid gap-1.5"><Label for="pzip">ZIP</Label><Input id="pzip" v-model="form.zip" /></div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5"><Label for="gate">Gate code</Label><Input id="gate" v-model="form.gate_code" /></div>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="access">Access notes</Label>
-                            <textarea
-                                id="access"
-                                v-model="form.access_notes"
-                                rows="2"
-                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                            ></textarea>
-                        </div>
-
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add pool' : 'Save' }}</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
-
-            <!-- create / edit service plan -->
-            <Sheet v-model:open="subFormOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{{ subFormMode === 'create' ? 'New service plan' : 'Edit service plan' }}</SheetTitle>
-                        <SheetDescription>The cadence + agent the materializer schedules.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitSub">
-                        <div class="grid gap-1.5">
-                            <Label for="sub_service">Service type</Label>
-                            <select
-                                id="sub_service"
-                                v-model="subForm.service_type_id"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                            >
-                                <option value="">Select…</option>
-                                <option v-for="t in props.serviceTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
-                            </select>
-                            <p v-if="subForm.errors.service_type_id" class="text-xs text-red-600">{{ subForm.errors.service_type_id }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="sub_agent">Agent</Label>
-                            <select
-                                id="sub_agent"
-                                v-model="subForm.assigned_agent_id"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                            >
-                                <option value="">Unassigned</option>
-                                <option v-for="a in props.agents" :key="a.id" :value="a.id">{{ a.name }}</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="sub_freq">Frequency</Label>
-                                <select
-                                    id="sub_freq"
-                                    v-model="subForm.frequency"
-                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                                >
-                                    <option value="weekly">Weekly</option>
-                                    <option value="biweekly">Biweekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="one_time">One-time</option>
-                                    <option value="seasonal">Seasonal</option>
-                                </select>
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="sub_day">Preferred day</Label>
-                                <select
-                                    id="sub_day"
-                                    v-model="subForm.preferred_day"
-                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
-                                >
-                                    <option value="">Any</option>
-                                    <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div v-if="subFormMode === 'edit'" class="grid gap-1.5">
-                            <Label for="sub_status">Status</Label>
-                            <select id="sub_status" v-model="subForm.status" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
-                                <option value="active">Active</option>
-                                <option value="paused">Paused</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
-                        </div>
-                        <div v-if="subFormMode === 'edit'" class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="hold_start">Vacation hold from</Label
-                                ><Input id="hold_start" v-model="subForm.hold_starts_at" type="date" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="hold_end">to</Label>
-                                <Input id="hold_end" v-model="subForm.hold_ends_at" type="date" />
-                                <p v-if="subForm.errors.hold_ends_at" class="text-xs text-red-600">{{ subForm.errors.hold_ends_at }}</p>
-                            </div>
-                        </div>
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="subFormOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="subForm.processing">{{ subFormMode === 'create' ? 'Add plan' : 'Save' }}</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
         </div>
     </AppLayout>
 </template>

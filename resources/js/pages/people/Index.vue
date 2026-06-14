@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { formatMoney } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Mail, Pencil, Plus, Send, Trash2, Users } from 'lucide-vue-next';
@@ -179,6 +178,26 @@ function closeDrawer() {
 
 const fullName = (p: PersonRow) => `${p.first_name} ${p.last_name ?? ''}`.trim();
 const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${props.selected.id}` : null));
+
+// The detail pane is shared: it hosts whichever form is open (customer, agent,
+// or broadcast email), otherwise the selected item's detail. Only one form is
+// ever open at a time. Closing the pane cancels an open form first.
+const anyFormOpen = computed(() => formOpen.value || agentFormOpen.value || emailOpen.value);
+const formKey = computed(() => {
+    if (formOpen.value) return `customer-${formMode.value}`;
+    if (agentFormOpen.value) return `agent-${agentFormMode.value}`;
+    if (emailOpen.value) return 'email';
+    return null;
+});
+function closePane() {
+    if (anyFormOpen.value) {
+        formOpen.value = false;
+        agentFormOpen.value = false;
+        emailOpen.value = false;
+    } else {
+        closeDrawer();
+    }
+}
 
 // --- Customer create / edit form ---
 const formOpen = ref(false);
@@ -363,11 +382,10 @@ function destroyAgent() {
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="props.selected !== null"
-                :selection-key="selectedKey"
-                :pane-open="!formOpen && !agentFormOpen && !emailOpen"
+                :has-selection="anyFormOpen || props.selected !== null"
+                :selection-key="anyFormOpen ? formKey : selectedKey"
                 empty-text="Select a person to see details."
-                @close="closeDrawer"
+                @close="closePane"
             >
                 <template #list>
                     <div class="overflow-hidden rounded-xl border border-border">
@@ -441,106 +459,14 @@ function destroyAgent() {
                 </template>
 
                 <template #detail>
-                    <div v-if="props.selected">
-                        <div class="mb-4 flex items-center gap-3">
-                            <EntityAvatar :src="props.selected.photo_url" type="person" :name="props.selected.name" size="lg" shape="circle" />
-                            <div>
-                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-sm capitalize text-muted-foreground">{{ props.selected.type }}</p>
-                            </div>
+                    <!-- create / edit customer form: hosted in the docked pane, not an overlay -->
+                    <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New customer' : 'Edit customer' }}</h2>
+                            <p class="text-sm text-muted-foreground">
+                                {{ formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.' }}
+                            </p>
                         </div>
-
-                        <div class="space-y-5 text-sm">
-                            <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
-                                <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
-                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
-                                >
-                            </div>
-
-                            <section>
-                                <h3 class="mb-1 font-medium">Contact</h3>
-                                <dl class="space-y-1 text-muted-foreground">
-                                    <div class="flex justify-between">
-                                        <dt>Email</dt>
-                                        <dd>{{ props.selected.email ?? '—' }}</dd>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <dt>Phone</dt>
-                                        <dd>{{ props.selected.phone ?? '—' }}</dd>
-                                    </div>
-                                </dl>
-                            </section>
-
-                            <template v-if="props.selected.type === 'customer'">
-                                <section>
-                                    <h3 class="mb-1 font-medium">Pools ({{ props.selected.pools.length }})</h3>
-                                    <ul class="space-y-1 text-muted-foreground">
-                                        <li v-for="pool in props.selected.pools" :key="pool.id" class="flex justify-between">
-                                            <span>{{ pool.name }}</span
-                                            ><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
-                                        </li>
-                                        <li v-if="props.selected.pools.length === 0">No pools.</li>
-                                    </ul>
-                                </section>
-                                <section v-if="props.selected.recent_visits.length">
-                                    <h3 class="mb-1 font-medium">Recent visits</h3>
-                                    <ul class="space-y-1 text-muted-foreground">
-                                        <li v-for="visit in props.selected.recent_visits" :key="visit.id" class="flex justify-between">
-                                            <span>{{ visit.pool }}</span
-                                            ><span>{{ visit.completed_on }}</span>
-                                        </li>
-                                    </ul>
-                                </section>
-                            </template>
-
-                            <template v-else>
-                                <div v-if="props.canManage" class="flex flex-wrap gap-2">
-                                    <Button size="sm" variant="outline" @click="openAgentEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyAgent"
-                                        ><Trash2 class="mr-1 size-3.5" /> Remove</Button
-                                    >
-                                </div>
-                                <section>
-                                    <h3 class="mb-1 font-medium">Activity</h3>
-                                    <dl class="space-y-1 text-muted-foreground">
-                                        <div class="flex justify-between">
-                                            <dt>Status</dt>
-                                            <dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <dt>Agent+ mode</dt>
-                                            <dd>{{ props.selected.agent_plus ? 'On' : 'Off' }}</dd>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <dt>Completed visits</dt>
-                                            <dd>{{ props.selected.stats.completed_visits }}</dd>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <dt>This week</dt>
-                                            <dd>{{ props.selected.stats.this_week }}</dd>
-                                        </div>
-                                    </dl>
-                                </section>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-            </MasterDetail>
-
-            <!-- Create / edit customer form -->
-            <Sheet v-model:open="formOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{{ formMode === 'create' ? 'New customer' : 'Edit customer' }}</SheetTitle>
-                        <SheetDescription>{{
-                            formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.'
-                        }}</SheetDescription>
-                    </SheetHeader>
-
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitForm">
                         <ImageUpload
                             :model-value="form.photo"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
@@ -634,19 +560,15 @@ function destroyAgent() {
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add customer' : 'Save' }}</Button>
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
 
-            <!-- create / edit agent -->
-            <Sheet v-model:open="agentFormOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>{{ agentFormMode === 'create' ? 'New agent' : 'Edit agent' }}</SheetTitle>
-                        <SheetDescription>{{
-                            agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.'
-                        }}</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitAgent">
+                    <!-- create / edit agent form: hosted in the docked pane -->
+                    <form v-else-if="agentFormOpen" class="space-y-4 text-sm" @submit.prevent="submitAgent">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">{{ agentFormMode === 'create' ? 'New agent' : 'Edit agent' }}</h2>
+                            <p class="text-sm text-muted-foreground">
+                                {{ agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.' }}
+                            </p>
+                        </div>
                         <ImageUpload
                             :model-value="agentForm.photo"
                             :current="agentFormMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
@@ -689,17 +611,13 @@ function destroyAgent() {
                             <Button type="submit" :disabled="agentForm.processing">{{ agentFormMode === 'create' ? 'Add agent' : 'Save' }}</Button>
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
 
-            <!-- broadcast email -->
-            <Sheet v-model:open="emailOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Email people</SheetTitle>
-                        <SheetDescription>Send to a whole audience. Customers who opted out are excluded.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitEmail">
+                    <!-- broadcast email: hosted in the docked pane -->
+                    <form v-else-if="emailOpen" class="space-y-4 text-sm" @submit.prevent="submitEmail">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Email people</h2>
+                            <p class="text-sm text-muted-foreground">Send to a whole audience. Customers who opted out are excluded.</p>
+                        </div>
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
                             <select id="aud" v-model="emailForm.audience" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
@@ -738,8 +656,95 @@ function destroyAgent() {
                             >
                         </div>
                     </form>
-                </SheetContent>
-            </Sheet>
+
+                    <div v-else-if="props.selected">
+                        <div class="mb-4 flex items-center gap-3">
+                            <EntityAvatar :src="props.selected.photo_url" type="person" :name="props.selected.name" size="lg" shape="circle" />
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
+                                <p class="text-sm capitalize text-muted-foreground">{{ props.selected.type }}</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5 text-sm">
+                            <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
+                                <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
+                            </div>
+
+                            <section>
+                                <h3 class="mb-1 font-medium">Contact</h3>
+                                <dl class="space-y-1 text-muted-foreground">
+                                    <div class="flex justify-between">
+                                        <dt>Email</dt>
+                                        <dd>{{ props.selected.email ?? '—' }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt>Phone</dt>
+                                        <dd>{{ props.selected.phone ?? '—' }}</dd>
+                                    </div>
+                                </dl>
+                            </section>
+
+                            <template v-if="props.selected.type === 'customer'">
+                                <section>
+                                    <h3 class="mb-1 font-medium">Pools ({{ props.selected.pools.length }})</h3>
+                                    <ul class="space-y-1 text-muted-foreground">
+                                        <li v-for="pool in props.selected.pools" :key="pool.id" class="flex justify-between">
+                                            <span>{{ pool.name }}</span
+                                            ><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
+                                        </li>
+                                        <li v-if="props.selected.pools.length === 0">No pools.</li>
+                                    </ul>
+                                </section>
+                                <section v-if="props.selected.recent_visits.length">
+                                    <h3 class="mb-1 font-medium">Recent visits</h3>
+                                    <ul class="space-y-1 text-muted-foreground">
+                                        <li v-for="visit in props.selected.recent_visits" :key="visit.id" class="flex justify-between">
+                                            <span>{{ visit.pool }}</span
+                                            ><span>{{ visit.completed_on }}</span>
+                                        </li>
+                                    </ul>
+                                </section>
+                            </template>
+
+                            <template v-else>
+                                <div v-if="props.canManage" class="flex flex-wrap gap-2">
+                                    <Button size="sm" variant="outline" @click="openAgentEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyAgent"
+                                        ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                    >
+                                </div>
+                                <section>
+                                    <h3 class="mb-1 font-medium">Activity</h3>
+                                    <dl class="space-y-1 text-muted-foreground">
+                                        <div class="flex justify-between">
+                                            <dt>Status</dt>
+                                            <dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt>Agent+ mode</dt>
+                                            <dd>{{ props.selected.agent_plus ? 'On' : 'Off' }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt>Completed visits</dt>
+                                            <dd>{{ props.selected.stats.completed_visits }}</dd>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <dt>This week</dt>
+                                            <dd>{{ props.selected.stats.this_week }}</dd>
+                                        </div>
+                                    </dl>
+                                </section>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </MasterDetail>
         </div>
     </AppLayout>
 </template>

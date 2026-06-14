@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { formatMoney } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, Download, FileText, Plus } from 'lucide-vue-next';
@@ -78,6 +77,16 @@ function submitCharge() {
         },
     });
 }
+
+// The detail pane is shared: it hosts the add-charge form when one is open,
+// otherwise the selected customer's balance. Closing the pane cancels the form first.
+function closePane() {
+    if (chargeOpen.value) {
+        chargeOpen.value = false;
+    } else {
+        closeDrawer();
+    }
+}
 </script>
 
 <template>
@@ -94,11 +103,10 @@ function submitCharge() {
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="props.selected !== null"
-                :selection-key="props.selected?.id ?? null"
-                :pane-open="!chargeOpen"
+                :has-selection="chargeOpen || props.selected !== null"
+                :selection-key="chargeOpen ? 'form' : (props.selected?.id ?? null)"
                 empty-text="Select a customer to see their balance."
-                @close="closeDrawer"
+                @close="closePane"
             >
                 <template #list>
                     <div class="overflow-hidden rounded-xl border border-border">
@@ -139,7 +147,42 @@ function submitCharge() {
                 </template>
 
                 <template #detail>
-                    <div v-if="props.selected">
+                    <!-- add-charge form: hosted in the docked pane, not an overlay -->
+                    <form v-if="chargeOpen" class="space-y-4 text-sm" @submit.prevent="submitCharge">
+                        <div class="mb-1">
+                            <h2 class="text-lg font-semibold">Add a charge</h2>
+                            <p class="text-sm text-muted-foreground">An ad-hoc charge raises the customer's balance.</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="ch_cust">Customer</Label>
+                            <select
+                                id="ch_cust"
+                                v-model="chargeForm.customer_id"
+                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                            >
+                                <option value="">Select…</option>
+                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
+                            </select>
+                            <p v-if="chargeForm.errors.customer_id" class="text-xs text-red-600">{{ chargeForm.errors.customer_id }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="ch_desc">Description</Label>
+                            <Input id="ch_desc" v-model="chargeForm.description" placeholder="e.g. Filter replacement" />
+                            <p v-if="chargeForm.errors.description" class="text-xs text-red-600">{{ chargeForm.errors.description }}</p>
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="ch_amt">Amount ($)</Label>
+                            <Input id="ch_amt" v-model="chargeForm.amount" type="number" min="0.01" step="0.01" />
+                            <p v-if="chargeForm.errors.amount" class="text-xs text-red-600">{{ chargeForm.errors.amount }}</p>
+                        </div>
+                        <label class="flex items-center gap-2"><input v-model="chargeForm.taxable" type="checkbox" /> Taxable</label>
+                        <div class="flex justify-end gap-2 pt-2">
+                            <Button type="button" variant="outline" @click="chargeOpen = false">Cancel</Button>
+                            <Button type="submit" :disabled="chargeForm.processing">Add charge</Button>
+                        </div>
+                    </form>
+
+                    <div v-else-if="props.selected">
                         <div class="mb-4 flex items-center gap-3">
                             <EntityAvatar :src="props.selected.photo" type="person" :name="props.selected.name" size="lg" shape="circle" />
                             <div>
@@ -221,45 +264,6 @@ function submitCharge() {
                     </div>
                 </template>
             </MasterDetail>
-
-            <!-- add manual charge -->
-            <Sheet v-model:open="chargeOpen">
-                <SheetContent class="w-full overflow-y-auto sm:max-w-md">
-                    <SheetHeader>
-                        <SheetTitle>Add a charge</SheetTitle>
-                        <SheetDescription>An ad-hoc charge raises the customer's balance.</SheetDescription>
-                    </SheetHeader>
-                    <form class="mt-4 space-y-4 text-sm" @submit.prevent="submitCharge">
-                        <div class="grid gap-1.5">
-                            <Label for="ch_cust">Customer</Label>
-                            <select
-                                id="ch_cust"
-                                v-model="chargeForm.customer_id"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                            >
-                                <option value="">Select…</option>
-                                <option v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</option>
-                            </select>
-                            <p v-if="chargeForm.errors.customer_id" class="text-xs text-red-600">{{ chargeForm.errors.customer_id }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="ch_desc">Description</Label>
-                            <Input id="ch_desc" v-model="chargeForm.description" placeholder="e.g. Filter replacement" />
-                            <p v-if="chargeForm.errors.description" class="text-xs text-red-600">{{ chargeForm.errors.description }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="ch_amt">Amount ($)</Label>
-                            <Input id="ch_amt" v-model="chargeForm.amount" type="number" min="0.01" step="0.01" />
-                            <p v-if="chargeForm.errors.amount" class="text-xs text-red-600">{{ chargeForm.errors.amount }}</p>
-                        </div>
-                        <label class="flex items-center gap-2"><input v-model="chargeForm.taxable" type="checkbox" /> Taxable</label>
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="chargeOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="chargeForm.processing">Add charge</Button>
-                        </div>
-                    </form>
-                </SheetContent>
-            </Sheet>
         </div>
     </AppLayout>
 </template>
