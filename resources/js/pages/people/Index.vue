@@ -392,7 +392,7 @@ function destroyAgent() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th v-if="props.canEmail" class="w-10 px-4 py-2">
+                                    <th v-if="emailOpen" class="w-10 px-4 py-2">
                                         <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
                                     </th>
                                     <th class="px-4 py-2 font-medium">Name</th>
@@ -411,7 +411,7 @@ function destroyAgent() {
                                     :class="{ 'bg-muted/60': selectedKey === `${person.person_type}-${person.id}` }"
                                     @click="openPerson(person)"
                                 >
-                                    <td v-if="props.canEmail" class="px-4 py-2.5" @click.stop>
+                                    <td v-if="emailOpen" class="px-4 py-2.5" @click.stop>
                                         <input
                                             type="checkbox"
                                             :checked="isSelected(person)"
@@ -448,7 +448,7 @@ function destroyAgent() {
                                     </td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
-                                    <td :colspan="props.canEmail ? 7 : 6" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td :colspan="emailOpen ? 7 : 6" class="px-4 py-10 text-center text-muted-foreground">
                                         <Users class="mx-auto mb-2 size-6 opacity-50" />
                                         No people yet.
                                     </td>

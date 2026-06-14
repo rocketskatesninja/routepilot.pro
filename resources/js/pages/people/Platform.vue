@@ -150,7 +150,7 @@ function closePane() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-left text-muted-foreground">
                                 <tr>
-                                    <th class="w-10 px-4 py-2">
+                                    <th v-if="emailOpen" class="w-10 px-4 py-2">
                                         <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
                                     </th>
                                     <th class="px-4 py-2 font-medium">Name</th>
@@ -166,7 +166,7 @@ function closePane() {
                                     :key="row.key"
                                     class="border-t border-border transition-colors hover:bg-muted/40"
                                 >
-                                    <td class="px-4 py-2.5">
+                                    <td v-if="emailOpen" class="px-4 py-2.5">
                                         <input
                                             type="checkbox"
                                             :checked="isSelected(row.key)"
@@ -179,7 +179,7 @@ function closePane() {
                                     <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ row.meta ?? '—' }}</td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
-                                    <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td :colspan="emailOpen ? 4 : 3" class="px-4 py-10 text-center text-muted-foreground">
                                         <Users class="mx-auto mb-2 size-6 opacity-50" />
                                         Nobody here.
                                     </td>

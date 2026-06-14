@@ -93,6 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('people/email', [MailController::class, 'send'])->name('people.email');
     Route::post('agents', [AgentController::class, 'store'])->name('agents.store');
     Route::patch('agents/{agent}', [AgentController::class, 'update'])->name('agents.update');
+    Route::patch('agents/{agent}/color', [AgentController::class, 'updateColor'])->name('agents.color');
     Route::delete('agents/{agent}', [AgentController::class, 'destroy'])->name('agents.destroy');
     Route::get('services', [ServiceController::class, 'index'])->name('services.index');
     Route::post('services', [ServiceController::class, 'store'])->name('services.store');

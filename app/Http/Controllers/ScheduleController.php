@@ -6,11 +6,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\User;
 use App\Services\RouteOptimizer;
 use App\Services\SubscriptionMaterializer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,31 +38,39 @@ class ScheduleController extends Controller
             $this->unassignedRoute((int) $request->user()->tenant_id, $date);
         }
 
-        $routes = Route::query()
+        $stopLoad = fn ($q) => $q->orderBy('stop_order')->with([
+            'pool:id,name,customer_id,photo_path',
+            'pool.customer:id,first_name,last_name,photo_path',
+            'pool.serviceLocation:id,pool_id,lat,lng',
+        ]);
+
+        $routeModels = Route::query()
             ->whereDate('scheduled_date', $date)
             ->whereNotNull('agent_id')
-            ->with([
-                'agent:id,first_name,last_name,avatar_path',
-                'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path']),
-            ])
-            ->get()
-            ->map(fn (Route $route): array => $this->presentRoute($route))
-            ->all();
+            ->with(['agent:id,first_name,last_name,avatar_path,map_color', 'stops' => $stopLoad])
+            ->get();
 
         $unassignedRoute = Route::query()
             ->whereDate('scheduled_date', $date)
             ->whereNull('agent_id')
-            ->with([
-                'stops' => fn ($q) => $q->orderBy('stop_order')->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path']),
-            ])
+            ->with(['stops' => $stopLoad])
             ->first();
+
+        $browserKey = config('services.google.browser_maps_key');
+        $tenant = $request->user()?->tenant;
+        $hq = $tenant !== null && $tenant->lat !== null && $tenant->lng !== null
+            ? ['lat' => (float) $tenant->lat, 'lng' => (float) $tenant->lng, 'label' => $tenant->formattedAddress()]
+            : null;
 
         return Inertia::render('schedule/Index', [
             'date' => $date,
             'today' => Carbon::today()->toDateString(),
-            'routes' => $routes,
+            'routes' => $routeModels->map(fn (Route $route): array => $this->presentRoute($route))->all(),
             'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : null,
             'canManage' => $canManage,
+            'markers' => $this->buildMarkers($routeModels, $unassignedRoute),
+            'hq' => $hq,
+            'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
         ]);
     }
 
@@ -160,7 +170,9 @@ class ScheduleController extends Controller
         return [
             'id' => $route->id,
             'agent' => $route->agent?->displayName(),
+            'agent_id' => $route->agent?->getKey(),
             'agent_photo' => $this->photoUrl($route->agent?->getAttribute('avatar_path')),
+            'color' => $this->agentColor($route->agent),
             'completed' => $stops->where('status', 'completed')->count(),
             'total' => $stops->count(),
             'stops' => $stops->map(fn (RouteStop $s): array => [
@@ -172,6 +184,59 @@ class ScheduleController extends Controller
                 'status' => $s->status,
             ])->values()->all(),
         ];
+    }
+
+    /**
+     * The day's stops as map markers: numbered, colored by their agent (status
+     * overrides — completed/skipped — are applied client-side). Stops without
+     * geocoded coordinates are dropped. Unassigned stops ride along with a null
+     * agent so they plot in the neutral colour. Everything is tenant-scoped via
+     * the Route global scope on the queries that built these collections.
+     *
+     * @param  Collection<int, Route>  $routes
+     * @return list<array<string, mixed>>
+     */
+    private function buildMarkers(Collection $routes, ?Route $unassigned): array
+    {
+        $all = $routes->all();
+        if ($unassigned !== null) {
+            $all[] = $unassigned;
+        }
+
+        $markers = [];
+        foreach ($all as $route) {
+            $agent = $route->agent;
+            $agentId = $agent?->getKey();
+            $agentName = $agent?->displayName();
+            $color = $this->agentColor($agent);
+            foreach ($route->stops as $stop) {
+                $pool = $stop->pool;
+                $coords = $pool->coordinates();
+                if ($coords === null) {
+                    continue;
+                }
+                $markers[] = [
+                    'lat' => $coords[0],
+                    'lng' => $coords[1],
+                    'order' => $stop->stop_order,
+                    'pool' => $pool->getAttribute('name'),
+                    'status' => $stop->status,
+                    'agent' => $agentName,
+                    'agent_id' => $agentId,
+                    'color' => $color,
+                ];
+            }
+        }
+
+        return $markers;
+    }
+
+    /** An agent's chosen route colour, falling back to the brand sky. */
+    private function agentColor(?User $agent): string
+    {
+        $color = $agent?->getAttribute('map_color');
+
+        return is_string($color) && $color !== '' ? $color : '#0ea5e9';
     }
 
     /** The per-day unassigned route (agent_id null), created on first use. */

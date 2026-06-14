@@ -67,3 +67,39 @@ test('agents cannot manage agents', function () {
 
     $this->actingAs($agent)->post('/agents', ['first_name' => 'X'])->assertForbidden();
 });
+
+test('an admin can set an agent route colour', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->patch("/agents/{$agent->id}/color", ['map_color' => '#FF8800'])
+        ->assertRedirect();
+
+    // Stored canonical (lowercased).
+    expect($agent->fresh()?->getAttribute('map_color'))->toBe('#ff8800');
+});
+
+test('a non-hex route colour is rejected', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+
+    $this->actingAs($this->admin)
+        ->patch("/agents/{$agent->id}/color", ['map_color' => 'red; background:url(x)'])
+        ->assertInvalid('map_color');
+});
+
+test('a foreign-tenant agent colour cannot be changed', function () {
+    $other = Tenant::factory()->create();
+    $foreign = User::factory()->agent()->for($other)->create();
+
+    $this->actingAs($this->admin)
+        ->patch("/agents/{$foreign->id}/color", ['map_color' => '#000000'])
+        ->assertNotFound();
+});
+
+test('agents cannot recolour routes', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+
+    $this->actingAs($agent)
+        ->patch("/agents/{$agent->id}/color", ['map_color' => '#123456'])
+        ->assertForbidden();
+});

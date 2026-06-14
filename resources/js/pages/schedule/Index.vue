@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { clone } from '@/lib/utils';
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import ScheduleMap from '@/components/schedule/ScheduleMap.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, Map as MapIcon, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -21,10 +22,22 @@ interface Stop {
 interface RouteCard {
     id: number;
     agent: string | null;
+    agent_id: number | null;
     agent_photo: string | null;
+    color: string;
     completed: number;
     total: number;
     stops: Stop[];
+}
+
+interface StopMarker {
+    lat: number;
+    lng: number;
+    order: number;
+    pool: string | null;
+    status: string;
+    agent: string | null;
+    agent_id: number | null;
 }
 
 const props = defineProps<{
@@ -33,6 +46,9 @@ const props = defineProps<{
     routes: RouteCard[];
     unassigned: RouteCard | null;
     canManage: boolean;
+    markers: StopMarker[];
+    hq: { lat: number; lng: number; label: string | null } | null;
+    mapsKey: string | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Schedule', href: '/schedule' }];
@@ -104,6 +120,26 @@ function persist() {
 
 const optimize = (id: number) => router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
+
+// Live per-agent route colours drive both the card headers and the map lines.
+// Derived from the local (mutable) routes so a colour pick updates instantly.
+const agentColors = computed<Record<number, string>>(() => {
+    const out: Record<number, string> = {};
+    for (const r of localRoutes.value) {
+        if (r.agent_id !== null) {
+            out[r.agent_id] = r.color;
+        }
+    }
+    return out;
+});
+
+function setColor(route: RouteCard, event: Event) {
+    const hex = (event.target as HTMLInputElement).value;
+    route.color = hex; // optimistic — header + map recolour at once
+    if (route.agent_id !== null) {
+        router.patch(`/agents/${route.agent_id}/color`, { map_color: hex }, { preserveScroll: true, preserveState: true });
+    }
+}
 
 const prettyDate = computed(() =>
     new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }),
@@ -212,11 +248,29 @@ const statusClasses: Record<string, string> = {
                     </p>
                 </div>
 
-                <div v-for="route in localRoutes" :key="route.id" class="rounded-xl border border-border">
-                    <div class="flex items-center justify-between border-b border-border px-4 py-2">
-                        <div class="flex items-center gap-2">
+                <div
+                    v-for="route in localRoutes"
+                    :key="route.id"
+                    class="overflow-hidden rounded-xl border border-l-[3px] border-border"
+                    :style="{ borderLeftColor: route.color }"
+                >
+                    <div class="flex items-center justify-between border-b border-border px-4 py-2" :style="{ backgroundColor: route.color + '14' }">
+                        <div class="flex min-w-0 items-center gap-2">
                             <EntityAvatar :src="route.agent_photo" type="person" :name="route.agent" size="sm" shape="circle" />
-                            <span class="font-medium">{{ route.agent }}</span>
+                            <span class="truncate font-medium">{{ route.agent }}</span>
+                            <label
+                                v-if="props.canManage"
+                                class="relative inline-flex size-4 shrink-0 cursor-pointer items-center justify-center"
+                                :title="`Route colour for ${route.agent}`"
+                            >
+                                <input
+                                    type="color"
+                                    :value="route.color"
+                                    class="absolute inset-0 cursor-pointer opacity-0"
+                                    @change="setColor(route, $event)"
+                                />
+                                <span class="size-3.5 rounded-full border border-border shadow-sm" :style="{ backgroundColor: route.color }" />
+                            </label>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-muted-foreground">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
@@ -295,13 +349,7 @@ const statusClasses: Record<string, string> = {
                         <div class="text-xs text-muted-foreground">Completed</div>
                     </div>
                 </div>
-                <div
-                    class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 text-center text-muted-foreground"
-                >
-                    <MapIcon class="size-8 opacity-40" />
-                    <p class="text-sm font-medium">Route map — {{ prettyDate }}</p>
-                    <p class="max-w-xs text-xs">Coming soon: an interactive map of the day's stops, geocoded from each pool's address.</p>
-                </div>
+                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="props.markers" :colors="agentColors" />
             </aside>
         </div>
     </AppLayout>

@@ -29,6 +29,8 @@ export interface GLatLngBounds {
 
 export interface GMap {
     fitBounds(bounds: GLatLngBounds, padding?: number): void;
+    setCenter(latLng: { lat: number; lng: number }): void;
+    setZoom(zoom: number): void;
 }
 
 export interface GoogleMaps {
