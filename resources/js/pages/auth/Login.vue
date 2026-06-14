@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import GoogleAuthButton from '@/components/GoogleAuthButton.vue';
 import InputError from '@/components/InputError.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 import TextLink from '@/components/TextLink.vue';
@@ -6,12 +7,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 defineProps<{
     status?: string;
     canResetPassword: boolean;
+    googleEnabled?: boolean;
 }>();
+
+// OAuth failures redirect back to /login with a flash error.
+const page = usePage();
+const flashError = computed(() => (page.props.flash as { error?: string } | undefined)?.error);
 
 const form = useForm({
     email: '',
@@ -32,6 +39,18 @@ const submit = () => {
 
         <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
             {{ status }}
+        </div>
+        <div v-if="flashError" class="mb-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm font-medium text-red-600">
+            {{ flashError }}
+        </div>
+
+        <div v-if="googleEnabled" class="mb-6">
+            <GoogleAuthButton />
+            <div class="my-6 flex items-center gap-3 text-xs text-muted-foreground">
+                <span class="h-px flex-1 bg-border"></span>
+                or continue with email
+                <span class="h-px flex-1 bg-border"></span>
+            </div>
         </div>
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">
