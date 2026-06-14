@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import { Link } from '@inertiajs/vue3';
 
 interface Note {
@@ -27,6 +28,6 @@ defineProps<{ data: Note[] }>();
                 </component>
             </li>
         </ul>
-        <div v-else class="flex h-full items-center justify-center text-center text-sm text-muted-foreground">No notifications.</div>
+        <EmptyState v-else class="p-0">No notifications.</EmptyState>
     </div>
 </template>

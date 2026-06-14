@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { postJson } from '@/lib/http';
 import { computed, ref } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
@@ -12,14 +13,6 @@ const sending = ref(false);
 const sent = ref(false);
 const error = ref('');
 
-function cookie(name: string): string {
-    if (typeof document === 'undefined') {
-        return '';
-    }
-    const m = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
-    return m ? decodeURIComponent(m[2]) : '';
-}
-
 async function submit() {
     if (sending.value || form.value.name.trim() === '') {
         return;
@@ -27,17 +20,7 @@ async function submit() {
     sending.value = true;
     error.value = '';
     try {
-        const res = await fetch(action.value, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-XSRF-TOKEN': cookie('XSRF-TOKEN'),
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({ ...form.value, source: 'contact' }),
-        });
+        const res = await postJson(action.value, { ...form.value, source: 'contact' });
         if (!res.ok) {
             throw new Error('failed');
         }

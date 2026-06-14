@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { visitStatusClass } from '@/lib/statusColors';
 import { Link } from '@inertiajs/vue3';
@@ -39,8 +40,6 @@ defineProps<{ data: { label: string | null; stops: Stop[] } }>();
                 </li>
             </ul>
         </template>
-        <div v-else class="flex h-full items-center justify-center py-6 text-center text-sm text-muted-foreground">
-            No pending stops on your route.
-        </div>
+        <EmptyState v-else class="py-6">No pending stops on your route.</EmptyState>
     </div>
 </template>

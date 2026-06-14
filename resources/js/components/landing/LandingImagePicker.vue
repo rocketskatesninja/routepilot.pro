@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { getCookie } from '@/lib/http';
 import { ImagePlus, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -9,14 +10,6 @@ const emit = defineEmits<{ uploaded: [{ path: string; url: string }] }>();
 const input = ref<HTMLInputElement | null>(null);
 const uploading = ref(false);
 const error = ref('');
-
-function cookie(name: string): string {
-    if (typeof document === 'undefined') {
-        return '';
-    }
-    const m = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
-    return m ? decodeURIComponent(m[2]) : '';
-}
 
 async function onPick(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -30,7 +23,7 @@ async function onPick(e: Event) {
         fd.append('image', file);
         const res = await fetch('/company/landing/image', {
             method: 'POST',
-            headers: { 'X-XSRF-TOKEN': cookie('XSRF-TOKEN'), 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+            headers: { 'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'), 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
             credentials: 'same-origin',
             body: fd,
         });

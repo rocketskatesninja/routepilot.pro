@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { postJson } from '@/lib/http';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import { Bot, Send } from 'lucide-vue-next';
@@ -29,11 +30,6 @@ const log = ref<HTMLElement | null>(null);
 // Strip the [[type:id:Name]] entity-link syntax down to the plain name.
 const render = (content: string) => content.replace(/\[\[[a-z]+:\d+:([^\]]+)\]\]/g, '$1');
 
-function cookie(name: string): string {
-    const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
-    return match ? decodeURIComponent(match[2]) : '';
-}
-
 async function scrollDown() {
     await nextTick();
     if (log.value) {
@@ -52,17 +48,7 @@ async function send(text?: string) {
     await scrollDown();
 
     try {
-        const res = await fetch('/assistant/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-XSRF-TOKEN': cookie('XSRF-TOKEN'),
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({ message, session_id: sessionId.value }),
-        });
+        const res = await postJson('/assistant/send', { message, session_id: sessionId.value });
         const data = await res.json();
         if (res.ok) {
             sessionId.value = data.session_id;

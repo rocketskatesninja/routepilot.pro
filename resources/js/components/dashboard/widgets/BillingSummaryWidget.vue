@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import { formatMoney } from '@/lib/utils';
 
 interface Row {
@@ -23,8 +24,6 @@ const money = formatMoney;
                 <span class="shrink-0 font-medium tabular-nums">{{ money(r.balance) }}</span>
             </li>
         </ul>
-        <div v-else class="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">
-            All caught up — no outstanding balances.
-        </div>
+        <EmptyState v-else class="h-auto flex-1 p-0">All caught up — no outstanding balances.</EmptyState>
     </div>
 </template>

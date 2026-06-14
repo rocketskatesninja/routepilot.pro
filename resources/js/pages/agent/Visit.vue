@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { postJson } from '@/lib/http';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { FlaskConical, Plus, Sparkles, X } from 'lucide-vue-next';
@@ -104,35 +105,20 @@ const form = useForm<{
 const recommendations = ref<Recommendation[]>([]);
 const analyzing = ref(false);
 
-function cookie(name: string): string {
-    const match = document.cookie.match(new RegExp('(^|; )' + name + '=([^;]*)'));
-    return match ? decodeURIComponent(match[2]) : '';
-}
-
 const num = (v: string) => (v === '' ? null : Number(v));
 
 async function analyze() {
     analyzing.value = true;
     try {
-        const res = await fetch(`/visit/${props.stop.id}/analyze`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Accept: 'application/json',
-                'X-XSRF-TOKEN': cookie('XSRF-TOKEN'),
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-                free_chlorine: num(form.free_chlorine),
-                total_chlorine: num(form.total_chlorine),
-                ph: num(form.ph),
-                alkalinity: num(form.alkalinity),
-                calcium_hardness: num(form.calcium_hardness),
-                cyanuric_acid: num(form.cyanuric_acid),
-                salt: num(form.salt),
-                water_temperature: num(form.water_temperature),
-            }),
+        const res = await postJson(`/visit/${props.stop.id}/analyze`, {
+            free_chlorine: num(form.free_chlorine),
+            total_chlorine: num(form.total_chlorine),
+            ph: num(form.ph),
+            alkalinity: num(form.alkalinity),
+            calcium_hardness: num(form.calcium_hardness),
+            cyanuric_acid: num(form.cyanuric_acid),
+            salt: num(form.salt),
+            water_temperature: num(form.water_temperature),
         });
         const data = await res.json();
         recommendations.value = Array.isArray(data.recommendations) ? data.recommendations : [];
@@ -190,7 +176,14 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
                 <div class="mt-3 grid grid-cols-2 items-end gap-3 sm:grid-cols-4">
                     <div class="grid gap-1">
                         <Label for="water_temperature" class="text-xs">Temp °F</Label>
-                        <Input id="water_temperature" v-model="form.water_temperature" type="number" step="0.1" inputmode="decimal" class="text-center" />
+                        <Input
+                            id="water_temperature"
+                            v-model="form.water_temperature"
+                            type="number"
+                            step="0.1"
+                            inputmode="decimal"
+                            class="text-center"
+                        />
                     </div>
                     <div class="sm:col-span-3">
                         <Button type="button" variant="outline" size="sm" class="w-full sm:w-auto" :disabled="analyzing" @click="analyze"

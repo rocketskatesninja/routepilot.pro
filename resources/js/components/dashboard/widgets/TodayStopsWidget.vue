@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { visitStatusClass } from '@/lib/statusColors';
 import { Link } from '@inertiajs/vue3';
@@ -33,6 +34,6 @@ defineProps<{ data: Stop[] }>();
                 }}</span>
             </li>
         </ul>
-        <div v-else class="flex flex-1 items-center justify-center text-center text-sm text-muted-foreground">No stops scheduled today.</div>
+        <EmptyState v-else class="h-auto flex-1 p-0">No stops scheduled today.</EmptyState>
     </div>
 </template>

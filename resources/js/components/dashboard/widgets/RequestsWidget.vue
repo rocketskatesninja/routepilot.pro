@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Button } from '@/components/ui/button';
 import { router } from '@inertiajs/vue3';
@@ -46,6 +47,6 @@ const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}
                 <Button size="sm" variant="outline" @click="resolveRequest(r.id)">Resolve</Button>
             </li>
         </ul>
-        <div v-else class="flex h-full items-center justify-center py-6 text-center text-sm text-muted-foreground">No pending requests.</div>
+        <EmptyState v-else class="py-6">No pending requests.</EmptyState>
     </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 
 interface PoolRow {
@@ -26,10 +27,12 @@ const healthClass = (h: string | null): string => {
                     <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="sm" />
                     <span class="truncate">{{ p.name }}</span>
                 </span>
-                <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="healthClass(p.health)">{{ p.health }}</span>
+                <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="healthClass(p.health)">{{
+                    p.health
+                }}</span>
                 <span v-else class="shrink-0 text-xs text-muted-foreground">—</span>
             </li>
         </ul>
-        <div v-else class="flex h-full items-center justify-center text-center text-sm text-muted-foreground">No pools on your account yet.</div>
+        <EmptyState v-else class="p-0">No pools on your account yet.</EmptyState>
     </div>
 </template>

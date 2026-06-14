@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
@@ -102,13 +103,10 @@ onMounted(async () => {
 <template>
     <div class="h-full">
         <div v-if="canMap" ref="mapEl" class="h-full min-h-[200px] w-full overflow-hidden rounded-lg border border-border"></div>
-        <div
-            v-else
-            class="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-6 text-center text-sm text-muted-foreground"
-        >
-            <MapPin class="size-6 opacity-50" />
+        <EmptyState v-else class="min-h-[200px] rounded-lg border border-dashed border-border bg-muted/30 px-6">
+            <template #icon><MapPin class="size-6 opacity-50" /></template>
             <p v-if="!data.maps_key">Maps aren't configured yet — add a Google Maps browser key to plot today's routes here.</p>
             <p v-else>No geocoded stops scheduled today. Stops appear once their pools have a service address.</p>
-        </div>
+        </EmptyState>
     </div>
 </template>

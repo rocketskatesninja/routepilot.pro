@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import { weatherDescribe } from '@/composables/useWeatherIcon';
 import { CloudSun, Droplets, Wind } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -60,7 +61,9 @@ const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value
                 <component :is="weatherDescribe(data.current.code).icon" class="size-10 shrink-0 text-primary" />
                 <div class="min-w-0">
                     <div class="text-2xl font-semibold tabular-nums">{{ data.current.temp }}°</div>
-                    <div class="truncate text-xs text-muted-foreground">{{ weatherDescribe(data.current.code).label }} · feels {{ data.current.feels }}°</div>
+                    <div class="truncate text-xs text-muted-foreground">
+                        {{ weatherDescribe(data.current.code).label }} · feels {{ data.current.feels }}°
+                    </div>
                 </div>
                 <div class="ml-auto space-y-0.5 text-right text-xs text-muted-foreground">
                     <div class="flex items-center justify-end gap-1"><Droplets class="size-3" /> {{ data.current.humidity }}%</div>
@@ -71,7 +74,11 @@ const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value
             <!-- Hourly strip: grows with the widget height, first to hide when short -->
             <div v-show="showHourly && data.hours.length" class="flex min-h-0 flex-1 items-center">
                 <div class="flex w-full gap-1">
-                    <div v-for="h in data.hours.slice(0, hourCount)" :key="h.hour" class="flex min-w-0 flex-1 flex-col items-center gap-0.5 text-center">
+                    <div
+                        v-for="h in data.hours.slice(0, hourCount)"
+                        :key="h.hour"
+                        class="flex min-w-0 flex-1 flex-col items-center gap-0.5 text-center"
+                    >
                         <div class="truncate text-xs text-muted-foreground">{{ h.hour }}</div>
                         <component :is="weatherDescribe(h.code).icon" class="size-5 text-muted-foreground" />
                         <div class="text-xs font-medium tabular-nums">{{ h.temp }}°</div>
@@ -86,15 +93,17 @@ const hourCount = computed(() => Math.max(3, Math.min(8, Math.floor(availW.value
                     <div v-for="d in data.days.slice(0, 5)" :key="d.date" class="flex flex-col items-center gap-0.5 rounded-md py-1 text-center">
                         <div class="text-xs text-muted-foreground">{{ d.dow }}</div>
                         <component :is="weatherDescribe(d.code).icon" class="size-5 text-muted-foreground" />
-                        <div class="text-xs tabular-nums"><span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span></div>
+                        <div class="text-xs tabular-nums">
+                            <span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-else class="flex h-full flex-col items-center justify-center gap-2 px-6 text-center text-sm text-muted-foreground">
-            <CloudSun class="size-6 opacity-50" />
+        <EmptyState v-else class="px-6">
+            <template #icon><CloudSun class="size-6 opacity-50" /></template>
             <p>Set a business address in Company settings to show local weather.</p>
-        </div>
+        </EmptyState>
     </div>
 </template>

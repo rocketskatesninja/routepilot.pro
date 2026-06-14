@@ -20,7 +20,7 @@ defineProps<{ data: { tiles: Tile[] } }>();
         >
             <div class="text-xs leading-tight text-muted-foreground">{{ t.label }}</div>
             <div
-                class="flex flex-1 items-center font-semibold leading-none tabular-nums"
+                class="flex flex-1 items-center font-semibold tabular-nums leading-none"
                 :class="t.accent"
                 style="font-size: clamp(1.25rem, min(26cqh, 24cqw), 3.25rem)"
             >

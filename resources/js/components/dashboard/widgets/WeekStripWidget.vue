@@ -44,7 +44,7 @@ const showWeather = computed(() => availH.value >= 115);
             <div class="text-xs font-medium uppercase text-muted-foreground">{{ d.dow }}</div>
             <div class="text-lg font-semibold tabular-nums">{{ d.day }}</div>
             <component :is="weatherDescribe(d.code).icon" v-if="showWeather && d.code !== null" class="size-4 text-muted-foreground" />
-            <div v-if="showWeather && d.high !== null" class="text-[11px] leading-none tabular-nums">
+            <div v-if="showWeather && d.high !== null" class="text-[11px] tabular-nums leading-none">
                 <span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span>
             </div>
             <div

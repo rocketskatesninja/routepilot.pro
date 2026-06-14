@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import { Link } from '@inertiajs/vue3';
 
 interface TenantRow {
@@ -26,10 +27,12 @@ const statusClass = (s: string | null): string =>
                         </span>
                         <span class="truncate">{{ t.name }}</span>
                     </span>
-                    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(t.status)">{{ t.status }}</span>
+                    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(t.status)">{{
+                        t.status
+                    }}</span>
                 </Link>
             </li>
         </ul>
-        <div v-else class="flex h-full items-center justify-center text-center text-sm text-muted-foreground">No tenants yet.</div>
+        <EmptyState v-else class="p-0">No tenants yet.</EmptyState>
     </div>
 </template>
