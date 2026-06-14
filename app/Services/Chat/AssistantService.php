@@ -10,6 +10,7 @@ use App\Models\Customer;
 use App\Models\TenantSetting;
 use App\Models\User;
 use App\Services\ClaudeService;
+use App\Services\PlatformAiSettings;
 
 /**
  * Orchestrates an assistant turn: builds the role-specific context, resolves
@@ -105,15 +106,24 @@ class AssistantService
     }
 
     /**
-     * Resolve [provider, key, model]: per-tenant override, else platform config.
+     * Resolve [provider, key, model]. AI is platform-managed: provider/model/key
+     * come from the super-admin's platform settings. A tenant only overrides them
+     * when the super-admin has granted that tenant the `ai_allow_override` policy.
      *
      * @return array{string, string, string}
      */
     private function credentials(int $tenantId): array
     {
-        $provider = TenantSetting::getFor($tenantId, 'ai_provider') ?? (string) config('ai.default_provider', 'anthropic');
-        $key = TenantSetting::getFor($tenantId, 'ai_api_key') ?? (string) config("ai.platform_keys.{$provider}", '');
-        $model = TenantSetting::getFor($tenantId, 'ai_model') ?? (string) config("ai.models.{$provider}", '');
+        $platform = app(PlatformAiSettings::class);
+        $provider = $platform->provider();
+        $key = $platform->key($provider);
+        $model = $platform->model($provider);
+
+        if (TenantSetting::getFor($tenantId, 'ai_allow_override') === '1') {
+            $provider = TenantSetting::getFor($tenantId, 'ai_provider') ?? $provider;
+            $key = TenantSetting::getFor($tenantId, 'ai_api_key') ?? $key;
+            $model = TenantSetting::getFor($tenantId, 'ai_model') ?? $model;
+        }
 
         return [$provider, $key, $model];
     }

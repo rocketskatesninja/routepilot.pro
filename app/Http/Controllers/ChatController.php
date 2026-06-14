@@ -52,6 +52,9 @@ class ChatController extends Controller
         }
 
         $tenantId = $user->tenant_id;
+        if ($tenantId !== null && ! $quota->enabled((int) $tenantId)) {
+            return response()->json(['error' => 'The AI assistant is disabled for this company. Contact support to enable it.'], 403);
+        }
         if ($tenantId !== null && $quota->remaining((int) $tenantId) <= 0) {
             return response()->json(['error' => 'Monthly AI allowance reached. Add a top-up or upgrade to continue.'], 429);
         }

@@ -8,12 +8,18 @@ use App\Models\AiUsage;
 use App\Models\TenantSetting;
 
 /**
- * Per-tenant monthly AI message allowance. The limit is a tenant setting
- * (`ai_monthly_quota`, e.g. raised by top-up packs) or the plan default.
+ * Per-tenant monthly AI message allowance. The limit is a per-tenant override
+ * (`ai_monthly_quota`, set by the super-admin) or the platform default quota.
  */
 class AiQuota
 {
-    private const DEFAULT_LIMIT = 500;
+    public function __construct(private PlatformAiSettings $platform) {}
+
+    /** Whether AI is enabled for the tenant (super-admin per-tenant toggle, default on). */
+    public function enabled(int $tenantId): bool
+    {
+        return TenantSetting::getFor($tenantId, 'ai_enabled', '1') !== '0';
+    }
 
     public function used(int $tenantId): int
     {
@@ -27,7 +33,7 @@ class AiQuota
     {
         $override = TenantSetting::getFor($tenantId, 'ai_monthly_quota');
 
-        return $override !== null ? (int) $override : self::DEFAULT_LIMIT;
+        return $override !== null && $override !== '' ? max(0, (int) $override) : $this->platform->defaultQuota();
     }
 
     public function remaining(int $tenantId): int

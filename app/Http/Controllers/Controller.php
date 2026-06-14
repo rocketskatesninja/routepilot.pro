@@ -59,6 +59,12 @@ abstract class Controller
         abort_unless($this->canManage($request->user()), 403);
     }
 
+    /** Super-admin-only guard — the platform console trust boundary. */
+    protected function authorizeSuper(Request $request): void
+    {
+        abort_unless($request->user()?->isSuperAdmin() === true, 403);
+    }
+
     /** Whether the user may manage (tenant_admin). */
     protected function canManage(?User $user): bool
     {

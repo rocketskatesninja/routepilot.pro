@@ -30,12 +30,14 @@ class TenantSetting extends Model
         return is_string($value) ? $value : $default;
     }
 
-    /** Upsert a setting for a tenant. */
+    /**
+     * Upsert a setting for a tenant. tenant_id is set explicitly (not via the
+     * BelongsToTenant auto-fill) so this works outside a tenant context too —
+     * e.g. the super-admin writing AI settings for an arbitrary tenant.
+     */
     public static function setFor(int $tenantId, string $key, string $value): void
     {
-        static::withoutGlobalScopes()->updateOrCreate(
-            ['tenant_id' => $tenantId, 'key' => $key],
-            ['value' => $value],
-        );
+        $setting = static::withoutGlobalScopes()->firstOrNew(['tenant_id' => $tenantId, 'key' => $key]);
+        $setting->forceFill(['tenant_id' => $tenantId, 'value' => $value])->save();
     }
 }

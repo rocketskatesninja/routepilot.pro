@@ -32,8 +32,6 @@ class UpdateCompanyRequest extends FormRequest
             'timezone' => ['required', 'string', 'timezone'],
             'brand_color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'tax_rate_percent' => ['required', 'numeric', 'min:0', 'max:30'],
-            'ai_provider' => ['required', 'in:anthropic,openai'],
-            'ai_model' => ['nullable', 'string', 'max:100'],
             'logo' => ['nullable', 'image', 'max:10240'],
             // Business address (optional) — but a street line requires the
             // city/state/ZIP so it can geocode.

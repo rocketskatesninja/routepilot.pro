@@ -23,7 +23,6 @@ const props = defineProps<{
         state: string | null;
         postal_code: string | null;
     };
-    ai: { provider: string; model: string };
     mail: {
         host: string;
         port: number;
@@ -49,8 +48,6 @@ const form = useForm({
     city: props.company.city ?? '',
     state: props.company.state ?? '',
     postal_code: props.company.postal_code ?? '',
-    ai_provider: props.ai.provider,
-    ai_model: props.ai.model,
     logo: null as File | null,
 });
 
@@ -80,17 +77,16 @@ const submitMail = () => mailForm.patch('/company/mail', { preserveScroll: true,
 const connectForm = useForm({});
 const connectStripe = () => connectForm.post('/company/connect', { preserveScroll: true });
 
-// Left-hand tabs. Profile/address/AI share one form (PATCH /company); email and
-// payments are their own concerns.
+// Left-hand tabs. Profile/address share one form (PATCH /company); email and
+// payments are their own concerns. (AI is platform-managed by the super-admin.)
 const tabs = computed(() => [
     { key: 'profile', label: 'Profile' },
     { key: 'address', label: 'Business address' },
-    { key: 'ai', label: 'AI assistant' },
     { key: 'email', label: 'Email' },
     ...(props.connect.available ? [{ key: 'payments', label: 'Payments' }] : []),
 ]);
 const activeTab = ref('profile');
-const onCompanyTab = computed(() => ['profile', 'address', 'ai'].includes(activeTab.value));
+const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.value));
 </script>
 
 <template>
@@ -136,7 +132,11 @@ const onCompanyTab = computed(() => ['profile', 'address', 'ai'].includes(active
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div class="grid gap-2">
                                     <Label for="timezone">Timezone</Label>
-                                    <select id="timezone" v-model="form.timezone" class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                                    <select
+                                        id="timezone"
+                                        v-model="form.timezone"
+                                        class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                    >
                                         <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                                     </select>
                                 </div>
@@ -177,30 +177,20 @@ const onCompanyTab = computed(() => ['profile', 'address', 'ai'].includes(active
                                 </div>
                                 <div class="grid gap-2 sm:col-span-1">
                                     <Label for="state">State</Label>
-                                    <Input id="state" v-model="form.state" maxlength="2" placeholder="TX" class="uppercase" autocomplete="address-level1" />
+                                    <Input
+                                        id="state"
+                                        v-model="form.state"
+                                        maxlength="2"
+                                        placeholder="TX"
+                                        class="uppercase"
+                                        autocomplete="address-level1"
+                                    />
                                     <p v-if="form.errors.state" class="text-sm text-red-600">{{ form.errors.state }}</p>
                                 </div>
                                 <div class="grid gap-2 sm:col-span-2">
                                     <Label for="zip">ZIP code</Label>
                                     <Input id="zip" v-model="form.postal_code" placeholder="78701" autocomplete="postal-code" />
                                     <p v-if="form.errors.postal_code" class="text-sm text-red-600">{{ form.errors.postal_code }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div v-show="activeTab === 'ai'" class="flex flex-col space-y-6">
-                            <HeadingSmall title="AI assistant" description="Powers AI-generated messages and summaries." />
-                            <div class="grid gap-4 sm:grid-cols-2">
-                                <div class="grid gap-2">
-                                    <Label for="provider">AI provider</Label>
-                                    <select id="provider" v-model="form.ai_provider" class="h-9 rounded-md border border-input bg-background px-3 text-sm">
-                                        <option value="anthropic">Anthropic (Claude)</option>
-                                        <option value="openai">OpenAI</option>
-                                    </select>
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label for="model">AI model</Label>
-                                    <Input id="model" v-model="form.ai_model" placeholder="claude-haiku-4-5" />
                                 </div>
                             </div>
                         </div>
@@ -228,12 +218,18 @@ const onCompanyTab = computed(() => ['profile', 'address', 'ai'].includes(active
                                     <Input id="host" v-model="mailForm.host" placeholder="smtp.example.com" />
                                     <p v-if="mailForm.errors.host" class="text-sm text-red-600">{{ mailForm.errors.host }}</p>
                                 </div>
-                                <div class="grid gap-2"><Label for="port">Port</Label><Input id="port" v-model="mailForm.port" type="number" class="max-w-32" /></div>
+                                <div class="grid gap-2">
+                                    <Label for="port">Port</Label><Input id="port" v-model="mailForm.port" type="number" class="max-w-32" />
+                                </div>
                             </div>
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div class="grid gap-2">
                                     <Label for="enc">Encryption</Label>
-                                    <select id="enc" v-model="mailForm.encryption" class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                                    <select
+                                        id="enc"
+                                        v-model="mailForm.encryption"
+                                        class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                    >
                                         <option value="tls">TLS</option>
                                         <option value="ssl">SSL</option>
                                     </select>
@@ -256,7 +252,9 @@ const onCompanyTab = computed(() => ['profile', 'address', 'ai'].includes(active
                                     <Input id="fromaddr" v-model="mailForm.from_address" type="email" placeholder="hello@yourco.com" />
                                     <p v-if="mailForm.errors.from_address" class="text-sm text-red-600">{{ mailForm.errors.from_address }}</p>
                                 </div>
-                                <div class="grid gap-2"><Label for="fromname">From name</Label><Input id="fromname" v-model="mailForm.from_name" /></div>
+                                <div class="grid gap-2">
+                                    <Label for="fromname">From name</Label><Input id="fromname" v-model="mailForm.from_name" />
+                                </div>
                             </div>
                             <div class="flex items-center gap-3">
                                 <Button type="submit" :disabled="mailForm.processing">Save mail settings</Button>

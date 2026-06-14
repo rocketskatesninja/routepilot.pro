@@ -60,9 +60,4 @@ class TenantController extends Controller
 
         return back()->with('success', 'Tenant updated.');
     }
-
-    private function authorizeSuper(Request $request): void
-    {
-        abort_unless($request->user()?->isSuperAdmin() === true, 403);
-    }
 }

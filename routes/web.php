@@ -16,6 +16,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
+use App\Http\Controllers\PlatformAiController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PublicPayController;
@@ -152,6 +153,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Super-admin platform console.
     Route::get('tenants', [TenantController::class, 'index'])->name('tenants.index');
+    Route::get('platform/ai', [PlatformAiController::class, 'edit'])->name('platform.ai.edit');
+    Route::patch('platform/ai', [PlatformAiController::class, 'update'])->name('platform.ai.update');
+    Route::patch('platform/ai/tenants/{tenant}', [PlatformAiController::class, 'updateTenant'])->name('platform.ai.tenant');
     Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
     Route::patch('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
     Route::post('tenants/{tenant}/impersonate', [ImpersonationController::class, 'start'])->name('tenants.impersonate');

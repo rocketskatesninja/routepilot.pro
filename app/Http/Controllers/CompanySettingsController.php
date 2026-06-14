@@ -9,7 +9,6 @@ use App\Http\Requests\UpdateMailConfigRequest;
 use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\Tenant;
-use App\Models\TenantSetting;
 use App\Services\GeocodingService;
 use App\Services\PhotoService;
 use App\Services\StripeService;
@@ -42,10 +41,6 @@ class CompanySettingsController extends Controller
                 'city' => $tenant->getAttribute('city'),
                 'state' => $tenant->getAttribute('state'),
                 'postal_code' => $tenant->getAttribute('postal_code'),
-            ],
-            'ai' => [
-                'provider' => TenantSetting::getFor($tenant->id, 'ai_provider') ?? 'anthropic',
-                'model' => TenantSetting::getFor($tenant->id, 'ai_model') ?? '',
             ],
             'mail' => $this->mailConfig($tenant),
             'connect' => [
@@ -183,9 +178,6 @@ class CompanySettingsController extends Controller
             $old = $tenant->getAttribute('logo_path');
             $tenant->forceFill(['logo_path' => $photos->replace($logo, is_string($old) ? $old : null, 'tenants')])->save();
         }
-
-        TenantSetting::setFor($tenant->id, 'ai_provider', (string) $data['ai_provider']);
-        TenantSetting::setFor($tenant->id, 'ai_model', (string) ($data['ai_model'] ?? ''));
 
         // Audit the billing-sensitive field (the tax rate flows into invoices).
         if ($oldTaxRate !== $newTaxRate) {
