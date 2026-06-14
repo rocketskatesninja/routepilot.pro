@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import Pagination from '@/components/Pagination.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFitRows } from '@/composables/useFitRows';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { customerLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
@@ -14,7 +13,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 
 interface BalanceRow {
     id: number;
@@ -82,13 +81,6 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }];
 const money = formatMoney;
 const page = usePage();
-
-// The active view's paginator drives the row-fit measurement + the pager.
-const activeMeta = computed(() => (props.view === 'invoices' ? props.invoices : props.balances));
-const { listRef } = useFitRows(
-    () => activeMeta.value?.per_page ?? 12,
-    () => activeMeta.value?.total ?? 0,
-);
 
 // Merge a patch onto the current query and navigate — preserves sort/status/etc.
 function navigate(patch: Record<string, string | number | undefined>) {
@@ -226,92 +218,73 @@ function closePane() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="flex min-h-0 flex-col gap-3">
-                        <!-- Invoices list -->
-                        <div v-if="props.view === 'invoices'" ref="listRef" class="overflow-hidden rounded-xl border border-border">
-                            <table class="w-full text-sm">
-                                <thead class="bg-muted/50 text-left text-muted-foreground">
-                                    <tr>
-                                        <SortableTh sort-key="number" :active="props.sort">Invoice</SortableTh>
-                                        <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
-                                        <SortableTh sort-key="issued" :active="props.sort" class="hidden md:table-cell">Issued</SortableTh>
-                                        <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
-                                        <SortableTh sort-key="total" :active="props.sort" align="right" class="text-right">Total</SortableTh>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="inv in props.invoices?.data ?? []"
-                                        :key="inv.id"
-                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                        :class="{ 'bg-muted/60': props.selected?.kind === 'invoice' && props.selected.id === inv.id }"
-                                        @click="open(inv.id)"
-                                    >
-                                        <td class="px-4 py-2.5 font-medium">{{ inv.number }}</td>
-                                        <td class="px-4 py-2.5 text-muted-foreground">{{ inv.customer ?? '—' }}</td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ inv.issued_on ?? '—' }}</td>
-                                        <td class="px-4 py-2.5">
-                                            <span
-                                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                                :class="statusClass(inv.status)"
-                                                >{{ inv.status }}</span
-                                            >
-                                        </td>
-                                        <td class="px-4 py-2.5 text-right font-medium">
-                                            {{ money(inv.total)
-                                            }}<span v-if="inv.balance > 0" class="block text-xs font-normal text-amber-600 dark:text-amber-400"
-                                                >{{ money(inv.balance) }} due</span
-                                            >
-                                        </td>
-                                    </tr>
-                                    <tr v-if="(props.invoices?.data.length ?? 0) === 0">
-                                        <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
-                                            <Receipt class="mx-auto mb-2 size-6 opacity-50" />
-                                            No invoices{{ props.invoiceStatus ? ` with status “${props.invoiceStatus}”` : '' }}.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                    <!-- Invoices list -->
+                    <ListTable
+                        v-if="props.view === 'invoices' && props.invoices"
+                        :meta="props.invoices"
+                        :columns="5"
+                        :row-key="(i) => i.id"
+                        :selected-key="props.selected?.kind === 'invoice' ? props.selected.id : null"
+                        @select="(i) => open(i.id)"
+                    >
+                        <template #head>
+                            <SortableTh sort-key="number" :active="props.sort">Invoice</SortableTh>
+                            <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
+                            <SortableTh sort-key="issued" :active="props.sort" class="hidden md:table-cell">Issued</SortableTh>
+                            <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
+                            <SortableTh sort-key="total" :active="props.sort" align="right" class="text-right">Total</SortableTh>
+                        </template>
+                        <template #row="{ item: inv }">
+                            <td class="px-4 py-2.5 font-medium">{{ inv.number }}</td>
+                            <td class="px-4 py-2.5 text-muted-foreground">{{ inv.customer ?? '—' }}</td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ inv.issued_on ?? '—' }}</td>
+                            <td class="px-4 py-2.5">
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(inv.status)">{{
+                                    inv.status
+                                }}</span>
+                            </td>
+                            <td class="px-4 py-2.5 text-right font-medium">
+                                {{ money(inv.total)
+                                }}<span v-if="inv.balance > 0" class="block text-xs font-normal text-amber-600 dark:text-amber-400"
+                                    >{{ money(inv.balance) }} due</span
+                                >
+                            </td>
+                        </template>
+                        <template #empty>
+                            <Receipt class="mx-auto mb-2 size-6 opacity-50" />
+                            No invoices{{ props.invoiceStatus ? ` with status “${props.invoiceStatus}”` : '' }}.
+                        </template>
+                    </ListTable>
 
-                        <!-- Owing list -->
-                        <div v-else ref="listRef" class="overflow-hidden rounded-xl border border-border">
-                            <table class="w-full text-sm">
-                                <thead class="bg-muted/50 text-left text-muted-foreground">
-                                    <tr>
-                                        <SortableTh sort-key="name" :active="props.sort">Customer</SortableTh>
-                                        <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
-                                        <SortableTh sort-key="balance" :active="props.sort" align="right" class="text-right">Balance</SortableTh>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="row in props.balances.data"
-                                        :key="row.id"
-                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                        :class="{ 'bg-muted/60': props.selected?.kind === 'owing' && props.selected.id === row.id }"
-                                        @click="open(row.id)"
-                                    >
-                                        <td class="px-4 py-2.5">
-                                            <div class="flex items-center gap-2.5">
-                                                <EntityAvatar :src="row.photo" type="person" :name="row.name" size="sm" shape="circle" />
-                                                <span class="font-medium">{{ row.name }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ row.pools }}</td>
-                                        <td class="px-4 py-2.5 text-right font-medium">{{ money(row.balance) }}</td>
-                                    </tr>
-                                    <tr v-if="props.balances.data.length === 0">
-                                        <td colspan="3" class="px-4 py-10 text-center text-muted-foreground">
-                                            <CheckCircle2 class="mx-auto mb-2 size-6 opacity-50" />
-                                            Everyone's paid up.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination v-if="activeMeta" :meta="activeMeta" />
-                    </div>
+                    <!-- Owing list -->
+                    <ListTable
+                        v-else
+                        :meta="props.balances"
+                        :columns="3"
+                        :row-key="(r) => r.id"
+                        :selected-key="props.selected?.kind === 'owing' ? props.selected.id : null"
+                        @select="(r) => open(r.id)"
+                    >
+                        <template #head>
+                            <SortableTh sort-key="name" :active="props.sort">Customer</SortableTh>
+                            <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
+                            <SortableTh sort-key="balance" :active="props.sort" align="right" class="text-right">Balance</SortableTh>
+                        </template>
+                        <template #row="{ item: row }">
+                            <td class="px-4 py-2.5">
+                                <div class="flex items-center gap-2.5">
+                                    <EntityAvatar :src="row.photo" type="person" :name="row.name" size="sm" shape="circle" />
+                                    <span class="font-medium">{{ row.name }}</span>
+                                </div>
+                            </td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ row.pools }}</td>
+                            <td class="px-4 py-2.5 text-right font-medium">{{ money(row.balance) }}</td>
+                        </template>
+                        <template #empty>
+                            <CheckCircle2 class="mx-auto mb-2 size-6 opacity-50" />
+                            Everyone's paid up.
+                        </template>
+                    </ListTable>
                 </template>
 
                 <template #detail>

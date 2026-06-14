@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
+import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import Pagination from '@/components/Pagination.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFitRows } from '@/composables/useFitRows';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink } from '@/lib/links';
@@ -63,10 +62,6 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Inventory', href: '/inventory' }];
-const { listRef } = useFitRows(
-    () => props.items.per_page,
-    () => props.items.total,
-);
 
 const { search } = useListSearch('/inventory', props.filters.search);
 
@@ -186,59 +181,48 @@ function submitAdjust() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="flex min-h-0 flex-col gap-3">
-                        <div ref="listRef" class="overflow-hidden rounded-xl border border-border">
-                            <table class="w-full text-sm">
-                                <thead class="bg-muted/50 text-left text-muted-foreground">
-                                    <tr>
-                                        <SortableTh sort-key="name" :active="props.sort">Chemical</SortableTh>
-                                        <SortableTh sort-key="stock" :active="props.sort">In stock</SortableTh>
-                                        <th class="px-4 py-2 font-medium">Status</th>
-                                        <SortableTh sort-key="cost" :active="props.sort" class="hidden md:table-cell">Cost</SortableTh>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="item in props.items.data"
-                                        :key="item.id"
-                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                        :class="{ 'bg-muted/60': props.selected?.id === item.id }"
-                                        @click="open(item.id)"
-                                    >
-                                        <td class="px-4 py-2.5">
-                                            <div class="flex items-center gap-2.5">
-                                                <EntityAvatar :src="item.photo_url" type="inventory" :name="item.name" size="sm" />
-                                                <span class="font-medium">{{ item.name }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
-                                        <td class="px-4 py-2.5">
-                                            <span
-                                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                                :class="
-                                                    item.low
-                                                        ? 'bg-red-500/15 text-red-600 dark:text-red-400'
-                                                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                "
-                                            >
-                                                {{ item.low ? 'Low' : 'OK' }}
-                                            </span>
-                                        </td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
-                                            {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
-                                        </td>
-                                    </tr>
-                                    <tr v-if="props.items.data.length === 0">
-                                        <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
-                                            <FlaskConical class="mx-auto mb-2 size-6 opacity-50" />
-                                            No chemicals in stock.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination :meta="props.items" />
-                    </div>
+                    <ListTable
+                        :meta="props.items"
+                        :columns="4"
+                        :row-key="(i) => i.id"
+                        :selected-key="props.selected?.id ?? null"
+                        @select="(i) => open(i.id)"
+                    >
+                        <template #head>
+                            <SortableTh sort-key="name" :active="props.sort">Chemical</SortableTh>
+                            <SortableTh sort-key="stock" :active="props.sort">In stock</SortableTh>
+                            <th class="px-4 py-2 font-medium">Status</th>
+                            <SortableTh sort-key="cost" :active="props.sort" class="hidden md:table-cell">Cost</SortableTh>
+                        </template>
+                        <template #row="{ item }">
+                            <td class="px-4 py-2.5">
+                                <div class="flex items-center gap-2.5">
+                                    <EntityAvatar :src="item.photo_url" type="inventory" :name="item.name" size="sm" />
+                                    <span class="font-medium">{{ item.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
+                            <td class="px-4 py-2.5">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="
+                                        item.low
+                                            ? 'bg-red-500/15 text-red-600 dark:text-red-400'
+                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    "
+                                >
+                                    {{ item.low ? 'Low' : 'OK' }}
+                                </span>
+                            </td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                                {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
+                            </td>
+                        </template>
+                        <template #empty>
+                            <FlaskConical class="mx-auto mb-2 size-6 opacity-50" />
+                            No chemicals in stock.
+                        </template>
+                    </ListTable>
                 </template>
 
                 <template #detail>

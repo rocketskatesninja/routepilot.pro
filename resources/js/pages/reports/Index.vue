@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import Pagination from '@/components/Pagination.vue';
 import SortableTh from '@/components/SortableTh.vue';
-import { useFitRows } from '@/composables/useFitRows';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, customerLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
@@ -55,10 +54,6 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Reports', href: '/reports' }];
-const { listRef } = useFitRows(
-    () => props.visits.per_page,
-    () => props.visits.total,
-);
 
 const open = (id: number) => router.get('/reports', { selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/reports', {}, { preserveState: true, preserveScroll: true });
@@ -89,62 +84,45 @@ const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
                 @close="closeDrawer"
             >
                 <template #list>
-                    <div class="flex min-h-0 flex-col gap-3">
-                        <div ref="listRef" class="overflow-hidden rounded-xl border border-border">
-                            <table class="w-full text-sm">
-                                <thead class="bg-muted/50 text-left text-muted-foreground">
-                                    <tr>
-                                        <SortableTh sort-key="date" :active="props.sort">Date</SortableTh>
-                                        <SortableTh sort-key="pool" :active="props.sort">Pool</SortableTh>
-                                        <SortableTh sort-key="customer" :active="props.sort" class="hidden md:table-cell">Customer</SortableTh>
-                                        <SortableTh sort-key="agent" :active="props.sort" class="hidden lg:table-cell">Agent</SortableTh>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="visit in props.visits.data"
-                                        :key="visit.id"
-                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                        :class="{ 'bg-muted/60': props.selected?.id === visit.id }"
-                                        @click="open(visit.id)"
-                                    >
-                                        <td class="px-4 py-2.5 font-medium">{{ visit.completed_on }}</td>
-                                        <td class="px-4 py-2.5">
-                                            <div class="flex items-center gap-2">
-                                                <EntityAvatar :src="visit.pool_photo" type="pool" :name="visit.pool" size="sm" />
-                                                <span>{{ visit.pool }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
-                                            <div class="flex items-center gap-2">
-                                                <EntityAvatar
-                                                    :src="visit.customer_photo"
-                                                    type="person"
-                                                    :name="visit.customer"
-                                                    size="sm"
-                                                    shape="circle"
-                                                />
-                                                <span>{{ visit.customer }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
-                                            <div class="flex items-center gap-2">
-                                                <EntityAvatar :src="visit.agent_photo" type="person" :name="visit.agent" size="sm" shape="circle" />
-                                                <span>{{ visit.agent }}</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="props.visits.data.length === 0">
-                                        <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
-                                            <FileText class="mx-auto mb-2 size-6 opacity-50" />
-                                            No completed visits yet.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination :meta="props.visits" />
-                    </div>
+                    <ListTable
+                        :meta="props.visits"
+                        :columns="4"
+                        :row-key="(v) => v.id"
+                        :selected-key="props.selected?.id ?? null"
+                        @select="(v) => open(v.id)"
+                    >
+                        <template #head>
+                            <SortableTh sort-key="date" :active="props.sort">Date</SortableTh>
+                            <SortableTh sort-key="pool" :active="props.sort">Pool</SortableTh>
+                            <SortableTh sort-key="customer" :active="props.sort" class="hidden md:table-cell">Customer</SortableTh>
+                            <SortableTh sort-key="agent" :active="props.sort" class="hidden lg:table-cell">Agent</SortableTh>
+                        </template>
+                        <template #row="{ item }">
+                            <td class="px-4 py-2.5 font-medium">{{ item.completed_on }}</td>
+                            <td class="px-4 py-2.5">
+                                <div class="flex items-center gap-2">
+                                    <EntityAvatar :src="item.pool_photo" type="pool" :name="item.pool" size="sm" />
+                                    <span>{{ item.pool }}</span>
+                                </div>
+                            </td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                                <div class="flex items-center gap-2">
+                                    <EntityAvatar :src="item.customer_photo" type="person" :name="item.customer" size="sm" shape="circle" />
+                                    <span>{{ item.customer }}</span>
+                                </div>
+                            </td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                                <div class="flex items-center gap-2">
+                                    <EntityAvatar :src="item.agent_photo" type="person" :name="item.agent" size="sm" shape="circle" />
+                                    <span>{{ item.agent }}</span>
+                                </div>
+                            </td>
+                        </template>
+                        <template #empty>
+                            <FileText class="mx-auto mb-2 size-6 opacity-50" />
+                            No completed visits yet.
+                        </template>
+                    </ListTable>
                 </template>
 
                 <template #detail>

@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
+import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import Pagination from '@/components/Pagination.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useFitRows } from '@/composables/useFitRows';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { composeLink, poolLink, reportLink, telLink } from '@/lib/links';
@@ -95,10 +94,6 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
-const { listRef } = useFitRows(
-    () => props.people.per_page,
-    () => props.people.total,
-);
 
 // --- selection + email ---
 const picked = ref<string[]>([]);
@@ -407,85 +402,66 @@ function destroyAgent() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="flex min-h-0 flex-col gap-3">
-                        <div ref="listRef" class="overflow-hidden rounded-xl border border-border">
-                            <table class="w-full text-sm">
-                                <thead class="bg-muted/50 text-left text-muted-foreground">
-                                    <tr>
-                                        <th v-if="emailOpen" class="w-10 px-4 py-2">
-                                            <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
-                                        </th>
-                                        <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
-                                        <SortableTh sort-key="type" :active="props.sort">Type</SortableTh>
-                                        <SortableTh sort-key="email" :active="props.sort" class="hidden md:table-cell">Email</SortableTh>
-                                        <SortableTh sort-key="phone" :active="props.sort" class="hidden lg:table-cell">Phone</SortableTh>
-                                        <th class="hidden px-4 py-2 font-medium lg:table-cell">Last visit</th>
-                                        <th class="px-4 py-2 text-right font-medium">Balance</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr
-                                        v-for="person in props.people.data"
-                                        :key="`${person.person_type}-${person.id}`"
-                                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
-                                        :class="{ 'bg-muted/60': selectedKey === `${person.person_type}-${person.id}` }"
-                                        @click="openPerson(person)"
-                                    >
-                                        <td v-if="emailOpen" class="px-4 py-2.5" @click.stop>
-                                            <input
-                                                type="checkbox"
-                                                :checked="isSelected(person)"
-                                                :aria-label="`Select ${fullName(person)}`"
-                                                @change="toggleSelect(person)"
-                                            />
-                                        </td>
-                                        <td class="px-4 py-2.5">
-                                            <div class="flex items-center gap-2.5">
-                                                <EntityAvatar
-                                                    :src="person.photo_url"
-                                                    type="person"
-                                                    :name="fullName(person)"
-                                                    size="sm"
-                                                    shape="circle"
-                                                />
-                                                <span class="font-medium">{{ fullName(person) }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-2.5">
-                                            <span
-                                                class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                                :class="
-                                                    person.person_type === 'agent'
-                                                        ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                                                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                "
-                                            >
-                                                {{ person.person_type }}
-                                            </span>
-                                        </td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
-                                        <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.last_visit ?? '—' }}</td>
-                                        <td
-                                            class="px-4 py-2.5 text-right font-medium"
-                                            :class="
-                                                person.balance && person.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
-                                            "
-                                        >
-                                            {{ person.balance != null ? money(person.balance) : '—' }}
-                                        </td>
-                                    </tr>
-                                    <tr v-if="props.people.data.length === 0">
-                                        <td :colspan="emailOpen ? 7 : 6" class="px-4 py-10 text-center text-muted-foreground">
-                                            <Users class="mx-auto mb-2 size-6 opacity-50" />
-                                            No people yet.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <Pagination :meta="props.people" />
-                    </div>
+                    <ListTable
+                        :meta="props.people"
+                        :columns="emailOpen ? 7 : 6"
+                        :row-key="(p) => `${p.person_type}-${p.id}`"
+                        :selected-key="selectedKey"
+                        @select="openPerson"
+                    >
+                        <template #head>
+                            <th v-if="emailOpen" class="w-10 px-4 py-2">
+                                <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
+                            </th>
+                            <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
+                            <SortableTh sort-key="type" :active="props.sort">Type</SortableTh>
+                            <SortableTh sort-key="email" :active="props.sort" class="hidden md:table-cell">Email</SortableTh>
+                            <SortableTh sort-key="phone" :active="props.sort" class="hidden lg:table-cell">Phone</SortableTh>
+                            <th class="hidden px-4 py-2 font-medium lg:table-cell">Last visit</th>
+                            <th class="px-4 py-2 text-right font-medium">Balance</th>
+                        </template>
+                        <template #row="{ item: person }">
+                            <td v-if="emailOpen" class="px-4 py-2.5" @click.stop>
+                                <input
+                                    type="checkbox"
+                                    :checked="isSelected(person)"
+                                    :aria-label="`Select ${fullName(person)}`"
+                                    @change="toggleSelect(person)"
+                                />
+                            </td>
+                            <td class="px-4 py-2.5">
+                                <div class="flex items-center gap-2.5">
+                                    <EntityAvatar :src="person.photo_url" type="person" :name="fullName(person)" size="sm" shape="circle" />
+                                    <span class="font-medium">{{ fullName(person) }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2.5">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                    :class="
+                                        person.person_type === 'agent'
+                                            ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
+                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                    "
+                                >
+                                    {{ person.person_type }}
+                                </span>
+                            </td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
+                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.last_visit ?? '—' }}</td>
+                            <td
+                                class="px-4 py-2.5 text-right font-medium"
+                                :class="person.balance && person.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'"
+                            >
+                                {{ person.balance != null ? money(person.balance) : '—' }}
+                            </td>
+                        </template>
+                        <template #empty>
+                            <Users class="mx-auto mb-2 size-6 opacity-50" />
+                            No people yet.
+                        </template>
+                    </ListTable>
                 </template>
 
                 <template #detail>
