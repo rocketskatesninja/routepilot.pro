@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\Tenant;
+use App\Services\BillingMeter;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
@@ -65,9 +66,12 @@ class HandleInertiaRequests extends Middleware
                 'logo_path' => $tenant->logo_path,
                 'timezone' => $tenant->timezone,
             ] : null,
-            // Platform-billing state (trial countdown / subscription) for the
+            // Platform-billing state (trial/subscription) + metered usage for the
             // signed-in tenant — drives the trial banner + billing screen.
-            'billing' => ($user !== null && $tenant instanceof Tenant) ? $tenant->billingState() : null,
+            'billing' => ($user !== null && $tenant instanceof Tenant) ? [
+                ...$tenant->billingState(),
+                'usage' => app(BillingMeter::class)->for($tenant),
+            ] : null,
             // Ziggy route table — so route() works during SSR (Node has no
             // @routes browser global). Lazy: only built on full page loads.
             'ziggy' => fn (): array => [
