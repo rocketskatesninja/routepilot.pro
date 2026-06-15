@@ -13,4 +13,12 @@ return [
     'included_agents' => (int) env('BILLING_INCLUDED_AGENTS', 2),
     'price_per_pool' => (float) env('BILLING_PRICE_PER_POOL', 0.50),
     'price_per_agent' => (float) env('BILLING_PRICE_PER_AGENT', 10.00),
+
+    // Stripe Price IDs for the live subscription (test-mode or live). The billing
+    // screen falls back to a "not configured yet" state until the base price is set.
+    'prices' => [
+        'base' => env('STRIPE_PRICE_BASE'),
+        'pool' => env('STRIPE_PRICE_POOL'),
+        'agent' => env('STRIPE_PRICE_AGENT'),
+    ],
 ];

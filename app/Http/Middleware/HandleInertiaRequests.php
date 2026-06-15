@@ -49,6 +49,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            // For plain <form> POSTs that leave the app (e.g. Stripe Checkout),
+            // where Inertia's XHR/header CSRF doesn't apply.
+            'csrf' => csrf_token(),
             'auth' => [
                 'user' => $user,
                 'role' => $user?->role,

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
@@ -144,6 +145,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('assistant/send', [ChatController::class, 'send'])->name('assistant.send');
 
     // Company settings (tenant_admin).
+    // Platform billing (tenant_admin) — trial/subscription + Stripe Checkout/portal.
+    Route::get('billing', [BillingController::class, 'show'])->name('billing.show');
+    Route::post('billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::get('billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
+
     Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
     Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
     Route::patch('company/mail', [CompanySettingsController::class, 'updateMail'])->name('company.mail');

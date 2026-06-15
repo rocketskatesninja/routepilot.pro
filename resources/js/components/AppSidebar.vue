@@ -21,6 +21,7 @@ import {
     Building2,
     CalendarDays,
     ClipboardList,
+    CreditCard,
     FileText,
     FlaskConical,
     Globe,
@@ -60,6 +61,7 @@ const navByRole: Record<string, NavItem[]> = {
         { title: 'Balances', href: '/balances', icon: Banknote },
         { title: 'Assistant', href: '/assistant', icon: Bot },
         { title: 'Company', href: '/company', icon: Building2 },
+        { title: 'Billing', href: '/billing', icon: CreditCard },
         { title: 'Landing page', href: '/company/landing', icon: Globe },
     ],
     agent: [
