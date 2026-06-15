@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
 use Laravel\Cashier\Billable;
 
 /**
- * Tenant — a company/account using the platform and the single billable
- * owner of its subscription (Cashier's Billable trait is added in Phase 6).
+ * Tenant — a company/account using the platform and the single billable owner
+ * of its subscription (the Cashier Billable customer; see billingState()).
  * Resolved by session (staff) or custom domain / subdomain (public) — see
  * ResolveTenant. All tenant-owned data is scoped via the BelongsToTenant
  * trait on child models.
