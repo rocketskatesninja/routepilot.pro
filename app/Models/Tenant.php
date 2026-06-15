@@ -85,7 +85,7 @@ class Tenant extends Model
      * Cashier is the source of truth (generic trial via trial_ends_at until they
      * subscribe).
      *
-     * @return array{status: string, on_trial: bool, subscribed: bool, trial_ends_at: string|null, trial_days_left: int}
+     * @return array{status: string, on_trial: bool, subscribed: bool, locked: bool, trial_ends_at: string|null, trial_days_left: int}
      */
     public function billingState(): array
     {
@@ -105,11 +105,22 @@ class Tenant extends Model
             'status' => $status,
             'on_trial' => $this->onTrial(),
             'subscribed' => $this->subscribed(),
+            'locked' => $this->billingLocked(),
             'trial_ends_at' => $trialEnds?->toDateString(),
             'trial_days_left' => $trialEnds !== null && $trialEnds->isFuture()
                 ? (int) ceil((float) now()->diffInDays($trialEnds, false))
                 : 0,
         ];
+    }
+
+    /**
+     * Whether back-office access should be soft-locked: the free trial has lapsed
+     * and there's no active subscription. Tenants that never had a trial set
+     * (status 'none', e.g. seeded/legacy accounts) are deliberately NOT locked.
+     */
+    public function billingLocked(): bool
+    {
+        return ! $this->subscribed() && $this->hasExpiredGenericTrial();
     }
 
     /**

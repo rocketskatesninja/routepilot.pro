@@ -13,14 +13,6 @@ use Laravel\Cashier\Cashier;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void
-    {
-        // The platform already owns `stripe/webhook` (Connect payments), so don't
-        // let Cashier register a colliding route — subscription webhooks get wired
-        // explicitly in a later billing slice.
-        Cashier::ignoreRoutes();
-    }
-
     public function boot(): void
     {
         // The Tenant is the Cashier billable (the company owns its subscription).

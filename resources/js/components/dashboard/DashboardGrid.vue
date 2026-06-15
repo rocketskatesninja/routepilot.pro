@@ -46,7 +46,11 @@ watch(
 const fallback: CatalogMeta = { label: '', icon: 'LayoutGrid', w: 6, h: 4, minW: 2, minH: 2 };
 const meta = (key: string): CatalogMeta => props.catalog[key] ?? { ...fallback, label: key };
 
-const commit = () => emit('update:layout', work.value.map((i) => ({ ...i })));
+const commit = () =>
+    emit(
+        'update:layout',
+        work.value.map((i) => ({ ...i })),
+    );
 </script>
 
 <template>
@@ -77,12 +81,7 @@ const commit = () => emit('update:layout', work.value.map((i) => ({ ...i })));
                 @moved="commit"
                 @resized="commit"
             >
-                <DashboardWidgetCard
-                    :title="meta(item.i).label"
-                    :icon="meta(item.i).icon"
-                    :editing="editing"
-                    @remove="emit('remove', item.i)"
-                >
+                <DashboardWidgetCard :title="meta(item.i).label" :icon="meta(item.i).icon" :editing="editing" @remove="emit('remove', item.i)">
                     <WidgetRenderer :widget-key="item.i" :data="widgets[item.i]" />
                 </DashboardWidgetCard>
             </GridItem>
@@ -90,12 +89,7 @@ const commit = () => emit('update:layout', work.value.map((i) => ({ ...i })));
 
         <!-- SSR / pre-mount fallback: a plain stack so the dashboard renders without JS. -->
         <div v-else class="grid gap-3 lg:grid-cols-2">
-            <div
-                v-for="item in work"
-                :key="item.i"
-                class="min-h-[180px]"
-                :class="meta(item.i).w >= 12 ? 'lg:col-span-2' : ''"
-            >
+            <div v-for="item in work" :key="item.i" class="min-h-[180px]" :class="meta(item.i).w >= 12 ? 'lg:col-span-2' : ''">
                 <DashboardWidgetCard :title="meta(item.i).label" :icon="meta(item.i).icon">
                     <WidgetRenderer :widget-key="item.i" :data="widgets[item.i]" />
                 </DashboardWidgetCard>

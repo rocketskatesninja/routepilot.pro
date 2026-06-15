@@ -24,7 +24,19 @@ defineEmits<{ remove: [] }>();
 
 // Catalog icon names (from App\Dashboard\DashboardWidgets) → lucide components.
 const ICONS: Record<string, LucideIcon> = {
-    LayoutGrid, Map, Inbox, FileText, CalendarRange, ListChecks, CloudSun, DollarSign, Bell, Waves, CalendarDays, Banknote, Building2,
+    LayoutGrid,
+    Map,
+    Inbox,
+    FileText,
+    CalendarRange,
+    ListChecks,
+    CloudSun,
+    DollarSign,
+    Bell,
+    Waves,
+    CalendarDays,
+    Banknote,
+    Building2,
 };
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>

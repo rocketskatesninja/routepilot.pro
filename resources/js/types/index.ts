@@ -27,10 +27,27 @@ export interface NavItem {
     isActive?: boolean;
 }
 
+export interface BillingState {
+    status: 'none' | 'trialing' | 'expired' | 'active' | 'past_due' | 'canceled';
+    on_trial: boolean;
+    subscribed: boolean;
+    locked: boolean;
+    trial_ends_at: string | null;
+    trial_days_left: number;
+    usage: {
+        base: number;
+        overage_total: number;
+        estimated_total: number;
+        pools: { used: number; included: number; over: number; unit_price: number; overage: number };
+        agents: { used: number; included: number; over: number; unit_price: number; overage: number };
+    };
+}
+
 export interface SharedData {
     name: string;
     auth: Auth;
     tenant: Tenant | null;
+    billing: BillingState | null;
     flash: { success: string | null; error: string | null };
     ziggy: {
         location: string;

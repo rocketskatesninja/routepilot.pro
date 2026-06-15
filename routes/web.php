@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AnalyticsController;
-use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BalanceController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
@@ -30,6 +30,7 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\VisitController;
+use App\Http\Middleware\EnsureBillingActive;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -65,7 +66,10 @@ Route::get('pay/{customer}', [PublicPayController::class, 'pay'])->whereNumber('
 
 // Role-adaptive dashboard + back-office (staff). Tenant is resolved from the
 // session user by ResolveTenant.
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(function () {
+    // Shown when a tenant's billing is soft-locked (trial lapsed, no subscription).
+    Route::get('paused', fn () => Inertia::render('Paused'))->name('account.paused');
+
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('dashboard/layout', [DashboardController::class, 'saveLayout'])->name('dashboard.layout');
     Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule.index');

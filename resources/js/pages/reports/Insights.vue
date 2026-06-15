@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { formatMoney } from '@/lib/utils';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { UserPlus } from 'lucide-vue-next';

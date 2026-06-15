@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { formatMoney } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, CreditCard } from 'lucide-vue-next';

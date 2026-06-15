@@ -23,6 +23,7 @@ interface Billing {
     status: string;
     on_trial: boolean;
     subscribed: boolean;
+    locked: boolean;
     trial_ends_at: string | null;
     trial_days_left: number;
     usage: { pools: Line; agents: Line; base: number; overage_total: number; estimated_total: number };

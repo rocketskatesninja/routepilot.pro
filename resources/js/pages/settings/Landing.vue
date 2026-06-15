@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { clone } from '@/lib/utils';
 import LandingImagePicker from '@/components/landing/LandingImagePicker.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
 import type { BrandContext, LiveData, SectionConfig } from '@/components/landing/types';
@@ -7,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Eye, EyeOff, GripVertical, Loader2, Lock, Plus, RotateCw, Star, Trash2 } from 'lucide-vue-next';

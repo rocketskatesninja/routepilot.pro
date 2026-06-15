@@ -142,7 +142,9 @@ onBeforeUnmount(() => {
     <Head title="Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
-            <p v-if="editing" class="mr-1 hidden text-sm text-muted-foreground lg:block">Editing the {{ deviceMode }} layout · drag to move, corner to resize</p>
+            <p v-if="editing" class="mr-1 hidden text-sm text-muted-foreground lg:block">
+                Editing the {{ deviceMode }} layout · drag to move, corner to resize
+            </p>
 
             <!-- Choose which layout to edit (desktop only; on a phone you edit the mobile layout directly) -->
             <div v-if="editing" class="hidden items-center gap-0.5 rounded-md border border-border p-0.5 sm:flex">
