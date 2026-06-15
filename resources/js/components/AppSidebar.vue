@@ -46,6 +46,7 @@ const navByRole: Record<string, NavItem[]> = {
     super_admin: [
         { title: 'Platform', href: '/dashboard', icon: ShieldCheck },
         { title: 'People', href: '/people', icon: Users },
+        { title: 'Billing', href: '/platform/billing', icon: CreditCard },
         { title: 'AI', href: '/platform/ai', icon: Bot },
         { title: 'Assistant', href: '/assistant', icon: Bot },
     ],

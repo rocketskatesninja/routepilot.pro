@@ -18,6 +18,7 @@ use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PlatformAiController;
+use App\Http\Controllers\PlatformBillingController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PublicPayController;
@@ -167,6 +168,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::post('company/landing/image', [LandingController::class, 'uploadImage'])->name('company.landing.image');
 
     // Super-admin platform console.
+    Route::get('platform/billing', [PlatformBillingController::class, 'index'])->name('platform.billing');
     Route::get('platform/ai', [PlatformAiController::class, 'edit'])->name('platform.ai.edit');
     Route::patch('platform/ai', [PlatformAiController::class, 'update'])->name('platform.ai.update');
     Route::patch('platform/ai/tenants/{tenant}', [PlatformAiController::class, 'updateTenant'])->name('platform.ai.tenant');

@@ -37,6 +37,41 @@ class BillingMeter
     }
 
     /**
+     * Bulk-meter many tenants — two grouped queries instead of two per tenant.
+     * Used by the platform billing overview to avoid an N+1 across every tenant.
+     *
+     * @param  list<int>  $tenantIds
+     * @return array<int, array<string, mixed>> keyed by tenant id
+     */
+    public function forMany(array $tenantIds): array
+    {
+        if ($tenantIds === []) {
+            return [];
+        }
+
+        $poolCounts = Pool::withoutGlobalScope(TenantScope::class)
+            ->whereIn('tenant_id', $tenantIds)
+            ->selectRaw('tenant_id, count(*) as aggregate')
+            ->groupBy('tenant_id')
+            ->pluck('aggregate', 'tenant_id');
+
+        $agentCounts = User::query()
+            ->whereIn('tenant_id', $tenantIds)
+            ->where('role', 'agent')
+            ->where('is_active', true)
+            ->selectRaw('tenant_id, count(*) as aggregate')
+            ->groupBy('tenant_id')
+            ->pluck('aggregate', 'tenant_id');
+
+        $out = [];
+        foreach ($tenantIds as $id) {
+            $out[$id] = $this->price((int) ($poolCounts[$id] ?? 0), (int) ($agentCounts[$id] ?? 0));
+        }
+
+        return $out;
+    }
+
+    /**
      * Pure pricing math for a given usage — base + per-pool + per-agent overage.
      *
      * @return array<string, mixed>
