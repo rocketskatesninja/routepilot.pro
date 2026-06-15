@@ -177,40 +177,46 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                         <p class="hero-animate hero-d5 mt-4 text-sm text-sky-300/60">14-day free trial · No credit card required · Cancel anytime</p>
                     </div>
 
-                    <!-- Right: live preview of a real RoutePilot demo site -->
+                    <!-- Right: a preview of a real RoutePilot demo site (light/dark aware) -->
                     <div class="hero-animate hero-d3 hidden lg:block">
-                        <div class="overflow-hidden rounded-xl border border-white/15 bg-white shadow-2xl ring-1 ring-black/20">
-                            <div class="flex items-center gap-2 border-b border-black/5 bg-slate-100 px-3 py-2 text-slate-400">
+                        <div class="overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/20">
+                            <div
+                                class="flex items-center gap-2 border-b border-black/5 bg-slate-100 px-3 py-2 text-slate-400 dark:border-white/5 dark:bg-slate-800 dark:text-slate-400"
+                            >
                                 <ArrowLeft class="size-3.5" />
                                 <ArrowRight class="size-3.5 opacity-40" />
                                 <RotateCw class="size-3.5" />
-                                <span class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-white px-3 py-1 text-xs text-slate-500">
-                                    <Lock class="size-3 text-emerald-600" /> routepilot.pro/t/demo
+                                <span
+                                    class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-white px-3 py-1 text-xs text-slate-500 dark:bg-slate-700/70 dark:text-slate-300"
+                                >
+                                    <Lock class="size-3 text-emerald-600 dark:text-emerald-400" /> routepilot.pro/t/demo
                                 </span>
                             </div>
-                            <div class="relative h-[550px] overflow-hidden bg-white">
-                                <iframe
-                                    src="/t/demo"
-                                    title="Live RoutePilot demo site"
-                                    loading="lazy"
-                                    scrolling="no"
-                                    class="border-0"
-                                    style="width: 142.857%; height: 142.857%; transform: scale(0.7); transform-origin: top left"
-                                ></iframe>
-                                <a
-                                    :href="route('public.site', { tenant: 'demo' })"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="group absolute inset-0 flex items-end justify-center pb-4 transition-colors"
-                                    aria-label="Open the live demo site"
-                                >
+                            <a
+                                :href="route('public.site', { tenant: 'demo' })"
+                                target="_blank"
+                                rel="noopener"
+                                class="group relative block h-[550px] overflow-hidden bg-white dark:bg-slate-900"
+                                aria-label="Open the live demo site"
+                            >
+                                <img
+                                    src="/assets/images/screenshots/demo-landing.jpg"
+                                    alt="A RoutePilot demo site"
+                                    class="absolute inset-0 size-full object-cover object-top dark:hidden"
+                                />
+                                <img
+                                    src="/assets/images/screenshots/dark/demo-landing.jpg"
+                                    alt="A RoutePilot demo site"
+                                    class="absolute inset-0 hidden size-full object-cover object-top dark:block"
+                                />
+                                <span class="absolute inset-0 flex items-end justify-center pb-4">
                                     <span
                                         class="translate-y-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-orange-600 opacity-0 shadow-lg transition-all group-hover:translate-y-0 group-hover:opacity-100"
                                     >
                                         Open the live demo →
                                     </span>
-                                </a>
-                            </div>
+                                </span>
+                            </a>
                         </div>
                         <p class="mt-3 text-center text-xs text-sky-300/60">A real customer-facing site, built and hosted on RoutePilot.</p>
                     </div>
