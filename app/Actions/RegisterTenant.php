@@ -31,6 +31,10 @@ class RegisterTenant
                 'slug' => $this->uniqueSlug($data['company']),
             ]);
 
+            // Start the 14-day free trial (a Cashier "generic" trial — no card
+            // required until they subscribe). trial_ends_at is not mass-assignable.
+            $tenant->forceFill(['trial_ends_at' => now()->addDays(14)])->save();
+
             $user = new User;
             $user->fill([
                 'first_name' => $data['first_name'],

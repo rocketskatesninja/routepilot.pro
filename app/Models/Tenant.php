@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
+use Laravel\Cashier\Billable;
 
 /**
  * Tenant — a company/account using the platform and the single billable
@@ -25,11 +27,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $postal_code
  * @property float|null $lat
  * @property float|null $lng
+ * @property Carbon|null $trial_ends_at
+ * @property string|null $pm_type
+ * @property string|null $pm_last_four
  */
 class Tenant extends Model
 {
     /** @use HasFactory<TenantFactory> */
-    use HasFactory, SoftDeletes;
+    use Billable, HasFactory, SoftDeletes;
 
     /**
      * Subdomains that collide with platform hostnames or hint at admin
@@ -53,6 +58,7 @@ class Tenant extends Model
             'settings' => 'array',
             'lat' => 'float',
             'lng' => 'float',
+            'trial_ends_at' => 'datetime',
         ];
     }
 
@@ -72,6 +78,38 @@ class Tenant extends Model
     public function pools(): HasMany
     {
         return $this->hasMany(Pool::class);
+    }
+
+    /**
+     * Platform-billing state for the UI: trial countdown + subscription status.
+     * Cashier is the source of truth (generic trial via trial_ends_at until they
+     * subscribe).
+     *
+     * @return array{status: string, on_trial: bool, subscribed: bool, trial_ends_at: string|null, trial_days_left: int}
+     */
+    public function billingState(): array
+    {
+        $subscription = $this->subscription('default');
+        $trialEnds = $this->trial_ends_at;
+
+        $status = match (true) {
+            $subscription !== null && $subscription->pastDue() => 'past_due',
+            $subscription !== null && $subscription->active() => 'active',
+            $subscription !== null && $subscription->canceled() => 'canceled',
+            $this->onGenericTrial() => 'trialing',
+            $this->hasExpiredGenericTrial() => 'expired',
+            default => 'none',
+        };
+
+        return [
+            'status' => $status,
+            'on_trial' => $this->onTrial(),
+            'subscribed' => $this->subscribed(),
+            'trial_ends_at' => $trialEnds?->toDateString(),
+            'trial_days_left' => $trialEnds !== null && $trialEnds->isFuture()
+                ? (int) ceil((float) now()->diffInDays($trialEnds, false))
+                : 0,
+        ];
     }
 
     /**

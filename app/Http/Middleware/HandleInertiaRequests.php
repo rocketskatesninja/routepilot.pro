@@ -65,6 +65,9 @@ class HandleInertiaRequests extends Middleware
                 'logo_path' => $tenant->logo_path,
                 'timezone' => $tenant->timezone,
             ] : null,
+            // Platform-billing state (trial countdown / subscription) for the
+            // signed-in tenant — drives the trial banner + billing screen.
+            'billing' => ($user !== null && $tenant instanceof Tenant) ? $tenant->billingState() : null,
             // Ziggy route table — so route() works during SSR (Node has no
             // @routes browser global). Lazy: only built on full page loads.
             'ziggy' => fn (): array => [
