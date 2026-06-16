@@ -36,10 +36,22 @@ export function initEcho(): Echo<'reverb'> | null {
     return echo;
 }
 
-/** Subscribe to a user's private notification channel; fires onNotification on each push. */
-export function subscribeUserNotifications(userId: number, onNotification: () => void): void {
+let subscribedUserId: number | null = null;
+
+/**
+ * Keep the private notification subscription in sync with the current user.
+ * Idempotent across Inertia navigations; re-subscribes on login / impersonation
+ * (user changes) and leaves the channel on logout (userId null). Safe to call
+ * every navigation.
+ */
+export function ensureUserSubscription(userId: number | null, onNotification: () => void): void {
+    if (userId === subscribedUserId) return;
+
     const client = initEcho();
     if (!client) return;
 
-    client.private(`App.Models.User.${userId}`).notification(() => onNotification());
+    if (subscribedUserId !== null) client.leave(`App.Models.User.${subscribedUserId}`);
+    subscribedUserId = userId;
+
+    if (userId !== null) client.private(`App.Models.User.${userId}`).notification(() => onNotification());
 }

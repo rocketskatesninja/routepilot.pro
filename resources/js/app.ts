@@ -12,7 +12,7 @@ import { createApp, createSSRApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { initializeTheme } from './composables/useAppearance';
 import { applyBrand } from './composables/useBrand';
-import { subscribeUserNotifications } from './echo';
+import { ensureUserSubscription } from './echo';
 import type { Tenant } from './types';
 
 // Extend ImportMeta interface for Vite...
@@ -47,27 +47,33 @@ createInertiaApp({
         vueApp.use(plugin).use(ZiggyVue).mount(el);
 
         // Live notifications: subscribe to the signed-in user's private channel
-        // and refresh the shared unread badge (+ the notifications list if open)
-        // when one arrives — no manual refresh. Other component state is kept.
+        // (see the navigate hook below for the keep-in-sync across login/logout).
         const auth = props.initialPage.props.auth as { user?: { id?: number } } | undefined;
-        if (auth?.user?.id) {
-            subscribeUserNotifications(auth.user.id, () =>
-                router.reload({ only: ['auth', 'notifications'], preserveScroll: true, preserveState: true }),
-            );
-        }
+        syncNotificationSubscription(auth?.user?.id ?? null);
     },
     progress: {
         color: '#0ea5e9',
     },
 });
 
+// Live notifications: refresh the unread badge (+ the list if open) on a push,
+// preserving other component state. Keeps the subscription synced to the user.
+function syncNotificationSubscription(userId: number | null): void {
+    ensureUserSubscription(userId, () =>
+        router.reload({ only: ['auth', 'notifications'], preserveScroll: true, preserveState: true }),
+    );
+}
+
 // Re-apply the tenant brand on every Inertia visit — the tenant changes on
 // impersonation start/stop and cross-tenant navigation. Only act when the
 // shared tenant prop is present (skip partial reloads that omit it).
 router.on('navigate', (event) => {
-    const props = event.detail.page.props as { tenant?: Tenant | null };
+    const props = event.detail.page.props as { tenant?: Tenant | null; auth?: { user?: { id?: number } } };
     if ('tenant' in props) {
         applyBrand(props.tenant?.brand_color);
+    }
+    if ('auth' in props) {
+        syncNotificationSubscription(props.auth?.user?.id ?? null);
     }
 });
 
