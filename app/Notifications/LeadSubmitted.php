@@ -20,7 +20,7 @@ class LeadSubmitted extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

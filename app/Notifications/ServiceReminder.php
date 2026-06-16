@@ -22,7 +22,7 @@ class ServiceReminder extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('service') ? [] : ['database'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('service') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

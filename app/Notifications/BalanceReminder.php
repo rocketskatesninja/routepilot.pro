@@ -20,7 +20,7 @@ class BalanceReminder extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('billing') ? [] : ['database'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('billing') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

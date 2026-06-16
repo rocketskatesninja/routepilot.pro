@@ -12,6 +12,7 @@ import { createApp, createSSRApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { initializeTheme } from './composables/useAppearance';
 import { applyBrand } from './composables/useBrand';
+import { subscribeUserNotifications } from './echo';
 import type { Tenant } from './types';
 
 // Extend ImportMeta interface for Vite...
@@ -44,6 +45,16 @@ createInertiaApp({
         const vueApp = el.hasChildNodes() ? createSSRApp({ render: () => h(App, props) }) : createApp({ render: () => h(App, props) });
 
         vueApp.use(plugin).use(ZiggyVue).mount(el);
+
+        // Live notifications: subscribe to the signed-in user's private channel
+        // and refresh the shared unread badge (+ the notifications list if open)
+        // when one arrives — no manual refresh. Other component state is kept.
+        const auth = props.initialPage.props.auth as { user?: { id?: number } } | undefined;
+        if (auth?.user?.id) {
+            subscribeUserNotifications(auth.user.id, () =>
+                router.reload({ only: ['auth', 'notifications'], preserveScroll: true, preserveState: true }),
+            );
+        }
     },
     progress: {
         color: '#0ea5e9',

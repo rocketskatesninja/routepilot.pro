@@ -29,7 +29,7 @@ class OpsAlert extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('ops') ? [] : ['database'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('ops') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */
