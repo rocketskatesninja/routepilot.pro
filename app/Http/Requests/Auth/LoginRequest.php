@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Auth;
 
+use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -42,15 +46,45 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        // Validate credentials WITHOUT logging in, so a deactivated account is
+        // never granted a session and the Login event only fires for an
+        // allowed sign-in.
+        if (! Auth::validate($this->only('email', 'password'))) {
             RateLimiter::hit($this->throttleKey());
+            AuditLog::record(null, 'auth.failed', null, ['email' => (string) $this->string('email')]);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
         }
 
+        $user = Auth::getLastAttempted();
+
+        if ($user instanceof User && ! $user->is_active) {
+            RateLimiter::hit($this->throttleKey());
+            $this->scopeTenant($user);
+            AuditLog::record($user, 'auth.blocked_inactive', $user);
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been deactivated. Please contact your administrator.',
+            ]);
+        }
+
+        Auth::login($user, $this->boolean('remember'));
+
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Bind the user's tenant so a pre-authentication audit row (deactivated
+     * login) is scoped to their company — the login request hasn't resolved a
+     * tenant yet.
+     */
+    private function scopeTenant(User $user): void
+    {
+        if ($user->tenant_id !== null && ! app()->has('tenant_id')) {
+            app()->instance('tenant_id', $user->tenant_id);
+        }
     }
 
     /**
@@ -65,6 +99,7 @@ class LoginRequest extends FormRequest
         }
 
         event(new Lockout($this));
+        AuditLog::record(null, 'auth.lockout', null, ['email' => (string) $this->string('email')]);
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
@@ -81,6 +116,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower((string) $this->string('email')).'|'.$this->ip());
     }
 }

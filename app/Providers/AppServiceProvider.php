@@ -16,6 +16,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // The Tenant is the Cashier billable (the company owns its subscription).
+        // Login auditing lives in App\Listeners\RecordLoginActivity, registered
+        // via Laravel's app/Listeners event auto-discovery (no explicit binding).
         Cashier::useCustomerModel(Tenant::class);
 
         // Inject the tenant's brand color into the root view server-side so the
