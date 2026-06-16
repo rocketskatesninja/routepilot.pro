@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Actions\CompleteVisit;
 use App\Actions\SendVisitFollowups;
+use App\Events\AgentLocationUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompleteVisitRequest;
+use App\Models\AgentLocation;
 use App\Models\ChemicalInventory;
 use App\Models\ChemicalReading;
 use App\Models\FieldSyncKey;
@@ -65,6 +67,56 @@ class FieldController extends Controller
                     'stock' => (float) $c->current_stock,
                 ])->all(),
         ]);
+    }
+
+    /**
+     * Live location ping from the field app. Privacy-gated: accepted only while
+     * the agent has an active route today; otherwise tell the app to stop
+     * sharing (tracking:false). Upserts the last-known position + broadcasts it.
+     */
+    public function ping(Request $request): JsonResponse
+    {
+        $agent = $request->user();
+        abort_unless($agent instanceof User && $agent->isStaff(), 403);
+
+        $validated = $request->validate([
+            'lat' => ['required', 'numeric', 'between:-90,90'],
+            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'heading' => ['nullable', 'integer', 'between:0,359'],
+            'accuracy' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $onRoute = Route::query()
+            ->where('agent_id', $agent->id)
+            ->whereDate('scheduled_date', today())
+            ->whereIn('status', ['draft', 'scheduled', 'in_progress'])
+            ->exists();
+
+        if (! $onRoute) {
+            return response()->json(['tracking' => false]);
+        }
+
+        AgentLocation::query()->updateOrCreate(
+            ['agent_id' => $agent->id],
+            [
+                'lat' => $validated['lat'],
+                'lng' => $validated['lng'],
+                'heading' => $validated['heading'] ?? null,
+                'accuracy' => $validated['accuracy'] ?? null,
+                'recorded_at' => now(),
+            ],
+        );
+
+        event(new AgentLocationUpdated(
+            (int) $agent->tenant_id,
+            (int) $agent->id,
+            (float) $validated['lat'],
+            (float) $validated['lng'],
+            isset($validated['heading']) ? (int) $validated['heading'] : null,
+            now()->toIso8601String(),
+        ));
+
+        return response()->json(['tracking' => true]);
     }
 
     /** @return array<string, mixed> */

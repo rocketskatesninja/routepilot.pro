@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\EstimateArrivals;
 use App\Events\RouteUpdated;
+use App\Models\AgentLocation;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceLocation;
@@ -76,7 +77,43 @@ class ScheduleController extends Controller
             'coords' => $this->buildCoords($routeModels, $unassignedRoute),
             'hq' => $hq,
             'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
+            'agentLocations' => $this->liveAgents($date, $routeModels),
         ]);
+    }
+
+    /**
+     * Live agent positions for the day's map — today only, recent pings, and
+     * only for agents working today. Keyed by agent so the board can move each
+     * marker in place from AgentLocationUpdated broadcasts.
+     *
+     * @param  Collection<int, Route>  $routeModels
+     * @return list<array<string, mixed>>
+     */
+    private function liveAgents(string $date, Collection $routeModels): array
+    {
+        if ($date !== Carbon::today()->toDateString()) {
+            return [];
+        }
+
+        $agents = $routeModels->mapWithKeys(fn (Route $r): array => [(int) $r->getAttribute('agent_id') => $r->agent]);
+
+        return AgentLocation::query()
+            ->where('recorded_at', '>=', now()->subMinutes(30))
+            ->get()
+            ->map(function (AgentLocation $loc) use ($agents): ?array {
+                $agent = $agents->get((int) $loc->agent_id);
+
+                return $agent === null ? null : [
+                    'agent_id' => (int) $loc->agent_id,
+                    'name' => $agent->displayName(),
+                    'lat' => $loc->lat,
+                    'lng' => $loc->lng,
+                    'recorded_at' => $loc->recorded_at?->toIso8601String(),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     /** Materialize route stops from active subscriptions through 4 weeks out. */

@@ -27,11 +27,13 @@ const props = defineProps<{
     // Live per-agent colours, keyed by agent id — the schedule page mutates this
     // when the tenant picks a colour, and the map redraws.
     colors: Record<number, string>;
+    // Live agent positions (GPS), drawn as ringed dots that move in place.
+    agents: { agent_id: number; name: string; lat: number; lng: number }[];
     // The stop id the list is focusing; its pin is enlarged + the map pans to it.
     focusId: number | null;
 }>();
 
-const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || props.hq !== null));
+const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || props.hq !== null || props.agents.length > 0));
 const mapEl = ref<HTMLElement | null>(null);
 
 // Completed/skipped stops override the agent colour, mirroring the legacy map.
@@ -144,15 +146,33 @@ function draw(fit = true) {
         bounds.extend(position);
     }
 
+    // Live agent positions — a dark-ringed dot in the agent's colour with their
+    // initial, drawn on top so they're never hidden behind a stop pin.
+    for (const a of props.agents) {
+        const position = { lat: a.lat, lng: a.lng };
+        const agentMarker = new m.Marker({
+            position,
+            map,
+            title: `${a.name} (live)`,
+            label: { text: (a.name?.[0] ?? '?').toUpperCase(), color: '#ffffff', fontSize: '11px', fontWeight: '700' },
+            icon: { path: m.SymbolPath.CIRCLE, scale: 13, fillColor: props.colors[a.agent_id] ?? '#0ea5e9', fillOpacity: 1, strokeColor: '#0f172a', strokeWeight: 3 },
+            zIndex: 1000,
+        }) as unknown as { setMap: (x: unknown) => void };
+        overlays.push(agentMarker);
+        bounds.extend(position);
+    }
+
     // A focus pan owns the viewport; only auto-fit on a normal (re)draw.
     if (!fit) {
         return;
     }
-    const count = props.markers.length + (props.hq ? 1 : 0);
+    const count = props.markers.length + (props.hq ? 1 : 0) + props.agents.length;
     if (count === 1) {
-        const p = props.markers[0] ?? props.hq!;
-        map.setCenter({ lat: p.lat, lng: p.lng });
-        map.setZoom(13);
+        const p = props.markers[0] ?? props.hq ?? props.agents[0];
+        if (p) {
+            map.setCenter({ lat: p.lat, lng: p.lng });
+            map.setZoom(13);
+        }
     } else if (count > 1) {
         map.fitBounds(bounds, 48);
     }
@@ -199,6 +219,20 @@ watch(
         } else {
             // Keep a focused pan steady through drags/recolours; refit otherwise.
             draw(props.focusId === null);
+        }
+    },
+    { deep: true, flush: 'post' },
+);
+
+// Live agent movement: redraw in place without refitting the viewport, so a
+// moving marker never yanks the map around.
+watch(
+    () => props.agents,
+    async () => {
+        if (!map) {
+            await ensureMap();
+        } else {
+            draw(false);
         }
     },
     { deep: true, flush: 'post' },

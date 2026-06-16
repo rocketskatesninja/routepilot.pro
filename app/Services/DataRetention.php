@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
 class DataRetention
 {
     /**
-     * @return array{customers_purged: int, photo_files_deleted: int, notifications_pruned: int}
+     * @return array{customers_purged: int, photo_files_deleted: int, notifications_pruned: int, agent_locations_pruned: int}
      */
     public function purge(bool $apply = true, ?int $customerDays = null, ?int $notificationDays = null): array
     {
@@ -33,6 +33,7 @@ class DataRetention
             'customers_purged' => $erasure['customers'],
             'photo_files_deleted' => $erasure['files'],
             'notifications_pruned' => $this->pruneReadNotifications($notificationDays, $apply),
+            'agent_locations_pruned' => $this->pruneStaleLocations($apply),
         ];
     }
 
@@ -97,6 +98,19 @@ class DataRetention
         }
 
         return $deleted;
+    }
+
+    /** Prune (or count) stale agent GPS location rows. */
+    private function pruneStaleLocations(bool $apply): int
+    {
+        $days = (int) config('retention.agent_location_days');
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $query = DB::table('agent_locations')->where('recorded_at', '<', now()->subDays($days));
+
+        return $apply ? $query->delete() : $query->count();
     }
 
     /** Prune (or count) read in-app notifications older than $days. */

@@ -80,6 +80,18 @@ test('old read notifications are pruned, recent and unread are kept', function (
     expect(DB::table('notifications')->count())->toBe(2);
 });
 
+test('stale agent locations are pruned', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+    DB::table('agent_locations')->insert([
+        'tenant_id' => $this->tenant->id, 'agent_id' => $agent->id, 'lat' => 31.2, 'lng' => -81.5,
+        'recorded_at' => now()->subDays(30), 'created_at' => now(), 'updated_at' => now(),
+    ]);
+
+    $this->artisan('app:purge-retention')->assertSuccessful();
+
+    expect(DB::table('agent_locations')->count())->toBe(0);
+});
+
 test('a dry run deletes nothing', function () {
     $customer = erasedCustomer($this->tenant, 400);
 

@@ -22,4 +22,7 @@ return [
     // Prune read in-app notifications older than this many days (housekeeping).
     'read_notification_days' => (int) env('RETENTION_NOTIFICATION_DAYS', 90),
 
+    // Prune agent GPS location rows older than this (ephemeral last-known positions).
+    'agent_location_days' => (int) env('RETENTION_AGENT_LOCATION_DAYS', 7),
+
 ];

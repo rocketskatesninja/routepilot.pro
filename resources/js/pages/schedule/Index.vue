@@ -6,7 +6,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { visitStatusClass } from '@/lib/statusColors';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { subscribeTenantRoutes } from '@/echo';
+import { subscribeTenantSchedule } from '@/echo';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -45,6 +45,14 @@ interface MapMarker {
     agent_id: number | null;
 }
 
+interface AgentMarker {
+    agent_id: number;
+    name: string;
+    lat: number;
+    lng: number;
+    recorded_at?: string;
+}
+
 const props = defineProps<{
     date: string;
     today: string;
@@ -55,6 +63,7 @@ const props = defineProps<{
     coords: Record<number, { lat: number; lng: number; address: string | null }>;
     hq: { lat: number; lng: number; label: string | null } | null;
     mapsKey: string | null;
+    agentLocations: AgentMarker[];
 }>();
 
 // Admins manage every route; an Agent+ manages only their own route card.
@@ -80,19 +89,35 @@ watch(
     (value) => (localUnassigned.value = value ? clone(value) : null),
 );
 
-// Live sync: when another dispatcher or a field agent changes this day's
-// routes, the board refreshes itself (debounced) — only for the day on screen.
+// Live sync: route changes refresh the board (debounced, only the day on
+// screen); agent movement slides each marker on the map in place.
 const page = usePage();
 const tenantId = Number((page.props.auth as { user?: { tenant_id?: number } } | undefined)?.user?.tenant_id ?? 0);
+const liveAgents = ref<Record<number, AgentMarker>>(Object.fromEntries(props.agentLocations.map((a) => [a.agent_id, a])));
+watch(
+    () => props.agentLocations,
+    (value) => (liveAgents.value = Object.fromEntries(value.map((a) => [a.agent_id, a]))),
+);
+const agentMarkers = computed<AgentMarker[]>(() => Object.values(liveAgents.value));
+
 let unsubscribe: (() => void) | null = null;
 let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
     if (!tenantId) return;
-    unsubscribe = subscribeTenantRoutes(tenantId, (e) => {
-        if (e.date !== props.date) return;
-        if (reloadTimer) clearTimeout(reloadTimer);
-        reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'coords'], preserveScroll: true }), 400);
+    unsubscribe = subscribeTenantSchedule(tenantId, {
+        onRouteUpdate: (e) => {
+            if (e.date !== props.date) return;
+            if (reloadTimer) clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'coords', 'agentLocations'], preserveScroll: true }), 400);
+        },
+        onAgentMove: (e) => {
+            // Only show movement on today's board, and only for a known agent name.
+            if (props.date !== props.today) return;
+            const name = liveAgents.value[e.agent_id]?.name ?? props.routes.find((r) => r.agent_id === e.agent_id)?.agent ?? null;
+            if (name === null) return;
+            liveAgents.value = { ...liveAgents.value, [e.agent_id]: { agent_id: e.agent_id, name, lat: e.lat, lng: e.lng, recorded_at: e.recorded_at } };
+        },
     });
 });
 
@@ -462,7 +487,7 @@ const prettyDate = computed(() =>
                         {{ a.label }}
                     </button>
                 </div>
-                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="visibleMarkers" :colors="agentColors" :focus-id="focusId" />
+                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="visibleMarkers" :agents="agentMarkers" :colors="agentColors" :focus-id="focusId" />
             </aside>
         </div>
     </AppLayout>

@@ -92,6 +92,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     // worker leaves it alone; the offline queue syncs against `complete`.
     Route::get('api/field/today', [FieldController::class, 'today'])->name('field.today');
     Route::post('api/field/visits/{stop}/complete', [FieldController::class, 'complete'])->name('field.complete');
+    Route::post('api/field/ping', [FieldController::class, 'ping'])->middleware('throttle:12,1')->name('field.ping');
 
     // Agent at-pool visit flow.
     Route::get('visit/{stop}', [VisitController::class, 'show'])->name('visit.show');

@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import FieldVisit from '@/components/field/FieldVisit.vue';
+import { useAgentTracking } from '@/composables/useAgentTracking';
 import { saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
 import { failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
 import { Head, Link } from '@inertiajs/vue3';
-import { Check, ChevronRight, CloudOff, LoaderCircle, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
+import { Check, ChevronRight, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+
+const { sharing: sharingLocation, toggle: toggleLocation, restore: restoreLocation, cleanup: cleanupLocation } = useAgentTracking();
 
 const bundle = ref<TodayBundle | null>(null);
 const source = ref<'network' | 'cache' | 'none'>('none');
@@ -62,10 +65,12 @@ onMounted(async () => {
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
     await load();
+    restoreLocation();
 });
 onBeforeUnmount(() => {
     window.removeEventListener('online', onOnline);
     window.removeEventListener('offline', onOffline);
+    cleanupLocation();
 });
 
 function open(stop: FieldStop) {
@@ -109,6 +114,14 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                     <Wifi v-if="online" class="size-3.5" /><WifiOff v-else class="size-3.5" />
                     {{ online ? 'Online' : 'Offline' }}
                 </span>
+                <button
+                    class="rounded-lg p-2"
+                    :class="sharingLocation ? 'bg-sky-100 text-sky-700' : 'text-slate-400 hover:bg-slate-100'"
+                    :title="sharingLocation ? 'Sharing your location — tap to stop' : 'Share your location with dispatch'"
+                    @click="toggleLocation"
+                >
+                    <MapPin class="size-4" :class="sharingLocation ? 'animate-pulse' : ''" />
+                </button>
                 <button class="rounded-lg p-2 hover:bg-slate-100" :disabled="loading" @click="refresh">
                     <RefreshCw class="size-4" :class="loading ? 'animate-spin' : ''" />
                 </button>
