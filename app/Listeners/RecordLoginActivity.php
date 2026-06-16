@@ -7,6 +7,7 @@ namespace App\Listeners;
 use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Support\Str;
 
 /**
  * Record a successful authentication: stamp `last_login_at` and append an
@@ -30,7 +31,14 @@ class RecordLoginActivity
             return;
         }
 
-        $user->forceFill(['last_login_at' => now()])->saveQuietly();
+        // Claim this session as the user's single allowed one (last-login-wins):
+        // a token kept in BOTH the session (survives regenerate()) and on the
+        // user. Any older session now mismatches and EnsureSingleSession evicts
+        // it on its next request — so a per-seat account can't be shared live.
+        $token = Str::random(48);
+        session()->put('auth_token', $token);
+
+        $user->forceFill(['last_login_at' => now(), 'session_token' => $token])->saveQuietly();
 
         // The login request never resolved a tenant (the user wasn't
         // authenticated when ResolveTenant ran), so bind it now to scope the
