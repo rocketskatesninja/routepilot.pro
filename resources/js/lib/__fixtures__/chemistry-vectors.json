@@ -1,0 +1,446 @@
+[
+    {
+        "name": "balanced typical pool",
+        "reading": {
+            "temperature": 80,
+            "ph": 7.4,
+            "free_chlorine": 2,
+            "alkalinity": 100,
+            "calcium_hardness": 250,
+            "salt": 1000
+        },
+        "pool": {
+            "volume_gallons": 10000,
+            "sanitizer": "chlorine",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": -0.16,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 2,
+                    "status": "normal",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.4,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "alkalinity": {
+                    "value": 100,
+                    "status": "normal",
+                    "label": "Total Alkalinity",
+                    "unit": "ppm",
+                    "min": 80,
+                    "max": 120
+                },
+                "calcium_hardness": {
+                    "value": 250,
+                    "status": "normal",
+                    "label": "Calcium Hardness",
+                    "unit": "ppm",
+                    "min": 200,
+                    "max": 400
+                },
+                "salt": {
+                    "value": 1000,
+                    "status": "low",
+                    "label": "Salt",
+                    "unit": "ppm",
+                    "min": 2700,
+                    "max": 3400
+                },
+                "temperature": {
+                    "value": 80,
+                    "status": "normal",
+                    "label": "Temperature",
+                    "unit": "F",
+                    "min": 78,
+                    "max": 84
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Salt",
+                    "chemical": "Pool Salt",
+                    "amount": 40,
+                    "unit": "lbs",
+                    "urgency": "low",
+                    "notes": ["Broadcast around pool perimeter. Takes 24 hours to circulate fully."],
+                    "original_amount": 40,
+                    "adjustments": [],
+                    "was_adjusted": false
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "high pH and high alkalinity merge into one muriatic-acid dose, 20k gallons",
+        "reading": {
+            "ph": 7.9,
+            "alkalinity": 160,
+            "free_chlorine": 2
+        },
+        "pool": {
+            "volume_gallons": 20000,
+            "sanitizer": "chlorine",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": 0.55,
+                "status": "scaling",
+                "color": "amber",
+                "label": "Scale-forming",
+                "description": "Water may deposit calcium scale on surfaces."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 2,
+                    "status": "normal",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.9,
+                    "status": "high",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "alkalinity": {
+                    "value": 160,
+                    "status": "high",
+                    "label": "Total Alkalinity",
+                    "unit": "ppm",
+                    "min": 80,
+                    "max": 120
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "pH & Total Alkalinity",
+                    "chemical": "Muriatic Acid",
+                    "amount": 40,
+                    "unit": "oz",
+                    "urgency": "medium",
+                    "notes": ["Add in small increments with pump running. Retest after 4 hours."],
+                    "original_amount": 40,
+                    "adjustments": [],
+                    "was_adjusted": false,
+                    "combined": true
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "high calcium hardness forces drain-refill and suppresses other dosing",
+        "reading": {
+            "ph": 7.8,
+            "calcium_hardness": 600,
+            "free_chlorine": 0.5
+        },
+        "pool": {
+            "volume_gallons": 15000,
+            "sanitizer": "chlorine",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": 0.62,
+                "status": "scaling",
+                "color": "amber",
+                "label": "Scale-forming",
+                "description": "Water may deposit calcium scale on surfaces."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 0.5,
+                    "status": "low",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.8,
+                    "status": "high",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "calcium_hardness": {
+                    "value": 600,
+                    "status": "high",
+                    "label": "Calcium Hardness",
+                    "unit": "ppm",
+                    "min": 200,
+                    "max": 400
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Calcium Hardness",
+                    "chemical": "Partial Drain & Refill",
+                    "amount": 0,
+                    "unit": "",
+                    "urgency": "high",
+                    "action": "drain_refill",
+                    "notes": [
+                        "Calcium hardness is too high to treat chemically. Partial drain and refill recommended.",
+                        "Re-test water chemistry after the refill before adding any chemicals.",
+                        "Other chemistry adjustments are skipped — they may not be needed after the refill."
+                    ],
+                    "original_amount": 0,
+                    "adjustments": [],
+                    "was_adjusted": false
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "salt pool low chlorine runs the generator",
+        "reading": {
+            "free_chlorine": 0.4,
+            "ph": 7.4,
+            "salt": 3000
+        },
+        "pool": {
+            "volume_gallons": 18000,
+            "sanitizer": "salt",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": -0.21,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 0.4,
+                    "status": "low",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.4,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "salt": {
+                    "value": 3000,
+                    "status": "normal",
+                    "label": "Salt",
+                    "unit": "ppm",
+                    "min": 2700,
+                    "max": 3400
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Free Chlorine",
+                    "chemical": "Run chlorine generator",
+                    "amount": 3.6,
+                    "unit": "hours extra runtime",
+                    "urgency": "high",
+                    "notes": [],
+                    "original_amount": 3.6,
+                    "adjustments": [],
+                    "was_adjusted": false
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "low chlorine with heavy rain and extreme heat stacks weather adjustments",
+        "reading": {
+            "free_chlorine": 0.5,
+            "ph": 7.4,
+            "cyanuric_acid": 20
+        },
+        "pool": {
+            "volume_gallons": 10000,
+            "sanitizer": "chlorine",
+            "custom_target_ranges": null
+        },
+        "weather": {
+            "daily": [
+                {
+                    "precipitation_probability_max": 90,
+                    "temperature_2m_max": 104,
+                    "uv_index_max": 9,
+                    "temperature_2m_min": 70,
+                    "wind_speed_10m_max": 10
+                }
+            ]
+        },
+        "expected": {
+            "lsi": {
+                "value": -0.16,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 0.5,
+                    "status": "low",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.4,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "cyanuric_acid": {
+                    "value": 20,
+                    "status": "low",
+                    "label": "Cyanuric Acid (CYA)",
+                    "unit": "ppm",
+                    "min": 30,
+                    "max": 80
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Free Chlorine",
+                    "chemical": "Granular Chlorine (Cal-Hypo)",
+                    "amount": 4.3,
+                    "unit": "oz",
+                    "urgency": "high",
+                    "notes": [],
+                    "original_amount": 2,
+                    "adjustments": [
+                        "+40% — rain expected, will dilute chlorine",
+                        "+35% — high heat/UV burns chlorine faster",
+                        "+15% — low CYA with sun exposure (no UV protection)"
+                    ],
+                    "was_adjusted": true
+                },
+                {
+                    "parameter": "Cyanuric Acid (CYA)",
+                    "chemical": "Cyanuric Acid (Stabilizer)",
+                    "amount": 1,
+                    "unit": "lbs",
+                    "urgency": "medium",
+                    "notes": ["Add through skimmer with pump running. Takes 3-5 days to dissolve fully."],
+                    "original_amount": 1,
+                    "adjustments": [],
+                    "was_adjusted": false
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "custom target range widens pH so 7.8 reads normal",
+        "reading": {
+            "ph": 7.8,
+            "free_chlorine": 2
+        },
+        "pool": {
+            "volume_gallons": 10000,
+            "sanitizer": "chlorine",
+            "custom_target_ranges": {
+                "ph": {
+                    "min": 7.2,
+                    "max": 8
+                }
+            }
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": 0.24,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 2,
+                    "status": "normal",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.8,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 8
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [],
+            "weather_alerts": []
+        }
+    }
+]

@@ -56,6 +56,9 @@ jobs:
       - name: Build Assets
         run: npm run build
 
+      - name: JS unit tests (chemistry parity)
+        run: npm run test:js
+
       - name: Tests
         run: ./vendor/bin/pest
 
