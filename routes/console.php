@@ -14,6 +14,7 @@ Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')->every
 // Nightly automation (platform-wide; each command iterates active tenants).
 Schedule::command('app:backup-database')->dailyAt('01:00');
 Schedule::command('app:materialize-schedules')->dailyAt('02:00');
+Schedule::command('app:estimate-arrivals')->dailyAt('02:15'); // drive-time ETAs for the freshly materialized routes
 Schedule::command('app:flag-overdue-invoices')->dailyAt('03:00');
 Schedule::command('app:geocode-locations')->dailyAt('03:30'); // retry any locations missing coordinates
 Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00');

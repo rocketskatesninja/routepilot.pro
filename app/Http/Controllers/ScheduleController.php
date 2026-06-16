@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\EstimateArrivals;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceLocation;
@@ -107,11 +108,12 @@ class ScheduleController extends Controller
     }
 
     /** Re-order a route's pending stops (nearest-neighbour + 2-opt). */
-    public function optimize(Request $request, Route $route, RouteOptimizer $optimizer): RedirectResponse
+    public function optimize(Request $request, Route $route, RouteOptimizer $optimizer, EstimateArrivals $arrivals): RedirectResponse
     {
         abort_unless($this->canManageRoute($request->user(), $route), 403);
 
         $result = $optimizer->optimize($route);
+        $arrivals->handle($route);
 
         return back()->with('success', "Optimized {$result['optimized']} stops · {$result['total_distance_km']} km.");
     }
@@ -138,7 +140,7 @@ class ScheduleController extends Controller
      * reassigned to that route's agent; completed/skipped stops keep their
      * route and only have their order updated. Everything is tenant-scoped.
      */
-    public function arrange(Request $request): RedirectResponse
+    public function arrange(Request $request, EstimateArrivals $arrivals): RedirectResponse
     {
         $user = $request->user();
         abort_unless($this->canManage($user) || $user?->isAgentPlus(), 403);
@@ -186,6 +188,14 @@ class ScheduleController extends Controller
                 }
             }
         });
+
+        // Re-estimate arrivals for every route whose order may have changed.
+        foreach ((array) $validated['routes'] as $r) {
+            $route = is_array($r) ? Route::query()->where('tenant_id', $tenantId)->find((int) ($r['id'] ?? 0)) : null;
+            if ($route !== null) {
+                $arrivals->handle($route);
+            }
+        }
 
         return back();
     }
