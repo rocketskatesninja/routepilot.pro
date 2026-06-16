@@ -141,6 +141,19 @@ test('a pool due tomorrow reminds the portal customer in-app and by email', func
     Mail::assertQueued(ServiceReminderMail::class);
 });
 
+test('the service reminder email carries the softened arrival window', function () {
+    poolDueTomorrow();
+    RouteStop::query()
+        ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()->addDay()))
+        ->update(['estimated_arrival' => today()->addDay()->setTime(9, 15)]);
+    Notification::fake();
+    Mail::fake();
+
+    app(DailyOpsChecks::class)->run($this->tenant->id);
+
+    Mail::assertQueued(ServiceReminderMail::class, fn (ServiceReminderMail $m): bool => $m->arrivalWindow === '9:00 – 10:00 AM');
+});
+
 test('the service reminder email is skipped for opt-out customers (in-app still sent)', function () {
     [$portal] = poolDueTomorrow(optOut: true);
     Notification::fake();

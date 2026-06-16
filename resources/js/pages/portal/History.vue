@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { requestForPoolLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CalendarPlus, Droplets } from 'lucide-vue-next';
+import { CalendarClock, CalendarPlus, Droplets } from 'lucide-vue-next';
 
 interface VisitRow {
     id: number;
@@ -35,9 +35,16 @@ interface VisitDetail {
     photos: string[];
 }
 
+interface NextVisit {
+    pool: string | null;
+    date: string | null;
+    window: string | null;
+}
+
 const props = defineProps<{
     visits: { data: VisitRow[]; total: number };
     selected: VisitDetail | null;
+    nextVisit: NextVisit | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Service History', href: '/history' }];
@@ -60,6 +67,19 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.visits.total} completed visits`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
+            <div
+                v-if="props.nextVisit"
+                class="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900/50 dark:bg-sky-950/30"
+            >
+                <CalendarClock class="size-5 shrink-0 text-sky-600" />
+                <div class="text-sm">
+                    <p class="font-medium">Next visit: {{ props.nextVisit.pool }}</p>
+                    <p class="text-muted-foreground">
+                        {{ props.nextVisit.date }}<template v-if="props.nextVisit.window"> · arriving {{ props.nextVisit.window }}</template>
+                    </p>
+                </div>
+            </div>
+
             <MasterDetail
                 :has-selection="props.selected !== null"
                 :selection-key="props.selected?.id ?? null"

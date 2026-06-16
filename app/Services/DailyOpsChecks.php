@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Notifications\BalanceReminder;
 use App\Notifications\OpsAlert;
 use App\Notifications\ServiceReminder;
+use App\Support\EtaWindow;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -226,6 +227,7 @@ class DailyOpsChecks
                     poolName: (string) $pool->name,
                     date: $date?->format('l, F j') ?? 'tomorrow',
                     agentName: $stop->route?->agent?->displayName(),
+                    arrivalWindow: EtaWindow::for($stop->estimated_arrival),
                 ));
             }
         }

@@ -24,6 +24,7 @@ class ServiceReminderMail extends Mailable
         public string $poolName,
         public string $date,
         public ?string $agentName,
+        public ?string $arrivalWindow = null,
     ) {}
 
     public function envelope(): Envelope
@@ -39,6 +40,7 @@ class ServiceReminderMail extends Mailable
             'pool' => $this->poolName,
             'date' => $this->date,
             'agentName' => $this->agentName,
+            'arrivalWindow' => $this->arrivalWindow,
         ]);
     }
 }

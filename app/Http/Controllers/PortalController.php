@@ -7,12 +7,15 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
+use App\Models\RouteStop;
 use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Services\BillingService;
 use App\Services\StripeService;
+use App\Support\EtaWindow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -62,7 +65,45 @@ class PortalController extends Controller
         return Inertia::render('portal/History', [
             'visits' => $visits,
             'selected' => $selected,
+            'nextVisit' => $this->nextVisit($poolIds),
         ]);
+    }
+
+    /**
+     * The homeowner's next upcoming visit (soonest pending stop on a route
+     * today or later) with a softened arrival window. Null when none is scheduled.
+     *
+     * @param  Collection<int, int>  $poolIds
+     * @return array<string, mixed>|null
+     */
+    private function nextVisit(Collection $poolIds): ?array
+    {
+        if ($poolIds->isEmpty()) {
+            return null;
+        }
+
+        // route_stops has no tenant scope of its own; the pool-id filter keeps
+        // this to the customer's own pools, and the join stays uncached.
+        $stop = RouteStop::query()
+            ->select('route_stops.*')
+            ->join('routes', 'routes.id', '=', 'route_stops.route_id')
+            ->whereIn('route_stops.pool_id', $poolIds)
+            ->where('route_stops.status', 'pending')
+            ->whereDate('routes.scheduled_date', '>=', today())
+            ->with(['pool:id,name', 'route:id,scheduled_date'])
+            ->orderBy('routes.scheduled_date')
+            ->orderBy('route_stops.stop_order')
+            ->first();
+
+        if ($stop === null) {
+            return null;
+        }
+
+        return [
+            'pool' => $stop->pool?->getAttribute('name'),
+            'date' => $stop->route?->scheduled_date?->format('l, M j'),
+            'window' => EtaWindow::for($stop->estimated_arrival),
+        ];
     }
 
     public function requests(Request $request): Response

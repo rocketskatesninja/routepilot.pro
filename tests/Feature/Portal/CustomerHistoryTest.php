@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\Route;
+use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -45,6 +47,26 @@ test('a customer cannot open another customer\'s visit', function () {
         ->get("/history?selected={$otherVisit->id}")
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->where('selected', null));
+});
+
+test('the history screen shows the next upcoming visit with an arrival window', function () {
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()->addDay()]);
+    RouteStop::factory()->for($route)->for($this->pool)->create([
+        'stop_order' => 1, 'status' => 'pending', 'estimated_arrival' => today()->addDay()->setTime(14, 20),
+    ]);
+
+    $this->actingAs($this->user)
+        ->get('/history')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('nextVisit.pool', 'My Pool')
+            ->where('nextVisit.window', '2:00 – 3:00 PM')
+        );
+});
+
+test('the history screen has a null next visit when nothing is scheduled', function () {
+    $this->actingAs($this->user)
+        ->get('/history')
+        ->assertInertia(fn (Assert $page) => $page->where('nextVisit', null));
 });
 
 test('staff cannot use the customer history endpoint', function () {
