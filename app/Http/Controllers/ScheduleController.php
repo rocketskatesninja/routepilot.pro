@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\EstimateArrivals;
+use App\Events\RouteUpdated;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceLocation;
@@ -114,6 +115,7 @@ class ScheduleController extends Controller
 
         $result = $optimizer->optimize($route);
         $arrivals->handle($route);
+        $this->broadcastRoute($route);
 
         return back()->with('success', "Optimized {$result['optimized']} stops · {$result['total_distance_km']} km.");
     }
@@ -130,8 +132,20 @@ class ScheduleController extends Controller
             'status' => 'skipped',
             'skip_reason' => $this->canManage($user) ? 'Skipped by office' : 'Skipped by tech',
         ]);
+        $this->broadcastRoute($stop->route);
 
         return back()->with('success', 'Stop skipped.');
+    }
+
+    /** Push a live "this day's routes changed" event to the tenant's schedule board. */
+    private function broadcastRoute(Route $route): void
+    {
+        $agentId = $route->getAttribute('agent_id');
+        event(new RouteUpdated(
+            (int) $route->getAttribute('tenant_id'),
+            $route->scheduled_date->toDateString(),
+            $agentId !== null ? (int) $agentId : null,
+        ));
     }
 
     /**
@@ -194,6 +208,7 @@ class ScheduleController extends Controller
             $route = is_array($r) ? Route::query()->where('tenant_id', $tenantId)->find((int) ($r['id'] ?? 0)) : null;
             if ($route !== null) {
                 $arrivals->handle($route);
+                $this->broadcastRoute($route);
             }
         }
 

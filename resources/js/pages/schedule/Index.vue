@@ -6,9 +6,10 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { visitStatusClass } from '@/lib/statusColors';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
+import { subscribeTenantRoutes } from '@/echo';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
 interface Stop {
@@ -78,6 +79,27 @@ watch(
     () => props.unassigned,
     (value) => (localUnassigned.value = value ? clone(value) : null),
 );
+
+// Live sync: when another dispatcher or a field agent changes this day's
+// routes, the board refreshes itself (debounced) — only for the day on screen.
+const page = usePage();
+const tenantId = Number((page.props.auth as { user?: { tenant_id?: number } } | undefined)?.user?.tenant_id ?? 0);
+let unsubscribe: (() => void) | null = null;
+let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+onMounted(() => {
+    if (!tenantId) return;
+    unsubscribe = subscribeTenantRoutes(tenantId, (e) => {
+        if (e.date !== props.date) return;
+        if (reloadTimer) clearTimeout(reloadTimer);
+        reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'coords'], preserveScroll: true }), 400);
+    });
+});
+
+onBeforeUnmount(() => {
+    if (reloadTimer) clearTimeout(reloadTimer);
+    unsubscribe?.();
+});
 
 const isToday = computed(() => props.date === props.today);
 const totalStops = computed(() => props.routes.reduce((n, r) => n + r.total, 0));

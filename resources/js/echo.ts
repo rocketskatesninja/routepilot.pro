@@ -55,3 +55,16 @@ export function ensureUserSubscription(userId: number | null, onNotification: ()
 
     if (userId !== null) client.private(`App.Models.User.${userId}`).notification(() => onNotification());
 }
+
+/**
+ * Subscribe to a tenant's live schedule feed (RouteUpdated events). Returns an
+ * unsubscribe fn; no-ops (returns a noop) during SSR / without a key.
+ */
+export function subscribeTenantRoutes(tenantId: number, onUpdate: (e: { date: string; agent_id: number | null }) => void): () => void {
+    const client = initEcho();
+    if (!client) return () => {};
+
+    client.private(`tenant.${tenantId}`).listen('.RouteUpdated', onUpdate);
+
+    return () => client.leave(`tenant.${tenantId}`);
+}

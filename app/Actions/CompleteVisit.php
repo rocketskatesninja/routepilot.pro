@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Events\RouteUpdated;
 use App\Models\ChemicalInventory;
 use App\Models\InventoryTransaction;
 use App\Models\RouteStop;
@@ -40,7 +41,7 @@ class CompleteVisit
      */
     public function handle(RouteStop $stop, array $data, User $agent, array $photos = []): ServiceVisit
     {
-        return DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
+        $visit = DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
             $visit = $stop->serviceVisit()->first();
 
             $gps = [
@@ -112,6 +113,19 @@ class CompleteVisit
 
             return $visit;
         });
+
+        // Live-refresh the office schedule board (and any other dispatcher).
+        $route = $stop->route()->first();
+        if ($route !== null) {
+            $agentId = $route->getAttribute('agent_id');
+            event(new RouteUpdated(
+                (int) $route->getAttribute('tenant_id'),
+                $route->scheduled_date->toDateString(),
+                $agentId !== null ? (int) $agentId : null,
+            ));
+        }
+
+        return $visit;
     }
 
     /**
