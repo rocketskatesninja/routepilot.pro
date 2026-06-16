@@ -19,3 +19,4 @@ Schedule::command('app:geocode-locations')->dailyAt('03:30'); // retry any locat
 Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00');
 Schedule::command('app:charge-autopay')->monthlyOn(2, '05:00');
 Schedule::command('app:retry-autopay')->dailyAt('06:00');
+Schedule::command('app:daily-ops-alerts')->dailyAt('07:00'); // proactive admin alerts (after the night's routing/billing settle)
