@@ -8,6 +8,7 @@ use App\Actions\CreatePool;
 use App\Actions\UpdatePool;
 use App\Http\Requests\StorePoolRequest;
 use App\Http\Requests\UpdatePoolRequest;
+use App\Models\AuditLog;
 use App\Models\ChemicalReading;
 use App\Models\Customer;
 use App\Models\EquipmentServiceLog;
@@ -98,6 +99,8 @@ class PoolController extends Controller
     public function destroy(Request $request, Pool $pool): RedirectResponse
     {
         $this->authorizeAdmin($request);
+
+        AuditLog::record($request->user(), 'pool.deleted', $pool);
         $pool->delete();
 
         return back()->with('success', 'Pool removed.');

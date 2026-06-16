@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
 use App\Models\ServiceRequest;
@@ -169,6 +170,7 @@ class PortalController extends Controller
             'is_default' => true,
         ]);
         $customer->forceFill(['autopay_enabled' => true, 'default_payment_method_id' => $pm->id])->save();
+        AuditLog::record($request->user(), 'autopay.enabled', $customer, ['last4' => $card['last4'] ?? null]);
 
         return redirect('/balance')->with('success', 'Autopay is on — card ending '.($card['last4'] ?? '••••').' saved.');
     }
@@ -177,6 +179,7 @@ class PortalController extends Controller
     {
         $customer = $this->resolveCustomer($request);
         $customer->forceFill(['autopay_enabled' => false])->save();
+        AuditLog::record($request->user(), 'autopay.disabled', $customer);
 
         return back()->with('success', 'Autopay turned off.');
     }

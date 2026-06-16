@@ -8,6 +8,7 @@ use App\Actions\CreateSubscription;
 use App\Actions\UpdateSubscription;
 use App\Http\Requests\StoreSubscriptionRequest;
 use App\Http\Requests\UpdateSubscriptionRequest;
+use App\Models\AuditLog;
 use App\Models\ServiceSubscription;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,8 @@ class SubscriptionController extends Controller
     public function destroy(Request $request, ServiceSubscription $subscription): RedirectResponse
     {
         $this->authorizeAdmin($request);
+
+        AuditLog::record($request->user(), 'subscription.deleted', $subscription);
         $subscription->delete();
 
         return back()->with('success', 'Service plan removed.');

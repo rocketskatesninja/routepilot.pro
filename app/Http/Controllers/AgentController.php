@@ -8,6 +8,7 @@ use App\Actions\CreateAgent;
 use App\Actions\UpdateAgent;
 use App\Http\Requests\StoreAgentRequest;
 use App\Http\Requests\UpdateAgentRequest;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,15 @@ class AgentController extends Controller
     public function update(UpdateAgentRequest $request, User $agent, UpdateAgent $action): RedirectResponse
     {
         $this->authorizeAgent($request, $agent);
+
+        // Audit only when a privilege flag actually changes — not for routine
+        // profile edits (name / phone / colour).
+        $before = $this->privilegeState($agent);
         $action->handle($agent, $request->validated());
+        $after = $this->privilegeState($agent->refresh());
+        if ($before !== $after) {
+            AuditLog::record($request->user(), 'agent.privilege_changed', $agent, ['from' => $before, 'to' => $after]);
+        }
 
         return back()->with('success', 'Agent updated.');
     }
@@ -40,9 +49,25 @@ class AgentController extends Controller
     {
         $this->authorizeAdmin($request);
         $this->authorizeAgent($request, $agent);
+
+        AuditLog::record($request->user(), 'agent.deleted', $agent);
         $agent->delete();
 
         return back()->with('success', 'Agent removed.');
+    }
+
+    /**
+     * The privilege-relevant flags on an agent (the fields whose change is
+     * worth an audit row).
+     *
+     * @return array{is_active: bool, agent_plus: bool}
+     */
+    private function privilegeState(User $agent): array
+    {
+        return [
+            'is_active' => (bool) $agent->getAttribute('is_active'),
+            'agent_plus' => (bool) $agent->getAttribute('agent_plus'),
+        ];
     }
 
     /**

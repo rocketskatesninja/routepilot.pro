@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\MarkInvoicePaid;
 use App\Mail\InvoiceMail;
+use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Tenant;
@@ -78,6 +79,7 @@ class InvoiceController extends Controller
         }
 
         $action->handle($invoice, $method, $request->user()->id);
+        AuditLog::record($request->user(), 'invoice.marked_paid', $invoice, ['method' => $method, 'total' => (float) $invoice->total]);
 
         return back()->with('success', "Invoice {$invoice->number} marked paid.");
     }

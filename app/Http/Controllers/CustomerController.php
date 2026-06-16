@@ -97,6 +97,7 @@ class CustomerController extends Controller
         }
 
         $action->handle($customer, (string) $request->validated()['password']);
+        $this->audit($request, 'customer.portal_granted', $customer);
 
         return back()->with('success', 'Portal access granted.');
     }

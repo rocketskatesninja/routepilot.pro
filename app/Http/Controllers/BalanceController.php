@@ -9,6 +9,7 @@ use App\Actions\GenerateInvoice;
 use App\Actions\RecordPayment;
 use App\Http\Requests\RecordPaymentRequest;
 use App\Http\Requests\StoreManualChargeRequest;
+use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\BillingService;
@@ -178,7 +179,8 @@ class BalanceController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $action->handle($request->validated(), (int) $user->id);
+        $charge = $action->handle($request->validated(), (int) $user->id);
+        AuditLog::record($user, 'charge.created', $charge, ['amount' => (float) $charge->amount, 'customer_id' => $charge->customer_id]);
 
         return back()->with('success', 'Charge added.');
     }
@@ -189,6 +191,9 @@ class BalanceController extends Controller
         abort_if($user === null, 403);
 
         $payment = $action->handle($customer, (string) $request->validated()['method'], (int) $user->id);
+        if ($payment !== null) {
+            AuditLog::record($user, 'payment.recorded', $payment, ['customer_id' => $customer->id, 'amount' => (float) $payment->amount, 'method' => (string) $payment->method]);
+        }
 
         return back()->with('success', $payment !== null ? 'Payment recorded.' : 'Nothing outstanding.');
     }
