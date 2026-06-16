@@ -25,6 +25,14 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        {{-- Installable PWA: manifest, theme color, and home-screen icons. --}}
+        <link rel="manifest" href="/manifest.webmanifest">
+        <meta name="theme-color" content="#0ea5e9">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="RoutePilot">
+        <link rel="apple-touch-icon" href="/assets/images/pwa/icon-192.png">
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
 
@@ -34,5 +42,17 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+
+        {{-- Register the service worker in production only (HTTPS-gated; avoids
+             clobbering Vite HMR during local dev). --}}
+        @production
+            <script>
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function () {
+                        navigator.serviceWorker.register('/sw.js').catch(function () {});
+                    });
+                }
+            </script>
+        @endproduction
     </body>
 </html>
