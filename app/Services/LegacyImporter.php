@@ -125,10 +125,10 @@ class LegacyImporter
         ]);
 
         $visitIds = array_keys($visits) ?: [0];
-        $readings = $this->copy('chemical_readings', fn ($q) => $q->whereIn('service_visit_id', $visitIds), [
+        $readings = $this->copy('chemical_readings', fn ($q) => $q->whereIn('service_visit_id', $visitIds), $reTenant + [
             'service_visit_id' => fn ($v) => $visits[$v] ?? null,
         ]);
-        $treatments = $this->copy('chemical_treatments', fn ($q) => $q->whereIn('service_visit_id', $visitIds), [
+        $treatments = $this->copy('chemical_treatments', fn ($q) => $q->whereIn('service_visit_id', $visitIds), $reTenant + [
             'service_visit_id' => fn ($v) => $visits[$v] ?? null,
             'chemical_inventory_id' => fn () => null, // inventory not ported
         ]);

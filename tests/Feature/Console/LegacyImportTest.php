@@ -51,10 +51,17 @@ beforeEach(function () {
         ['pool_id' => $this->oldPool, 'lat' => 31.205, 'lng' => -81.515],
     ));
 
-    legacyInsert('service_visits', array_merge(
+    $this->oldVisit = legacyInsert('service_visits', array_merge(
         ServiceVisit::factory()->make()->getAttributes(),
         ['tenant_id' => $this->oldTenant, 'pool_id' => $this->oldPool, 'agent_id' => $this->oldAdmin, 'route_stop_id' => null, 'status' => 'completed'],
     ));
+
+    // A reading carries its own tenant_id (FK) — it must be remapped too.
+    legacyInsert('chemical_readings', [
+        'tenant_id' => $this->oldTenant, 'service_visit_id' => $this->oldVisit,
+        'free_chlorine' => 2.0, 'ph' => 7.4, 'alkalinity' => 90, 'lsi_score' => -0.1,
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
 });
 
 function importOpts(array $over = []): array
@@ -71,7 +78,8 @@ test('it imports the legacy tenant into a fresh tenant with remapped foreign key
     expect($tenant->name)->toBe('Acme Pool Co')
         ->and($result['customers'])->toBe(1)
         ->and($result['pools'])->toBe(1)
-        ->and($result['visits'])->toBe(1);
+        ->and($result['visits'])->toBe(1)
+        ->and($result['readings'])->toBe(1);
 
     app()->instance('tenant_id', $tenant->id);
     $customer = Customer::query()->where('tenant_id', $tenant->id)->firstOrFail();
