@@ -2,17 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Mail\ServiceReminderMail;
 use App\Models\ChemicalReading;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
+use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Notifications\BalanceReminder;
 use App\Notifications\OpsAlert;
+use App\Notifications\ServiceReminder;
 use App\Services\DailyOpsChecks;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
@@ -110,4 +115,52 @@ test('checks are tenant-scoped — a foreign tenant\'s idle agent is not alerted
 
     // Our tenant has no agents/pools — nothing to alert on.
     expect(alertKinds($this->admin))->toBe([]);
+});
+
+/** A pool scheduled for service tomorrow, owned by a portal customer. */
+function poolDueTomorrow(string $email = 'home@example.test', bool $optOut = false): array
+{
+    $portal = User::factory()->customer()->for(test()->tenant)->create();
+    $customer = Customer::factory()->for(test()->tenant)->create(['user_id' => $portal->id, 'email' => $email, 'email_opt_out' => $optOut]);
+    $pool = Pool::factory()->for(test()->tenant)->for($customer)->create();
+    $agent = User::factory()->agent()->for(test()->tenant)->create();
+    $route = Route::factory()->for(test()->tenant)->create(['agent_id' => $agent->id, 'scheduled_date' => today()->addDay()]);
+    RouteStop::factory()->for($route)->for($pool)->create(['status' => 'pending']);
+
+    return [$portal, $customer];
+}
+
+test('a pool due tomorrow reminds the portal customer in-app and by email', function () {
+    [$portal] = poolDueTomorrow();
+    Notification::fake();
+    Mail::fake();
+
+    app(DailyOpsChecks::class)->run($this->tenant->id);
+
+    Notification::assertSentTo($portal, ServiceReminder::class);
+    Mail::assertQueued(ServiceReminderMail::class);
+});
+
+test('the service reminder email is skipped for opt-out customers (in-app still sent)', function () {
+    [$portal] = poolDueTomorrow(optOut: true);
+    Notification::fake();
+    Mail::fake();
+
+    app(DailyOpsChecks::class)->run($this->tenant->id);
+
+    Notification::assertSentTo($portal, ServiceReminder::class); // in-app unaffected by marketing opt-out
+    Mail::assertNotQueued(ServiceReminderMail::class);
+});
+
+test('a portal customer with a long-unpaid visit gets a balance reminder', function () {
+    $portal = User::factory()->customer()->for($this->tenant)->create();
+    $customer = Customer::factory()->for($this->tenant)->create(['user_id' => $portal->id]);
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+    ServiceVisit::factory()->for($pool)->create(['status' => 'completed', 'paid_at' => null, 'visited_at' => now()->subDays(40), 'agent_id' => $agent->id]);
+    Notification::fake();
+
+    app(DailyOpsChecks::class)->run($this->tenant->id);
+
+    Notification::assertSentTo($portal, BalanceReminder::class);
 });

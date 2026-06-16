@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Mail\ServiceReminderMail;
+use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceVisit;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Notifications\BalanceReminder;
 use App\Notifications\OpsAlert;
+use App\Notifications\ServiceReminder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -43,6 +49,10 @@ class DailyOpsChecks
         $alerts += $this->overdueBalances($admins) ? 1 : 0;
         $alerts += $this->staleChemistry($admins) ? 1 : 0;
         $alerts += $this->idleAgents($admins) ? 1 : 0;
+
+        // Customer-facing reminders (one per affected homeowner, not per tenant).
+        $alerts += $this->serviceTomorrow($tenantId);
+        $alerts += $this->overdueCustomerBalances();
 
         return $alerts;
     }
@@ -170,6 +180,88 @@ class DailyOpsChecks
         return $this->alert($admins, 'idle_agents', 'Idle agents',
             $count.' active '.($count === 1 ? 'agent has' : 'agents have').' no stops scheduled today.',
             '/schedule', 'Users');
+    }
+
+    /**
+     * Remind homeowners whose pool is scheduled for service tomorrow — in-app
+     * (portal users) plus a branded email (skipped for opt-out customers and
+     * those who turned off the `service` email channel).
+     */
+    private function serviceTomorrow(int $tenantId): int
+    {
+        $stops = RouteStop::query()
+            ->where('status', 'pending')
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()->addDay()))
+            ->with(['pool.customer.user', 'route.agent'])
+            ->get();
+
+        if ($stops->isEmpty()) {
+            return 0;
+        }
+
+        $company = (string) (Tenant::query()->whereKey($tenantId)->value('name') ?? '');
+        $sent = 0;
+
+        foreach ($stops as $stop) {
+            $pool = $stop->pool;
+            $customer = $pool?->customer;
+            if ($pool === null || $customer === null) {
+                continue;
+            }
+
+            $user = $customer->user;
+            if ($user !== null) {
+                $user->notify(new ServiceReminder((string) $pool->name));
+                $sent++;
+            }
+
+            $email = $customer->email;
+            $optedOut = (bool) $customer->getAttribute('email_opt_out');
+            $emailAllowed = $user === null || $user->wantsNotification('service', 'email');
+            if (is_string($email) && $email !== '' && ! $optedOut && $emailAllowed) {
+                $date = $stop->route?->scheduled_date;
+                Mail::to($email)->queue(new ServiceReminderMail(
+                    customerName: $customer->displayName(),
+                    company: $company,
+                    poolName: (string) $pool->name,
+                    date: $date?->format('l, F j') ?? 'tomorrow',
+                    agentName: $stop->route?->agent?->displayName(),
+                ));
+            }
+        }
+
+        return $sent;
+    }
+
+    /** Remind portal customers carrying 30+ day unpaid visits. */
+    private function overdueCustomerBalances(): int
+    {
+        $poolIds = ServiceVisit::query()
+            ->where('status', 'completed')
+            ->whereNull('paid_at')
+            ->where('visited_at', '<', now()->subDays(30))
+            ->distinct()
+            ->pluck('pool_id');
+
+        if ($poolIds->isEmpty()) {
+            return 0;
+        }
+
+        $customers = Customer::query()
+            ->whereHas('pools', fn ($q) => $q->whereIn('id', $poolIds))
+            ->whereNotNull('user_id')
+            ->with('user')
+            ->get();
+
+        $sent = 0;
+        foreach ($customers as $customer) {
+            if ($customer->user !== null) {
+                $customer->user->notify(new BalanceReminder);
+                $sent++;
+            }
+        }
+
+        return $sent;
     }
 
     /** @param  Collection<int, User>  $admins */
