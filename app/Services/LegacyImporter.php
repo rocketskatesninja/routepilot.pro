@@ -136,6 +136,10 @@ class LegacyImporter
         $charges = $this->copy('manual_charges', $byTenant, $reTenant + [
             'customer_id' => fn ($v) => $customers[$v] ?? null,
             'created_by' => fn ($v) => $v ? ($users[$v] ?? null) : null,
+            // The current schema requires occurred_on; the old row predates it.
+            'occurred_on' => fn ($v, $row) => $v ?? (isset($row['created_at'])
+                ? date('Y-m-d', (int) strtotime((string) $row['created_at']))
+                : now()->toDateString()),
         ]);
 
         return [
