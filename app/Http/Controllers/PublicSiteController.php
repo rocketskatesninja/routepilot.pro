@@ -54,6 +54,7 @@ class PublicSiteController extends Controller
             'sections' => $sections,
             'seo' => $this->seo($config, $tenant),
             'live' => $assemble->handle($tenant, $config),
+            'chatbot' => (bool) (($config['theme']['chatbot'] ?? false)),
             // Brand (name / logo / color) arrives via the shared `tenant` prop.
         ]);
     }

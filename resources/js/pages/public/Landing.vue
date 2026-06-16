@@ -1,15 +1,23 @@
 <script setup lang="ts">
+import LeadChatWidget from '@/components/landing/LeadChatWidget.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
 import type { BrandContext, LiveData, SectionConfig } from '@/components/landing/types';
 import { useReveal } from '@/composables/useReveal';
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     sections: SectionConfig[];
     live: LiveData;
     seo: { title: string; description: string; og_image: string | null };
+    chatbot?: boolean;
 }>();
+
+// Render the chat widget client-only (it uses localStorage) when the tenant
+// enabled it AND the AI is actually configured + in-quota.
+const mounted = ref(false);
+onMounted(() => (mounted.value = true));
+const showChat = computed(() => mounted.value && props.chatbot === true && props.live.chatEnabled === true);
 
 const page = usePage();
 const tenant = page.props.tenant as { name: string; slug: string; logo_path: string | null; brand_color: string | null } | null;
@@ -53,6 +61,8 @@ useReveal();
         <main>
             <SectionRenderer :sections="sections" :live="live" :brand="brand" />
         </main>
+
+        <LeadChatWidget v-if="showChat" :action="live.chatAction || `/public/${brand.slug}/chat`" :company="brand.name" />
 
         <footer class="border-t border-border bg-muted/40">
             <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6">

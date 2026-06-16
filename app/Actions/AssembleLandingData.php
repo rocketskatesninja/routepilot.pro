@@ -10,6 +10,8 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VisitPhoto;
+use App\Services\AiQuota;
+use App\Services\Chat\AiCredentials;
 use App\Support\LandingCache;
 use App\Support\LandingConfig;
 use Illuminate\Support\Carbon;
@@ -45,6 +47,8 @@ class AssembleLandingData
         $browserKey = config('services.google.browser_maps_key');
         $live = [
             'contactAction' => '/public/'.$tenant->slug.'/leads',
+            'chatAction' => '/public/'.$tenant->slug.'/chat',
+            'chatEnabled' => $this->chatEnabled($tenant),
             'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
         ];
 
@@ -94,6 +98,15 @@ class AssembleLandingData
             'visits_completed' => ServiceVisit::query()->where('status', 'completed')->count(), // tenant-scoped
             'years_active' => max(1, $years),
         ];
+    }
+
+    /** Whether the public chatbot can actually run: AI key present, enabled, and in-quota for this tenant. */
+    private function chatEnabled(Tenant $tenant): bool
+    {
+        [, $key] = app(AiCredentials::class)->for((int) $tenant->id);
+        $quota = app(AiQuota::class);
+
+        return $key !== '' && $quota->enabled((int) $tenant->id) && $quota->remaining((int) $tenant->id) > 0;
     }
 
     /**

@@ -24,6 +24,8 @@ export interface LiveData {
     services?: LandingService[];
     mapsKey?: string | null;
     contactAction?: string;
+    chatAction?: string;
+    chatEnabled?: boolean;
 }
 
 export interface SectionConfig {

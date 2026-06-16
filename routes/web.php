@@ -22,6 +22,7 @@ use App\Http\Controllers\PlatformAiController;
 use App\Http\Controllers\PlatformBillingController;
 use App\Http\Controllers\PoolController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\PublicChatController;
 use App\Http\Controllers\PublicPayController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ReportController;
@@ -58,6 +59,9 @@ Route::get('unsubscribe/{customer}', function (Customer $customer) {
 
 // Public lead capture from a tenant's landing site (by slug), rate-limited.
 Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->middleware('throttle:10,1')->name('leads.capture');
+
+// Public lead-capture chatbot (anonymous, per tenant) — metered + IP rate-limited.
+Route::post('public/{tenant:slug}/chat', [PublicChatController::class, 'send'])->middleware('throttle:20,60')->name('public.chat');
 
 // Stripe webhook — fails closed (signature-verified), idempotent. CSRF-exempt.
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');

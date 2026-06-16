@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ChatSession extends Model
 {
     /** @var list<string> */
-    protected $fillable = ['user_id', 'context'];
+    protected $fillable = ['user_id', 'tenant_id', 'visitor_token', 'context'];
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo

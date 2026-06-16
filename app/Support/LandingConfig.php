@@ -37,7 +37,7 @@ class LandingConfig
         return [
             'version' => 1,
             'seo' => ['title' => null, 'description' => null, 'og_image' => null],
-            'theme' => ['accent' => 'brand', 'hero_style' => 'image-right', 'show_logo' => true],
+            'theme' => ['accent' => 'brand', 'hero_style' => 'image-right', 'show_logo' => true, 'chatbot' => false],
             'sections' => [
                 ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
                 ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => self::METRICS],
@@ -145,6 +145,7 @@ class LandingConfig
                 'accent' => self::str($theme['accent'] ?? null, 20) ?? 'brand',
                 'hero_style' => in_array($theme['hero_style'] ?? null, ['image-right', 'image-left', 'centered'], true) ? $theme['hero_style'] : 'image-right',
                 'show_logo' => (bool) ($theme['show_logo'] ?? true),
+                'chatbot' => (bool) ($theme['chatbot'] ?? false),
             ],
             'sections' => $clean,
         ];

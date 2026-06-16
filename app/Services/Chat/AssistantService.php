@@ -7,10 +7,8 @@ namespace App\Services\Chat;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
 use App\Models\Customer;
-use App\Models\TenantSetting;
 use App\Models\User;
 use App\Services\ClaudeService;
-use App\Services\PlatformAiSettings;
 
 /**
  * Orchestrates an assistant turn: builds the role-specific context, resolves
@@ -29,7 +27,7 @@ class AssistantService
 
         $system = $this->systemPrompt($user, $role);
         $history = $this->history($session);
-        [$provider, $key, $model] = $this->credentials((int) $user->tenant_id);
+        [$provider, $key, $model] = app(AiCredentials::class)->for((int) $user->tenant_id);
         $tools = $role === 'tenant_admin' ? ToolRegistry::schemas() : [];
 
         // Agents get adaptive thinking for deeper chemistry/equipment reasoning.
@@ -103,28 +101,5 @@ class AssistantService
             ->all();
 
         return array_reverse($rows);
-    }
-
-    /**
-     * Resolve [provider, key, model]. AI is platform-managed: provider/model/key
-     * come from the super-admin's platform settings. A tenant only overrides them
-     * when the super-admin has granted that tenant the `ai_allow_override` policy.
-     *
-     * @return array{string, string, string}
-     */
-    private function credentials(int $tenantId): array
-    {
-        $platform = app(PlatformAiSettings::class);
-        $provider = $platform->provider();
-        $key = $platform->key($provider);
-        $model = $platform->model($provider);
-
-        if (TenantSetting::getFor($tenantId, 'ai_allow_override') === '1') {
-            $provider = TenantSetting::getFor($tenantId, 'ai_provider') ?? $provider;
-            $key = TenantSetting::getFor($tenantId, 'ai_api_key') ?? $key;
-            $model = TenantSetting::getFor($tenantId, 'ai_model') ?? $model;
-        }
-
-        return [$provider, $key, $model];
     }
 }

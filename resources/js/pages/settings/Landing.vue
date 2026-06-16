@@ -245,6 +245,27 @@ function save() {
                     </div>
                 </div>
 
+                <!-- AI chat assistant -->
+                <div class="rounded-xl border border-border">
+                    <button
+                        type="button"
+                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
+                        @click="toggleOpen('__chat')"
+                    >
+                        AI chat assistant
+                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__chat' ? 'rotate-180' : ''" />
+                    </button>
+                    <div v-show="expanded === '__chat'" class="space-y-2 border-t border-border bg-muted/20 p-4 text-sm">
+                        <label class="flex items-center gap-2">
+                            <input v-model="theme.chatbot" type="checkbox" class="size-4 rounded border-input" />
+                            <span>Show a lead-capture chat widget on the public site</span>
+                        </label>
+                        <p class="text-xs text-muted-foreground">
+                            Answers visitor questions and captures leads. Uses your AI allowance; appears only while AI is configured.
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Sections -->
                 <draggable v-model="sections" item-key="key" handle=".drag-handle" :animation="150" class="space-y-2">
                     <template #item="{ element: s }">
