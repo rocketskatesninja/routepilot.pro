@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import BookingSection from './sections/BookingSection.vue';
 import ContactSection from './sections/ContactSection.vue';
 import CtaSection from './sections/CtaSection.vue';
 import FaqSection from './sections/FaqSection.vue';
@@ -29,6 +30,7 @@ const registry: Record<string, Component> = {
     gallery: GallerySection,
     team: TeamSection,
     service_area: ServiceAreaSection,
+    booking: BookingSection,
     testimonials: TestimonialsSection,
     faq: FaqSection,
     cta: CtaSection,
