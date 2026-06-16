@@ -28,6 +28,7 @@ import {
     Inbox,
     LayoutGrid,
     Map,
+    Navigation,
     ShieldCheck,
     Users,
     Waves,
@@ -67,6 +68,7 @@ const navByRole: Record<string, NavItem[]> = {
     ],
     agent: [
         { title: 'Today', href: '/dashboard', icon: CalendarDays },
+        { title: 'Field app', href: '/field', icon: Navigation },
         { title: 'My Route', href: '/schedule', icon: Map },
         { title: 'Reports', href: '/reports', icon: FileText },
         { title: 'Assistant', href: '/assistant', icon: Bot },

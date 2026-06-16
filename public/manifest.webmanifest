@@ -3,7 +3,7 @@
     "short_name": "RoutePilot",
     "description": "Pool-service field app — your route, water tests, and dosing, even offline.",
     "id": "/?source=pwa",
-    "start_url": "/dashboard?source=pwa",
+    "start_url": "/field?source=pwa",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait-primary",

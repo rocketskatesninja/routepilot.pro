@@ -80,6 +80,10 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::post('stops/{stop}/skip', [ScheduleController::class, 'skipStop'])->name('stops.skip');
     Route::post('schedule/arrange', [ScheduleController::class, 'arrange'])->name('schedule.arrange');
 
+    // Offline field app (the agent PWA surface) — a standalone client-rendered
+    // route runner that hydrates from the field API + IndexedDB.
+    Route::get('field', fn () => Inertia::render('field/Index'))->name('field.index');
+
     // Field PWA JSON API (session-auth, same-origin). `/api/*` so the service
     // worker leaves it alone; the offline queue syncs against `complete`.
     Route::get('api/field/today', [FieldController::class, 'today'])->name('field.today');
