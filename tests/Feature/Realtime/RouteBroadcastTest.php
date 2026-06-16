@@ -31,10 +31,12 @@ test('the tenant schedule channel authorizes only that tenant\'s staff', functio
     $foreignStaff = User::factory()->for(Tenant::factory()->create())->create();
     $customerUser = User::factory()->customer()->for($this->tenant)->create();
 
-    expect($authorize($this->admin, $this->tenant->id))->toBeTrue()
-        ->and($authorize($this->agent, $this->tenant->id))->toBeTrue()
-        ->and($authorize($foreignStaff, $this->tenant->id))->toBeFalse()
-        ->and($authorize($customerUser, $this->tenant->id))->toBeFalse();
+    // Broadcast auth passes the channel param as a string — mirror that here.
+    $id = (string) $this->tenant->id;
+    expect($authorize($this->admin, $id))->toBeTrue()
+        ->and($authorize($this->agent, $id))->toBeTrue()
+        ->and($authorize($foreignStaff, $id))->toBeFalse()
+        ->and($authorize($customerUser, $id))->toBeFalse();
 });
 
 test('optimizing a route broadcasts RouteUpdated for that day', function () {
