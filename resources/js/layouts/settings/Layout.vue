@@ -5,25 +5,20 @@ import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: '/settings/profile',
-    },
-    {
-        title: 'Password',
-        href: '/settings/password',
-    },
-    {
-        title: 'Appearance',
-        href: '/settings/appearance',
-    },
-];
-
 // SSR-safe + reactive: Inertia provides the current URL in the page object
 // (window is undefined during server render).
 const page = usePage();
 const currentPath = computed(() => page.url.split('?')[0]);
+
+// 2FA enrollment is staff-only (super_admin / tenant_admin / agent).
+const isStaff = computed(() => ['super_admin', 'tenant_admin', 'agent'].includes((page.props.auth?.user?.role as string) ?? ''));
+
+const sidebarNavItems = computed<NavItem[]>(() => [
+    { title: 'Profile', href: '/settings/profile' },
+    { title: 'Password', href: '/settings/password' },
+    ...(isStaff.value ? [{ title: 'Two-factor', href: '/settings/two-factor' }] : []),
+    { title: 'Appearance', href: '/settings/appearance' },
+]);
 </script>
 
 <template>

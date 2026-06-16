@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
+use App\Http\Controllers\Settings\TwoFactorController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,4 +19,11 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/Appearance');
     })->name('appearance');
+
+    // Two-factor authentication (staff only — enforced in the controller).
+    Route::get('settings/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
+    Route::post('settings/two-factor', [TwoFactorController::class, 'store'])->name('two-factor.enable');
+    Route::post('settings/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
+    Route::post('settings/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes'])->name('two-factor.recovery-codes');
+    Route::delete('settings/two-factor', [TwoFactorController::class, 'destroy'])->name('two-factor.disable');
 });

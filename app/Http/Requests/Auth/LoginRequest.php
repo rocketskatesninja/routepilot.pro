@@ -16,6 +16,9 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    /** Set when the password was correct but the user must still pass a 2FA challenge. */
+    public bool $twoFactorPending = false;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -68,6 +71,17 @@ class LoginRequest extends FormRequest
             throw ValidationException::withMessages([
                 'email' => 'This account has been deactivated. Please contact your administrator.',
             ]);
+        }
+
+        // Password is correct — but a 2FA-enabled user isn't logged in yet.
+        // Park them for the challenge step (TwoFactorChallengeController).
+        if ($user instanceof User && $user->hasTwoFactorEnabled()) {
+            $this->session()->put('login.id', $user->getKey());
+            $this->session()->put('login.remember', $this->boolean('remember'));
+            RateLimiter::clear($this->throttleKey());
+            $this->twoFactorPending = true;
+
+            return;
         }
 
         Auth::login($user, $this->boolean('remember'));

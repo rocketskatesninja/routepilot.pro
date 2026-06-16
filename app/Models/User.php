@@ -49,7 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /** @var list<string> */
-    protected $hidden = ['password', 'remember_token', 'google_id', 'admin_notes'];
+    protected $hidden = ['password', 'remember_token', 'google_id', 'admin_notes', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     /**
      * `name` is a computed accessor (first + last); append it so the
@@ -65,6 +65,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted',
+            'two_factor_confirmed_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'agent_plus' => 'boolean',
@@ -143,6 +146,36 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isCustomer(): bool
     {
         return $this->role === 'customer';
+    }
+
+    /** Staff = the back-office / field roles (everyone but customers). 2FA is staff-only. */
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['super_admin', 'tenant_admin', 'agent'], true);
+    }
+
+    // --- Two-factor authentication ---
+
+    /** 2FA is active only once a secret exists AND the user confirmed a code. */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
+    }
+
+    /**
+     * The user's unused recovery codes.
+     *
+     * @return list<string>
+     */
+    public function recoveryCodes(): array
+    {
+        $raw = $this->two_factor_recovery_codes;
+        if (! is_string($raw) || $raw === '') {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+
+        return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
     }
 
     // --- Relationships ---
