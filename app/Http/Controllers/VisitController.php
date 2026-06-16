@@ -5,24 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\CompleteVisit;
+use App\Actions\SendVisitFollowups;
 use App\Http\Requests\AnalyzeReadingRequest;
 use App\Http\Requests\CompleteVisitRequest;
-use App\Mail\VisitRecapMail;
 use App\Models\ChemicalReading;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
-use App\Models\User;
 use App\Models\VisitPhoto;
-use App\Notifications\VisitCompleted;
-use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Support\LandingCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -93,7 +87,7 @@ class VisitController extends Controller
         return response()->json($chem->fullAnalysis($request->validated(), $stop->pool));
     }
 
-    public function complete(CompleteVisitRequest $request, RouteStop $stop, CompleteVisit $action, BillingService $billing): RedirectResponse
+    public function complete(CompleteVisitRequest $request, RouteStop $stop, CompleteVisit $action, SendVisitFollowups $followups): RedirectResponse
     {
         $user = $request->user();
         abort_if($user === null, 403);
@@ -101,24 +95,7 @@ class VisitController extends Controller
 
         $photos = $request->file('photos');
         $visit = $action->handle($stop, $request->validated(), $user, is_array($photos) ? $photos : []);
-
-        $customer = $visit->pool?->customer;
-
-        // Notify the homeowner's portal user, if any (honors their preferences).
-        $customerUserId = $customer?->getAttribute('user_id');
-        if ($customerUserId !== null) {
-            $customerUser = User::find($customerUserId);
-            if ($customerUser !== null) {
-                Notification::send($customerUser, new VisitCompleted($visit));
-            }
-        }
-
-        // Per-visit recap email (skipped for opt-out customers).
-        if ($customer !== null && is_string($customer->email) && $customer->email !== '' && ! $customer->email_opt_out) {
-            $balance = $billing->outstandingForCustomer($customer);
-            $payUrl = $balance > 0 ? URL::signedRoute('pay.link', ['customer' => $customer->id]) : null;
-            Mail::to($customer->email)->queue(new VisitRecapMail($visit, $balance, $payUrl));
-        }
+        $followups->handle($visit);
 
         return redirect('/dashboard')->with('success', 'Visit completed.');
     }

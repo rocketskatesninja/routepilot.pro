@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\Api\FieldController;
 use App\Http\Controllers\BalanceController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\ChatController;
@@ -78,6 +79,11 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::post('routes/{route}/optimize', [ScheduleController::class, 'optimize'])->name('routes.optimize');
     Route::post('stops/{stop}/skip', [ScheduleController::class, 'skipStop'])->name('stops.skip');
     Route::post('schedule/arrange', [ScheduleController::class, 'arrange'])->name('schedule.arrange');
+
+    // Field PWA JSON API (session-auth, same-origin). `/api/*` so the service
+    // worker leaves it alone; the offline queue syncs against `complete`.
+    Route::get('api/field/today', [FieldController::class, 'today'])->name('field.today');
+    Route::post('api/field/visits/{stop}/complete', [FieldController::class, 'complete'])->name('field.complete');
 
     // Agent at-pool visit flow.
     Route::get('visit/{stop}', [VisitController::class, 'show'])->name('visit.show');

@@ -39,6 +39,11 @@ class EnsureBillingActive
             return $next($request);
         }
 
+        // JSON/XHR clients (the field PWA API) get a clean 403, not an HTML redirect.
+        if ($request->expectsJson()) {
+            abort(403, 'This account is paused.');
+        }
+
         // The account owner can fix it; everyone else just sees the paused page.
         return $user->role === 'tenant_admin'
             ? redirect()->route('billing.show')
