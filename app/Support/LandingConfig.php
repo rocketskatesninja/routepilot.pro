@@ -15,8 +15,8 @@ class LandingConfig
 {
     /** Whitelisted section keys, in default render order. */
     public const SECTION_KEYS = [
-        'hero', 'stats', 'services', 'gallery', 'team',
-        'service_area', 'testimonials', 'faq', 'cta', 'contact',
+        'hero', 'stats', 'services', 'quote', 'gallery', 'team',
+        'service_area', 'booking', 'testimonials', 'faq', 'cta', 'contact',
     ];
 
     /** Live metric keys the stats section may surface. */
@@ -46,9 +46,11 @@ class LandingConfig
                     ['title' => 'Repairs & equipment', 'body' => 'Pumps, filters, heaters, and automation — diagnosed and fixed right the first time.', 'icon' => 'wrench'],
                     ['title' => 'Green-to-clean', 'body' => 'Neglected or algae-green pool? We bring it back to sparkling.', 'icon' => 'sparkles'],
                 ]],
+                ['key' => 'quote', 'enabled' => true, 'heading' => 'Get an instant estimate', 'blurb' => 'Tell us about your pool for a ballpark price — we’ll confirm the exact quote after a quick look.'],
                 ['key' => 'gallery', 'enabled' => true, 'heading' => 'Recent work', 'limit' => 12],
                 ['key' => 'team', 'enabled' => false, 'heading' => 'Meet the team', 'members' => []],
                 ['key' => 'service_area', 'enabled' => true, 'heading' => 'Where we serve', 'radius_label' => 'Proudly serving your neighborhood'],
+                ['key' => 'booking', 'enabled' => false, 'heading' => 'Request your first visit', 'blurb' => 'Pick a service and a date that works — we’ll confirm by phone or email.'],
                 ['key' => 'testimonials', 'enabled' => true, 'heading' => 'Loved by homeowners', 'items' => []],
                 ['key' => 'faq', 'enabled' => true, 'heading' => 'Common questions', 'items' => []],
                 ['key' => 'cta', 'enabled' => true, 'headline' => 'Ready for a worry-free pool?', 'button_label' => 'Get started', 'button_anchor' => 'contact'],
@@ -218,6 +220,7 @@ class LandingConfig
                 )),
             ],
             'services' => $base + ['heading' => $heading, 'items' => self::items($raw['items'] ?? null, ['title' => 80, 'body' => 280, 'icon' => 40], self::CAP['items'])],
+            'quote', 'booking' => $base + ['heading' => $heading, 'blurb' => self::str($raw['blurb'] ?? null, 240)],
             'gallery' => $base + ['heading' => $heading, 'limit' => self::int($raw['limit'] ?? null, 1, self::CAP['gallery'], 12)],
             'team' => $base + ['heading' => $heading, 'members' => self::members($raw['members'] ?? null)],
             'service_area' => $base + ['heading' => $heading, 'radius_label' => self::str($raw['radius_label'] ?? null, 80)],

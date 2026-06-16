@@ -23,6 +23,9 @@ class StoreLeadRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'message' => ['nullable', 'string', 'max:2000'],
             'source' => ['nullable', 'in:contact,quote,chatbot,booking'],
+            // Structured metadata (quote inputs/estimate, booking preferences). Bounded for a public form.
+            'details' => ['nullable', 'array', 'max:12'],
+            'details.*' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Pool;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -59,6 +60,9 @@ class AssembleLandingData
                 $members = is_array($enabled['team']['members'] ?? null) ? $enabled['team']['members'] : [];
                 $out['team'] = $this->team($tenant, $members);
             }
+            if (isset($enabled['quote']) || isset($enabled['booking'])) {
+                $out['services'] = $this->services();
+            }
 
             return $out;
         });
@@ -90,6 +94,28 @@ class AssembleLandingData
             'visits_completed' => ServiceVisit::query()->where('status', 'completed')->count(), // tenant-scoped
             'years_active' => max(1, $years),
         ];
+    }
+
+    /**
+     * The tenant's active service types (for the quote calculator + booking
+     * section). Tenant-scoped via ServiceType's global scope.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function services(): array
+    {
+        return ServiceType::query()
+            ->where('is_active', true)
+            ->orderBy('price')
+            ->get(['id', 'name', 'price', 'frequency', 'description'])
+            ->map(fn ($s): array => [
+                'id' => $s->id,
+                'name' => (string) $s->name,
+                'price' => (float) $s->price,
+                'frequency' => (string) $s->frequency,
+                'description' => is_string($s->description) ? $s->description : null,
+            ])
+            ->all();
     }
 
     /** @return list<array<string, string|null>> */

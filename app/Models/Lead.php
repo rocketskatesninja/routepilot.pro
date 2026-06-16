@@ -14,11 +14,18 @@ use Illuminate\Database\Eloquent\Model;
  * @property string|null $email
  * @property string $source
  * @property string $status
+ * @property array<string, mixed>|null $details
  */
 class Lead extends Model
 {
     use BelongsToTenant;
 
     /** @var list<string> */
-    protected $fillable = ['name', 'email', 'phone', 'message', 'source'];
+    protected $fillable = ['name', 'email', 'phone', 'message', 'source', 'details'];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return ['details' => 'array'];
+    }
 }

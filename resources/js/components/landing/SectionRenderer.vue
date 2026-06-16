@@ -5,6 +5,7 @@ import CtaSection from './sections/CtaSection.vue';
 import FaqSection from './sections/FaqSection.vue';
 import GallerySection from './sections/GallerySection.vue';
 import HeroSection from './sections/HeroSection.vue';
+import QuoteSection from './sections/QuoteSection.vue';
 import ServiceAreaSection from './sections/ServiceAreaSection.vue';
 import ServicesSection from './sections/ServicesSection.vue';
 import StatsSection from './sections/StatsSection.vue';
@@ -24,6 +25,7 @@ const registry: Record<string, Component> = {
     hero: HeroSection,
     stats: StatsSection,
     services: ServicesSection,
+    quote: QuoteSection,
     gallery: GallerySection,
     team: TeamSection,
     service_area: ServiceAreaSection,

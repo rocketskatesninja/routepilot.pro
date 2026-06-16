@@ -8,11 +8,20 @@ export interface BrandContext {
     color: string | null;
 }
 
+export interface LandingService {
+    id: number;
+    name: string;
+    price: number;
+    frequency: string;
+    description: string | null;
+}
+
 export interface LiveData {
     stats?: { pools_serviced: number; visits_completed: number; years_active: number };
     gallery?: { url: string; caption: string | null }[];
     team?: { user_id: number; name: string; title: string | null; bio: string | null; avatar: string | null }[];
     serviceArea?: { lat: number | null; lng: number | null; formattedAddress: string | null; radiusLabel: string | null };
+    services?: LandingService[];
     mapsKey?: string | null;
     contactAction?: string;
 }

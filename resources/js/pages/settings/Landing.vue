@@ -64,9 +64,11 @@ const TITLES: Record<string, string> = {
     hero: 'Hero',
     stats: 'Stats band',
     services: 'Services',
+    quote: 'Instant quote',
     gallery: 'Photo gallery',
     team: 'Meet the team',
     service_area: 'Service area',
+    booking: 'Online booking',
     testimonials: 'Testimonials',
     faq: 'FAQ',
     cta: 'Call to action',
@@ -598,6 +600,15 @@ function save() {
                                             <Label>Button target</Label><Input v-model="s.button_anchor" placeholder="contact" />
                                         </div>
                                     </div>
+                                </template>
+
+                                <!-- QUOTE / BOOKING (heading + blurb; both pull live service pricing) -->
+                                <template v-else-if="s.key === 'quote' || s.key === 'booking'">
+                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
+                                    <div class="grid gap-1"><Label>Blurb</Label><textarea v-model="s.blurb" rows="2" :class="taClass" /></div>
+                                    <p class="text-xs text-muted-foreground">
+                                        Uses your active services and their prices. Set prices under Services.
+                                    </p>
                                 </template>
 
                                 <!-- CONTACT -->
