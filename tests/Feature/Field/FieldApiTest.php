@@ -64,6 +64,20 @@ test('completing a visit is idempotent under a replayed key', function () {
     expect(ServiceVisit::query()->where('route_stop_id', $this->stop->id)->count())->toBe(1);
 });
 
+test('completing a visit stores the agent GPS proof-of-presence', function () {
+    $this->actingAs($this->agent)
+        ->postJson("/api/field/visits/{$this->stop->id}/complete", [
+            'ph' => 7.4,
+            'completed_lat' => 31.1503,
+            'completed_lng' => -81.4915,
+        ])
+        ->assertOk();
+
+    $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->firstOrFail();
+    expect((float) $visit->completed_lat)->toEqualWithDelta(31.1503, 0.0001)
+        ->and((float) $visit->completed_lng)->toEqualWithDelta(-81.4915, 0.0001);
+});
+
 test('an agent cannot complete a stop on another tenant\'s route', function () {
     $otherTenant = Tenant::factory()->create();
     $otherPool = Pool::factory()->for($otherTenant)->create();

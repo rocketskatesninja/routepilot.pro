@@ -37,6 +37,10 @@ class CompleteVisitRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:6'],
             'photos.*' => ['image', 'max:5120'],
+            // Best-effort GPS proof-of-presence from the field app; idempotency key for offline replays.
+            'completed_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'completed_lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'idempotency_key' => ['nullable', 'string', 'max:64'],
         ];
     }
 }

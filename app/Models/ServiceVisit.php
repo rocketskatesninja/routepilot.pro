@@ -33,6 +33,7 @@ class ServiceVisit extends Model
     protected $fillable = [
         'route_stop_id', 'pool_id', 'agent_id', 'visited_at',
         'completed_at', 'paid_at', 'status', 'signature_path', 'notes',
+        'completed_lat', 'completed_lng',
     ];
 
     /** @return array<string, string> */
@@ -42,6 +43,8 @@ class ServiceVisit extends Model
             'visited_at' => 'datetime',
             'completed_at' => 'datetime',
             'paid_at' => 'datetime',
+            'completed_lat' => 'float',
+            'completed_lng' => 'float',
         ];
     }
 

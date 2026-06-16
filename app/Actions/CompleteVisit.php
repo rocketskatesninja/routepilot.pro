@@ -43,6 +43,11 @@ class CompleteVisit
         return DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
             $visit = $stop->serviceVisit()->first();
 
+            $gps = [
+                'completed_lat' => $data['completed_lat'] ?? null,
+                'completed_lng' => $data['completed_lng'] ?? null,
+            ];
+
             if ($visit === null) {
                 $visit = ServiceVisit::create([
                     'route_stop_id' => $stop->id,
@@ -52,6 +57,7 @@ class CompleteVisit
                     'completed_at' => now(),
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
+                    ...$gps,
                 ]);
             } else {
                 // Editing an existing visit: reverse its inventory deductions and
@@ -64,6 +70,7 @@ class CompleteVisit
                     'completed_at' => now(),
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
+                    ...$gps,
                 ]);
             }
 

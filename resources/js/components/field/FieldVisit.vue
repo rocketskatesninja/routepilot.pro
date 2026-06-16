@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
 import { type FieldStop } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
-import { ChevronLeft, FlaskConical, Plus, Sparkles, X } from 'lucide-vue-next';
+import { ChevronLeft, FlaskConical, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
@@ -58,6 +58,25 @@ function applyRec(chemical: string, amount: number, unit: string) {
 const addTreatment = () => treatments.push({ name: '', amount: '', unit: 'oz' });
 const removeTreatment = (i: number) => treatments.splice(i, 1);
 
+// Directions to the pool (works offline — the maps app handles the route).
+const navUrl = computed(() =>
+    pool.value?.lat != null && pool.value?.lng != null
+        ? `https://www.google.com/maps/dir/?api=1&destination=${pool.value.lat},${pool.value.lng}`
+        : null,
+);
+
+/** Best-effort GPS proof-of-presence — never blocks completion if denied/unavailable. */
+function captureLocation(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 },
+        );
+    });
+}
+
 const lsiTone = computed(() => {
     const s = analysis.value?.lsi.status;
     return s === 'balanced' ? 'text-emerald-600' : s === 'corrosive' ? 'text-red-600' : 'text-amber-600';
@@ -77,6 +96,11 @@ async function complete() {
     for (const f of readingFields) {
         if (reading[f.key] !== '') payload[f.key] = Number(reading[f.key]);
     }
+    const loc = await captureLocation();
+    if (loc) {
+        payload.completed_lat = loc.lat;
+        payload.completed_lng = loc.lng;
+    }
     await queueCompletion(props.stop.id, pool.value?.name ?? 'Pool', payload);
     submitting.value = false;
     emit('done', props.stop.id);
@@ -92,6 +116,15 @@ async function complete() {
                 <h1 class="truncate text-lg font-bold">{{ pool?.name }}</h1>
                 <p class="truncate text-sm text-slate-500">{{ pool?.customer }}</p>
             </div>
+            <a
+                v-if="navUrl"
+                :href="navUrl"
+                target="_blank"
+                rel="noopener"
+                class="flex items-center gap-1 rounded-lg bg-sky-50 px-2.5 py-1.5 text-sm font-semibold text-sky-700"
+            >
+                <Navigation class="size-4" /> Navigate
+            </a>
             <span v-if="!online" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Offline</span>
         </header>
 

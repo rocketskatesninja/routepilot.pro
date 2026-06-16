@@ -2,9 +2,9 @@
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import FieldVisit from '@/components/field/FieldVisit.vue';
 import { saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
-import { flushQueue, loadToday, queuedCount } from '@/lib/field/sync';
+import { failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
 import { Head, Link } from '@inertiajs/vue3';
-import { Check, ChevronRight, CloudOff, LoaderCircle, RefreshCw, Wifi, WifiOff } from 'lucide-vue-next';
+import { Check, ChevronRight, CloudOff, LoaderCircle, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const bundle = ref<TodayBundle | null>(null);
@@ -12,7 +12,23 @@ const source = ref<'network' | 'cache' | 'none'>('none');
 const loading = ref(true);
 const online = ref(true);
 const queued = ref(0);
+const failed = ref(0);
 const selected = ref<FieldStop | null>(null);
+
+async function refreshCounts() {
+    queued.value = await queuedCount();
+    failed.value = await failedCount();
+}
+
+function navUrl(stop: FieldStop): string | null {
+    const p = stop.pool;
+    return p?.lat != null && p?.lng != null ? `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}` : null;
+}
+
+async function retry() {
+    await retryFailed();
+    await refreshCounts();
+}
 
 const stops = computed(() => bundle.value?.stops ?? []);
 const remaining = computed(() => stops.value.filter((s) => !s.completed && s.status !== 'skipped').length);
@@ -23,7 +39,7 @@ async function load() {
     const result = await loadToday();
     bundle.value = result.bundle;
     source.value = result.source;
-    queued.value = await queuedCount();
+    await refreshCounts();
     loading.value = false;
 }
 
@@ -66,7 +82,7 @@ async function onCompleted(stopId: number) {
     }
     if (bundle.value) await saveBundle(bundle.value);
     selected.value = null;
-    queued.value = await queuedCount();
+    await refreshCounts();
 }
 
 const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ? 'Done' : s.status === 'skipped' ? 'Skipped' : 'Pending');
@@ -105,6 +121,12 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
             <div v-if="source === 'cache'" class="bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700">
                 Showing your last saved route (offline).
             </div>
+            <div v-if="failed > 0" class="flex items-center justify-between gap-2 bg-red-50 px-4 py-1.5 text-xs font-medium text-red-700">
+                <span class="flex items-center gap-1.5"
+                    ><TriangleAlert class="size-3.5" /> {{ failed }} visit{{ failed === 1 ? '' : 's' }} failed to sync</span
+                >
+                <button class="rounded bg-red-100 px-2 py-0.5 font-semibold hover:bg-red-200" @click="retry">Retry</button>
+            </div>
         </header>
 
         <!-- body -->
@@ -134,6 +156,16 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                         <p class="truncate font-semibold">{{ stop.pool?.name ?? 'Pool' }}</p>
                         <p class="truncate text-sm text-slate-500">{{ stop.pool?.customer }}</p>
                     </div>
+                    <a
+                        v-if="navUrl(stop)"
+                        :href="navUrl(stop) ?? undefined"
+                        target="_blank"
+                        rel="noopener"
+                        class="rounded-lg p-2 text-sky-600 hover:bg-sky-50"
+                        @click.stop
+                    >
+                        <Navigation class="size-4" />
+                    </a>
                     <span class="text-xs font-medium text-slate-400">{{ statusLabel(stop) }}</span>
                     <ChevronRight v-if="!(stop.completed || stop.status === 'completed')" class="size-5 shrink-0 text-slate-300" />
                 </li>

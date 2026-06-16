@@ -86,3 +86,15 @@ async function sync(item: QueuedVisit): Promise<void> {
 export async function queuedCount(): Promise<number> {
     return (await allQueued()).length;
 }
+
+export async function failedCount(): Promise<number> {
+    return (await allQueued()).filter((i) => i.status === 'failed').length;
+}
+
+/** Reset failed items to pending and flush again (manual retry). */
+export async function retryFailed(): Promise<number> {
+    for (const item of await allQueued()) {
+        if (item.status === 'failed') await patchQueued(item.idempotency_key, { status: 'pending', error: null });
+    }
+    return flushQueue();
+}
