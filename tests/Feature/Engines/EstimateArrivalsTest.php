@@ -12,6 +12,7 @@ use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 
 /**
  * Drive-time ETA accumulation. Pools share lat 28.0 and vary by longitude;
@@ -81,6 +82,22 @@ test('with no HQ set the first stop starts exactly at the start time', function 
     $this->action->handle($route);
 
     expect($s->fresh()->estimated_arrival->format('H:i'))->toBe('09:00'); // no opening drive leg
+});
+
+test('a live re-anchor re-times only the pending tail from the given point', function () {
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'start_time' => '08:00']);
+    $done = RouteStop::factory()->for($route)->for(locatedPool(-82.09))->create([
+        'stop_order' => 1, 'status' => 'completed', 'estimated_arrival' => today()->setTime(8, 0),
+    ]);
+    $pending = RouteStop::factory()->for($route)->for(locatedPool(-82.08))->create(['stop_order' => 2, 'status' => 'pending']);
+
+    // The agent is at the HQ point right now (14:00); re-anchor from there.
+    $this->action->handle($route, [28.0, -82.10], Carbon::parse('2026-06-16 14:00'));
+
+    // The completed stop keeps its recorded 08:00; the pending one is re-timed to
+    // 14:05 (min 5-min drive from the live point).
+    expect($done->fresh()->estimated_arrival->format('H:i'))->toBe('08:00')
+        ->and($pending->fresh()->estimated_arrival->format('H:i'))->toBe('14:05');
 });
 
 test('a stop uses its service-type duration for the gap to the next stop', function () {

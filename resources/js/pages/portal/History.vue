@@ -4,8 +4,10 @@ import MasterDetail from '@/components/MasterDetail.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { requestForPoolLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
+import { subscribeCustomerEta } from '@/echo';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { CalendarClock, CalendarPlus, Droplets } from 'lucide-vue-next';
+import { CalendarClock, CalendarPlus, Droplets, Navigation } from 'lucide-vue-next';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface VisitRow {
     id: number;
@@ -45,9 +47,28 @@ const props = defineProps<{
     visits: { data: VisitRow[]; total: number };
     selected: VisitDetail | null;
     nextVisit: NextVisit | null;
+    customerId: number;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Service History', href: '/history' }];
+
+// Live "on-my-way": the next-visit window updates in place as the agent drives,
+// and an en-route badge appears once a live update arrives.
+const liveNext = ref<NextVisit | null>(props.nextVisit);
+const onTheWay = ref(false);
+watch(
+    () => props.nextVisit,
+    (value) => (liveNext.value = value),
+);
+
+let unsubscribe: (() => void) | null = null;
+onMounted(() => {
+    unsubscribe = subscribeCustomerEta(props.customerId, (e) => {
+        liveNext.value = { pool: e.pool, date: e.date, window: e.window };
+        onTheWay.value = true;
+    });
+});
+onBeforeUnmount(() => unsubscribe?.());
 
 const open = (id: number) => router.get('/history', { selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/history', {}, { preserveState: true, preserveScroll: true });
@@ -68,14 +89,23 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.visits.total} completed visits`">
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <div
-                v-if="props.nextVisit"
-                class="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900/50 dark:bg-sky-950/30"
+                v-if="liveNext"
+                class="flex items-center gap-3 rounded-xl border p-4 transition-colors"
+                :class="
+                    onTheWay
+                        ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30'
+                        : 'border-sky-200 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/30'
+                "
             >
-                <CalendarClock class="size-5 shrink-0 text-sky-600" />
+                <Navigation v-if="onTheWay" class="size-5 shrink-0 animate-pulse text-emerald-600" />
+                <CalendarClock v-else class="size-5 shrink-0 text-sky-600" />
                 <div class="text-sm">
-                    <p class="font-medium">Next visit: {{ props.nextVisit.pool }}</p>
+                    <p class="font-medium">
+                        <template v-if="onTheWay">Your tech is on the way{{ liveNext.pool ? ` — ${liveNext.pool}` : '' }}</template>
+                        <template v-else>Next visit: {{ liveNext.pool }}</template>
+                    </p>
                     <p class="text-muted-foreground">
-                        {{ props.nextVisit.date }}<template v-if="props.nextVisit.window"> · arriving {{ props.nextVisit.window }}</template>
+                        {{ liveNext.date }}<template v-if="liveNext.window"> · arriving {{ liveNext.window }}</template>
                     </p>
                 </div>
             </div>

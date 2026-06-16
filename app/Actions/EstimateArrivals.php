@@ -20,7 +20,17 @@ use Illuminate\Support\Facades\DB;
  */
 class EstimateArrivals
 {
-    public function handle(Route $route): void
+    /**
+     * Compute estimated_arrival for a route's stops.
+     *
+     * Plan-time (no args): time every stop from HQ + the route's start time.
+     * Live re-anchor ($fromPoint = agent GPS, $fromTime = now): re-time only the
+     * still-pending tail from where the agent actually is — finished stops keep
+     * their recorded arrival.
+     *
+     * @param  array{0: float, 1: float}|null  $fromPoint
+     */
+    public function handle(Route $route, ?array $fromPoint = null, ?Carbon $fromTime = null): void
     {
         $stops = $route->stops()
             ->with(['pool.serviceLocation', 'serviceSubscription.serviceType'])
@@ -31,8 +41,9 @@ class EstimateArrivals
             return;
         }
 
-        $start = $this->startTime($route);
-        $prev = $this->startPoint($route);
+        $live = $fromPoint !== null && $fromTime !== null;
+        $start = $fromTime ?? $this->startTime($route);
+        $prev = $live ? $fromPoint : $this->startPoint($route);
         $offset = 0;
 
         $roadFactor = (float) config('routing.road_factor');
@@ -40,8 +51,13 @@ class EstimateArrivals
         $minDrive = (int) config('routing.min_drive_minutes');
         $defaultService = (int) config('routing.default_service_minutes');
 
-        DB::transaction(function () use ($stops, $start, &$prev, &$offset, $roadFactor, $speed, $minDrive, $defaultService): void {
+        DB::transaction(function () use ($stops, $start, $live, &$prev, &$offset, $roadFactor, $speed, $minDrive, $defaultService): void {
             foreach ($stops as $stop) {
+                // A live re-anchor leaves finished stops alone — they're history.
+                if ($live && in_array((string) $stop->getAttribute('status'), ['completed', 'skipped'], true)) {
+                    continue;
+                }
+
                 $coord = $stop->pool?->coordinates();
                 if ($coord === null) {
                     $stop->update(['estimated_arrival' => null]);

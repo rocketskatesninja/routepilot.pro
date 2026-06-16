@@ -66,6 +66,7 @@ class PortalController extends Controller
             'visits' => $visits,
             'selected' => $selected,
             'nextVisit' => $this->nextVisit($poolIds),
+            'customerId' => $customer->id,
         ]);
     }
 

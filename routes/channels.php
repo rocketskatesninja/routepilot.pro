@@ -12,3 +12,8 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('tenant.{tenantId}', function (User $user, $tenantId) {
     return $user->isStaff() && (int) $user->tenant_id === (int) $tenantId;
 });
+
+// A customer's live "on-my-way" feed — the customer's own portal user only.
+Broadcast::channel('customer.{customerId}', function (User $user, $customerId) {
+    return $user->customer !== null && (int) $user->customer->getKey() === (int) $customerId;
+});

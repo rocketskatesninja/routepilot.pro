@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Actions\CompleteVisit;
+use App\Actions\ReanchorEtas;
 use App\Actions\SendVisitFollowups;
 use App\Events\AgentLocationUpdated;
 use App\Http\Controllers\Controller;
@@ -74,7 +75,7 @@ class FieldController extends Controller
      * the agent has an active route today; otherwise tell the app to stop
      * sharing (tracking:false). Upserts the last-known position + broadcasts it.
      */
-    public function ping(Request $request): JsonResponse
+    public function ping(Request $request, ReanchorEtas $reanchor): JsonResponse
     {
         $agent = $request->user();
         abort_unless($agent instanceof User && $agent->isStaff(), 403);
@@ -86,13 +87,13 @@ class FieldController extends Controller
             'accuracy' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $onRoute = Route::query()
+        $route = Route::query()
             ->where('agent_id', $agent->id)
             ->whereDate('scheduled_date', today())
             ->whereIn('status', ['draft', 'scheduled', 'in_progress'])
-            ->exists();
+            ->first();
 
-        if (! $onRoute) {
+        if ($route === null) {
             return response()->json(['tracking' => false]);
         }
 
@@ -115,6 +116,9 @@ class FieldController extends Controller
             isset($validated['heading']) ? (int) $validated['heading'] : null,
             now()->toIso8601String(),
         ));
+
+        // Re-time the remaining route from here + push the next customer's window.
+        $reanchor->handle($route, (float) $validated['lat'], (float) $validated['lng']);
 
         return response()->json(['tracking' => true]);
     }
