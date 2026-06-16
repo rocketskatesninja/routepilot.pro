@@ -20,7 +20,9 @@ test('the day view groups stops under their route/agent', function () {
     $customer = Customer::factory()->for($this->tenant)->create();
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create(['name' => 'Smith Pool']);
     $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
-    RouteStop::factory()->for($route)->for($pool)->create(['stop_order' => 1, 'status' => 'pending']);
+    RouteStop::factory()->for($route)->for($pool)->create([
+        'stop_order' => 1, 'status' => 'pending', 'estimated_arrival' => today()->setTime(8, 5),
+    ]);
 
     $this->actingAs($this->admin)
         ->get('/schedule')
@@ -31,6 +33,7 @@ test('the day view groups stops under their route/agent', function () {
             ->has('routes', 1)
             ->where('routes.0.total', 1)
             ->where('routes.0.stops.0.pool', 'Smith Pool')
+            ->where('routes.0.stops.0.eta', '8:05 AM')
         );
 });
 

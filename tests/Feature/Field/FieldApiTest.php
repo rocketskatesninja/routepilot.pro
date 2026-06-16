@@ -31,6 +31,13 @@ test('today returns the agent\'s route bundle with stops and inventory', functio
         ->assertJsonStructure(['stops' => [['id', 'order', 'status', 'pool' => ['name', 'volume_gallons'], 'service', 'last_reading']], 'inventory']);
 });
 
+test('today exposes each stop\'s estimated arrival', function () {
+    $this->stop->forceFill(['estimated_arrival' => today()->setTime(8, 5)])->save();
+
+    $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()
+        ->assertJsonPath('stops.0.eta', '8:05 AM');
+});
+
 test('today only returns the acting agent\'s own stops', function () {
     // A second agent's route for the same day must not leak into the first agent's bundle.
     $other = User::factory()->agent()->for($this->tenant)->create();

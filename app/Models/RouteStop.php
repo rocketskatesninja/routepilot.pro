@@ -9,11 +9,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * RouteStop — one appointment on a route. Tenant scope is inherited
  * through the parent Route (no tenant_id column of its own). A null
  * service_subscription_id marks an impromptu (one-off) visit.
+ *
+ * @property Carbon|null $estimated_arrival
+ * @property Carbon|null $actual_arrival
+ * @property Carbon|null $completed_at
  */
 class RouteStop extends Model
 {

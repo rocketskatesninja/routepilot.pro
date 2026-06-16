@@ -154,7 +154,12 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="truncate font-semibold">{{ stop.pool?.name ?? 'Pool' }}</p>
-                        <p class="truncate text-sm text-slate-500">{{ stop.pool?.customer }}</p>
+                        <p class="truncate text-sm text-slate-500">
+                            {{ stop.pool?.customer }}
+                            <span v-if="stop.eta && !(stop.completed || stop.status === 'completed')" class="font-medium text-sky-600"
+                                >· ~{{ stop.eta }}</span
+                            >
+                        </p>
                     </div>
                     <a
                         v-if="navUrl(stop)"

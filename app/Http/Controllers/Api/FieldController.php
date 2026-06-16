@@ -85,6 +85,7 @@ class FieldController extends Controller
             'order' => $stop->stop_order,
             'status' => $stop->status,
             'completed' => $stop->serviceVisit !== null,
+            'eta' => $stop->estimated_arrival?->format('g:i A'),
             'pool' => $pool === null ? null : [
                 'id' => $pool->id,
                 'name' => $pool->name,

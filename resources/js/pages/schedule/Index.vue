@@ -18,6 +18,7 @@ interface Stop {
     pool_photo: string | null;
     customer: string | null;
     status: string;
+    eta: string | null;
 }
 
 interface RouteCard {
@@ -303,6 +304,9 @@ const prettyDate = computed(() =>
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
+                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-xs tabular-nums text-muted-foreground">{{
+                                        stop.eta
+                                    }}</span>
                                     <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
                                         stop.status.replace('_', ' ')
                                     }}</span>
@@ -383,6 +387,9 @@ const prettyDate = computed(() =>
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
+                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-xs tabular-nums text-muted-foreground">{{
+                                        stop.eta
+                                    }}</span>
                                     <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
                                         stop.status.replace('_', ' ')
                                     }}</span>

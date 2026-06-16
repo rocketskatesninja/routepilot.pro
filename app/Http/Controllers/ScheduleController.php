@@ -225,6 +225,7 @@ class ScheduleController extends Controller
                 'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
                 'customer' => $s->pool?->customer?->displayName(),
                 'status' => $s->status,
+                'eta' => $s->estimated_arrival?->format('g:i A'),
             ])->values()->all(),
         ];
     }
