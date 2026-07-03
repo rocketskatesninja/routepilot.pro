@@ -184,6 +184,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
 
     // Super-admin platform console.
     Route::get('platform/billing', [PlatformBillingController::class, 'index'])->name('platform.billing');
+    Route::patch('platform/billing/tenants/{tenant}', [PlatformBillingController::class, 'update'])->name('platform.billing.update');
     Route::get('platform/ai', [PlatformAiController::class, 'edit'])->name('platform.ai.edit');
     Route::patch('platform/ai', [PlatformAiController::class, 'update'])->name('platform.ai.update');
     Route::patch('platform/ai/tenants/{tenant}', [PlatformAiController::class, 'updateTenant'])->name('platform.ai.tenant');

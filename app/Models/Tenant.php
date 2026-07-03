@@ -28,6 +28,8 @@ use Laravel\Cashier\Billable;
  * @property float|null $lat
  * @property float|null $lng
  * @property Carbon|null $trial_ends_at
+ * @property bool $billing_free
+ * @property string|null $billing_note
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  */
@@ -59,6 +61,7 @@ class Tenant extends Model
             'lat' => 'float',
             'lng' => 'float',
             'trial_ends_at' => 'datetime',
+            'billing_free' => 'boolean',
         ];
     }
 
@@ -83,9 +86,9 @@ class Tenant extends Model
     /**
      * Platform-billing state for the UI: trial countdown + subscription status.
      * Cashier is the source of truth (generic trial via trial_ends_at until they
-     * subscribe).
+     * subscribe), except a super-admin `billing_free` comp overrides everything.
      *
-     * @return array{status: string, on_trial: bool, subscribed: bool, locked: bool, trial_ends_at: string|null, trial_days_left: int}
+     * @return array{status: string, free: bool, on_trial: bool, subscribed: bool, locked: bool, trial_ends_at: string|null, trial_days_left: int}
      */
     public function billingState(): array
     {
@@ -93,6 +96,7 @@ class Tenant extends Model
         $trialEnds = $this->trial_ends_at;
 
         $status = match (true) {
+            $this->billing_free => 'free',
             $subscription !== null && $subscription->pastDue() => 'past_due',
             $subscription !== null && $subscription->active() => 'active',
             $subscription !== null && $subscription->canceled() => 'canceled',
@@ -103,6 +107,7 @@ class Tenant extends Model
 
         return [
             'status' => $status,
+            'free' => $this->billing_free,
             'on_trial' => $this->onTrial(),
             'subscribed' => $this->subscribed(),
             'locked' => $this->billingLocked(),
@@ -115,12 +120,13 @@ class Tenant extends Model
 
     /**
      * Whether back-office access should be soft-locked: the free trial has lapsed
-     * and there's no active subscription. Tenants that never had a trial set
-     * (status 'none', e.g. seeded/legacy accounts) are deliberately NOT locked.
+     * and there's no active subscription. A `billing_free` comp is never locked;
+     * neither are tenants that never had a trial set (status 'none', e.g.
+     * seeded/legacy accounts).
      */
     public function billingLocked(): bool
     {
-        return ! $this->subscribed() && $this->hasExpiredGenericTrial();
+        return ! $this->billing_free && ! $this->subscribed() && $this->hasExpiredGenericTrial();
     }
 
     /**

@@ -21,6 +21,7 @@ interface Line {
 }
 interface Billing {
     status: string;
+    free: boolean;
     on_trial: boolean;
     subscribed: boolean;
     locked: boolean;
@@ -38,6 +39,8 @@ const banner = computed(() => {
     const b = billing.value;
     if (!b) return null;
     switch (b.status) {
+        case 'free':
+            return { tone: 'ok', icon: CheckCircle2, text: 'You’re on a complimentary plan — RoutePilot is on us. No payment needed.' };
         case 'active':
             return { tone: 'ok', icon: CheckCircle2, text: 'Your subscription is active.' };
         case 'trialing':
@@ -123,8 +126,8 @@ const toneClass = (tone: string) =>
                 </div>
             </div>
 
-            <!-- actions -->
-            <div class="flex items-center justify-between gap-4 rounded-xl border border-border p-5">
+            <!-- actions (hidden for complimentary accounts — nothing to pay) -->
+            <div v-if="!billing?.free" class="flex items-center justify-between gap-4 rounded-xl border border-border p-5">
                 <div>
                     <h3 class="font-semibold">{{ billing?.subscribed ? 'Manage subscription' : 'Subscribe' }}</h3>
                     <p class="text-sm text-muted-foreground">

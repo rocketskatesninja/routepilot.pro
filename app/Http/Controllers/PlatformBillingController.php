@@ -4,17 +4,22 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\UpdateTenantBilling;
+use App\Http\Requests\UpdateTenantBillingRequest;
 use App\Models\Tenant;
 use App\Services\BillingMeter;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * Super-admin platform-billing overview — MRR, trial pipeline, and per-tenant
- * plan/usage/status across every account. Read-only: the tenants self-serve
- * their own subscriptions via Stripe (see BillingController). Trust boundary is
- * the super-admin guard; nothing here is tenant-scoped.
+ * plan/usage/status across every account. The docked side panel manages each
+ * tenant's billing status: the complimentary ("free") comp + trial dates. The
+ * tenants otherwise self-serve their own subscriptions via Stripe (see
+ * BillingController). Trust boundary is the super-admin guard; nothing here is
+ * tenant-scoped.
  */
 class PlatformBillingController extends Controller
 {
@@ -43,7 +48,15 @@ class PlatformBillingController extends Controller
             ];
         })->values();
 
+        // Detail for the docked side panel — the selected tenant's full billing
+        // status, so the panel can be edited without an extra round-trip.
+        $selectedId = $request->integer('selected');
+        $selected = $tenants->firstWhere('id', $selectedId);
+
         return Inertia::render('admin/Billing', [
+            'selected' => $selected instanceof Tenant
+                ? $this->detail($selected, (array) ($usage[$selected->id] ?? []))
+                : null,
             'metrics' => [
                 // MRR = realized recurring revenue from subscribed tenants (active
                 // or past-due — they still owe). Trial pipeline is not yet revenue.
@@ -55,6 +68,7 @@ class PlatformBillingController extends Controller
                 'trialing' => $rows->where('status', 'trialing')->count(),
                 'past_due' => $rows->where('status', 'past_due')->count(),
                 'expired' => $rows->where('status', 'expired')->count(),
+                'free' => $rows->where('status', 'free')->count(),
             ],
             'tenants' => $rows,
             'plan' => [
@@ -63,5 +77,42 @@ class PlatformBillingController extends Controller
                 'included_agents' => (int) config('billing.included_agents'),
             ],
         ]);
+    }
+
+    /** Apply a comp / trial-date change to one tenant (super-admin, audited). */
+    public function update(UpdateTenantBillingRequest $request, Tenant $tenant, UpdateTenantBilling $action): RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $action->handle($user, $tenant, $request->validated());
+
+        return back()->with('success', 'Billing updated.');
+    }
+
+    /**
+     * Full billing status for the docked detail panel.
+     *
+     * @param  array<string, mixed>  $usage
+     * @return array<string, mixed>
+     */
+    private function detail(Tenant $tenant, array $usage): array
+    {
+        $state = $tenant->billingState();
+
+        return [
+            'id' => $tenant->id,
+            'name' => $tenant->name,
+            'slug' => $tenant->slug,
+            'status' => $state['status'],
+            'free' => $state['free'],
+            'billing_note' => $tenant->billing_note,
+            'subscribed' => $state['subscribed'],
+            'trial_ends_at' => $state['trial_ends_at'],
+            'trial_days_left' => $state['trial_days_left'],
+            'pools' => (int) ($usage['pools']['used'] ?? 0),
+            'agents' => (int) ($usage['agents']['used'] ?? 0),
+            'estimated' => round((float) ($usage['estimated_total'] ?? 0.0), 2),
+        ];
     }
 }
