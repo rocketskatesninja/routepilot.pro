@@ -40,6 +40,26 @@ class WeatherService
         return $forecast;
     }
 
+    /**
+     * Proactively refresh a location's cached forecast — called by the scheduled
+     * warmer (app:warm-weather) so visitor dashboard loads always hit a warm
+     * cache and never make the API call themselves. Only overwrites on success,
+     * so a transient failure keeps the last-good forecast on screen. The 45-min
+     * TTL comfortably outlives the 30-min warm interval, so the cache stays fresh
+     * between runs. Returns the forecast, or null if the fetch failed.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function warm(float $lat, float $lng): ?array
+    {
+        $forecast = $this->fetch($lat, $lng);
+        if ($forecast !== null) {
+            Cache::put('weather:'.round($lat, 2).','.round($lng, 2), $forecast, now()->addMinutes(45));
+        }
+
+        return $forecast;
+    }
+
     /** @return array<string, mixed>|null */
     private function fetch(float $lat, float $lng): ?array
     {

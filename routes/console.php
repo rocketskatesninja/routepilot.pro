@@ -11,6 +11,9 @@ Artisan::command('inspire', function () {
 // Drain the queue (campaign emails etc.) — runs ~once a minute, exits when empty.
 Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')->everyMinute()->withoutOverlapping();
 
+// Keep the dashboard weather cache warm so visitor loads never call the API inline.
+Schedule::command('app:warm-weather')->everyThirtyMinutes()->withoutOverlapping();
+
 // Nightly automation (platform-wide; each command iterates active tenants).
 Schedule::command('app:backup-database')->dailyAt('01:00');
 Schedule::command('app:materialize-schedules')->dailyAt('02:00');
