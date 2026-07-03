@@ -155,7 +155,14 @@ function draw(fit = true) {
             map,
             title: `${a.name} (live)`,
             label: { text: (a.name?.[0] ?? '?').toUpperCase(), color: '#ffffff', fontSize: '11px', fontWeight: '700' },
-            icon: { path: m.SymbolPath.CIRCLE, scale: 13, fillColor: props.colors[a.agent_id] ?? '#0ea5e9', fillOpacity: 1, strokeColor: '#0f172a', strokeWeight: 3 },
+            icon: {
+                path: m.SymbolPath.CIRCLE,
+                scale: 13,
+                fillColor: props.colors[a.agent_id] ?? '#0ea5e9',
+                fillOpacity: 1,
+                strokeColor: '#0f172a',
+                strokeWeight: 3,
+            },
             zIndex: 1000,
         }) as unknown as { setMap: (x: unknown) => void };
         overlays.push(agentMarker);

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import { subscribeCustomerEta } from '@/echo';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { requestForPoolLink } from '@/lib/links';
 import { type BreadcrumbItem } from '@/types';
-import { subscribeCustomerEta } from '@/echo';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { CalendarClock, CalendarPlus, Droplets, Navigation } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';

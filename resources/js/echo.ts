@@ -87,10 +87,7 @@ export function subscribeTenantSchedule(
  * Subscribe a customer to their live "on-my-way" ETA (VisitEtaUpdated). Returns
  * an unsubscribe fn; no-ops during SSR / without a key.
  */
-export function subscribeCustomerEta(
-    customerId: number,
-    onEta: (e: { window: string; pool: string | null; date: string }) => void,
-): () => void {
+export function subscribeCustomerEta(customerId: number, onEta: (e: { window: string; pool: string | null; date: string }) => void): () => void {
     const client = initEcho();
     if (!client) return () => {};
 

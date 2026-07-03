@@ -2,11 +2,11 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ScheduleMap from '@/components/schedule/ScheduleMap.vue';
 import { Button } from '@/components/ui/button';
+import { subscribeTenantSchedule } from '@/echo';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { visitStatusClass } from '@/lib/statusColors';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { subscribeTenantSchedule } from '@/echo';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -116,7 +116,10 @@ onMounted(() => {
             if (props.date !== props.today) return;
             const name = liveAgents.value[e.agent_id]?.name ?? props.routes.find((r) => r.agent_id === e.agent_id)?.agent ?? null;
             if (name === null) return;
-            liveAgents.value = { ...liveAgents.value, [e.agent_id]: { agent_id: e.agent_id, name, lat: e.lat, lng: e.lng, recorded_at: e.recorded_at } };
+            liveAgents.value = {
+                ...liveAgents.value,
+                [e.agent_id]: { agent_id: e.agent_id, name, lat: e.lat, lng: e.lng, recorded_at: e.recorded_at },
+            };
         },
     });
 });
@@ -487,7 +490,14 @@ const prettyDate = computed(() =>
                         {{ a.label }}
                     </button>
                 </div>
-                <ScheduleMap :maps-key="props.mapsKey" :hq="props.hq" :markers="visibleMarkers" :agents="agentMarkers" :colors="agentColors" :focus-id="focusId" />
+                <ScheduleMap
+                    :maps-key="props.mapsKey"
+                    :hq="props.hq"
+                    :markers="visibleMarkers"
+                    :agents="agentMarkers"
+                    :colors="agentColors"
+                    :focus-id="focusId"
+                />
             </aside>
         </div>
     </AppLayout>

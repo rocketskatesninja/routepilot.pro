@@ -59,9 +59,7 @@ createInertiaApp({
 // Live notifications: refresh the unread badge (+ the list if open) on a push,
 // preserving other component state. Keeps the subscription synced to the user.
 function syncNotificationSubscription(userId: number | null): void {
-    ensureUserSubscription(userId, () =>
-        router.reload({ only: ['auth', 'notifications'], preserveScroll: true, preserveState: true }),
-    );
+    ensureUserSubscription(userId, () => router.reload({ only: ['auth', 'notifications'], preserveScroll: true, preserveState: true }));
 }
 
 // Re-apply the tenant brand on every Inertia visit — the tenant changes on
