@@ -22,27 +22,46 @@ class WeatherService
     {
         $key = 'weather:'.round($lat, 2).','.round($lng, 2);
 
-        return Cache::remember($key, now()->addMinutes(30), function () use ($lat, $lng): ?array {
-            try {
-                $res = Http::timeout(5)->get('https://api.open-meteo.com/v1/forecast', [
-                    'latitude' => $lat,
-                    'longitude' => $lng,
-                    'current' => 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m',
-                    'hourly' => 'temperature_2m,weather_code,precipitation_probability',
-                    'daily' => 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max',
-                    'temperature_unit' => 'fahrenheit',
-                    'wind_speed_unit' => 'mph',
-                    'timezone' => 'auto',
-                    'forecast_days' => 7,
-                ]);
+        // Cache the OUTCOME — success or failure — so an unreachable API doesn't
+        // stall every dashboard load with a fresh timeout. `false` marks a
+        // recently-failed lookup; Laravel's Cache::remember never caches null,
+        // which is why a down API otherwise re-hit the timeout on every request.
+        $cached = Cache::get($key);
+        if ($cached !== null) {
+            return $cached === false ? null : $cached;
+        }
 
-                return $res->ok() ? $this->shape($res->json()) : null;
-            } catch (\Throwable $e) {
-                Log::warning('WeatherService: '.$e->getMessage());
+        $forecast = $this->fetch($lat, $lng);
 
-                return null;
-            }
-        });
+        // Success is good for 30 min; a failure is cached 10 min so we back off
+        // the down API instead of re-timing-out on the next visitor.
+        Cache::put($key, $forecast ?? false, now()->addMinutes($forecast !== null ? 30 : 10));
+
+        return $forecast;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function fetch(float $lat, float $lng): ?array
+    {
+        try {
+            $res = Http::timeout(3)->get('https://api.open-meteo.com/v1/forecast', [
+                'latitude' => $lat,
+                'longitude' => $lng,
+                'current' => 'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m',
+                'hourly' => 'temperature_2m,weather_code,precipitation_probability',
+                'daily' => 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max',
+                'temperature_unit' => 'fahrenheit',
+                'wind_speed_unit' => 'mph',
+                'timezone' => 'auto',
+                'forecast_days' => 7,
+            ]);
+
+            return $res->ok() ? $this->shape($res->json()) : null;
+        } catch (\Throwable $e) {
+            Log::warning('WeatherService: '.$e->getMessage());
+
+            return null;
+        }
     }
 
     /**

@@ -38,3 +38,13 @@ test('the forecast is shaped into current, hourly, and daily', function () {
 
     Carbon::setTestNow();
 });
+
+test('a failed lookup is cached, so a down API is not re-hit on every load', function () {
+    Http::fake(['api.open-meteo.com/*' => Http::response([], 500)]);
+
+    $svc = new WeatherService;
+    expect($svc->forecast(1.0, 2.0))->toBeNull()
+        ->and($svc->forecast(1.0, 2.0))->toBeNull(); // second call served from the cached failure
+
+    Http::assertSentCount(1); // the down API was hit once, not twice
+});
