@@ -37,17 +37,24 @@ class SendCampaign
             'body' => $body,
             'audience' => $audience,
             'recipient_count' => count($recipients),
-            'sent_count' => count($recipients),
+            'sent_count' => 0,   // tallied for real by the queue as each email lands
             'failed_count' => 0,
             'sent_at' => now(),
         ]);
 
         foreach ($recipients as $recipient) {
+            // One tracked delivery row per address; the job flips it sent/failed.
+            $row = $campaign->recipients()->create([
+                'email' => $recipient['email'],
+                'name' => $recipient['name'],
+                'status' => 'queued',
+            ]);
+
             $unsubscribe = $recipient['customer_id'] !== null
                 ? URL::signedRoute('unsubscribe', ['customer' => $recipient['customer_id']])
                 : null;
 
-            SendCampaignEmail::dispatch($recipient['email'], $subject, $body, $recipient['name'], $unsubscribe, $sender->tenant_id);
+            SendCampaignEmail::dispatch($recipient['email'], $subject, $body, $recipient['name'], $unsubscribe, $sender->tenant_id, $row->id);
         }
 
         return $campaign;

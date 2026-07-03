@@ -268,6 +268,8 @@ class PeopleController extends Controller
                 'subject' => $c->subject,
                 'audience' => $c->audience,
                 'recipients' => $c->recipient_count,
+                'sent' => $c->sent_count,
+                'failed' => $c->failed_count,
                 'sent_on' => $c->sent_at?->toDateString(),
             ])->all();
     }

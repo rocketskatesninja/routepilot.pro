@@ -90,7 +90,7 @@ const props = defineProps<{
     canManage: boolean;
     canEmail: boolean;
     audiences: { key: string; label: string; count: number }[];
-    recent: { id: number; subject: string; audience: string; recipients: number; sent_on: string | null }[];
+    recent: { id: number; subject: string; audience: string; recipients: number; sent: number; failed: number; sent_on: string | null }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
@@ -651,7 +651,12 @@ function destroyAgent() {
                             <ul class="space-y-0.5 text-xs text-muted-foreground">
                                 <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
                                     <span class="truncate">{{ c.subject }}</span
-                                    ><span class="shrink-0">{{ c.recipients }} · {{ c.sent_on }}</span>
+                                    ><span class="shrink-0"
+                                        >{{ c.sent }}/{{ c.recipients }} sent<span v-if="c.failed" class="text-red-500">
+                                            · {{ c.failed }} failed</span
+                                        >
+                                        · {{ c.sent_on }}</span
+                                    >
                                 </li>
                             </ul>
                         </div>

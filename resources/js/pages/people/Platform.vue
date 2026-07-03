@@ -54,6 +54,8 @@ interface Campaign {
     subject: string;
     audience: string;
     recipients: number;
+    sent: number;
+    failed: number;
     sent_on: string | null;
 }
 
@@ -446,7 +448,10 @@ function closePane() {
                             <ul class="space-y-0.5 text-xs text-muted-foreground">
                                 <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
                                     <span class="truncate">{{ c.subject }}</span
-                                    ><span class="shrink-0 capitalize">{{ c.audience }} · {{ c.recipients }}</span>
+                                    ><span class="shrink-0"
+                                        ><span class="capitalize">{{ c.audience }}</span> · {{ c.sent }}/{{ c.recipients
+                                        }}<span v-if="c.failed" class="text-red-500"> · {{ c.failed }} failed</span></span
+                                    >
                                 </li>
                             </ul>
                         </div>
