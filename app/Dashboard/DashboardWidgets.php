@@ -16,6 +16,7 @@ class DashboardWidgets
 {
     /** key => {label, icon (lucide), minW, minH, w, h (defaults), roles[]}. */
     private const CATALOG = [
+        'onboarding' => ['label' => 'Get started', 'icon' => 'ListChecks', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
         'stats' => ['label' => 'Stats overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['tenant_admin']],
         'route_map' => ['label' => "Today's route map", 'icon' => 'Map', 'minW' => 4, 'minH' => 4, 'w' => 8, 'h' => 6, 'roles' => ['tenant_admin']],
         'my_route' => ['label' => 'My route', 'icon' => 'Map', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin']],
@@ -47,11 +48,12 @@ class DashboardWidgets
     /** Default starter grid per role, desktop (12-col grid). */
     private const DEFAULTS = [
         'tenant_admin' => [
-            ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
-            ['i' => 'route_map', 'x' => 0, 'y' => 3, 'w' => 8, 'h' => 6],
-            ['i' => 'requests', 'x' => 8, 'y' => 3, 'w' => 4, 'h' => 6],
-            ['i' => 'my_route', 'x' => 0, 'y' => 9, 'w' => 6, 'h' => 5],
-            ['i' => 'recent_visits', 'x' => 6, 'y' => 9, 'w' => 6, 'h' => 5],
+            ['i' => 'onboarding', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
+            ['i' => 'stats', 'x' => 0, 'y' => 4, 'w' => 12, 'h' => 3],
+            ['i' => 'route_map', 'x' => 0, 'y' => 7, 'w' => 8, 'h' => 6],
+            ['i' => 'requests', 'x' => 8, 'y' => 7, 'w' => 4, 'h' => 6],
+            ['i' => 'my_route', 'x' => 0, 'y' => 13, 'w' => 6, 'h' => 5],
+            ['i' => 'recent_visits', 'x' => 6, 'y' => 13, 'w' => 6, 'h' => 5],
         ],
         'agent' => [
             ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
@@ -76,11 +78,12 @@ class DashboardWidgets
     /** Default starter grid per role, mobile — widgets stacked full-width. */
     private const DEFAULTS_MOBILE = [
         'tenant_admin' => [
-            ['i' => 'stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],
-            ['i' => 'route_map', 'x' => 0, 'y' => 5, 'w' => 12, 'h' => 6],
-            ['i' => 'requests', 'x' => 0, 'y' => 11, 'w' => 12, 'h' => 5],
-            ['i' => 'my_route', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 5],
-            ['i' => 'recent_visits', 'x' => 0, 'y' => 21, 'w' => 12, 'h' => 4],
+            ['i' => 'onboarding', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],
+            ['i' => 'stats', 'x' => 0, 'y' => 5, 'w' => 12, 'h' => 5],
+            ['i' => 'route_map', 'x' => 0, 'y' => 10, 'w' => 12, 'h' => 6],
+            ['i' => 'requests', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 5],
+            ['i' => 'my_route', 'x' => 0, 'y' => 21, 'w' => 12, 'h' => 5],
+            ['i' => 'recent_visits', 'x' => 0, 'y' => 26, 'w' => 12, 'h' => 4],
         ],
         'agent' => [
             ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],

@@ -9,6 +9,8 @@ use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
+use App\Models\ServiceSubscription;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -41,6 +43,7 @@ class AssembleDashboardData
     {
         $builders = [
             // tenant_admin
+            'onboarding' => fn () => $this->onboarding($user),
             'stats' => fn () => $this->stats($user),
             'route_map' => fn () => $this->routeMap($user),
             'my_route' => fn () => $this->myRoute($user),
@@ -200,6 +203,32 @@ class AssembleDashboardData
                 'read' => $n->read_at !== null,
                 'on' => $n->created_at?->diffForHumans(),
             ])->all();
+    }
+
+    /**
+     * Getting-started checklist for a new tenant — each step reflects whether a
+     * record of that kind exists yet (tenant-scoped). Steps that are done drop
+     * off; when all are done the widget shows an "all set" state.
+     *
+     * @return array<string, mixed>
+     */
+    private function onboarding(User $user): array
+    {
+        $steps = [
+            ['label' => 'Add your first customer', 'done' => Customer::query()->exists(), 'href' => '/people'],
+            ['label' => 'Add a pool', 'done' => Pool::query()->exists(), 'href' => '/pools'],
+            ['label' => 'Create a service type', 'done' => ServiceType::query()->exists(), 'href' => '/services'],
+            ['label' => 'Invite an agent', 'done' => User::query()->where('tenant_id', $user->getAttribute('tenant_id'))->where('role', 'agent')->exists(), 'href' => '/people'],
+            ['label' => 'Schedule a subscription', 'done' => ServiceSubscription::query()->exists(), 'href' => '/pools'],
+        ];
+        $completed = count(array_filter($steps, static fn (array $s): bool => (bool) $s['done']));
+
+        return [
+            'steps' => $steps,
+            'completed' => $completed,
+            'total' => count($steps),
+            'complete' => $completed === count($steps),
+        ];
     }
 
     /** @return array{tiles: list<array<string, mixed>>} */

@@ -30,12 +30,12 @@ test('the admin dashboard renders the default widget grid', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboards/Grid')
-            ->has('layouts.desktop', 5)
-            ->has('layouts.mobile', 5)
+            ->has('layouts.desktop', 6)
+            ->has('layouts.mobile', 6)
             ->has('catalog.stats')
             ->has('catalog.route_map')
             ->has('catalog.weather')
-            ->has('palette', 10) // every widget the role may add
+            ->has('palette', 11) // every widget the role may add
             ->has('widgets.stats.tiles')
             ->has('widgets.route_map.markers')
             ->has('widgets.recent_visits')
@@ -109,7 +109,7 @@ test('only the placed widgets compute data; the rest are offered to add', functi
             ->has('layouts.mobile', 1)
             ->has('widgets.stats')
             ->missing('widgets.my_route')
-            ->has('palette', 10)
+            ->has('palette', 11)
         );
 });
 
@@ -202,4 +202,26 @@ test('assembled widget data is tenant-scoped and lazy', function () {
     expect($data['stats']['tiles'][3])->toMatchArray(['label' => 'Agents', 'value' => 1]) // only this tenant's active agent
         ->and($data)->toHaveKey('stats')
         ->and($data)->not->toHaveKey('my_route');     // only the enabled widget was computed
+});
+
+test('the onboarding widget reflects setup progress from tenant counts', function () {
+    $empty = app(AssembleDashboardData::class)->handle($this->admin, ['onboarding'])['onboarding'];
+    expect($empty['completed'])->toBe(0)
+        ->and($empty['complete'])->toBeFalse()
+        ->and(collect($empty['steps'])->firstWhere('label', 'Add your first customer')['done'])->toBeFalse();
+
+    Customer::factory()->for($this->tenant)->create();
+
+    $after = app(AssembleDashboardData::class)->handle($this->admin, ['onboarding'])['onboarding'];
+    expect($after['completed'])->toBe(1)
+        ->and(collect($after['steps'])->firstWhere('label', 'Add your first customer')['done'])->toBeTrue();
+});
+
+test('onboarding is a tenant_admin-only widget placed in the default grid', function () {
+    expect(DashboardWidgets::keysForRole('tenant_admin'))->toContain('onboarding')
+        ->and(DashboardWidgets::keysForRole('agent'))->not->toContain('onboarding')
+        ->and(DashboardWidgets::keysForRole('customer'))->not->toContain('onboarding');
+
+    $layouts = DashboardWidgets::layoutsFor($this->admin);
+    expect(collect($layouts['desktop'])->pluck('i'))->toContain('onboarding');
 });

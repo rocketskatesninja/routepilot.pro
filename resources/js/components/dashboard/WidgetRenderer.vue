@@ -6,6 +6,7 @@ import MyPoolsWidget from './widgets/MyPoolsWidget.vue';
 import MyRouteWidget from './widgets/MyRouteWidget.vue';
 import NextVisitWidget from './widgets/NextVisitWidget.vue';
 import NotificationsWidget from './widgets/NotificationsWidget.vue';
+import OnboardingWidget from './widgets/OnboardingWidget.vue';
 import RecentTenantsWidget from './widgets/RecentTenantsWidget.vue';
 import RecentVisitsWidget from './widgets/RecentVisitsWidget.vue';
 import RequestsWidget from './widgets/RequestsWidget.vue';
@@ -19,6 +20,7 @@ const props = defineProps<{ widgetKey: string; data: unknown }>();
 
 const registry: Record<string, Component> = {
     // tenant_admin
+    onboarding: OnboardingWidget,
     stats: StatsWidget,
     route_map: RouteMapWidget,
     my_route: MyRouteWidget,
