@@ -13,7 +13,7 @@ import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
+import { Ban, CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 interface BalanceRow {
@@ -111,6 +111,7 @@ const statusFilters = [
     { key: 'overdue', label: 'Overdue' },
     { key: 'paid', label: 'Paid' },
     { key: 'draft', label: 'Draft' },
+    { key: 'void', label: 'Void' },
 ];
 const setStatus = (s: string) => navigate({ status: s || undefined, selected: undefined, page: undefined });
 
@@ -120,6 +121,7 @@ const statusClass = (s: string): string =>
         overdue: 'bg-red-500/15 text-red-600 dark:text-red-400',
         sent: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
         draft: 'bg-muted text-muted-foreground',
+        void: 'bg-muted text-muted-foreground line-through',
     })[s] ?? 'bg-muted text-muted-foreground';
 
 const payMethod = ref('cash');
@@ -135,6 +137,15 @@ function generateInvoice() {
 }
 const exportCsv = () => window.open('/balances/export', '_blank');
 const emailInvoice = (id: number) => router.post(`/invoices/${id}/email`, {}, { preserveScroll: true });
+function voidInvoice(id: number) {
+    if (
+        !confirm(
+            'Void this invoice? Its charges are written off — released from the customer’s balance and never re-invoiced. This cannot be undone.',
+        )
+    )
+        return;
+    router.post(`/invoices/${id}/void`, {}, { preserveScroll: true });
+}
 
 // --- invoice-view actions ---
 function markInvoicePaid() {
@@ -395,10 +406,18 @@ function closePane() {
                                 <Button v-if="props.canManage" size="sm" variant="outline" @click="emailInvoice(props.selected.id)"
                                     ><Mail class="mr-1 size-3.5" /> Email</Button
                                 >
+                                <Button
+                                    v-if="props.canManage && props.selected.status !== 'paid' && props.selected.status !== 'void'"
+                                    size="sm"
+                                    variant="outline"
+                                    class="text-red-600 hover:text-red-600 dark:text-red-400"
+                                    @click="voidInvoice(props.selected.id)"
+                                    ><Ban class="mr-1 size-3.5" /> Void</Button
+                                >
                             </div>
 
                             <div
-                                v-if="props.canManage && props.selected.status !== 'paid'"
+                                v-if="props.canManage && props.selected.status !== 'paid' && props.selected.status !== 'void'"
                                 class="flex items-center gap-2 border-t border-border pt-3"
                             >
                                 <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">

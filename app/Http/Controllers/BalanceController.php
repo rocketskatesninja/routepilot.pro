@@ -82,7 +82,7 @@ class BalanceController extends Controller
         $invoiceStatus = '';
         if ($view === 'invoices') {
             $statusFilter = (string) $request->string('status');
-            $valid = in_array($statusFilter, ['draft', 'sent', 'overdue', 'paid'], true);
+            $valid = in_array($statusFilter, ['draft', 'sent', 'overdue', 'paid', 'void'], true);
             $query = Invoice::query()
                 ->with('customer:id,first_name,last_name')
                 ->when($valid, fn ($q) => $q->where('status', $statusFilter));

@@ -158,6 +158,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('balances/export', [BalanceController::class, 'exportCsv'])->name('balances.export');
         Route::post('invoices/{invoice}/email', [InvoiceController::class, 'email'])->name('invoices.email');
         Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.markpaid');
+        Route::post('invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void');
         Route::post('requests/{serviceRequest}/resolve', [RequestController::class, 'resolve'])->name('requests.resolve');
 
         // Platform billing for the tenant (trial/subscription + Stripe Checkout/portal).

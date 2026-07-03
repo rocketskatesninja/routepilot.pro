@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\MarkInvoicePaid;
+use App\Actions\VoidInvoice;
 use App\Mail\InvoiceMail;
 use App\Models\AuditLog;
 use App\Models\Customer;
@@ -82,5 +83,16 @@ class InvoiceController extends Controller
         AuditLog::record($request->user(), 'invoice.marked_paid', $invoice, ['method' => $method, 'total' => (float) $invoice->total]);
 
         return back()->with('success', "Invoice {$invoice->number} marked paid.");
+    }
+
+    /** Void (write off) an invoice — releases its charges from the customer's balance. */
+    public function void(Request $request, Invoice $invoice, VoidInvoice $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $action->handle($invoice);
+        AuditLog::record($request->user(), 'invoice.voided', $invoice, ['total' => (float) $invoice->total]);
+
+        return back()->with('success', "Invoice {$invoice->number} voided.");
     }
 }
