@@ -11,6 +11,7 @@ use App\Models\RouteStop;
 use App\Models\ServiceLocation;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -139,6 +140,15 @@ test('weather degrades to null without a business address', function () {
     $data = app(AssembleDashboardData::class)->handle($this->admin, ['weather']);
 
     expect($data['weather'])->toBeNull();
+});
+
+test('weather marks unavailable (not "set an address") when the address is set but the API fails', function () {
+    Http::fake(['api.open-meteo.com/*' => Http::response([], 503)]);
+    $this->tenant->forceFill(['lat' => 31.18, 'lng' => -81.49])->save();
+
+    $data = app(AssembleDashboardData::class)->handle($this->admin, ['weather']);
+
+    expect($data['weather'])->toBe(['unavailable' => true]);
 });
 
 test('the route map widget assembles geocoded stops, HQ, and the maps key', function () {

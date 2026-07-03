@@ -26,7 +26,13 @@ interface Day {
     precip: number;
 }
 
-defineProps<{ data: { current: Current; hours: Hour[]; days: Day[] } | null }>();
+type Forecast = { current: Current; hours: Hour[]; days: Day[] };
+const props = defineProps<{ data: Forecast | { unavailable: true } | null }>();
+
+// `data` is a forecast, an "unavailable" marker (address set but the API is
+// unreachable), or null (no business address yet) — pick the right empty message.
+const forecast = computed(() => (props.data && 'current' in props.data ? props.data : null));
+const unavailable = computed(() => !!(props.data && 'unavailable' in props.data));
 
 // Show the most-detail-first; as the widget gets shorter the hourly strip drops
 // out before the daily forecast does.
@@ -65,28 +71,28 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
 
 <template>
     <div ref="root" class="h-full">
-        <div v-if="data" class="flex h-full flex-col gap-2">
+        <div v-if="forecast" class="flex h-full flex-col gap-2">
             <!-- Current conditions (always shown) -->
             <div class="flex shrink-0 items-center gap-3">
-                <component :is="weatherDescribe(data.current.code).icon" class="size-10 shrink-0 text-primary" />
+                <component :is="weatherDescribe(forecast.current.code).icon" class="size-10 shrink-0 text-primary" />
                 <div class="min-w-0">
-                    <div class="text-2xl font-semibold tabular-nums">{{ data.current.temp }}°</div>
+                    <div class="text-2xl font-semibold tabular-nums">{{ forecast.current.temp }}°</div>
                     <div class="truncate text-xs text-muted-foreground">
-                        {{ weatherDescribe(data.current.code).label }} · feels {{ data.current.feels }}°
+                        {{ weatherDescribe(forecast.current.code).label }} · feels {{ forecast.current.feels }}°
                     </div>
                 </div>
                 <div class="ml-auto space-y-0.5 text-right text-xs text-muted-foreground">
-                    <div class="flex items-center justify-end gap-1"><Droplets class="size-3" /> {{ data.current.humidity }}%</div>
-                    <div class="flex items-center justify-end gap-1"><Wind class="size-3" /> {{ data.current.wind }} mph</div>
+                    <div class="flex items-center justify-end gap-1"><Droplets class="size-3" /> {{ forecast.current.humidity }}%</div>
+                    <div class="flex items-center justify-end gap-1"><Wind class="size-3" /> {{ forecast.current.wind }} mph</div>
                 </div>
             </div>
 
             <!-- Hourly strip: expands to fill the space between current + daily;
                  its cells spread vertically so there's no blank gap. First to hide when short. -->
-            <div v-show="showHourly && data.hours.length" class="flex min-h-0 flex-1">
+            <div v-show="showHourly && forecast.hours.length" class="flex min-h-0 flex-1">
                 <div class="flex h-full w-full items-stretch gap-1">
                     <div
-                        v-for="h in data.hours.slice(0, hourCount)"
+                        v-for="h in forecast.hours.slice(0, hourCount)"
                         :key="h.hour"
                         class="flex min-w-0 flex-1 flex-col items-center justify-evenly text-center leading-none"
                     >
@@ -109,7 +115,7 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
             <div v-show="showDaily" class="flex items-center" :class="showHourly ? 'shrink-0' : 'min-h-0 flex-1'">
                 <div class="grid w-full gap-1" :style="{ gridTemplateColumns: `repeat(${dayCount}, minmax(0, 1fr))` }">
                     <div
-                        v-for="d in data.days.slice(0, dayCount)"
+                        v-for="d in forecast.days.slice(0, dayCount)"
                         :key="d.date"
                         class="flex flex-col items-center gap-0.5 rounded-md py-1 text-center"
                     >
@@ -125,7 +131,8 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
 
         <EmptyState v-else class="px-6">
             <template #icon><CloudSun class="size-6 opacity-50" /></template>
-            <p>Set a business address in Company settings to show local weather.</p>
+            <p v-if="unavailable">Local weather is temporarily unavailable.</p>
+            <p v-else>Set a business address in Company settings to show local weather.</p>
         </EmptyState>
     </div>
 </template>

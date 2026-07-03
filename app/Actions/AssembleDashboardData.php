@@ -170,10 +170,13 @@ class AssembleDashboardData
 
         $tenant = $user->tenant;
         if ($tenant === null || $tenant->lat === null || $tenant->lng === null) {
-            return null;
+            return null; // no geocoded address → widget prompts to set one
         }
 
-        return $this->weatherMemo = app(WeatherService::class)->forecast((float) $tenant->lat, (float) $tenant->lng);
+        // Has an address: a forecast, or an explicit "unavailable" marker so the
+        // widget doesn't wrongly tell them to set an address they already have.
+        return $this->weatherMemo = app(WeatherService::class)->forecast((float) $tenant->lat, (float) $tenant->lng)
+            ?? ['unavailable' => true];
     }
 
     /** @return array<string, mixed> */
