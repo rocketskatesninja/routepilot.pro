@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSingleSession;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\ResolveTenant;
@@ -23,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Route-layer role backstop (mirrors controllers' inline authorize* guards).
+        $middleware->alias(['role' => EnsureRole::class]);
 
         // Stripe posts webhooks without a CSRF token (verified by signature).
         $middleware->validateCsrfTokens(except: ['stripe/webhook']);
