@@ -40,49 +40,79 @@ const page = usePage<SharedData>();
 
 /**
  * Role-adaptive navigation. Each role sees only its own items; tenant_admin
- * is the densest. Routes for not-yet-built surfaces point at the dashboard
- * for now and are filled in as later phases land their screens.
+ * is the densest, so its menu is split into labelled sections (Operations /
+ * Customers / Business) with Dashboard pinned on top and Assistant on the
+ * bottom, ungrouped. Shorter menus stay a single unlabelled section.
  */
-const navByRole: Record<string, NavItem[]> = {
+type NavSection = { label?: string; items: NavItem[] };
+
+const navByRole: Record<string, NavSection[]> = {
     super_admin: [
-        { title: 'Platform', href: '/dashboard', icon: ShieldCheck },
-        { title: 'People', href: '/people', icon: Users },
-        { title: 'Billing', href: '/platform/billing', icon: CreditCard },
-        { title: 'AI', href: '/platform/ai', icon: Bot },
-        { title: 'Assistant', href: '/assistant', icon: Bot },
+        {
+            items: [
+                { title: 'Platform', href: '/dashboard', icon: ShieldCheck },
+                { title: 'People', href: '/people', icon: Users },
+                { title: 'Billing', href: '/platform/billing', icon: CreditCard },
+                { title: 'AI', href: '/platform/ai', icon: Bot },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
+            ],
+        },
     ],
     tenant_admin: [
-        { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
-        { title: 'Schedule', href: '/schedule', icon: CalendarDays },
-        { title: 'Pools', href: '/pools', icon: Waves },
-        { title: 'People', href: '/people', icon: Users },
-        { title: 'Services', href: '/services', icon: ClipboardList },
-        { title: 'Inventory', href: '/inventory', icon: FlaskConical },
-        { title: 'Reports', href: '/reports', icon: FileText },
-        { title: 'Insights', href: '/insights', icon: BarChart3 },
-        { title: 'Balances', href: '/balances', icon: Banknote },
-        { title: 'Assistant', href: '/assistant', icon: Bot },
-        { title: 'Company', href: '/company', icon: Building2 },
-        { title: 'Billing', href: '/billing', icon: CreditCard },
-        { title: 'Landing page', href: '/company/landing', icon: Globe },
+        { items: [{ title: 'Dashboard', href: '/dashboard', icon: LayoutGrid }] },
+        {
+            label: 'Operations',
+            items: [
+                { title: 'Schedule', href: '/schedule', icon: CalendarDays },
+                { title: 'Reports', href: '/reports', icon: FileText },
+                { title: 'Inventory', href: '/inventory', icon: FlaskConical },
+            ],
+        },
+        {
+            label: 'Customers',
+            items: [
+                { title: 'People', href: '/people', icon: Users },
+                { title: 'Pools', href: '/pools', icon: Waves },
+                { title: 'Services', href: '/services', icon: ClipboardList },
+                { title: 'Balances', href: '/balances', icon: Banknote },
+            ],
+        },
+        {
+            label: 'Business',
+            items: [
+                { title: 'Insights', href: '/insights', icon: BarChart3 },
+                { title: 'Company', href: '/company', icon: Building2 },
+                { title: 'Billing', href: '/billing', icon: CreditCard },
+                { title: 'Landing page', href: '/company/landing', icon: Globe },
+            ],
+        },
+        { items: [{ title: 'Assistant', href: '/assistant', icon: Bot }] },
     ],
     agent: [
-        { title: 'Today', href: '/dashboard', icon: CalendarDays },
-        { title: 'Field app', href: '/field', icon: Navigation },
-        { title: 'My Route', href: '/schedule', icon: Map },
-        { title: 'Reports', href: '/reports', icon: FileText },
-        { title: 'Assistant', href: '/assistant', icon: Bot },
+        {
+            items: [
+                { title: 'Today', href: '/dashboard', icon: CalendarDays },
+                { title: 'Field app', href: '/field', icon: Navigation },
+                { title: 'My Route', href: '/schedule', icon: Map },
+                { title: 'Reports', href: '/reports', icon: FileText },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
+            ],
+        },
     ],
     customer: [
-        { title: 'My Pools', href: '/dashboard', icon: Waves },
-        { title: 'Service History', href: '/history', icon: FileText },
-        { title: 'Balance', href: '/balance', icon: Banknote },
-        { title: 'Requests', href: '/requests', icon: Inbox },
-        { title: 'Assistant', href: '/assistant', icon: Bot },
+        {
+            items: [
+                { title: 'My Pools', href: '/dashboard', icon: Waves },
+                { title: 'Service History', href: '/history', icon: FileText },
+                { title: 'Balance', href: '/balance', icon: Banknote },
+                { title: 'Requests', href: '/requests', icon: Inbox },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
+            ],
+        },
     ],
 };
 
-const mainNavItems = computed<NavItem[]>(() => {
+const navSections = computed<NavSection[]>(() => {
     const role = page.props.auth.role ?? 'customer';
     return navByRole[role] ?? navByRole.customer;
 });
@@ -105,7 +135,7 @@ const { isMobile } = useSidebar();
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain v-for="(section, i) in navSections" :key="section.label ?? `section-${i}`" :label="section.label" :items="section.items" />
         </SidebarContent>
 
         <SidebarFooter>
