@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { CheckCircle2, KeyRound, XCircle } from 'lucide-vue-next';
+import { watch } from 'vue';
 
 interface KeyStatus {
     configured: boolean;
@@ -34,6 +35,15 @@ const form = useForm({
     anthropic_key: '',
     openai_key: '',
 });
+// Switching provider swaps the model to that provider's default so it never
+// stays "stuck" on the previous provider's model (e.g. claude-… under OpenAI).
+watch(
+    () => form.provider,
+    (provider) => {
+        form.model = props.modelHints[provider] ?? '';
+    },
+);
+
 const save = () =>
     form.patch('/platform/ai', {
         preserveScroll: true,

@@ -118,3 +118,24 @@ test('a tenant cannot reach the per-tenant AI endpoint', function () {
         'enabled' => true, 'allow_override' => false, 'quota' => null,
     ])->assertForbidden();
 });
+
+test('the platform model self-heals when it belongs to the other provider', function () {
+    PlatformSetting::set('ai_provider', 'openai');
+    PlatformSetting::set('ai_model', 'claude-haiku-4-5'); // stale Claude model left under OpenAI
+
+    // The mismatched model is ignored — falls back to the OpenAI default.
+    expect(app(PlatformAiSettings::class)->model())->toBe(config('ai.models.openai'));
+
+    // A matching model is used as-is.
+    PlatformSetting::set('ai_model', 'gpt-4o');
+    expect(app(PlatformAiSettings::class)->model())->toBe('gpt-4o');
+
+    // A custom / fine-tuned model name is trusted (not wrongly rejected).
+    PlatformSetting::set('ai_model', 'ft:gpt-4o:acme');
+    expect(app(PlatformAiSettings::class)->model())->toBe('ft:gpt-4o:acme');
+
+    // And the guard works the other way too.
+    PlatformSetting::set('ai_provider', 'anthropic');
+    PlatformSetting::set('ai_model', 'gpt-4o-mini');
+    expect(app(PlatformAiSettings::class)->model())->toBe(config('ai.models.anthropic'));
+});

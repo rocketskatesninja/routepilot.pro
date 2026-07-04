@@ -34,11 +34,28 @@ class PlatformAiSettings
     {
         $provider ??= $this->provider();
         $model = PlatformSetting::get('ai_model');
-        if ($model !== null && $model !== '') {
+
+        // Use the saved model unless it's blank or clearly belongs to the OTHER
+        // provider (a stale value left behind when the provider was switched) —
+        // then fall back to this provider's default so a mismatched combo (e.g.
+        // provider=openai, model=claude-…) never reaches the API.
+        if ($model !== null && $model !== '' && ! $this->modelBelongsToOtherProvider($model, $provider)) {
             return $model;
         }
 
         return (string) config("ai.models.{$provider}", '');
+    }
+
+    /** True when the model string clearly belongs to a provider other than $provider. */
+    private function modelBelongsToOtherProvider(string $model, string $provider): bool
+    {
+        $m = strtolower($model);
+        $looksAnthropic = str_contains($m, 'claude');
+        $looksOpenai = str_starts_with($m, 'gpt') || str_starts_with($m, 'chatgpt')
+            || str_starts_with($m, 'o1') || str_starts_with($m, 'o3') || str_starts_with($m, 'o4');
+
+        return ($provider === 'openai' && $looksAnthropic)
+            || ($provider === 'anthropic' && $looksOpenai);
     }
 
     /** The usable (decrypted) API key for a provider: DB-managed first, else env. */
