@@ -137,6 +137,9 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
         Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
         Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+        // Archived-customer management (bind trashed rows; TenantScope still applies).
+        Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->withTrashed()->name('customers.restore');
+        Route::delete('customers/{customer}/force', [CustomerController::class, 'forceDestroy'])->withTrashed()->name('customers.force');
         Route::post('customers/{customer}/portal', [CustomerController::class, 'grantPortal'])->name('customers.portal');
         Route::get('customers/{customer}/export', [CustomerController::class, 'export'])->name('customers.export');
         Route::post('agents', [AgentController::class, 'store'])->name('agents.store');

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\ArchiveCustomer;
 use App\Actions\CreateCustomer;
 use App\Actions\GrantPortalAccess;
+use App\Actions\PurgeCustomer;
+use App\Actions\RestoreCustomer;
 use App\Actions\UpdateCustomer;
 use App\Http\Requests\GrantPortalRequest;
 use App\Http\Requests\StoreCustomerRequest;
@@ -42,14 +45,37 @@ class CustomerController extends Controller
         return back()->with('success', 'Customer updated.');
     }
 
-    public function destroy(Request $request, Customer $customer): RedirectResponse
+    /** Archive (soft-delete) a customer + their pools/subscriptions — reversible. */
+    public function destroy(Request $request, Customer $customer, ArchiveCustomer $action): RedirectResponse
     {
         $this->authorizeAdmin($request);
 
         $this->audit($request, 'customer.deleted', $customer);
-        $customer->delete();
+        $action->handle($customer);
 
-        return back()->with('success', 'Customer removed.');
+        return back()->with('success', 'Customer archived.');
+    }
+
+    /** Restore an archived customer + the pools archived alongside them. */
+    public function restore(Request $request, Customer $customer, RestoreCustomer $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $action->handle($customer);
+        $this->audit($request, 'customer.restored', $customer);
+
+        return back()->with('success', 'Customer restored.');
+    }
+
+    /** Permanently delete an archived customer and all their data (irreversible). */
+    public function forceDestroy(Request $request, Customer $customer, PurgeCustomer $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $this->audit($request, 'customer.purged', $customer);
+        $action->handle($customer);
+
+        return back()->with('success', 'Customer permanently deleted.');
     }
 
     /** GDPR/CCPA — download all of a customer's data as JSON (audited). */

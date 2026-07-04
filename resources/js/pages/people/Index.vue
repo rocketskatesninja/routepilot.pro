@@ -14,7 +14,7 @@ import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Mail, Pencil, Plus, Send, Trash2, Users } from 'lucide-vue-next';
+import { Mail, Pencil, Plus, RotateCcw, Send, Trash2, Users } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -53,6 +53,9 @@ interface CustomerDetail {
     phone: string | null;
     city: string | null;
     has_portal: boolean;
+    archived: boolean;
+    archived_on: string | null;
+    summary: { pools: number; visits: number; invoices: number; charges: number } | null;
     pools: { id: number; name: string; type: string }[];
     recent_visits: { id: number; pool: string | null; completed_on: string | null }[];
     fields: CustomerFields;
@@ -83,9 +86,9 @@ interface AgentDetail {
 
 const props = defineProps<{
     people: Paginated<PersonRow>;
-    counts: { all: number; customers: number; agents: number };
+    counts: { all: number; customers: number; agents: number; archived: number };
     selected: CustomerDetail | AgentDetail | null;
-    filters: { search: string; type: 'all' | 'customers' | 'agents' };
+    filters: { search: string; type: 'all' | 'customers' | 'agents' | 'archived' };
     sort: { key: string; dir: string };
     canManage: boolean;
     canEmail: boolean;
@@ -164,6 +167,7 @@ const tabs = [
     { key: 'all', label: 'All' },
     { key: 'customers', label: 'Customers' },
     { key: 'agents', label: 'Agents' },
+    { key: 'archived', label: 'Archived' },
 ] as const;
 
 const { search } = useListSearch('/people', props.filters.search, { extra: () => ({ type: tab() }) });
@@ -174,7 +178,7 @@ function visit(params: Record<string, string | number | undefined>) {
     router.get('/people', params, { preserveState: true, replace: true, preserveScroll: true });
 }
 
-function setType(type: 'all' | 'customers' | 'agents') {
+function setType(type: 'all' | 'customers' | 'agents' | 'archived') {
     visit({ search: search.value || undefined, type: type === 'all' ? undefined : type });
 }
 
@@ -285,8 +289,24 @@ function submitForm() {
 
 function destroyCustomer() {
     if (!props.selected || props.selected.type !== 'customer') return;
-    if (!confirm('Remove this customer? Their service history is preserved.')) return;
+    if (
+        !confirm(
+            'Archive this customer? Their pools and subscriptions are archived too (no more scheduling or metering). You can restore them from the Archived tab.',
+        )
+    )
+        return;
     router.delete(`/customers/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
+function restoreCustomer() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    router.post(`/customers/${props.selected.id}/restore`, {}, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
+function purgeCustomer() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    const s = props.selected.summary;
+    const detail = s ? ` This removes ${s.pools} pool(s), ${s.visits} visit(s), ${s.invoices} invoice(s) and ${s.charges} charge(s).` : '';
+    if (!confirm(`Permanently delete this customer?${detail} This cannot be undone.`)) return;
+    router.delete(`/customers/${props.selected.id}/force`, { preserveScroll: true, onSuccess: () => closeDrawer() });
 }
 
 function grantPortal() {
@@ -678,14 +698,35 @@ function destroyAgent() {
                         </div>
 
                         <div class="space-y-5 text-sm">
-                            <div v-if="props.canManage && props.selected.type === 'customer'" class="flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
-                                <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
-                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
-                                >
-                            </div>
+                            <template v-if="props.canManage && props.selected.type === 'customer'">
+                                <!-- archived customer: restore or permanently delete -->
+                                <div v-if="props.selected.archived" class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                                    <p class="text-sm font-medium">
+                                        Archived{{ props.selected.archived_on ? ` on ${props.selected.archived_on}` : '' }}
+                                    </p>
+                                    <p v-if="props.selected.summary" class="mt-0.5 text-xs text-muted-foreground">
+                                        Still holds {{ props.selected.summary.pools }} pool(s), {{ props.selected.summary.visits }} visit(s),
+                                        {{ props.selected.summary.invoices }} invoice(s), {{ props.selected.summary.charges }} charge(s).
+                                    </p>
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        <Button size="sm" variant="outline" @click="restoreCustomer"
+                                            ><RotateCcw class="mr-1 size-3.5" /> Restore</Button
+                                        >
+                                        <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="purgeCustomer"
+                                            ><Trash2 class="mr-1 size-3.5" /> Delete permanently</Button
+                                        >
+                                    </div>
+                                </div>
+                                <!-- active customer: normal actions -->
+                                <div v-else class="flex flex-wrap gap-2">
+                                    <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                    <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
+                                    <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
+                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
+                                        ><Trash2 class="mr-1 size-3.5" /> Archive</Button
+                                    >
+                                </div>
+                            </template>
 
                             <section>
                                 <h3 class="mb-1 font-medium">Contact</h3>

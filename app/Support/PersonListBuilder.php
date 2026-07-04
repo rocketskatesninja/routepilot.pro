@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 class PersonListBuilder
 {
     /**
-     * @param  'all'|'customers'|'agents'  $type
+     * @param  'all'|'customers'|'agents'|'archived'  $type
      * @param  'name'|'type'|'email'|'phone'  $sortKey
      * @return LengthAwarePaginator<int, \stdClass>
      */
@@ -28,6 +28,7 @@ class PersonListBuilder
         $query = match ($type) {
             'customers' => $this->customers($tenantId, $search),
             'agents' => $this->agents($tenantId, $search),
+            'archived' => $this->customers($tenantId, $search, trashed: true),
             default => $this->customers($tenantId, $search)->unionAll($this->agents($tenantId, $search)),
         };
 
@@ -46,19 +47,20 @@ class PersonListBuilder
         return $paginator;
     }
 
-    /** @return array{all: int, customers: int, agents: int} */
+    /** @return array{all: int, customers: int, agents: int, archived: int} */
     public function counts(int $tenantId, string $search = ''): array
     {
         $customers = $this->customers($tenantId, $search)->count();
         $agents = $this->agents($tenantId, $search)->count();
+        $archived = $this->customers($tenantId, $search, trashed: true)->count();
 
-        return ['all' => $customers + $agents, 'customers' => $customers, 'agents' => $agents];
+        return ['all' => $customers + $agents, 'customers' => $customers, 'agents' => $agents, 'archived' => $archived];
     }
 
-    private function customers(int $tenantId, string $search): Builder
+    private function customers(int $tenantId, string $search, bool $trashed = false): Builder
     {
         return DB::table('customers')
-            ->whereNull('deleted_at')
+            ->when($trashed, fn (Builder $q) => $q->whereNotNull('deleted_at'), fn (Builder $q) => $q->whereNull('deleted_at'))
             ->where('tenant_id', $tenantId)
             ->when($search !== '', fn (Builder $q) => $this->whereName($q, $search))
             ->selectRaw("id, 'customer' as person_type, first_name, last_name, email, phone, photo_path as photo");

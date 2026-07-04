@@ -6,7 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Actions\SendCampaign;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\MailCampaign;
+use App\Models\ManualCharge;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -37,7 +39,7 @@ class PeopleController extends Controller
         $tenantId = (int) $user?->tenant_id;
 
         $type = (string) $request->string('type');
-        if (! in_array($type, ['all', 'customers', 'agents'], true)) {
+        if (! in_array($type, ['all', 'customers', 'agents', 'archived'], true)) {
             $type = 'all';
         }
         $search = trim((string) $request->string('search'));
@@ -71,7 +73,7 @@ class PeopleController extends Controller
         $selectedId = $request->integer('selected');
         if ($selectedId > 0) {
             $selected = match ($selectedType) {
-                'customer' => $this->customerDetail($selectedId),
+                'customer' => $this->customerDetail($selectedId, $type === 'archived'),
                 'agent' => $this->agentDetail($tenantId, $selectedId),
                 default => null,
             };
@@ -275,16 +277,20 @@ class PeopleController extends Controller
     }
 
     /** @return array<string, mixed>|null */
-    private function customerDetail(int $id): ?array
+    private function customerDetail(int $id, bool $archived = false): ?array
     {
-        // Tenant-scoped via the global scope — a foreign id returns null.
-        $customer = Customer::query()->with('pools:id,customer_id,name,type')->find($id);
+        // Tenant-scoped via the global scope — a foreign id returns null. Archived
+        // customers (and their archived pools) are only reachable withTrashed.
+        $customer = ($archived ? Customer::withTrashed() : Customer::query())
+            ->with(['pools' => fn ($q) => ($archived ? $q->withTrashed() : $q)->select('id', 'customer_id', 'name', 'type')])
+            ->find($id);
         if ($customer === null) {
             return null;
         }
 
+        $poolIds = $customer->pools->pluck('id');
         $visits = ServiceVisit::query()
-            ->whereIn('pool_id', $customer->pools->pluck('id'))
+            ->whereIn('pool_id', $poolIds)
             ->where('status', 'completed')
             ->with('pool:id,name')
             ->latest('completed_at')
@@ -300,6 +306,15 @@ class PeopleController extends Controller
             'phone' => $customer->getAttribute('phone'),
             'city' => $customer->getAttribute('city'),
             'has_portal' => $customer->getAttribute('user_id') !== null,
+            'archived' => $customer->trashed(),
+            'archived_on' => $customer->deleted_at?->toDateString(),
+            // What a permanent delete would remove — shown on the archived panel.
+            'summary' => $archived ? [
+                'pools' => $poolIds->count(),
+                'visits' => ServiceVisit::query()->whereIn('pool_id', $poolIds)->count(),
+                'invoices' => Invoice::query()->where('customer_id', $customer->id)->count(),
+                'charges' => ManualCharge::query()->where('customer_id', $customer->id)->count(),
+            ] : null,
             'pools' => $customer->pools->map(fn ($pool) => [
                 'id' => $pool->id,
                 'name' => $pool->getAttribute('name'),
