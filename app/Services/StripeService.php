@@ -117,6 +117,7 @@ class StripeService
 
         $response = Http::asForm()->withToken($secret)->post('https://api.stripe.com/v1/checkout/sessions', [
             'mode' => 'setup',
+            'currency' => 'usd', // required by Stripe for setup-mode sessions
             'customer' => $stripeCustomer,
             'success_url' => $successUrl,
             'cancel_url' => $cancelUrl,
