@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Droplet, ShieldCheck, Sparkles, Sun, Waves, Wrench } from 'lucide-vue-next';
+import { Droplet, Filter, FlaskConical, ShieldCheck, Sparkles, Sun, Thermometer, Waves, Wrench } from 'lucide-vue-next';
 import { computed, type Component } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
@@ -8,7 +8,17 @@ const props = defineProps<SectionProps>();
 const c = computed(() => props.content as { heading?: string; items?: { title?: string; body?: string; icon?: string }[] });
 const items = computed(() => c.value.items ?? []);
 
-const icons: Record<string, Component> = { droplet: Droplet, wrench: Wrench, sparkles: Sparkles, shield: ShieldCheck, waves: Waves, sun: Sun };
+const icons: Record<string, Component> = {
+    droplet: Droplet,
+    wrench: Wrench,
+    sparkles: Sparkles,
+    shield: ShieldCheck,
+    waves: Waves,
+    sun: Sun,
+    flask: FlaskConical,
+    thermometer: Thermometer,
+    filter: Filter,
+};
 </script>
 
 <template>

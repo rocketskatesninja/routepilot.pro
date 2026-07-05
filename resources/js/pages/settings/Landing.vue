@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IconPicker from '@/components/landing/IconPicker.vue';
 import LandingImagePicker from '@/components/landing/LandingImagePicker.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
 import type { BrandContext, LiveData, SectionConfig } from '@/components/landing/types';
@@ -74,8 +75,33 @@ const TITLES: Record<string, string> = {
     cta: 'Call to action',
     contact: 'Contact form',
 };
+
+// Each section's on-page heading text, so the builder list reads the same as the live page.
+// These fallbacks mirror the section components' own defaults. hero/stats have no on-page
+// heading and aren't listed here, so they keep their descriptive TITLES label.
+const HEADING_DEFAULTS: Record<string, string> = {
+    services: 'Our services',
+    quote: 'Get an instant estimate',
+    gallery: 'Recent work',
+    team: 'Meet the team',
+    service_area: 'Where we serve',
+    booking: 'Request your first visit',
+    testimonials: 'What our customers say',
+    faq: 'Frequently asked questions',
+    cta: 'Ready for a worry-free pool?',
+    contact: 'Get in touch',
+};
+
+// Label a section by its actual on-page heading: the tenant's custom value if set, else the
+// component default. CTA/hero store it as `headline`; every other section as `heading`.
+function sectionLabel(s: SectionConfig): string {
+    const fallback = HEADING_DEFAULTS[s.key];
+    if (!fallback) return TITLES[s.key] || s.key;
+    const field = s.key === 'cta' ? 'headline' : 'heading';
+    const custom = typeof s[field] === 'string' ? (s[field] as string).trim() : '';
+    return custom || fallback;
+}
 const taClass = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
-const ICONS = ['droplet', 'wrench', 'sparkles', 'shield', 'waves', 'sun'];
 const METRICS: [string, string][] = [
     ['pools_serviced', 'Pools serviced'],
     ['visits_completed', 'Visits completed'],
@@ -273,7 +299,7 @@ function save() {
                             <div class="flex items-center gap-2 px-3 py-2.5">
                                 <GripVertical class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
                                 <button type="button" class="flex flex-1 items-center gap-2 text-left text-sm font-medium" @click="toggleOpen(s.key)">
-                                    {{ TITLES[s.key] || s.key }}
+                                    {{ sectionLabel(s) }}
                                     <ChevronDown
                                         class="size-4 text-muted-foreground transition-transform"
                                         :class="expanded === s.key ? 'rotate-180' : ''"
@@ -486,11 +512,11 @@ function save() {
                                                 <Trash2 class="size-4 text-muted-foreground hover:text-red-600" />
                                             </button>
                                         </div>
-                                        <Input v-model="it.title" placeholder="Title" />
+                                        <div class="flex items-center gap-2">
+                                            <IconPicker v-model="it.icon" />
+                                            <Input v-model="it.title" placeholder="Title" class="flex-1" />
+                                        </div>
                                         <textarea v-model="it.body" rows="2" :class="taClass" placeholder="Description" />
-                                        <select v-model="it.icon" class="h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
-                                            <option v-for="ic in ICONS" :key="ic" :value="ic">{{ ic }}</option>
-                                        </select>
                                     </div>
                                     <Button type="button" variant="outline" size="sm" @click="addItem(s, { title: '', body: '', icon: 'droplet' })"
                                         ><Plus class="mr-1 size-3.5" /> Add service</Button

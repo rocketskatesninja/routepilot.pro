@@ -14,7 +14,7 @@ defineProps<Props>();
     </div>
     <div class="ml-1 grid flex-1 text-left text-sm">
         <span class="mb-0.5 truncate font-semibold leading-none"
-            ><span class="text-slate-700 dark:text-slate-200">Route</span><span class="text-orange-500">Pilot</span></span
+            ><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span
         >
     </div>
 </template>

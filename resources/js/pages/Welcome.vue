@@ -85,7 +85,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                     <span class="flex size-8 items-center justify-center rounded-md bg-orange-500 text-white">
                         <RouteIcon class="size-5" />
                     </span>
-                    <span> <span :class="scrolled ? 'text-primary' : 'text-sky-300'">Route</span><span class="text-orange-500">Pilot</span> </span>
+                    <span> <span :class="scrolled ? 'text-sky-500' : 'text-sky-300'">Route</span><span class="text-orange-500">Pilot</span> </span>
                 </Link>
 
                 <div class="hidden items-center gap-7 text-sm font-medium sm:flex" :class="scrolled ? 'text-muted-foreground' : 'text-sky-100/90'">
