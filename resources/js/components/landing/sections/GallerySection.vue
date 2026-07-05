@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import { galleryItem, galleryRow } from '../gridLayout';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
@@ -18,12 +19,13 @@ const lightbox = ref<number | null>(null);
         :heading="c.heading || 'Recent work'"
         subheading="See the quality our team delivers, every visit"
     >
-        <div v-if="photos.length" class="stagger-children reveal grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div v-if="photos.length" class="stagger-children reveal" :class="galleryRow">
             <button
                 v-for="(p, i) in photos"
                 :key="i"
                 type="button"
                 class="group relative aspect-square overflow-hidden rounded-xl border border-border"
+                :class="galleryItem(photos.length)"
                 @click="lightbox = i"
             >
                 <img

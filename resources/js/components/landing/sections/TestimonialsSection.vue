@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { contentItem, contentRow } from '../gridLayout';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
@@ -16,11 +17,12 @@ const items = computed(() => c.value.items ?? []);
         :heading="c.heading || 'What our customers say'"
         subheading="Real reviews from real customers"
     >
-        <div v-if="items.length" class="stagger-children reveal grid gap-6 md:grid-cols-3">
+        <div v-if="items.length" class="stagger-children reveal" :class="contentRow">
             <div
                 v-for="(t, i) in items"
                 :key="i"
                 class="testimonial-card card-hover relative rounded-xl border border-border bg-background p-6 shadow-sm"
+                :class="contentItem(items.length)"
             >
                 <div class="mb-2 flex gap-1">
                     <svg v-for="s in 5" :key="s" class="size-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
