@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\RecordPayment;
-use App\Models\Customer;
+use App\Actions\SettleCheckoutSession;
 use App\Models\StripeEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,7 +19,7 @@ use Illuminate\Support\Facades\DB;
  */
 class StripeWebhookController extends Controller
 {
-    public function handle(Request $request, RecordPayment $recordPayment): Response
+    public function handle(Request $request, SettleCheckoutSession $settle): Response
     {
         $secret = (string) config('services.stripe.webhook_secret');
         $payload = (string) $request->getContent();
@@ -43,25 +42,25 @@ class StripeWebhookController extends Controller
         // Record + settle in one transaction so a settle() failure rolls back the
         // event record and Stripe legitimately retries (instead of the redelivery
         // being skipped as "already processed" with the payment lost).
-        DB::transaction(function () use ($event, $eventId, $recordPayment): void {
+        DB::transaction(function () use ($event, $eventId, $settle): void {
             StripeEvent::create([
                 'event_id' => $eventId,
                 'type' => is_string($event['type'] ?? null) ? $event['type'] : 'unknown',
             ]);
 
-            $this->settle($event, $recordPayment);
+            $this->settle($event, $settle);
         });
 
         return response('', 200);
     }
 
     /**
-     * On a completed Checkout payment, settle it against the customer's balance.
-     * Customer + tenant come from the session metadata we stamped at creation.
+     * On a completed Checkout payment, settle it against the customer's balance
+     * (shared with the reconciliation job, which is idempotent on the intent id).
      *
      * @param  array<string, mixed>  $event
      */
-    private function settle(array $event, RecordPayment $recordPayment): void
+    private function settle(array $event, SettleCheckoutSession $settle): void
     {
         if (($event['type'] ?? null) !== 'checkout.session.completed') {
             return;
@@ -69,25 +68,9 @@ class StripeWebhookController extends Controller
 
         $data = $event['data'] ?? null;
         $object = is_array($data) ? ($data['object'] ?? null) : null;
-        if (! is_array($object) || ($object['payment_status'] ?? null) !== 'paid') {
-            return;
+        if (is_array($object)) {
+            $settle->handle($object);
         }
-
-        $meta = is_array($object['metadata'] ?? null) ? $object['metadata'] : [];
-        $tenantId = (int) ($meta['tenant_id'] ?? 0);
-        $customerId = (int) ($meta['customer_id'] ?? 0);
-        if ($tenantId <= 0 || $customerId <= 0) {
-            return;
-        }
-
-        app()->instance('tenant_id', $tenantId);
-        $customer = Customer::query()->find($customerId);
-        if ($customer === null) {
-            return;
-        }
-
-        $intent = $object['payment_intent'] ?? null;
-        $recordPayment->handle($customer, 'card', null, is_string($intent) ? $intent : null);
     }
 
     /** Verify Stripe's `t=…,v1=…` HMAC-SHA256 signature header. */

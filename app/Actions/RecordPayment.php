@@ -25,12 +25,21 @@ class RecordPayment
 
     public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null): ?Payment
     {
-        $amount = $this->billing->outstandingForCustomer($customer);
-        if ($amount <= 0) {
+        // Fast path: nothing owed → nothing to record (skip opening a transaction).
+        if ($this->billing->outstandingForCustomer($customer) <= 0) {
             return null;
         }
 
-        $payment = DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId, $amount): Payment {
+        $payment = DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId): ?Payment {
+            // Recompute inside the transaction so the recorded amount is exactly
+            // what we settle here — a visit/charge landing between the check above
+            // and this write can't leave the Payment total disagreeing with the
+            // rows we mark paid.
+            $amount = $this->billing->outstandingForCustomer($customer);
+            if ($amount <= 0) {
+                return null;
+            }
+
             ServiceVisit::query()
                 ->whereIn('pool_id', $customer->pools()->pluck('id'))
                 ->where('status', 'completed')
@@ -60,12 +69,16 @@ class RecordPayment
             ]);
         });
 
+        if ($payment === null) {
+            return null;
+        }
+
         // Transactional receipt (always sent — not a marketing message).
         $email = $customer->email;
         if (is_string($email) && $email !== '') {
             Mail::to($email)->queue(new PaymentReceiptMail(
                 $customer->displayName(),
-                $amount,
+                (float) $payment->amount,
                 $customer->tenant->name,
                 now()->toFormattedDateString(),
             ));

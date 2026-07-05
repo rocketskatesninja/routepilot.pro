@@ -43,6 +43,16 @@ test('autopay charges the saved card and settles the balance', function () {
     expect(Payment::query()->where('customer_id', $this->customer->id)->where('stripe_payment_intent_id', 'pi_ok')->exists())->toBeTrue();
 });
 
+test('autopay sends a per-day idempotency key so a re-run cannot double-charge', function () {
+    Http::fake(['api.stripe.com/v1/payment_intents' => Http::response(['id' => 'pi_ok', 'status' => 'succeeded'], 200)]);
+
+    $this->artisan('app:charge-autopay')->assertSuccessful();
+
+    $expected = sprintf('autopay:%d:%s', $this->customer->id, now()->format('Y-m-d'));
+    Http::assertSent(fn ($req) => str_contains($req->url(), 'payment_intents')
+        && $req->hasHeader('Idempotency-Key', $expected));
+});
+
 test('a declined autopay charge duns the customer', function () {
     Mail::fake();
     Http::fake(['api.stripe.com/v1/payment_intents' => Http::response(['error' => ['payment_intent' => ['id' => 'pi_no', 'status' => 'requires_payment_method']]], 402)]);

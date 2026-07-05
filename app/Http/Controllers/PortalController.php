@@ -18,6 +18,7 @@ use App\Support\EtaWindow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -243,16 +244,24 @@ class PortalController extends Controller
             return redirect('/balance')->with('error', 'Your card was not saved — please try again.');
         }
 
-        $pm = PaymentMethod::create([
-            'customer_id' => $customer->id,
-            'stripe_payment_method_id' => $card['payment_method'],
-            'brand' => $card['brand'],
-            'last4' => $card['last4'],
-            'exp_month' => $card['exp_month'],
-            'exp_year' => $card['exp_year'],
-            'is_default' => true,
-        ]);
-        $customer->forceFill(['autopay_enabled' => true, 'default_payment_method_id' => $pm->id])->save();
+        $pm = DB::transaction(function () use ($customer, $card): PaymentMethod {
+            // Demote any prior card so exactly one stays flagged default.
+            PaymentMethod::query()->where('customer_id', $customer->id)
+                ->where('is_default', true)->update(['is_default' => false]);
+
+            $pm = PaymentMethod::create([
+                'customer_id' => $customer->id,
+                'stripe_payment_method_id' => $card['payment_method'],
+                'brand' => $card['brand'],
+                'last4' => $card['last4'],
+                'exp_month' => $card['exp_month'],
+                'exp_year' => $card['exp_year'],
+                'is_default' => true,
+            ]);
+            $customer->forceFill(['autopay_enabled' => true, 'default_payment_method_id' => $pm->id])->save();
+
+            return $pm;
+        });
         AuditLog::record($request->user(), 'autopay.enabled', $customer, ['last4' => $card['last4'] ?? null]);
 
         return redirect('/balance')->with('success', 'Autopay is on — card ending '.($card['last4'] ?? '••••').' saved.');

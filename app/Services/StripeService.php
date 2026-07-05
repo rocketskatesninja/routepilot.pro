@@ -172,9 +172,13 @@ class StripeService
      * Charge a saved card off-session (autopay). A decline comes back as a 402
      * with the PaymentIntent nested under `error.payment_intent`.
      *
+     * An idempotency key (keyed by customer + day at the call site) makes a
+     * re-run within Stripe's 24h window return the original charge instead of
+     * charging the card twice — the guard against a double-fired autopay run.
+     *
      * @return array{status: string, id: ?string}|null
      */
-    public function chargeOffSession(string $stripeCustomerId, string $paymentMethodId, float $amount, int $customerId, int $tenantId, ?string $connectAccount = null): ?array
+    public function chargeOffSession(string $stripeCustomerId, string $paymentMethodId, float $amount, int $customerId, int $tenantId, ?string $connectAccount = null, ?string $idempotencyKey = null): ?array
     {
         $secret = (string) config('services.stripe.secret');
         if ($secret === '' || $amount <= 0) {
@@ -196,7 +200,12 @@ class StripeService
             $params['application_fee_amount'] = $this->applicationFee($amount);
         }
 
-        $response = Http::asForm()->withToken($secret)->post('https://api.stripe.com/v1/payment_intents', $params);
+        $request = Http::asForm()->withToken($secret);
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $request = $request->withHeaders(['Idempotency-Key' => $idempotencyKey]);
+        }
+
+        $response = $request->post('https://api.stripe.com/v1/payment_intents', $params);
 
         $status = $response->json('status') ?? $response->json('error.payment_intent.status');
         $id = $response->json('id') ?? $response->json('error.payment_intent.id');
@@ -205,6 +214,34 @@ class StripeService
             'status' => is_string($status) ? $status : 'failed',
             'id' => is_string($id) ? $id : null,
         ];
+    }
+
+    /**
+     * Recent Checkout sessions from Stripe, newest first — the source the
+     * reconciliation job scans for paid balance payments a missed/late webhook
+     * never settled. Setup-mode sessions come back too but carry
+     * payment_status other than "paid", so the settler ignores them.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function recentCheckoutSessions(int $hours = 72): array
+    {
+        $secret = (string) config('services.stripe.secret');
+        if ($secret === '') {
+            return [];
+        }
+
+        $response = Http::withToken($secret)->get('https://api.stripe.com/v1/checkout/sessions', [
+            'limit' => 100,
+            'created[gte]' => now()->subHours($hours)->timestamp,
+        ]);
+        if (! $response->successful()) {
+            return [];
+        }
+
+        $data = $response->json('data');
+
+        return is_array($data) ? array_values(array_filter($data, 'is_array')) : [];
     }
 
     /** Create an Express connected account for the tenant; returns its id (stored). */

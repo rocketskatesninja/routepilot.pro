@@ -52,6 +52,11 @@ class ChargeAutopayCustomer
             (int) $customer->id,
             (int) $customer->getAttribute('tenant_id'),
             $this->stripe->connectAccountFor($customer),
+            // Stable per customer per day: a same-day re-run (double-fired
+            // schedule, manual re-invoke) replays the original charge rather
+            // than billing the card again; the next day's dunning retry uses a
+            // fresh key so a genuine decline can be re-attempted.
+            sprintf('autopay:%d:%s', (int) $customer->id, now()->format('Y-m-d')),
         );
 
         if ($result !== null && $result['status'] === 'succeeded') {
