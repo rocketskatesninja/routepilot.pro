@@ -1,8 +1,18 @@
 <script setup lang="ts">
+import FontPicker from '@/components/landing/FontPicker.vue';
 import IconPicker from '@/components/landing/IconPicker.vue';
 import LandingImagePicker from '@/components/landing/LandingImagePicker.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
-import type { BrandContext, LiveData, SectionConfig } from '@/components/landing/types';
+import {
+    allTitleFontsHref,
+    TITLE_SHADOWS,
+    TITLE_SIZES,
+    TITLE_TRACKINGS,
+    TITLE_WEIGHTS,
+    titleFontHref,
+    titleStyle,
+} from '@/components/landing/titleStyle';
+import type { BrandContext, LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +40,7 @@ const props = defineProps<{
         sections: SectionConfig[];
         seo: { title: string | null; description: string | null; og_image: string | null };
         theme: Record<string, unknown>;
+        title: TitleConfig;
     };
     ogImageUrl: string | null;
     live: LiveData;
@@ -46,7 +57,20 @@ const sections = ref<SectionConfig[]>(clone(props.config.sections));
 const seo = ref({ title: props.config.seo.title ?? '', description: props.config.seo.description ?? '', og_image: props.config.seo.og_image });
 const ogUrl = ref(props.ogImageUrl);
 const theme = ref(clone(props.config.theme));
+const title = ref<TitleConfig>(clone(props.config.title));
 const photos = ref<RecentPhoto[]>(clone(props.recentPhotos));
+
+// Load the selected title font into the editor so its live preview is accurate,
+// plus every font so the dropdown can render each option in its own typeface.
+const titleFont = computed(() => titleFontHref(title.value));
+const allFontsHref = allTitleFontsHref();
+// Solid-color opt-in: null = inherit the theme foreground (the default look).
+const useCustomColor = computed({
+    get: () => title.value.color !== null,
+    set: (on: boolean) => {
+        title.value.color = on ? (title.value.color ?? '#0f172a') : null;
+    },
+});
 
 const expanded = ref<string | null>('hero');
 const toggleOpen = (k: string) => (expanded.value = expanded.value === k ? null : k);
@@ -215,6 +239,7 @@ function save() {
             sections: sections.value,
             seo: { title: seo.value.title, description: seo.value.description, og_image: seo.value.og_image },
             theme: theme.value,
+            title: title.value,
         },
         {
             preserveScroll: true,
@@ -230,7 +255,10 @@ function save() {
 </script>
 
 <template>
-    <Head title="Landing page" />
+    <Head title="Landing page">
+        <link v-if="titleFont" rel="stylesheet" :href="titleFont" />
+        <link rel="stylesheet" :href="allFontsHref" />
+    </Head>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 gap-4 p-4">
@@ -267,6 +295,109 @@ function save() {
                         </div>
                         <div class="grid gap-1">
                             <Label>Social share image</Label><LandingImagePicker :url="ogUrl" label="image" @uploaded="onOgUpload" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company title -->
+                <div class="rounded-xl border border-border">
+                    <button
+                        type="button"
+                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
+                        @click="toggleOpen('__title')"
+                    >
+                        Company title
+                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__title' ? 'rotate-180' : ''" />
+                    </button>
+                    <div v-show="expanded === '__title'" class="space-y-3 border-t border-border bg-muted/20 p-4 text-sm">
+                        <!-- Live preview of the styled title, on a header-like background. -->
+                        <div
+                            class="flex min-h-14 items-center justify-center overflow-hidden rounded-lg border border-border bg-background px-4 py-3"
+                        >
+                            <span class="whitespace-nowrap" :style="titleStyle(title)">{{ title.text || 'Company Name' }}</span>
+                        </div>
+
+                        <div class="grid gap-1">
+                            <Label>Title text <span class="font-normal text-muted-foreground">(blank = company name)</span></Label>
+                            <Input v-model="title.text" placeholder="Your company name" />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="grid gap-1">
+                                <Label>Font</Label>
+                                <FontPicker v-model="title.font" />
+                            </div>
+                            <div class="grid gap-1">
+                                <Label>Shadow</Label>
+                                <select v-model="title.shadow" class="h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+                                    <option v-for="o in TITLE_SHADOWS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="grid gap-1">
+                                <Label>Size</Label>
+                                <select v-model="title.size" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option v-for="o in TITLE_SIZES" :key="o.value" :value="o.value">{{ o.label }}</option>
+                                </select>
+                            </div>
+                            <div class="grid gap-1">
+                                <Label>Weight</Label>
+                                <select v-model="title.weight" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option v-for="o in TITLE_WEIGHTS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                                </select>
+                            </div>
+                            <div class="grid gap-1">
+                                <Label>Spacing</Label>
+                                <select v-model="title.tracking" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option v-for="o in TITLE_TRACKINGS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-1">
+                            <Label>Color</Label>
+                            <div class="flex items-center gap-4">
+                                <label class="flex items-center gap-1.5"><input v-model="title.color_type" type="radio" value="solid" /> Solid</label>
+                                <label class="flex items-center gap-1.5"
+                                    ><input v-model="title.color_type" type="radio" value="gradient" /> Gradient</label
+                                >
+                            </div>
+                        </div>
+                        <div v-if="title.color_type === 'solid'" class="flex items-center gap-2">
+                            <label class="flex items-center gap-1.5"
+                                ><input v-model="useCustomColor" type="checkbox" class="size-4 rounded border-input" /> Custom color</label
+                            >
+                            <input
+                                v-if="title.color !== null"
+                                v-model="title.color"
+                                type="color"
+                                class="h-8 w-12 rounded border border-input bg-background"
+                            />
+                        </div>
+                        <div v-else class="flex items-center gap-2">
+                            <input v-model="title.gradient_start" type="color" class="h-8 w-9 rounded border border-input" title="Start color" />
+                            <input v-model="title.gradient_via" type="color" class="h-8 w-9 rounded border border-input" title="Middle color" />
+                            <input v-model="title.gradient_end" type="color" class="h-8 w-9 rounded border border-input" title="End color" />
+                            <div class="ml-auto flex items-center gap-1.5">
+                                <Label class="text-xs">Angle</Label>
+                                <Input v-model.number="title.gradient_angle" type="number" min="0" max="360" class="w-16" />
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <label class="flex items-center gap-1.5"
+                                ><input v-model="title.outline" type="checkbox" class="size-4 rounded border-input" /> Outline</label
+                            >
+                            <template v-if="title.outline">
+                                <input v-model="title.outline_color" type="color" class="h-8 w-9 rounded border border-input" title="Outline color" />
+                                <select v-model.number="title.outline_width" class="h-8 rounded-md border border-input bg-background px-2 text-sm">
+                                    <option :value="1">Thin</option>
+                                    <option :value="2">Medium</option>
+                                    <option :value="3">Thick</option>
+                                </select>
+                            </template>
                         </div>
                     </div>
                 </div>

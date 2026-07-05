@@ -79,3 +79,66 @@ test('enabledOrdered returns only enabled sections', function () {
     expect(collect($ordered)->pluck('key'))->not->toContain('hero');
     expect(collect($ordered)->every(fn ($s) => $s['enabled'] === true))->toBeTrue();
 });
+
+test('fromStored includes the header title block with defaults', function () {
+    $config = LandingConfig::fromStored(null);
+
+    expect($config['title']['font'])->toBe('Inter');
+    expect($config['title']['color'])->toBeNull(); // inherit foreground until customized
+    expect($config['title']['color_type'])->toBe('solid');
+});
+
+test('sanitize keeps valid title styling and clamps out-of-range values', function () {
+    $clean = LandingConfig::sanitize([
+        'sections' => [],
+        'title' => [
+            'text' => 'Acme Pools',
+            'font' => 'Poppins',
+            'size' => 'xl',
+            'weight' => '800',
+            'tracking' => 'wide',
+            'color_type' => 'gradient',
+            'color' => 'not-a-hex',
+            'gradient_start' => '#123456',
+            'gradient_angle' => 999,
+            'outline' => true,
+            'outline_width' => 9,
+            'shadow' => 'glow',
+        ],
+    ]);
+
+    $t = $clean['title'];
+    expect($t['text'])->toBe('Acme Pools');
+    expect($t['font'])->toBe('Poppins');
+    expect($t['size'])->toBe('xl');
+    expect($t['weight'])->toBe('800');
+    expect($t['tracking'])->toBe('wide');
+    expect($t['color_type'])->toBe('gradient');
+    expect($t['color'])->toBeNull();          // invalid hex → null (inherit)
+    expect($t['gradient_start'])->toBe('#123456');
+    expect($t['gradient_angle'])->toBe(360);  // clamped to 0..360
+    expect($t['outline'])->toBeTrue();
+    expect($t['outline_width'])->toBe(3);     // clamped to 0..3
+    expect($t['shadow'])->toBe('glow');
+});
+
+test('sanitize rejects unknown title font / enum values, using defaults', function () {
+    $clean = LandingConfig::sanitize([
+        'sections' => [],
+        'title' => ['font' => 'ComicSans', 'size' => 'huge', 'weight' => '123', 'tracking' => 'x', 'color_type' => 'rainbow', 'shadow' => 'sparkle'],
+    ]);
+
+    $t = $clean['title'];
+    expect($t['font'])->toBe('Inter');
+    expect($t['size'])->toBe('md');
+    expect($t['weight'])->toBe('700');
+    expect($t['tracking'])->toBe('normal');
+    expect($t['color_type'])->toBe('solid');
+    expect($t['shadow'])->toBe('none');
+});
+
+test('title text is length-capped at 60', function () {
+    $clean = LandingConfig::sanitize(['sections' => [], 'title' => ['text' => str_repeat('a', 100)]]);
+
+    expect(mb_strlen($clean['title']['text']))->toBe(60);
+});

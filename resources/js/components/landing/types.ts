@@ -34,6 +34,25 @@ export interface SectionConfig {
     [k: string]: unknown;
 }
 
+/** Header company-title styling (mirrors the `title` block in App\Support\LandingConfig). */
+export interface TitleConfig {
+    text: string | null;
+    font: string;
+    size: string;
+    weight: string;
+    tracking: string;
+    color_type: 'solid' | 'gradient';
+    color: string | null;
+    gradient_start: string;
+    gradient_via: string;
+    gradient_end: string;
+    gradient_angle: number;
+    outline: boolean;
+    outline_color: string;
+    outline_width: number;
+    shadow: string;
+}
+
 export interface SectionProps {
     content: SectionConfig;
     live: LiveData;

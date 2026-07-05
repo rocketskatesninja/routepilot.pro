@@ -55,6 +55,7 @@ class PublicSiteController extends Controller
             'seo' => $this->seo($config, $tenant),
             'live' => $assemble->handle($tenant, $config),
             'chatbot' => (bool) (($config['theme']['chatbot'] ?? false)),
+            'title' => is_array($config['title'] ?? null) ? $config['title'] : [],
             // Brand (name / logo / color) arrives via the shared `tenant` prop.
         ]);
     }

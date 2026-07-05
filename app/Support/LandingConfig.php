@@ -25,6 +25,9 @@ class LandingConfig
     /** Hero background presets (images in public/assets/images/hero-presets). */
     public const HERO_PRESETS = ['backyard', 'cityscape', 'infinity', 'islands', 'night', 'patio', 'resort', 'skyline', 'sunset', 'tiles', 'underwater', 'water'];
 
+    /** Fonts the header company title may use (loaded from bunny.net on the public page). */
+    public const TITLE_FONTS = ['Inter', 'Poppins', 'Montserrat', 'Raleway', 'Nunito', 'Lato', 'Roboto', 'Oswald', 'Bebas Neue', 'Playfair Display', 'Merriweather'];
+
     private const CAP = ['items' => 20, 'faq' => 30, 'gallery' => 24, 'team' => 12];
 
     /**
@@ -38,6 +41,25 @@ class LandingConfig
             'version' => 1,
             'seo' => ['title' => null, 'description' => null, 'og_image' => null],
             'theme' => ['accent' => 'brand', 'hero_style' => 'image-right', 'show_logo' => true, 'chatbot' => false],
+            // Header company-title styling. `text` null = the tenant name; `color` null = inherited
+            // foreground (so an un-customized title looks exactly like today).
+            'title' => [
+                'text' => null,
+                'font' => 'Inter',
+                'size' => 'md',
+                'weight' => '700',
+                'tracking' => 'normal',
+                'color_type' => 'solid',
+                'color' => null,
+                'gradient_start' => '#0ea5e9',
+                'gradient_via' => '#38bdf8',
+                'gradient_end' => '#f97316',
+                'gradient_angle' => 135,
+                'outline' => false,
+                'outline_color' => '#000000',
+                'outline_width' => 1,
+                'shadow' => 'none',
+            ],
             'sections' => [
                 ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
                 ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => self::METRICS],
@@ -78,6 +100,7 @@ class LandingConfig
             'version' => 1,
             'seo' => array_merge($defaults['seo'], is_array($decoded['seo'] ?? null) ? $decoded['seo'] : []),
             'theme' => array_merge($defaults['theme'], is_array($decoded['theme'] ?? null) ? $decoded['theme'] : []),
+            'title' => array_merge($defaults['title'], is_array($decoded['title'] ?? null) ? $decoded['title'] : []),
             'sections' => self::mergeSections(is_array($decoded['sections'] ?? null) ? $decoded['sections'] : []),
         ];
     }
@@ -133,6 +156,7 @@ class LandingConfig
 
         $seo = is_array($input['seo'] ?? null) ? $input['seo'] : [];
         $theme = is_array($input['theme'] ?? null) ? $input['theme'] : [];
+        $title = is_array($input['title'] ?? null) ? $input['title'] : [];
 
         return [
             'version' => 1,
@@ -146,6 +170,23 @@ class LandingConfig
                 'hero_style' => in_array($theme['hero_style'] ?? null, ['image-right', 'image-left', 'centered'], true) ? $theme['hero_style'] : 'image-right',
                 'show_logo' => (bool) ($theme['show_logo'] ?? true),
                 'chatbot' => (bool) ($theme['chatbot'] ?? false),
+            ],
+            'title' => [
+                'text' => self::str($title['text'] ?? null, 60),
+                'font' => in_array($title['font'] ?? null, self::TITLE_FONTS, true) ? $title['font'] : 'Inter',
+                'size' => in_array($title['size'] ?? null, ['sm', 'md', 'lg', 'xl'], true) ? $title['size'] : 'md',
+                'weight' => in_array($title['weight'] ?? null, ['400', '500', '600', '700', '800'], true) ? $title['weight'] : '700',
+                'tracking' => in_array($title['tracking'] ?? null, ['tight', 'normal', 'wide', 'wider'], true) ? $title['tracking'] : 'normal',
+                'color_type' => in_array($title['color_type'] ?? null, ['solid', 'gradient'], true) ? $title['color_type'] : 'solid',
+                'color' => self::hexOrNull($title['color'] ?? null),
+                'gradient_start' => self::hex($title['gradient_start'] ?? null, '#0ea5e9'),
+                'gradient_via' => self::hex($title['gradient_via'] ?? null, '#38bdf8'),
+                'gradient_end' => self::hex($title['gradient_end'] ?? null, '#f97316'),
+                'gradient_angle' => self::int($title['gradient_angle'] ?? null, 0, 360, 135),
+                'outline' => (bool) ($title['outline'] ?? false),
+                'outline_color' => self::hex($title['outline_color'] ?? null, '#000000'),
+                'outline_width' => self::int($title['outline_width'] ?? null, 0, 3, 1),
+                'shadow' => in_array($title['shadow'] ?? null, ['none', 'soft', 'glow'], true) ? $title['shadow'] : 'none',
             ],
             'sections' => $clean,
         ];
@@ -323,6 +364,12 @@ class LandingConfig
     private static function hex(mixed $v, string $default): string
     {
         return is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) === 1 ? $v : $default;
+    }
+
+    /** Like hex() but preserves null — a null title color means "inherit the theme foreground". */
+    private static function hexOrNull(mixed $v): ?string
+    {
+        return is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) === 1 ? $v : null;
     }
 
     /**

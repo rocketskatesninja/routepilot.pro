@@ -83,6 +83,7 @@ class LandingController extends Controller
             'sections' => $request->input('sections', []),
             'seo' => $request->input('seo', []),
             'theme' => $request->input('theme', []),
+            'title' => $request->input('title', []),
         ]);
 
         return back()->with('success', 'Landing page saved.');

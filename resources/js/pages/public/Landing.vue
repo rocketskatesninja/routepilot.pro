@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import LeadChatWidget from '@/components/landing/LeadChatWidget.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
-import type { BrandContext, LiveData, SectionConfig } from '@/components/landing/types';
+import { titleFontHref, titleStyle } from '@/components/landing/titleStyle';
+import type { BrandContext, LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
 import { useReveal } from '@/composables/useReveal';
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
@@ -11,6 +12,7 @@ const props = defineProps<{
     live: LiveData;
     seo: { title: string; description: string; og_image: string | null };
     chatbot?: boolean;
+    title: TitleConfig;
 }>();
 
 // Render the chat widget client-only (it uses localStorage) when the tenant
@@ -31,6 +33,11 @@ const brand = computed<BrandContext>(() => ({
 
 const year = new Date().getFullYear();
 
+// Header company title — styled from the saved config; text falls back to the tenant name.
+const titleText = computed(() => props.title.text || brand.value.name);
+const titleStyleStr = computed(() => titleStyle(props.title));
+const titleFont = computed(() => titleFontHref(props.title));
+
 useReveal();
 </script>
 
@@ -42,6 +49,7 @@ useReveal();
         <meta property="og:description" :content="seo.description" />
         <meta v-if="seo.og_image" property="og:image" :content="seo.og_image" />
         <meta property="og:type" content="website" />
+        <link v-if="titleFont" rel="stylesheet" :href="titleFont" />
     </Head>
 
     <div class="landing-scale min-h-screen bg-background text-foreground">
@@ -49,7 +57,7 @@ useReveal();
             <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
                 <a href="#hero" class="flex items-center gap-2">
                     <img v-if="brand.logoUrl" :src="brand.logoUrl" alt="" class="size-9 rounded object-contain" />
-                    <span class="text-lg font-bold">{{ brand.name }}</span>
+                    <span class="whitespace-nowrap" :style="titleStyleStr">{{ titleText }}</span>
                 </a>
                 <div class="flex items-center gap-3">
                     <a href="/login" class="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline">Customer login</a>
