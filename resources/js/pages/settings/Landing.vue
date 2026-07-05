@@ -698,16 +698,20 @@ function save() {
                                     <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
                                     <p v-if="!agents.length" class="text-xs text-muted-foreground">No team members to show yet.</p>
                                     <div v-for="a in agents" :key="a.id" class="rounded-lg border border-border bg-background p-3">
-                                        <label class="flex items-center gap-2 font-medium"
-                                            ><input type="checkbox" :checked="!!memberOf(s, a.id)" @change="toggleMember(s, a.id)" />
-                                            {{ a.name }}</label
-                                        >
-                                        <div v-if="memberOf(s, a.id)" class="mt-2 space-y-2">
+                                        <div class="flex items-center gap-3">
+                                            <label class="flex flex-1 items-center gap-2 font-medium"
+                                                ><input type="checkbox" :checked="!!memberOf(s, a.id)" @change="toggleMember(s, a.id)" />
+                                                {{ a.name }}</label
+                                            >
                                             <Input
+                                                v-if="memberOf(s, a.id)"
                                                 :model-value="memberOf(s, a.id)?.title ?? ''"
                                                 placeholder="Title (e.g. Lead Technician)"
+                                                class="flex-1"
                                                 @update:model-value="(v) => setMember(s, a.id, 'title', String(v))"
                                             />
+                                        </div>
+                                        <div v-if="memberOf(s, a.id)" class="mt-2">
                                             <textarea
                                                 :value="memberOf(s, a.id)?.bio ?? ''"
                                                 rows="2"
@@ -725,9 +729,14 @@ function save() {
                                     <div class="grid gap-1">
                                         <Label>Area caption</Label><Input v-model="s.radius_label" placeholder="Serving a 25-mile radius" />
                                     </div>
+                                    <div class="grid gap-1">
+                                        <Label>Center ZIP code <span class="font-normal text-muted-foreground">(optional)</span></Label>
+                                        <Input v-model="s.zip" placeholder="e.g. 90210" class="w-40" />
+                                    </div>
                                     <p class="text-xs text-muted-foreground">
                                         The map centers on your business address (set in
-                                        <a href="/company" class="text-primary">Company settings</a>).
+                                        <a href="/company" class="text-primary">Company settings</a>). Enter a ZIP code to center it there instead —
+                                        useful to show a service area without revealing your exact address.
                                     </p>
                                 </template>
 

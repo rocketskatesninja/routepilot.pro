@@ -137,6 +137,16 @@ test('sanitize rejects unknown title font / enum values, using defaults', functi
     expect($t['shadow'])->toBe('none');
 });
 
+test('service_area sanitizes the ZIP override — capped, else null', function () {
+    $clean = LandingConfig::sanitize([
+        'sections' => [['key' => 'service_area', 'enabled' => true, 'zip' => str_repeat('9', 30)]],
+    ]);
+    expect(mb_strlen(collect($clean['sections'])->firstWhere('key', 'service_area')['zip']))->toBe(12);
+
+    $none = LandingConfig::sanitize(['sections' => [['key' => 'service_area', 'enabled' => true]]]);
+    expect(collect($none['sections'])->firstWhere('key', 'service_area')['zip'])->toBeNull();
+});
+
 test('title text is length-capped at 60', function () {
     $clean = LandingConfig::sanitize(['sections' => [], 'title' => ['text' => str_repeat('a', 100)]]);
 

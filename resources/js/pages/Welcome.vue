@@ -277,7 +277,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                             <span class="flex size-7 items-center justify-center rounded-md bg-orange-500 text-white"
                                 ><RouteIcon class="size-4"
                             /></span>
-                            <span><span class="text-primary">Route</span><span class="text-orange-500">Pilot</span></span>
+                            <span><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span>
                         </span>
                         <p class="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
                             The complete pool service management platform for modern service companies. Built by Punchlist Labs.

@@ -126,10 +126,10 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
             <div class="w-full max-w-sm">
                 <!-- Mobile logo -->
                 <Link href="/" class="mb-8 flex items-center justify-center gap-2 text-2xl font-bold lg:hidden">
-                    <span class="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                    <span class="flex size-9 items-center justify-center rounded-md bg-orange-500 text-white">
                         <RouteIcon class="size-5" />
                     </span>
-                    <span><span class="text-primary">Route</span><span class="text-orange-500">Pilot</span></span>
+                    <span><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span>
                 </Link>
 
                 <div class="mb-6 flex flex-col gap-2">

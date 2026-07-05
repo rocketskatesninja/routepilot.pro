@@ -16,10 +16,8 @@ defineProps<{
         <header class="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
             <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
                 <Link href="/" class="flex items-center gap-2 text-lg font-bold">
-                    <span class="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
-                        ><RouteIcon class="size-4"
-                    /></span>
-                    <span><span class="text-primary">Route</span><span class="text-orange-500">Pilot</span></span>
+                    <span class="flex size-7 items-center justify-center rounded-md bg-orange-500 text-white"><RouteIcon class="size-4" /></span>
+                    <span><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span>
                 </Link>
                 <Link href="/" class="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
                     <ArrowLeft class="size-4" /> Back to Home

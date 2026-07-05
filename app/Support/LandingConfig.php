@@ -71,7 +71,7 @@ class LandingConfig
                 ['key' => 'quote', 'enabled' => true, 'heading' => 'Get an instant estimate', 'blurb' => 'Tell us about your pool for a ballpark price — we’ll confirm the exact quote after a quick look.'],
                 ['key' => 'gallery', 'enabled' => true, 'heading' => 'Recent work', 'limit' => 12],
                 ['key' => 'team', 'enabled' => false, 'heading' => 'Meet the team', 'members' => []],
-                ['key' => 'service_area', 'enabled' => true, 'heading' => 'Where we serve', 'radius_label' => 'Proudly serving your neighborhood'],
+                ['key' => 'service_area', 'enabled' => true, 'heading' => 'Where we serve', 'radius_label' => 'Proudly serving your neighborhood', 'zip' => null],
                 ['key' => 'booking', 'enabled' => false, 'heading' => 'Request your first visit', 'blurb' => 'Pick a service and a date that works — we’ll confirm by phone or email.'],
                 ['key' => 'testimonials', 'enabled' => true, 'heading' => 'Loved by homeowners', 'items' => []],
                 ['key' => 'faq', 'enabled' => true, 'heading' => 'Common questions', 'items' => []],
@@ -265,7 +265,7 @@ class LandingConfig
             'quote', 'booking' => $base + ['heading' => $heading, 'blurb' => self::str($raw['blurb'] ?? null, 240)],
             'gallery' => $base + ['heading' => $heading, 'limit' => self::int($raw['limit'] ?? null, 1, self::CAP['gallery'], 12)],
             'team' => $base + ['heading' => $heading, 'members' => self::members($raw['members'] ?? null)],
-            'service_area' => $base + ['heading' => $heading, 'radius_label' => self::str($raw['radius_label'] ?? null, 80)],
+            'service_area' => $base + ['heading' => $heading, 'radius_label' => self::str($raw['radius_label'] ?? null, 80), 'zip' => self::str($raw['zip'] ?? null, 12)],
             'testimonials' => $base + ['heading' => $heading, 'items' => self::items($raw['items'] ?? null, ['quote' => 400, 'author' => 80, 'location' => 80], self::CAP['items'])],
             'faq' => $base + ['heading' => $heading, 'items' => self::items($raw['items'] ?? null, ['q' => 160, 'a' => 600], self::CAP['faq'])],
             'cta' => $base + [

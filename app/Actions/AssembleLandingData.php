@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\VisitPhoto;
 use App\Services\AiQuota;
 use App\Services\Chat\AiCredentials;
+use App\Services\GeocodingService;
 use App\Support\LandingCache;
 use App\Support\LandingConfig;
 use Illuminate\Support\Carbon;
@@ -73,18 +74,45 @@ class AssembleLandingData
 
         $live = array_merge($live, $cached);
 
-        // Service-area reads live tenant coords + is cheap — not cached.
+        // Service-area centers on the company address, unless the tenant entered a ZIP override.
         if (isset($enabled['service_area'])) {
-            $radius = $enabled['service_area']['radius_label'] ?? null;
+            $sa = $enabled['service_area'];
+            $radius = $sa['radius_label'] ?? null;
+            $center = $this->serviceAreaCenter($tenant, is_string($sa['zip'] ?? null) ? trim($sa['zip']) : '');
             $live['serviceArea'] = [
-                'lat' => $tenant->lat,
-                'lng' => $tenant->lng,
-                'formattedAddress' => $tenant->formattedAddress(),
+                'lat' => $center['lat'],
+                'lng' => $center['lng'],
+                'formattedAddress' => $center['label'],
                 'radiusLabel' => is_string($radius) ? $radius : null,
             ];
         }
 
         return $live;
+    }
+
+    /**
+     * Where-we-serve center: a tenant-entered ZIP (geocoded, cached like the weather —
+     * success 30d, failure 6h so a valid ZIP isn't blocked by a transient error) overrides
+     * the company address. Falls back to the company coords on an empty/failed geocode.
+     *
+     * @return array{lat: mixed, lng: mixed, label: string|null}
+     */
+    private function serviceAreaCenter(Tenant $tenant, string $zip): array
+    {
+        if ($zip !== '') {
+            $key = 'geocode_zip:'.$zip;
+            $coords = Cache::get($key);
+            if ($coords === null) {
+                // A country hint is needed — Google returns ZERO_RESULTS for a bare US ZIP.
+                $coords = app(GeocodingService::class)->geocode($zip.', USA');
+                Cache::put($key, $coords ?? false, $coords !== null ? now()->addDays(30) : now()->addHours(6));
+            }
+            if (is_array($coords) && isset($coords['lat'], $coords['lng'])) {
+                return ['lat' => $coords['lat'], 'lng' => $coords['lng'], 'label' => $zip];
+            }
+        }
+
+        return ['lat' => $tenant->lat, 'lng' => $tenant->lng, 'label' => $tenant->formattedAddress()];
     }
 
     /** @return array<string, int> */
