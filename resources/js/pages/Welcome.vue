@@ -82,7 +82,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
         >
             <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6" aria-label="Primary">
                 <Link href="/" class="flex items-center gap-2 text-2xl font-bold" aria-label="RoutePilot home">
-                    <span class="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                    <span class="flex size-8 items-center justify-center rounded-md bg-orange-500 text-white">
                         <RouteIcon class="size-5" />
                     </span>
                     <span> <span :class="scrolled ? 'text-primary' : 'text-sky-300'">Route</span><span class="text-orange-500">Pilot</span> </span>
@@ -274,7 +274,7 @@ const pricingPoints = ['$0.50 / pool over 50', '$10 / agent over 2', '14-day fre
                 <div class="grid gap-8 md:grid-cols-4">
                     <div class="md:col-span-2">
                         <span class="flex items-center gap-2 text-lg font-bold">
-                            <span class="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground"
+                            <span class="flex size-7 items-center justify-center rounded-md bg-orange-500 text-white"
                                 ><RouteIcon class="size-4"
                             /></span>
                             <span><span class="text-primary">Route</span><span class="text-orange-500">Pilot</span></span>

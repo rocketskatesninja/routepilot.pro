@@ -25,6 +25,10 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        {{-- Browser tab / bookmark icon (SVG for modern browsers, PNG fallback). --}}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+        <link rel="icon" type="image/png" sizes="192x192" href="/assets/images/pwa/icon-192.png">
+
         {{-- Installable PWA: manifest, theme color, and home-screen icons. --}}
         <link rel="manifest" href="/manifest.webmanifest">
         <meta name="theme-color" content="#0ea5e9">

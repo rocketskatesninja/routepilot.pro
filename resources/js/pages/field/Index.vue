@@ -100,8 +100,8 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
         <!-- top bar -->
         <header class="sticky top-0 z-10 border-b border-slate-200 bg-white">
             <div class="flex items-center gap-3 px-4 py-3">
-                <Link href="/dashboard" class="flex size-9 items-center justify-center rounded-lg bg-slate-900 text-white">
-                    <AppLogoIcon class="size-5 fill-current" />
+                <Link href="/dashboard" class="flex size-9 items-center justify-center rounded-lg bg-orange-500 text-white">
+                    <AppLogoIcon class="size-5" />
                 </Link>
                 <div class="flex-1">
                     <h1 class="font-bold leading-tight">My route</h1>

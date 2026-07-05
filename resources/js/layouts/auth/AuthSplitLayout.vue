@@ -16,7 +16,7 @@ defineProps<{
         <div class="relative hidden h-full flex-col bg-muted p-10 text-white dark:border-r lg:flex">
             <div class="absolute inset-0 bg-zinc-900" />
             <Link :href="route('home')" class="relative z-20 flex items-center text-lg font-medium">
-                <AppLogoIcon class="mr-2 size-8 fill-current text-white" />
+                <span class="mr-2 flex size-8 items-center justify-center rounded-md bg-orange-500 text-white"><AppLogoIcon class="size-5" /></span>
                 {{ name }}
             </Link>
             <div class="relative z-20 mt-auto">
