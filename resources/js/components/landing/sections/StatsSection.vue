@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import { contentItem, contentRow } from '../gridLayout';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
@@ -9,6 +10,10 @@ const LABELS: Record<string, string> = {
     pools_serviced: 'Pools serviced',
     visits_completed: 'Visits completed',
     years_active: 'Years in business',
+    happy_customers: 'Happy customers',
+    gallons_maintained: 'Gallons maintained',
+    water_tests: 'Water tests',
+    technicians: 'Expert technicians',
 };
 
 const items = computed(() => {
@@ -62,8 +67,8 @@ function animate() {
 
 <template>
     <section v-if="items.length || editing" id="stats" class="border-y border-border bg-muted/40 px-4 py-16 sm:px-6">
-        <div ref="root" class="mx-auto grid max-w-3xl grid-cols-1 gap-8 text-center sm:grid-cols-3">
-            <div v-for="(it, i) in items" :key="it.key">
+        <div ref="root" class="mx-auto max-w-4xl text-center" :class="contentRow">
+            <div v-for="(it, i) in items" :key="it.key" :class="contentItem(items.length)">
                 <p class="stat-value text-4xl font-extrabold text-primary sm:text-5xl">
                     {{ show(i, it.value).toLocaleString() }}<span v-if="it.key !== 'years_active'">+</span>
                 </p>

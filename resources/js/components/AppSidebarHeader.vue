@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import type { BreadcrumbItemType } from '@/types';
+import type { BreadcrumbItemType, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Bell } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -11,9 +11,9 @@ defineProps<{
     meta?: string;
 }>();
 
-const page = usePage();
+const page = usePage<SharedData>();
 const { isMobile } = useSidebar();
-const unread = computed(() => (page.props.auth as { unread?: number } | undefined)?.unread ?? 0);
+const unread = computed(() => page.props.auth.unread ?? 0);
 </script>
 
 <template>
@@ -21,7 +21,8 @@ const unread = computed(() => (page.props.auth as { unread?: number } | undefine
         class="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 px-6 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-4"
     >
         <div class="flex min-w-0 items-center gap-2">
-            <SidebarTrigger class="-ml-1" />
+            <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->
+            <SidebarTrigger v-if="isMobile" class="-ml-1" />
             <template v-if="breadcrumbs.length > 0">
                 <Breadcrumb>
                     <BreadcrumbList>

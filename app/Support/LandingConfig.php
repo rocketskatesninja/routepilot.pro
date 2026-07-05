@@ -20,7 +20,7 @@ class LandingConfig
     ];
 
     /** Live metric keys the stats section may surface. */
-    public const METRICS = ['pools_serviced', 'visits_completed', 'years_active'];
+    public const METRICS = ['pools_serviced', 'visits_completed', 'years_active', 'happy_customers', 'gallons_maintained', 'water_tests', 'technicians'];
 
     /** Hero background presets (images in public/assets/images/hero-presets). */
     public const HERO_PRESETS = ['backyard', 'cityscape', 'infinity', 'islands', 'night', 'patio', 'resort', 'skyline', 'sunset', 'tiles', 'underwater', 'water'];
@@ -62,7 +62,7 @@ class LandingConfig
             ],
             'sections' => [
                 ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
-                ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => self::METRICS],
+                ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => ['pools_serviced', 'happy_customers', 'visits_completed', 'water_tests', 'gallons_maintained', 'years_active']],
                 ['key' => 'services', 'enabled' => true, 'heading' => 'What we do', 'items' => [
                     ['title' => 'Weekly maintenance', 'body' => 'Full chemical balancing, skimming, and equipment checks on a dependable schedule.', 'icon' => 'droplet'],
                     ['title' => 'Repairs & equipment', 'body' => 'Pumps, filters, heaters, and automation — diagnosed and fixed right the first time.', 'icon' => 'wrench'],

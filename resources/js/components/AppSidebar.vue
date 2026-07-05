@@ -13,7 +13,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import {
     Banknote,
     BarChart3,
@@ -118,7 +118,7 @@ const navSections = computed<NavSection[]>(() => {
     return navByRole[role] ?? navByRole.customer;
 });
 
-const { isMobile } = useSidebar();
+const { isMobile, toggleSidebar } = useSidebar();
 </script>
 
 <template>
@@ -127,9 +127,9 @@ const { isMobile } = useSidebar();
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="route('dashboard')">
+                        <button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" @click="toggleSidebar">
                             <AppLogo />
-                        </Link>
+                        </button>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

@@ -61,14 +61,21 @@ class HandleInertiaRequests extends Middleware
                 'impersonating' => $request->session()->has('impersonator_id'),
                 'unread' => $user !== null ? $user->unreadNotifications()->count() : 0,
             ],
-            'tenant' => $tenant instanceof Tenant ? [
-                'id' => $tenant->id,
-                'name' => $tenant->name,
-                'slug' => $tenant->slug,
-                'brand_color' => $tenant->brand_color,
-                'logo_path' => $tenant->logo_path,
-                'timezone' => $tenant->timezone,
-            ] : null,
+            // Lazy: the public /t/{slug} route binds its tenant inside the controller,
+            // which runs AFTER share() — so resolve app('tenant') at prop-resolution
+            // time (else the public landing loses its brand name / logo / colour).
+            'tenant' => function () {
+                $t = app()->has('tenant') ? app('tenant') : null;
+
+                return $t instanceof Tenant ? [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'slug' => $t->slug,
+                    'brand_color' => $t->brand_color,
+                    'logo_path' => $t->logo_path,
+                    'timezone' => $t->timezone,
+                ] : null;
+            },
             // Platform-billing state (trial/subscription) + metered usage for the
             // signed-in tenant — drives the trial banner + billing screen.
             'billing' => ($user !== null && $tenant instanceof Tenant) ? [

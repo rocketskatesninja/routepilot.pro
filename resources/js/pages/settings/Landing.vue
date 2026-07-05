@@ -130,6 +130,10 @@ const METRICS: [string, string][] = [
     ['pools_serviced', 'Pools serviced'],
     ['visits_completed', 'Visits completed'],
     ['years_active', 'Years in business'],
+    ['happy_customers', 'Happy customers'],
+    ['water_tests', 'Water tests'],
+    ['gallons_maintained', 'Gallons maintained'],
+    ['technicians', 'Expert technicians'],
 ];
 const HERO_PRESETS = [
     'backyard',

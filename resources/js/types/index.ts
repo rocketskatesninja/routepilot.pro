@@ -4,6 +4,8 @@ export interface Auth {
     user: User;
     role?: string | null;
     permissions?: string[];
+    impersonating?: boolean;
+    unread?: number;
 }
 
 export interface Tenant {

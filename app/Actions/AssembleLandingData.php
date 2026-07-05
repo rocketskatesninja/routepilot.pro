@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\ChemicalReading;
+use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceType;
 use App\Models\ServiceVisit;
@@ -125,6 +127,10 @@ class AssembleLandingData
             'pools_serviced' => Pool::query()->count(),                                  // tenant-scoped
             'visits_completed' => ServiceVisit::query()->where('status', 'completed')->count(), // tenant-scoped
             'years_active' => max(1, $years),
+            'happy_customers' => Customer::query()->count(),                             // tenant-scoped
+            'water_tests' => ChemicalReading::query()->count(),                          // tenant-scoped
+            'gallons_maintained' => (int) Pool::query()->sum('volume_gallons'),          // tenant-scoped
+            'technicians' => User::query()->where('tenant_id', $tenant->id)->where('role', 'agent')->where('is_active', true)->count(),
         ];
     }
 

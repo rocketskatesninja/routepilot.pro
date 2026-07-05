@@ -37,13 +37,15 @@ const icons: Record<string, Component> = {
                 class="card-hover rounded-xl border border-border bg-background p-6 shadow-sm"
                 :class="contentItem(items.length)"
             >
-                <div
-                    class="mb-3 inline-flex size-11 items-center justify-center rounded-lg"
-                    style="background: color-mix(in srgb, hsl(var(--brand, 199 89% 48%)) 14%, transparent)"
-                >
-                    <component :is="icons[it.icon || 'droplet'] || Droplet" class="size-5 text-primary" />
+                <div class="mb-3 flex items-center gap-3">
+                    <div
+                        class="inline-flex size-11 shrink-0 items-center justify-center rounded-lg"
+                        style="background: color-mix(in srgb, hsl(var(--brand, 199 89% 48%)) 14%, transparent)"
+                    >
+                        <component :is="icons[it.icon || 'droplet'] || Droplet" class="size-5 text-primary" />
+                    </div>
+                    <h3 class="font-bold text-foreground">{{ it.title }}</h3>
                 </div>
-                <h3 class="mb-1 font-bold text-foreground">{{ it.title }}</h3>
                 <p class="text-sm text-muted-foreground">{{ it.body }}</p>
             </div>
         </div>
