@@ -6,17 +6,18 @@ interface PoolRow {
     id: number;
     name: string;
     photo: string | null;
-    health: string | null;
+    // Matches App\Services\ChemistryService::getLSIStatus() — an object, not a string.
+    health: { label: string; color: string } | null;
 }
 
 defineProps<{ data: { pools: PoolRow[] } }>();
 
-const healthClass = (h: string | null): string => {
-    const k = (h ?? '').toLowerCase();
-    if (k.includes('balanc')) return 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400';
-    if (k.includes('corros') || k.includes('scal') || k.includes('aggress')) return 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
-    return 'bg-muted text-muted-foreground';
-};
+const healthClass = (color: string): string =>
+    ({
+        green: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
+        amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+        red: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
+    })[color] ?? 'bg-muted text-muted-foreground';
 </script>
 
 <template>
@@ -27,8 +28,8 @@ const healthClass = (h: string | null): string => {
                     <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="sm" />
                     <span class="truncate">{{ p.name }}</span>
                 </span>
-                <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="healthClass(p.health)">{{
-                    p.health
+                <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClass(p.health.color)">{{
+                    p.health.label
                 }}</span>
                 <span v-else class="shrink-0 text-xs text-muted-foreground">—</span>
             </li>

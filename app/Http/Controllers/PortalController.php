@@ -7,10 +7,12 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\PaymentMethod;
+use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Services\BillingService;
+use App\Services\ChemistryService;
 use App\Services\StripeService;
 use App\Support\EtaWindow;
 use Illuminate\Http\RedirectResponse;
@@ -67,6 +69,45 @@ class PortalController extends Controller
             'selected' => $selected,
             'nextVisit' => $this->nextVisit($poolIds),
             'customerId' => $customer->id,
+        ]);
+    }
+
+    /** The homeowner's pools — details + latest water chemistry + health, plus their next visit. */
+    public function pools(Request $request, ChemistryService $chem): Response
+    {
+        $customer = $this->resolveCustomer($request);
+
+        $pools = $customer->pools()->orderBy('name')->get()->map(function (Pool $pool) use ($chem): array {
+            $visit = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->first();
+            $reading = $visit?->chemicalReading;
+            $health = $reading === null ? null : $chem->getLSIStatus((float) ($reading->lsi_score ?? $chem->calculateLSI([
+                'temperature' => $reading->water_temperature, 'ph' => $reading->ph,
+                'alkalinity' => $reading->alkalinity, 'calcium_hardness' => $reading->calcium_hardness, 'salt' => $reading->salt,
+            ])));
+
+            return [
+                'id' => $pool->id,
+                'name' => $pool->name,
+                'photo' => $this->photoUrl($pool->getAttribute('photo_path')),
+                'sanitizer' => $pool->getAttribute('sanitizer_type'),
+                'volume' => $pool->getAttribute('volume_gallons'),
+                'has_heater' => (bool) $pool->getAttribute('has_heater'),
+                'last_serviced' => $visit?->completed_at?->toDateString(),
+                'health' => $health === null ? null : ['label' => $health['label'], 'color' => $health['color'], 'description' => $health['description']],
+                'reading' => $reading === null ? null : [
+                    'free_chlorine' => $reading->free_chlorine,
+                    'ph' => $reading->ph,
+                    'alkalinity' => $reading->alkalinity,
+                    'calcium_hardness' => $reading->calcium_hardness,
+                    'cyanuric_acid' => $reading->cyanuric_acid,
+                    'salt' => $reading->salt,
+                ],
+            ];
+        })->all();
+
+        return Inertia::render('portal/Pools', [
+            'pools' => $pools,
+            'nextVisit' => $this->nextVisit($customer->pools()->pluck('id')),
         ]);
     }
 

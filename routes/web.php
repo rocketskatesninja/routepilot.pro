@@ -187,6 +187,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
 
     // ---- Customer portal (customer) ----
     Route::middleware('role:customer')->group(function () {
+        Route::get('my-pools', [PortalController::class, 'pools'])->name('portal.pools');
         Route::get('history', [PortalController::class, 'history'])->name('portal.history');
         Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
         Route::post('requests', [RequestController::class, 'store'])->name('requests.store');

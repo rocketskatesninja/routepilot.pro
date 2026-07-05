@@ -64,10 +64,9 @@ class DashboardWidgets
             ['i' => 'notifications', 'x' => 8, 'y' => 9, 'w' => 4, 'h' => 5],
         ],
         'customer' => [
-            ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
-            ['i' => 'next_visit', 'x' => 0, 'y' => 4, 'w' => 6, 'h' => 3],
-            ['i' => 'account_balance', 'x' => 6, 'y' => 4, 'w' => 6, 'h' => 3],
-            ['i' => 'customer_visits', 'x' => 0, 'y' => 7, 'w' => 12, 'h' => 4],
+            ['i' => 'customer_visits', 'x' => 3, 'y' => 0, 'w' => 6, 'h' => 5],
+            ['i' => 'next_visit', 'x' => 3, 'y' => 5, 'w' => 3, 'h' => 4],
+            ['i' => 'account_balance', 'x' => 6, 'y' => 5, 'w' => 3, 'h' => 4],
         ],
         'super_admin' => [
             ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
