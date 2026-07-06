@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\ManualCharge;
+use App\Models\Tenant;
 
 /**
  * Add an ad-hoc charge to a customer's account (raises their balance).
@@ -21,7 +22,7 @@ class AddManualCharge
             'description' => $data['description'],
             'amount' => $data['amount'],
             'taxable' => (bool) ($data['taxable'] ?? true),
-            'occurred_on' => $data['occurred_on'] ?? now()->toDateString(),
+            'occurred_on' => $data['occurred_on'] ?? Tenant::localToday()->toDateString(),
             'created_by' => $userId,
         ]);
     }

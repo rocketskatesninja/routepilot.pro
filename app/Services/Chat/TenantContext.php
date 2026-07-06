@@ -54,7 +54,7 @@ class TenantContext
         })->join("\n") ?: 'No customers.';
 
         $todayStops = RouteStop::query()
-            ->whereHas('route', fn ($q) => $q->where('tenant_id', $tenantId)->whereDate('scheduled_date', Carbon::today()))
+            ->whereHas('route', fn ($q) => $q->where('tenant_id', $tenantId)->whereDate('scheduled_date', Tenant::localToday()))
             ->with('route.agent', 'pool.customer')
             ->orderBy('stop_order')
             ->get();
@@ -72,7 +72,7 @@ class TenantContext
             $warnings .= "⚠ {$overdue} completed visits are unpaid (30+ days)\n";
         }
 
-        $data = "BUSINESS DATA for {$tenantName} (as of ".Carbon::now()->format('l, F j, Y')."):\n\n"
+        $data = "BUSINESS DATA for {$tenantName} (as of ".Tenant::localToday()->format('l, F j, Y')."):\n\n"
             ."AGENTS:\n{$agentList}\n\n"
             ."CUSTOMERS & POOLS:\n{$customerList}\n\n"
             ."TODAY'S SCHEDULE:\n{$todaySummary}\n\n"

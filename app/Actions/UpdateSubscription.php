@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
+use App\Models\Tenant;
 use App\Services\SubscriptionMaterializer;
 
 /**
@@ -39,7 +40,7 @@ class UpdateSubscription
             RouteStop::query()
                 ->where('service_subscription_id', $subscription->id)
                 ->where('status', 'pending')
-                ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', now()->toDateString()))
+                ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
                 ->delete();
 
             $this->materializer->run((int) $subscription->getAttribute('tenant_id'));

@@ -24,6 +24,7 @@ class DailyOpsAlerts extends Command
 
         Tenant::query()->where('status', 'active')->get()->each(function (Tenant $tenant) use ($checks, &$total): void {
             app()->instance('tenant_id', $tenant->id);
+            app()->instance('tenant', $tenant); // so Tenant::localToday() reads this tenant's timezone
             $total += $checks->run($tenant->id);
         });
 

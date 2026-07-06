@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Chat\Tools;
 
 use App\Models\RouteStop;
+use App\Models\Tenant;
 use App\Services\Chat\AiTool;
-use Illuminate\Support\Carbon;
 
 /**
  * Skip a single scheduled stop for today or a specific date.
@@ -44,7 +44,7 @@ class SkipStop extends AiTool
         $customerName = trim((string) ($params['customer_name'] ?? ''));
         $poolName = trim((string) ($params['pool_name'] ?? ''));
         $reason = trim((string) ($params['reason'] ?? ''));
-        $date = trim((string) ($params['date'] ?? '')) ?: Carbon::now()->toDateString();
+        $date = trim((string) ($params['date'] ?? '')) ?: Tenant::localToday()->toDateString();
 
         $stop = RouteStop::query()
             ->where('status', 'pending')

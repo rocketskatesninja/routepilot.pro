@@ -9,7 +9,6 @@ use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
-use Illuminate\Support\Carbon;
 
 /**
  * System prompt + context for the customer-portal assistant — friendly,
@@ -48,7 +47,7 @@ class CustomerContext
         $nextStop = RouteStop::query()
             ->whereIn('pool_id', $poolIds)
             ->where('status', 'pending')
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Carbon::today()))
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
             ->with('route')
             ->get()
             ->sortBy(fn (RouteStop $s) => $s->route?->scheduled_date)

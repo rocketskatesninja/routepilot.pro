@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\EquipmentServiceLog;
 use App\Models\ManualCharge;
 use App\Models\PoolEquipment;
+use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -22,7 +23,7 @@ class LogEquipmentService
     {
         return DB::transaction(function () use ($equipment, $data, $userId): EquipmentServiceLog {
             $cost = (float) ($data['cost'] ?? 0);
-            $servicedOn = $data['serviced_on'] ?? now()->toDateString();
+            $servicedOn = $data['serviced_on'] ?? Tenant::localToday()->toDateString();
 
             $log = $equipment->serviceLog()->create([
                 'serviced_on' => $servicedOn,

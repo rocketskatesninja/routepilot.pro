@@ -88,7 +88,7 @@ class DailyOpsChecks
     private function noRoutesTomorrow(Collection $admins): bool
     {
         $hasStops = RouteStop::query()
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()->addDay()))
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', Tenant::localToday()->addDay()))
             ->exists();
 
         if ($hasStops || ! ServiceSubscription::query()->where('status', 'active')->exists()) {
@@ -172,7 +172,7 @@ class DailyOpsChecks
             return false;
         }
 
-        $busyAgentIds = Route::query()->whereDate('scheduled_date', today())->pluck('agent_id')->unique();
+        $busyAgentIds = Route::query()->whereDate('scheduled_date', Tenant::localToday())->pluck('agent_id')->unique();
         $count = $activeAgentIds->diff($busyAgentIds)->count();
         if ($count === 0) {
             return false;
@@ -192,7 +192,7 @@ class DailyOpsChecks
     {
         $stops = RouteStop::query()
             ->where('status', 'pending')
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()->addDay()))
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', Tenant::localToday()->addDay()))
             ->with(['pool.customer.user', 'route.agent'])
             ->get();
 

@@ -8,8 +8,8 @@ use App\Models\ChemicalReading;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
+use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 
 /**
  * System prompt + context for the field-tech assistant — pool/spa care
@@ -23,7 +23,7 @@ class AgentContext
 
         $route = Route::query()
             ->where('agent_id', $agent->id)
-            ->whereDate('scheduled_date', Carbon::today())
+            ->whereDate('scheduled_date', Tenant::localToday())
             ->with(['stops.pool.customer', 'stops.pool.serviceLocation'])
             ->first();
 
@@ -55,7 +55,7 @@ class AgentContext
             ->join("\n  ");
 
         $context = "AGENT: {$agent->displayName()}\n"
-            .'Date: '.Carbon::now()->format('l, F j, Y')."\n"
+            .'Date: '.Tenant::localToday()->format('l, F j, Y')."\n"
             ."{$stopSummary}\n"
             .($recentReadings !== '' ? "\nRecent chemistry readings:\n  {$recentReadings}\n" : '');
 

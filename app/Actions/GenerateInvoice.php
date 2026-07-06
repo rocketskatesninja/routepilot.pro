@@ -44,13 +44,18 @@ class GenerateInvoice
 
             $taxRate = (float) ($customer->tenant?->getAttribute('tax_rate') ?? 0.0);
 
+            // Period/due are calendar dates in the tenant's timezone; issued_at is
+            // a real instant and stays UTC. (Invoicing also runs from a command
+            // that binds only tenant_id, so take the tz off the customer's tenant.)
+            $localToday = $customer->tenant?->today() ?? now();
+
             $invoice = Invoice::create([
                 'customer_id' => $customer->id,
                 'number' => $this->nextNumber(),
                 'status' => 'sent',
-                'period_end' => now()->toDateString(),
+                'period_end' => $localToday->toDateString(),
                 'issued_at' => now(),
-                'due_at' => now()->addDays(30)->toDateString(),
+                'due_at' => $localToday->copy()->addDays(30)->toDateString(),
             ]);
 
             $subtotal = 0.0;
