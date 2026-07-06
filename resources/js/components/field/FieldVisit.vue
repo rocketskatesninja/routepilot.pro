@@ -136,7 +136,27 @@ async function complete() {
                 <p v-if="pool?.access_notes" class="text-slate-600">{{ pool.access_notes }}</p>
             </div>
 
-            <!-- readings -->
+            <!-- checklist: the physical checklist comes first -->
+            <section v-if="tasks.length" class="rounded-xl border border-slate-200 bg-white p-4">
+                <h2 class="mb-3 font-semibold">{{ stop.service.name || 'Service' }} checklist</h2>
+                <label v-for="(t, i) in tasks" :key="i" class="flex items-center gap-3 py-1.5">
+                    <input v-model="t.done" type="checkbox" class="size-5 rounded border-slate-300 text-sky-600" />
+                    <span :class="t.done ? 'text-slate-400 line-through' : ''">{{ t.name }}</span>
+                </label>
+            </section>
+
+            <!-- notes -->
+            <section class="rounded-xl border border-slate-200 bg-white p-4">
+                <h2 class="mb-2 font-semibold">Notes</h2>
+                <textarea
+                    v-model="notes"
+                    rows="3"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    placeholder="Anything to flag for the office or the homeowner…"
+                ></textarea>
+            </section>
+
+            <!-- readings: the water test + dosing is the last thing before completing -->
             <section class="rounded-xl border border-slate-200 bg-white p-4">
                 <h2 class="mb-3 flex items-center gap-2 font-semibold"><FlaskConical class="size-4 text-sky-500" /> Water test</h2>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -201,26 +221,6 @@ async function complete() {
                     <input v-model="t.unit" class="w-16 rounded-lg border border-slate-300 px-2 py-2 text-sm" />
                     <button class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100" @click="removeTreatment(i)"><X class="size-4" /></button>
                 </div>
-            </section>
-
-            <!-- checklist -->
-            <section v-if="tasks.length" class="rounded-xl border border-slate-200 bg-white p-4">
-                <h2 class="mb-3 font-semibold">{{ stop.service.name || 'Service' }} checklist</h2>
-                <label v-for="(t, i) in tasks" :key="i" class="flex items-center gap-3 py-1.5">
-                    <input v-model="t.done" type="checkbox" class="size-5 rounded border-slate-300 text-sky-600" />
-                    <span :class="t.done ? 'text-slate-400 line-through' : ''">{{ t.name }}</span>
-                </label>
-            </section>
-
-            <!-- notes -->
-            <section class="rounded-xl border border-slate-200 bg-white p-4">
-                <h2 class="mb-2 font-semibold">Notes</h2>
-                <textarea
-                    v-model="notes"
-                    rows="3"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                    placeholder="Anything to flag for the office or the homeowner…"
-                ></textarea>
             </section>
         </div>
 

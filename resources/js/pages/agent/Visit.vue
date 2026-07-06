@@ -164,7 +164,44 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
                 </p>
             </div>
 
-            <!-- chemistry -->
+            <!-- tasks: the physical checklist comes first -->
+            <section v-if="form.tasks.length" class="rounded-xl border border-border p-4">
+                <h2 class="mb-2 font-medium">Checklist</h2>
+                <label v-for="(t, i) in form.tasks" :key="i" class="flex items-center gap-2 py-1 text-sm">
+                    <input v-model="t.done" type="checkbox" /> <span :class="{ 'text-muted-foreground line-through': t.done }">{{ t.name }}</span>
+                </label>
+            </section>
+
+            <!-- photos -->
+            <section class="rounded-xl border border-border p-4">
+                <Label class="text-sm font-medium">Photos</Label>
+                <div v-if="visit && visit.photos.length" class="mt-2">
+                    <p class="mb-1.5 text-xs text-muted-foreground">Already attached</p>
+                    <div class="flex flex-wrap gap-2">
+                        <div v-for="(url, i) in visit.photos" :key="i" class="size-20 overflow-hidden rounded-md border border-border">
+                            <img :src="url" class="h-full w-full object-cover" alt="Saved visit photo" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <p v-if="visit && visit.photos.length" class="mb-1.5 text-xs text-muted-foreground">Add more</p>
+                    <MultiImageUpload :model-value="form.photos" @update:model-value="(f) => (form.photos = f)" />
+                </div>
+                <p v-if="form.errors.photos" class="mt-1 text-xs text-red-600">{{ form.errors.photos }}</p>
+            </section>
+
+            <!-- notes -->
+            <section class="rounded-xl border border-border p-4">
+                <Label for="notes" class="text-sm font-medium">Notes</Label>
+                <textarea
+                    id="notes"
+                    v-model="form.notes"
+                    rows="3"
+                    class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                ></textarea>
+            </section>
+
+            <!-- chemistry: the water test + dosing is the last thing before completing -->
             <section class="rounded-xl border border-border p-4">
                 <h2 class="mb-3 font-medium">Water test</h2>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -211,7 +248,7 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
                 </ul>
             </section>
 
-            <!-- treatments -->
+            <!-- treatments: dosing applied from the water test -->
             <section class="rounded-xl border border-border p-4">
                 <div class="mb-2 flex items-center justify-between">
                     <h2 class="font-medium">Treatments applied</h2>
@@ -228,43 +265,6 @@ const complete = () => form.post(`/visit/${props.stop.id}/complete`);
                     </div>
                 </div>
                 <p v-else class="text-sm text-muted-foreground">None — add from the dosing suggestions above or manually.</p>
-            </section>
-
-            <!-- tasks -->
-            <section v-if="form.tasks.length" class="rounded-xl border border-border p-4">
-                <h2 class="mb-2 font-medium">Checklist</h2>
-                <label v-for="(t, i) in form.tasks" :key="i" class="flex items-center gap-2 py-1 text-sm">
-                    <input v-model="t.done" type="checkbox" /> <span :class="{ 'text-muted-foreground line-through': t.done }">{{ t.name }}</span>
-                </label>
-            </section>
-
-            <!-- photos -->
-            <section class="rounded-xl border border-border p-4">
-                <Label class="text-sm font-medium">Photos</Label>
-                <div v-if="visit && visit.photos.length" class="mt-2">
-                    <p class="mb-1.5 text-xs text-muted-foreground">Already attached</p>
-                    <div class="flex flex-wrap gap-2">
-                        <div v-for="(url, i) in visit.photos" :key="i" class="size-20 overflow-hidden rounded-md border border-border">
-                            <img :src="url" class="h-full w-full object-cover" alt="Saved visit photo" />
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <p v-if="visit && visit.photos.length" class="mb-1.5 text-xs text-muted-foreground">Add more</p>
-                    <MultiImageUpload :model-value="form.photos" @update:model-value="(f) => (form.photos = f)" />
-                </div>
-                <p v-if="form.errors.photos" class="mt-1 text-xs text-red-600">{{ form.errors.photos }}</p>
-            </section>
-
-            <!-- notes + complete -->
-            <section class="rounded-xl border border-border p-4">
-                <Label for="notes" class="text-sm font-medium">Notes</Label>
-                <textarea
-                    id="notes"
-                    v-model="form.notes"
-                    rows="3"
-                    class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                ></textarea>
             </section>
 
             <Button class="h-12 text-base" :disabled="form.processing" @click="complete">
