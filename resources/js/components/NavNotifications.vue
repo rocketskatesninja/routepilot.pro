@@ -11,7 +11,9 @@ const unread = computed(() => page.props.auth.unread ?? 0);
 </script>
 
 <template>
-    <SidebarGroup class="px-2 py-0">
+    <!-- p-0, not px-2: the footer wrapper already supplies the 8px inset, so
+         this keeps the bell flush with the content nav icons (and NavUser). -->
+    <SidebarGroup class="p-0">
         <SidebarMenu>
             <SidebarMenuItem>
                 <SidebarMenuButton as-child :is-active="page.url.startsWith('/notifications')" tooltip="Notifications">
