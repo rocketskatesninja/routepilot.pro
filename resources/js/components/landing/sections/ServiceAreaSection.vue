@@ -65,14 +65,16 @@ onMounted(async () => {
     >
         <div class="grid gap-6 md:grid-cols-2 md:items-center">
             <div class="reveal">
-                <div
-                    class="inline-flex size-12 items-center justify-center rounded-xl"
-                    style="background: color-mix(in srgb, hsl(var(--brand, 199 89% 48%)) 14%, transparent)"
-                >
-                    <MapPin class="size-6 text-primary" />
+                <div class="flex items-center gap-3">
+                    <div
+                        class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl"
+                        style="background: color-mix(in srgb, hsl(var(--brand, 199 89% 48%)) 14%, transparent)"
+                    >
+                        <MapPin class="size-6 text-primary" />
+                    </div>
+                    <p v-if="area?.formattedAddress" class="text-lg font-medium text-foreground">{{ area.formattedAddress }}</p>
                 </div>
-                <p v-if="area?.formattedAddress" class="mt-4 text-lg font-medium text-foreground">{{ area.formattedAddress }}</p>
-                <p class="mt-2 text-muted-foreground">{{ subheading }}</p>
+                <p class="mt-3 text-muted-foreground">{{ subheading }}</p>
             </div>
             <div class="reveal">
                 <div v-if="canMap" ref="mapEl" class="h-72 w-full overflow-hidden rounded-xl border border-border shadow-sm"></div>

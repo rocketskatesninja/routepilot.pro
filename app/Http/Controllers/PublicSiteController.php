@@ -56,6 +56,8 @@ class PublicSiteController extends Controller
             'live' => $assemble->handle($tenant, $config),
             'chatbot' => (bool) (($config['theme']['chatbot'] ?? false)),
             'title' => is_array($config['title'] ?? null) ? $config['title'] : [],
+            // Footer social links — only the platforms the tenant actually set.
+            'social' => array_filter(is_array($config['social'] ?? null) ? $config['social'] : []),
             // Brand (name / logo / color) arrives via the shared `tenant` prop.
         ]);
     }

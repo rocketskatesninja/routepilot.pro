@@ -28,6 +28,9 @@ class LandingConfig
     /** Fonts the header company title may use (loaded from bunny.net on the public page). */
     public const TITLE_FONTS = ['Inter', 'Poppins', 'Montserrat', 'Raleway', 'Nunito', 'Lato', 'Roboto', 'Oswald', 'Bebas Neue', 'Playfair Display', 'Merriweather'];
 
+    /** Footer social platforms the tenant can link (each holds a profile URL or null). */
+    public const SOCIAL_PLATFORMS = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube'];
+
     private const CAP = ['items' => 20, 'faq' => 30, 'gallery' => 24, 'team' => 12];
 
     /**
@@ -60,6 +63,8 @@ class LandingConfig
                 'outline_width' => 1,
                 'shadow' => 'none',
             ],
+            // Footer social links — each platform holds a profile URL or null (hidden when empty).
+            'social' => array_fill_keys(self::SOCIAL_PLATFORMS, null),
             'sections' => [
                 ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
                 ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => ['pools_serviced', 'happy_customers', 'visits_completed', 'water_tests', 'gallons_maintained', 'years_active']],
@@ -101,6 +106,7 @@ class LandingConfig
             'seo' => array_merge($defaults['seo'], is_array($decoded['seo'] ?? null) ? $decoded['seo'] : []),
             'theme' => array_merge($defaults['theme'], is_array($decoded['theme'] ?? null) ? $decoded['theme'] : []),
             'title' => array_merge($defaults['title'], is_array($decoded['title'] ?? null) ? $decoded['title'] : []),
+            'social' => array_merge($defaults['social'], is_array($decoded['social'] ?? null) ? $decoded['social'] : []),
             'sections' => self::mergeSections(is_array($decoded['sections'] ?? null) ? $decoded['sections'] : []),
         ];
     }
@@ -158,6 +164,12 @@ class LandingConfig
         $theme = is_array($input['theme'] ?? null) ? $input['theme'] : [];
         $title = is_array($input['title'] ?? null) ? $input['title'] : [];
 
+        $socialIn = is_array($input['social'] ?? null) ? $input['social'] : [];
+        $social = [];
+        foreach (self::SOCIAL_PLATFORMS as $p) {
+            $social[$p] = self::url($socialIn[$p] ?? null);
+        }
+
         return [
             'version' => 1,
             'seo' => [
@@ -188,6 +200,7 @@ class LandingConfig
                 'outline_width' => self::int($title['outline_width'] ?? null, 0, 3, 1),
                 'shadow' => in_array($title['shadow'] ?? null, ['none', 'soft', 'glow'], true) ? $title['shadow'] : 'none',
             ],
+            'social' => $social,
             'sections' => $clean,
         ];
     }
@@ -370,6 +383,20 @@ class LandingConfig
     private static function hexOrNull(mixed $v): ?string
     {
         return is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v) === 1 ? $v : null;
+    }
+
+    /** A trimmed, length-capped http(s) URL — else null (so bad/empty input just hides the icon). */
+    private static function url(mixed $v): ?string
+    {
+        if (! is_string($v)) {
+            return null;
+        }
+        $v = trim($v);
+        if ($v === '' || mb_strlen($v) > 200) {
+            return null;
+        }
+
+        return filter_var($v, FILTER_VALIDATE_URL) !== false && preg_match('#^https?://#i', $v) === 1 ? $v : null;
     }
 
     /**

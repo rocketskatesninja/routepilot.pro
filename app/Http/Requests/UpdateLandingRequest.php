@@ -35,6 +35,8 @@ class UpdateLandingRequest extends FormRequest
             'seo.description' => ['nullable', 'string', 'max:300'],
             'theme' => ['nullable', 'array'],
             'title' => ['nullable', 'array'],
+            'social' => ['nullable', 'array'],
+            'social.*' => ['nullable', 'string', 'max:200'],
         ];
     }
 }

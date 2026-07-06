@@ -41,6 +41,7 @@ const props = defineProps<{
         seo: { title: string | null; description: string | null; og_image: string | null };
         theme: Record<string, unknown>;
         title: TitleConfig;
+        social: Record<string, string | null>;
     };
     ogImageUrl: string | null;
     live: LiveData;
@@ -58,6 +59,16 @@ const seo = ref({ title: props.config.seo.title ?? '', description: props.config
 const ogUrl = ref(props.ogImageUrl);
 const theme = ref(clone(props.config.theme));
 const title = ref<TitleConfig>(clone(props.config.title));
+
+// Footer social links (empty string = unset → sanitized to null on save).
+const socialFields = [
+    { key: 'facebook', label: 'Facebook' },
+    { key: 'instagram', label: 'Instagram' },
+    { key: 'twitter', label: 'X (Twitter)' },
+    { key: 'linkedin', label: 'LinkedIn' },
+    { key: 'youtube', label: 'YouTube' },
+] as const;
+const social = ref<Record<string, string>>(Object.fromEntries(socialFields.map((f) => [f.key, props.config.social?.[f.key] ?? ''])));
 const photos = ref<RecentPhoto[]>(clone(props.recentPhotos));
 
 // Load the selected title font into the editor so its live preview is accurate,
@@ -244,6 +255,7 @@ function save() {
             seo: { title: seo.value.title, description: seo.value.description, og_image: seo.value.og_image },
             theme: theme.value,
             title: title.value,
+            social: social.value,
         },
         {
             preserveScroll: true,
@@ -299,6 +311,25 @@ function save() {
                         </div>
                         <div class="grid gap-1">
                             <Label>Social share image</Label><LandingImagePicker :url="ogUrl" label="image" @uploaded="onOgUpload" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Social links -->
+                <div class="rounded-xl border border-border">
+                    <button
+                        type="button"
+                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
+                        @click="toggleOpen('__social')"
+                    >
+                        Social links
+                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__social' ? 'rotate-180' : ''" />
+                    </button>
+                    <div v-show="expanded === '__social'" class="space-y-3 border-t border-border bg-muted/20 p-4 text-sm">
+                        <p class="text-xs text-muted-foreground">Links for the footer icons — leave a field blank to hide that icon.</p>
+                        <div v-for="f in socialFields" :key="f.key" class="grid gap-1">
+                            <Label>{{ f.label }}</Label>
+                            <Input v-model="social[f.key]" type="url" placeholder="https://…" />
                         </div>
                     </div>
                 </div>

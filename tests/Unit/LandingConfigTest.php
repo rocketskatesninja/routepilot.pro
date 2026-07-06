@@ -152,3 +152,29 @@ test('title text is length-capped at 60', function () {
 
     expect(mb_strlen($clean['title']['text']))->toBe(60);
 });
+
+test('fromStored includes the social block, defaulting every platform to null', function () {
+    expect(LandingConfig::fromStored(null)['social'])->toBe(array_fill_keys(LandingConfig::SOCIAL_PLATFORMS, null));
+});
+
+test('sanitize keeps valid social URLs and drops invalid / non-whitelisted ones', function () {
+    $clean = LandingConfig::sanitize([
+        'sections' => [],
+        'social' => [
+            'facebook' => 'https://facebook.com/acmepools',
+            'linkedin' => 'http://linkedin.com/company/acme',
+            'instagram' => 'not a url',
+            'twitter' => 'javascript:alert(1)',
+            'youtube' => '',
+            'evil' => 'https://evil.test',
+        ],
+    ]);
+
+    expect($clean['social']['facebook'])->toBe('https://facebook.com/acmepools')
+        ->and($clean['social']['linkedin'])->toBe('http://linkedin.com/company/acme')
+        ->and($clean['social']['instagram'])->toBeNull()   // not a URL
+        ->and($clean['social']['twitter'])->toBeNull()     // non-http(s) scheme rejected
+        ->and($clean['social']['youtube'])->toBeNull()     // empty
+        ->and($clean['social'])->not->toHaveKey('evil')    // non-whitelisted platform dropped
+        ->and(array_keys($clean['social']))->toBe(LandingConfig::SOCIAL_PLATFORMS);
+});

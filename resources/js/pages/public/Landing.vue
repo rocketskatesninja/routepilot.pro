@@ -5,8 +5,8 @@ import { titleFontHref, titleStyle } from '@/components/landing/titleStyle';
 import type { BrandContext, LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
 import { useReveal } from '@/composables/useReveal';
 import { Head, usePage } from '@inertiajs/vue3';
-import { Facebook, Instagram, Linkedin, Twitter } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { Facebook, Instagram, Linkedin, Twitter, Youtube } from 'lucide-vue-next';
+import { computed, onMounted, ref, type Component } from 'vue';
 
 const props = defineProps<{
     sections: SectionConfig[];
@@ -14,6 +14,7 @@ const props = defineProps<{
     seo: { title: string; description: string; og_image: string | null };
     chatbot?: boolean;
     title: TitleConfig;
+    social?: Partial<Record<'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube', string>>;
 }>();
 
 // Render the chat widget client-only (it uses localStorage) when the tenant
@@ -34,13 +35,20 @@ const brand = computed<BrandContext>(() => ({
 
 const year = new Date().getFullYear();
 
-// Footer social links (placeholders — no per-tenant contact details are shown).
-const socials = [
-    { label: 'Facebook', href: '#', icon: Facebook },
-    { label: 'Instagram', href: '#', icon: Instagram },
-    { label: 'X (Twitter)', href: '#', icon: Twitter },
-    { label: 'LinkedIn', href: '#', icon: Linkedin },
+// Footer social links — only the platforms the tenant configured, in a fixed order.
+const socialMeta: { key: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube'; label: string; icon: Component }[] = [
+    { key: 'facebook', label: 'Facebook', icon: Facebook },
+    { key: 'instagram', label: 'Instagram', icon: Instagram },
+    { key: 'twitter', label: 'X (Twitter)', icon: Twitter },
+    { key: 'linkedin', label: 'LinkedIn', icon: Linkedin },
+    { key: 'youtube', label: 'YouTube', icon: Youtube },
 ];
+const socials = computed(() =>
+    socialMeta.flatMap((s) => {
+        const href = props.social?.[s.key];
+        return href ? [{ label: s.label, href, icon: s.icon }] : [];
+    }),
+);
 
 // Header company title — styled from the saved config; text falls back to the tenant name.
 const titleText = computed(() => props.title.text || brand.value.name);
@@ -93,12 +101,14 @@ useReveal();
                         <p class="mx-auto mb-6 max-w-md text-gray-400 md:mx-0">
                             Professional pool service — reliable weekly care and crystal-clear water you never have to think about.
                         </p>
-                        <div class="flex justify-center gap-3 md:justify-start">
+                        <div v-if="socials.length" class="flex justify-center gap-3 md:justify-start">
                             <a
                                 v-for="s in socials"
                                 :key="s.label"
                                 :href="s.href"
                                 :aria-label="s.label"
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 class="flex size-10 items-center justify-center rounded-full bg-gray-800 text-gray-400 transition-all hover:bg-gray-700 hover:text-white"
                             >
                                 <component :is="s.icon" class="size-5" />
