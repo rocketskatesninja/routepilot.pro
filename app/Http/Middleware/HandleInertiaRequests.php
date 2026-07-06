@@ -49,6 +49,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            // Persisted sidebar collapse state — read from the cookie the client
+            // writes on toggle so the very first render matches (no flash). Absent
+            // cookie = expanded.
+            'sidebarOpen' => $request->cookie('sidebar_state') !== 'false',
             // For plain <form> POSTs that leave the app (e.g. Stripe Checkout),
             // where Inertia's XHR/header CSRF doesn't apply.
             'csrf' => csrf_token(),
