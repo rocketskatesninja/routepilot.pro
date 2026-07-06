@@ -84,6 +84,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readall');
+    Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
     Route::post('assistant/send', [ChatController::class, 'send'])->name('assistant.send');
     // Reachable while impersonating (guarded by the session impersonator flag).
@@ -93,6 +94,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::middleware('role:agent,tenant_admin,super_admin')->group(function () {
         Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule.index');
         Route::post('stops/{stop}/skip', [ScheduleController::class, 'skipStop'])->name('stops.skip');
+        Route::post('stops/{stop}/unskip', [ScheduleController::class, 'unskipStop'])->name('stops.unskip');
         // optimize/arrange: admin OR the Agent+ who owns the route (enforced in the controller).
         Route::post('routes/{route}/optimize', [ScheduleController::class, 'optimize'])->name('routes.optimize');
         Route::post('schedule/arrange', [ScheduleController::class, 'arrange'])->name('schedule.arrange');

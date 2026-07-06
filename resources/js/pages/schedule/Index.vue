@@ -8,7 +8,7 @@ import { visitStatusClass } from '@/lib/statusColors';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Wand2 } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Undo2, Wand2 } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -178,6 +178,7 @@ function persist() {
 
 const optimize = (id: number) => router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
+const unskipStop = (id: number) => router.post(`/stops/${id}/unskip`, {}, { preserveScroll: true });
 
 // Live per-agent route colours drive both the card headers and the map lines.
 // Derived from the local (mutable) routes so a colour pick updates instantly.
@@ -450,6 +451,14 @@ const prettyDate = computed(() =>
                                         @click.stop="skipStop(stop.id)"
                                     >
                                         <SkipForward class="size-3.5" />
+                                    </button>
+                                    <button
+                                        v-if="canManageRoute(route) && stop.status === 'skipped'"
+                                        class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-emerald-600"
+                                        title="Unskip stop"
+                                        @click.stop="unskipStop(stop.id)"
+                                    >
+                                        <Undo2 class="size-3.5" />
                                     </button>
                                 </div>
                             </li>

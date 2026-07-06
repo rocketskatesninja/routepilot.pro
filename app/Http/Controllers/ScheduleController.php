@@ -174,6 +174,21 @@ class ScheduleController extends Controller
         return back()->with('success', 'Stop skipped.');
     }
 
+    /** Restore a skipped stop to pending (office, or the Agent+ assigned to its route). */
+    public function unskipStop(Request $request, RouteStop $stop): RedirectResponse
+    {
+        abort_if($stop->route === null, 404);
+        $user = $request->user();
+        abort_unless($this->canManageRoute($user, $stop->route), 403);
+
+        if ($stop->status === 'skipped') {
+            $stop->update(['status' => 'pending', 'skip_reason' => null]);
+            $this->broadcastRoute($stop->route);
+        }
+
+        return back()->with('success', 'Stop restored.');
+    }
+
     /** Push a live "this day's routes changed" event to the tenant's schedule board. */
     private function broadcastRoute(Route $route): void
     {

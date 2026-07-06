@@ -48,6 +48,18 @@ test('an admin can skip a pending stop', function () {
     expect($stop->fresh()?->status)->toBe('skipped');
 });
 
+test('an admin can unskip a skipped stop', function () {
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
+    $stop = RouteStop::factory()->for($route)->for($pool)->create(['status' => 'skipped', 'skip_reason' => 'Skipped by office', 'stop_order' => 1]);
+
+    $this->actingAs($this->admin)->post("/stops/{$stop->id}/unskip")->assertRedirect();
+
+    expect($stop->fresh()?->status)->toBe('pending')
+        ->and($stop->fresh()?->skip_reason)->toBeNull();
+});
+
 test('a foreign-tenant stop cannot be skipped', function () {
     $other = Tenant::factory()->create();
     $otherCustomer = Customer::factory()->for($other)->create();

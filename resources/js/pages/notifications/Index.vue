@@ -31,6 +31,11 @@ function open(n: Note) {
     );
 }
 const readAll = () => router.post('/notifications/read-all', {}, { preserveScroll: true });
+const clearAll = () => {
+    if (confirm('Clear all notifications? This cannot be undone.')) {
+        router.delete('/notifications', { preserveScroll: true });
+    }
+};
 </script>
 
 <template>
@@ -39,6 +44,7 @@ const readAll = () => router.post('/notifications/read-all', {}, { preserveScrol
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
             <Button v-if="props.notifications.some((n) => !n.read)" size="sm" variant="outline" @click="readAll">Mark all read</Button>
+            <Button v-if="props.notifications.length > 0" size="sm" variant="outline" @click="clearAll">Clear all</Button>
         </template>
 
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">

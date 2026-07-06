@@ -41,3 +41,12 @@ test('a user reads a notification', function () {
 
     expect($this->admin->unreadNotifications()->count())->toBe(0);
 });
+
+test('a user clears all their notifications', function () {
+    $this->actingAs($this->user)->post('/requests', ['type' => 'service', 'message' => 'Help'])->assertRedirect();
+    expect($this->admin->notifications()->count())->toBe(1);
+
+    $this->actingAs($this->admin)->delete('/notifications')->assertRedirect();
+
+    expect($this->admin->notifications()->count())->toBe(0);
+});
