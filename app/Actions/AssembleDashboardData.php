@@ -88,14 +88,14 @@ class AssembleDashboardData
     private function weekStrip(User $user): array
     {
         $routes = Route::query()
-            ->whereBetween('scheduled_date', [today(), today()->addDays(6)])
+            ->whereBetween('scheduled_date', [Tenant::localToday(), Tenant::localToday()->addDays(6)])
             ->with('stops:id,route_id,status')->get();
 
         $weatherByDate = $this->weatherByDate($user);
 
         $days = [];
         for ($i = 0; $i < 7; $i++) {
-            $date = today()->addDays($i);
+            $date = Tenant::localToday()->addDays($i);
             $stops = $routes->filter(fn (Route $r) => $r->scheduled_date->isSameDay($date))->flatMap(fn (Route $r) => $r->stops);
             $weather = $weatherByDate[$date->toDateString()] ?? null;
             $days[] = [
@@ -143,7 +143,7 @@ class AssembleDashboardData
     private function todayStops(): array
     {
         return RouteStop::query()
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()))
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', Tenant::localToday()))
             ->with(['pool:id,name,photo_path', 'route:id,agent_id', 'route.agent:id,first_name,last_name'])
             ->orderBy('route_id')->orderBy('stop_order')->limit(50)->get()
             ->map(fn (RouteStop $s) => [
@@ -237,7 +237,7 @@ class AssembleDashboardData
     /** @return array{tiles: list<array<string, mixed>>} */
     private function stats(User $user): array
     {
-        $stops = Route::query()->whereDate('scheduled_date', today())->with('stops:id,route_id,status')->get()
+        $stops = Route::query()->whereDate('scheduled_date', Tenant::localToday())->with('stops:id,route_id,status')->get()
             ->flatMap(fn (Route $r) => $r->stops);
 
         return ['tiles' => [
@@ -257,7 +257,7 @@ class AssembleDashboardData
      */
     private function agentStats(User $user): array
     {
-        $route = Route::query()->where('agent_id', $user->id)->whereDate('scheduled_date', today())
+        $route = Route::query()->where('agent_id', $user->id)->whereDate('scheduled_date', Tenant::localToday())
             ->with('stops:id,route_id,status')->first();
         $stops = $route !== null ? $route->stops : collect();
         $week = ServiceVisit::query()->where('agent_id', $user->id)->where('status', 'completed')
@@ -278,7 +278,7 @@ class AssembleDashboardData
      */
     private function agentRoute(User $user): array
     {
-        $route = Route::query()->where('agent_id', $user->id)->whereDate('scheduled_date', today())
+        $route = Route::query()->where('agent_id', $user->id)->whereDate('scheduled_date', Tenant::localToday())
             ->with(['stops' => fn ($q) => $q->with('pool:id,name,photo_path')->orderBy('stop_order')])->first();
         $stops = $route !== null ? $route->stops : collect();
 
@@ -331,7 +331,7 @@ class AssembleDashboardData
 
         $next = RouteStop::query()
             ->whereIn('pool_id', $customer->pools->pluck('id'))->where('status', 'pending')
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', today()))
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
             ->with(['route:id,scheduled_date', 'pool:id,name'])->get()
             ->sortBy(fn (RouteStop $s) => $s->route?->scheduled_date)->first();
 
@@ -446,7 +446,7 @@ class AssembleDashboardData
         $browserKey = config('services.google.browser_maps_key');
 
         $routes = Route::query()
-            ->whereDate('scheduled_date', today())
+            ->whereDate('scheduled_date', Tenant::localToday())
             ->when($agentId !== null, fn ($q) => $q->where('agent_id', $agentId))
             ->with([
                 'agent:id,first_name,last_name,map_color',
@@ -499,7 +499,7 @@ class AssembleDashboardData
     {
         $route = Route::query()
             ->where('agent_id', $user->id)
-            ->whereDate('scheduled_date', '>=', today())
+            ->whereDate('scheduled_date', '>=', Tenant::localToday())
             ->whereHas('stops', fn ($q) => $q->where('status', 'pending'))
             ->with(['stops' => fn ($q) => $q->with('pool:id,name,photo_path')->orderBy('stop_order')])
             ->orderBy('scheduled_date')

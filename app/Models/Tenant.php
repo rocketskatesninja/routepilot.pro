@@ -143,4 +143,26 @@ class Tenant extends Model
 
         return $parts === [] ? null : implode(', ', $parts);
     }
+
+    /**
+     * Start of "today" in this tenant's own timezone. Schedule/calendar dates
+     * are the tenant's local dates, so "what day is it" must be computed here —
+     * not with the UTC-based today()/now() (which flips a day early in the
+     * evening for tenants west of UTC). Datetimes stay stored in UTC.
+     */
+    public function today(): Carbon
+    {
+        $tz = $this->getAttribute('timezone');
+        $tz = is_string($tz) && $tz !== '' ? $tz : (string) config('app.timezone');
+
+        return Carbon::now($tz)->startOfDay();
+    }
+
+    /** today() for the request-bound tenant; app-timezone fallback when unbound. */
+    public static function localToday(): Carbon
+    {
+        $tenant = app()->has('tenant') ? app('tenant') : null;
+
+        return $tenant instanceof self ? $tenant->today() : Carbon::now((string) config('app.timezone'))->startOfDay();
+    }
 }

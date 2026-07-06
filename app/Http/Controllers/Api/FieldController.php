@@ -16,6 +16,7 @@ use App\Models\ChemicalReading;
 use App\Models\FieldSyncKey;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -89,7 +90,7 @@ class FieldController extends Controller
 
         $route = Route::query()
             ->where('agent_id', $agent->id)
-            ->whereDate('scheduled_date', today())
+            ->whereDate('scheduled_date', Tenant::localToday())
             ->whereIn('status', ['draft', 'scheduled', 'in_progress'])
             ->first();
 

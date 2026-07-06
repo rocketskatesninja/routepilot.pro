@@ -10,6 +10,7 @@ use App\Models\AgentLocation;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceLocation;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\RouteOptimizer;
 use App\Services\SubscriptionMaterializer;
@@ -68,7 +69,7 @@ class ScheduleController extends Controller
 
         return Inertia::render('schedule/Index', [
             'date' => $date,
-            'today' => Carbon::today()->toDateString(),
+            'today' => Tenant::localToday()->toDateString(),
             'routes' => $routeModels->map(fn (Route $route): array => $this->presentRoute($route))->all(),
             'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : null,
             'canManage' => $canManage,
@@ -91,7 +92,7 @@ class ScheduleController extends Controller
      */
     private function liveAgents(string $date, Collection $routeModels): array
     {
-        if ($date !== Carbon::today()->toDateString()) {
+        if ($date !== Tenant::localToday()->toDateString()) {
             return [];
         }
 
@@ -121,7 +122,7 @@ class ScheduleController extends Controller
     {
         $this->authorizeAdmin($request);
 
-        $through = Carbon::today()->addWeeks(4)->toDateString();
+        $through = Tenant::localToday()->addWeeks(4)->toDateString();
         $created = $materializer->run((int) $request->user()->tenant_id, $through);
 
         return back()->with('success', $created > 0
@@ -373,9 +374,9 @@ class ScheduleController extends Controller
     private function resolveDate(string $input): string
     {
         try {
-            return $input !== '' ? Carbon::parse($input)->toDateString() : Carbon::today()->toDateString();
+            return $input !== '' ? Carbon::parse($input)->toDateString() : Tenant::localToday()->toDateString();
         } catch (\Throwable) {
-            return Carbon::today()->toDateString();
+            return Tenant::localToday()->toDateString();
         }
     }
 }

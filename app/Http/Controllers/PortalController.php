@@ -11,6 +11,7 @@ use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
+use App\Models\Tenant;
 use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Services\StripeService;
@@ -132,7 +133,7 @@ class PortalController extends Controller
             ->join('routes', 'routes.id', '=', 'route_stops.route_id')
             ->whereIn('route_stops.pool_id', $poolIds)
             ->where('route_stops.status', 'pending')
-            ->whereDate('routes.scheduled_date', '>=', today())
+            ->whereDate('routes.scheduled_date', '>=', Tenant::localToday())
             ->with(['pool:id,name', 'route:id,scheduled_date'])
             ->orderBy('routes.scheduled_date')
             ->orderBy('route_stops.stop_order')
