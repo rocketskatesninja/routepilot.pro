@@ -54,7 +54,9 @@ const pricingPoints = computed(() => [
 ]);
 const faq = computed(() => props.faq ?? []);
 
-const demoUrl = computed(() => route('public.site', { tenant: 'demo' }));
+// Plain path (route 'public.site' = /t/{slug}). NOT route() — Ziggy's route() is
+// only a global inside <template> under SSR; calling it here throws in Node.
+const demoUrl = '/t/demo';
 const description =
     'All-in-one pool service management software that runs your whole business — route optimization, AI chemistry tracking, automated billing, a field app for technicians, and a branded customer website + portal. Built for pool cleaning businesses.';
 
