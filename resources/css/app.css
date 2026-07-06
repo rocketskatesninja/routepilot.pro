@@ -110,3 +110,37 @@ html {
         @apply bg-background text-foreground;
     }
 }
+
+/* ── Collapsed sidebar: dock-style icon magnification ─────────────────────────
+   Left unlayered on purpose so these win over Tailwind's layered utilities
+   (e.g. the button's overflow-hidden) without !important. Scoped to the nav
+   rail (data-sidebar=content) so the header logo and footer user are untouched.
+   Icons sit +75% at rest and swell toward the cursor, tapering across their
+   neighbours for a parabolic falloff. Transform only — no reflow, GPU-smooth. */
+[data-collapsible='icon'] [data-sidebar='content'] [data-sidebar='menu-button'] {
+    overflow: visible; /* let a magnified icon spill past its cell */
+}
+[data-sidebar='content'] [data-sidebar='menu-button'] > svg {
+    transition: transform 180ms ease;
+}
+[data-collapsible='icon'] [data-sidebar='content'] [data-sidebar='menu-button'] > svg {
+    transform: scale(1.75); /* +75% at rest */
+}
+[data-collapsible='icon'] [data-sidebar='content'] [data-sidebar='menu-item']:hover [data-sidebar='menu-button'] > svg {
+    transform: scale(2.25); /* peak — under the cursor */
+}
+[data-collapsible='icon'] [data-sidebar='content'] [data-sidebar='menu-item']:hover + [data-sidebar='menu-item'] [data-sidebar='menu-button'] > svg,
+[data-collapsible='icon']
+    [data-sidebar='content']
+    [data-sidebar='menu-item']:has(+ [data-sidebar='menu-item']:hover)
+    [data-sidebar='menu-button']
+    > svg {
+    transform: scale(2); /* immediate neighbours */
+}
+
+/* No collapse animation on the first paint: `preload` is set on <html> in the
+   root template and removed after mount (app.ts). Scoped to the sidebar shell
+   so intentional entrance animations elsewhere (e.g. the landing hero) survive. */
+.preload [class*='sidebar-wrapper'] * {
+    transition: none !important;
+}

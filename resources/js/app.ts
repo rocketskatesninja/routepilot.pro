@@ -46,6 +46,10 @@ createInertiaApp({
 
         vueApp.use(plugin).use(ZiggyVue).mount(el);
 
+        // First paint is done — drop the no-transition guard so the sidebar
+        // animates on toggle but not on load. Two frames so a paint lands first.
+        requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('preload')));
+
         // Live notifications: subscribe to the signed-in user's private channel
         // (see the navigate hook below for the keep-in-sync across login/logout).
         const auth = props.initialPage.props.auth as { user?: { id?: number } } | undefined;
