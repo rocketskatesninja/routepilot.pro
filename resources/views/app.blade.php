@@ -43,6 +43,13 @@
         @routes
         @vite(['resources/js/app.ts'])
         @inertiaHead
+
+        {{-- Structured data (JSON-LD) for pages that provide it (e.g. the marketing
+             homepage) — server-rendered so crawlers see it without running JS. --}}
+        @php($jsonLd = data_get($page ?? [], 'props.jsonLd'))
+        @if (! empty($jsonLd))
+            <script type="application/ld+json">{!! $jsonLd !!}</script>
+        @endif
     </head>
     <body class="font-sans antialiased">
         @inertia
