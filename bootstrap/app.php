@@ -30,6 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Stripe posts webhooks without a CSRF token (verified by signature).
         $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+
+        // The sidebar collapse state is a plaintext cookie set client-side and
+        // read back at render time to avoid an open→collapse flash — leave it
+        // unencrypted so the server can read the value the browser wrote.
+        $middleware->encryptCookies(except: ['sidebar_state']);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // A 419 (expired CSRF/session) — e.g. signing out from a long-idle tab —

@@ -47,6 +47,7 @@ export interface BillingState {
 
 export interface SharedData {
     name: string;
+    sidebarOpen: boolean;
     auth: Auth;
     tenant: Tenant | null;
     billing: BillingState | null;

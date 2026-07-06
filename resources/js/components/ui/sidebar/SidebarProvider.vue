@@ -39,8 +39,11 @@ const open = useVModel(props, 'open', emits, {
 function setOpen(value: boolean) {
     open.value = value; // emits('update:open', value)
 
-    // This sets the cookie to keep the sidebar state.
-    document.cookie = `${SIDEBAR_COOKIE_NAME}=${open.value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+    // Persist to a cookie so the server can seed the next load in the right
+    // state. Write `value`, not `open.value`: when the provider is controlled
+    // (AppShell passes :open) open.value is a pass-through to props.open, which
+    // the parent only updates next tick — so open.value is still stale here.
+    document.cookie = `${SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
 }
 
 function setOpenMobile(value: boolean) {
