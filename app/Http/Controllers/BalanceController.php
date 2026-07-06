@@ -12,6 +12,7 @@ use App\Http\Requests\StoreManualChargeRequest;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\PaymentMethod;
 use App\Services\BillingService;
 use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
@@ -40,13 +41,29 @@ class BalanceController extends Controller
 
         // Owing summary: drives the owing list, the header total, and the tab badge.
         $balances = $billing->outstandingBalances();
-        $rows = $balances->map(fn (array $r): array => [
-            'id' => $r['customer']->id,
-            'name' => $r['customer']->displayName(),
-            'photo' => $this->photoUrl($r['customer']->getAttribute('photo_path')),
-            'balance' => $r['balance'],
-            'pools' => $r['customer']->pools->count(),
-        ])->all();
+
+        // Batch-load the saved default cards so the Autopay column can show the
+        // card without an N+1 (one query covers every owing customer).
+        $cardIds = $balances->map(fn (array $r) => $r['customer']->getAttribute('default_payment_method_id'))
+            ->filter()->unique()->values()->all();
+        $cards = PaymentMethod::query()->whereIn('id', $cardIds)->get()->keyBy('id');
+
+        $rows = $balances->map(function (array $r) use ($cards): array {
+            $c = $r['customer'];
+            $pm = $cards->get($c->getAttribute('default_payment_method_id'));
+
+            return [
+                'id' => $c->id,
+                'name' => $c->displayName(),
+                'photo' => $this->photoUrl($c->getAttribute('photo_path')),
+                'balance' => $r['balance'],
+                'pools' => $c->pools->count(),
+                'autopay' => (bool) $c->getAttribute('autopay_enabled'),
+                'card' => $pm !== null
+                    ? trim(ucfirst((string) $pm->getAttribute('brand')).' •••• '.$pm->getAttribute('last4'))
+                    : null,
+            ];
+        })->all();
 
         // The owing list is computed (not a query), so it sorts in memory.
         $owingKey = (string) $request->string('sort');

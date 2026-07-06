@@ -22,6 +22,8 @@ interface BalanceRow {
     photo: string | null;
     balance: number;
     pools: number;
+    autopay: boolean;
+    card: string | null;
 }
 
 interface InvoiceRow {
@@ -272,7 +274,7 @@ function closePane() {
                     <ListTable
                         v-else
                         :meta="props.balances"
-                        :columns="3"
+                        :columns="4"
                         :row-key="(r) => r.id"
                         :selected-key="props.selected?.kind === 'owing' ? props.selected.id : null"
                         @select="(r) => open(r.id)"
@@ -280,6 +282,7 @@ function closePane() {
                         <template #head>
                             <SortableTh sort-key="name" :active="props.sort">Customer</SortableTh>
                             <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
+                            <th class="hidden px-4 py-2 text-left font-medium sm:table-cell">Autopay</th>
                             <SortableTh sort-key="balance" :active="props.sort" align="right" class="text-right">Balance</SortableTh>
                         </template>
                         <template #row="{ item: row }">
@@ -290,6 +293,20 @@ function closePane() {
                                 </div>
                             </td>
                             <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ row.pools }}</td>
+                            <td class="hidden px-4 py-2.5 sm:table-cell">
+                                <span v-if="row.autopay" class="inline-flex items-center gap-2">
+                                    <span
+                                        class="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                                        >On</span
+                                    >
+                                    <span v-if="row.card" class="text-xs text-muted-foreground">{{ row.card }}</span>
+                                </span>
+                                <span
+                                    v-else
+                                    class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                                    >Off</span
+                                >
+                            </td>
                             <td class="px-4 py-2.5 text-right font-medium">{{ money(row.balance) }}</td>
                         </template>
                         <template #empty>

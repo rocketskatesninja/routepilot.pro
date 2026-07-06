@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Customer;
+use App\Models\PaymentMethod;
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
@@ -45,6 +46,22 @@ test('lists only customers with an outstanding balance', function () {
             ->where('balances.data.0.name', 'Owes Money')
             ->where('balances.data.0.balance', 50)
             ->where('total', 50)
+        );
+});
+
+test('the owing list surfaces each customer autopay status + saved card', function () {
+    $customer = owingCustomer($this->tenant, $this->agent);
+    $pm = PaymentMethod::create([
+        'customer_id' => $customer->id, 'stripe_payment_method_id' => 'pm_1',
+        'brand' => 'visa', 'last4' => '4242', 'is_default' => true,
+    ]);
+    $customer->forceFill(['autopay_enabled' => true, 'default_payment_method_id' => $pm->id])->save();
+
+    $this->actingAs($this->admin)
+        ->get('/balances')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('balances.data.0.autopay', true)
+            ->where('balances.data.0.card', 'Visa •••• 4242')
         );
 });
 
