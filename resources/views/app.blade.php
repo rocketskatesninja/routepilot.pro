@@ -23,7 +23,9 @@
             html.dark { background-color: #0d1017; color-scheme: dark; }
         </style>
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        {{-- Title is managed entirely by Inertia (@inertiaHead) so SSR emits a single
+             <title>. A static one here would duplicate it and, being first, win over
+             the real per-page title for crawlers. --}}
 
         {{-- Browser tab / bookmark icon (SVG for modern browsers, PNG fallback). --}}
         <link rel="icon" type="image/svg+xml" href="/favicon.svg">
