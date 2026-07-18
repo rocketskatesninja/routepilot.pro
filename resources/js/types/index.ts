@@ -45,6 +45,22 @@ export interface BillingState {
     };
 }
 
+export interface OnboardingStep {
+    key: string;
+    label: string;
+    href: string;
+    done: boolean;
+    optional: boolean;
+}
+
+export interface Onboarding {
+    steps: OnboardingStep[];
+    done: number;
+    total: number;
+    complete: boolean;
+    dismissed: boolean;
+}
+
 export interface SharedData {
     name: string;
     sidebarOpen: boolean;

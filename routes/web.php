@@ -78,6 +78,9 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::get('paused', fn () => Inertia::render('Paused'))->name('account.paused');
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('dashboard/layout', [DashboardController::class, 'saveLayout'])->name('dashboard.layout');
+    // Dismiss the first-run "Getting started" checklist (tenant admin only).
+    Route::post('dashboard/onboarding/dismiss', [DashboardController::class, 'dismissOnboarding'])
+        ->middleware('role:tenant_admin,super_admin')->name('onboarding.dismiss');
     // Invoice PDF: the owning customer OR staff (ownership enforced in the controller).
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'download'])->name('invoices.pdf');
     // In-app notifications + AI assistant.

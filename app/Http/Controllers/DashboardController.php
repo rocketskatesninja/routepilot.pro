@@ -8,7 +8,9 @@ use App\Actions\AssembleDashboardData;
 use App\Actions\SaveDashboardLayout;
 use App\Dashboard\DashboardWidgets;
 use App\Http\Requests\UpdateDashboardLayoutRequest;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Support\OnboardingStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,13 +37,33 @@ class DashboardController extends Controller
     {
         $layouts = DashboardWidgets::layoutsFor($user);
         $enabled = $this->enabledKeys($layouts);
+        $tenant = app()->has('tenant') ? app('tenant') : null;
 
         return [
             'layouts' => $layouts,
             'catalog' => DashboardWidgets::meta(),
             'palette' => DashboardWidgets::palette($user),
             'widgets' => app(AssembleDashboardData::class)->handle($user, $enabled),
+            // First-run setup checklist — only the tenant admin sees it, and only
+            // the client shows it while incomplete + not dismissed (see Grid.vue).
+            'onboarding' => ($user->role === 'tenant_admin' && $tenant instanceof Tenant)
+                ? OnboardingStatus::for($tenant)
+                : null,
         ];
+    }
+
+    /** Hide the first-run "Getting started" checklist for this tenant. */
+    public function dismissOnboarding(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        $tenant = app()->has('tenant') ? app('tenant') : null;
+        if ($tenant instanceof Tenant) {
+            OnboardingStatus::dismiss($tenant);
+        }
+
+        return back();
     }
 
     /**

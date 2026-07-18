@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import DashboardGrid from '@/components/dashboard/DashboardGrid.vue';
+import GettingStarted from '@/components/dashboard/GettingStarted.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type Onboarding } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { Check, LayoutGrid, Monitor, Pencil, Plus, Smartphone } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -38,7 +39,12 @@ const props = defineProps<{
     palette: PaletteWidget[];
     catalog: Record<string, CatalogMeta>;
     widgets: Record<string, unknown>;
+    onboarding: Onboarding | null;
 }>();
+
+// First-run setup checklist: only the server marks it present (tenant admin);
+// hide once every step is done or the admin has dismissed it.
+const showOnboarding = computed(() => !!props.onboarding && !props.onboarding.dismissed && !props.onboarding.complete);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
 
@@ -194,6 +200,8 @@ onBeforeUnmount(() => {
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
+            <GettingStarted v-if="showOnboarding && onboarding" :data="onboarding" />
+
             <!-- Mobile layouts are designed/shown in a phone-width frame. -->
             <div :class="mobileView ? 'mx-auto w-full max-w-[26rem]' : 'w-full'">
                 <div
