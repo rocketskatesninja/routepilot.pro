@@ -299,7 +299,7 @@ class PortalController extends Controller
             'pool' => $visit->pool?->getAttribute('name'),
             'pool_id' => $visit->pool?->getKey(),
             'on' => $visit->completed_at?->toDateString(),
-            'agent' => $visit->agent?->displayName(),
+            'agent' => $visit->agent?->firstName(),
             'notes' => $visit->notes,
             'reading' => $reading !== null ? [
                 'free_chlorine' => $reading->free_chlorine,

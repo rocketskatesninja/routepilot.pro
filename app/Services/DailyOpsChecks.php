@@ -226,7 +226,7 @@ class DailyOpsChecks
                     company: $company,
                     poolName: (string) $pool->name,
                     date: $date?->format('l, F j') ?? 'tomorrow',
-                    agentName: $stop->route?->agent?->displayName(),
+                    agentName: $stop->route?->agent?->firstName(),
                     arrivalWindow: EtaWindow::for($stop->estimated_arrival),
                 ));
             }

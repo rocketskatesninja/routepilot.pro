@@ -154,6 +154,17 @@ test('the service reminder email carries the softened arrival window', function 
     Mail::assertQueued(ServiceReminderMail::class, fn (ServiceReminderMail $m): bool => $m->arrivalWindow === '9:00 – 10:00 AM');
 });
 
+test('the service reminder gives the customer the technician\'s first name only — never the surname', function () {
+    poolDueTomorrow();
+    $agent = User::query()->where('tenant_id', $this->tenant->id)->where('role', 'agent')->firstOrFail();
+    $agent->forceFill(['first_name' => 'Marcus', 'last_name' => 'Bennett'])->save();
+    Mail::fake();
+
+    app(DailyOpsChecks::class)->run($this->tenant->id);
+
+    Mail::assertQueued(ServiceReminderMail::class, fn (ServiceReminderMail $m): bool => $m->agentName === 'Marcus' && ! str_contains((string) $m->agentName, 'Bennett'));
+});
+
 test('the service reminder email is skipped for opt-out customers (in-app still sent)', function () {
     [$portal] = poolDueTomorrow(optOut: true);
     Notification::fake();
