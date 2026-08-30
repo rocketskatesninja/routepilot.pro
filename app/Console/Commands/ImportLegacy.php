@@ -16,13 +16,13 @@ class ImportLegacy extends Command
 {
     protected $signature = 'app:import-legacy
         {--source=legacy : The DB connection holding the old data}
-        {--old-slug=gpc : The source tenant slug to import}
-        {--slug=gpc : The target tenant slug to create}
+        {--old-slug=acme : The source tenant slug to import}
+        {--slug=acme : The target tenant slug to create}
         {--name=Acme Pool Co : The target tenant name}
         {--dry : Run the full import in a transaction and roll back (preview only)}
         {--fresh : Wipe a previously imported target tenant and re-import}';
 
-    protected $description = 'Cut over a legacy tenant (Acme Pool Co) into a fresh tenant on the live database.';
+    protected $description = 'Cut over a legacy tenant (e.g. Acme Pool Co) into a fresh tenant on the live database.';
 
     public function handle(LegacyImporter $importer): int
     {

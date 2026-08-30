@@ -411,7 +411,7 @@ const features = [
             </section>
 
             <!--
-                Testimonial slot — drop in a REAL quote when available (e.g. Acme Pool Co);
+                Testimonial slot — drop in a REAL quote when available (e.g. a happy customer);
                 do not fabricate. Ready-to-use markup:
                 <section class="bg-background py-20">
                     <figure class="reveal mx-auto max-w-3xl px-4 text-center sm:px-6">

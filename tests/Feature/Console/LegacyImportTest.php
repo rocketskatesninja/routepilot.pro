@@ -28,12 +28,12 @@ beforeEach(function () {
     DB::purge('legacy');
     Artisan::call('migrate', ['--database' => 'legacy', '--force' => true]);
 
-    // Seed a tiny "old Glynn" tenant: admin + customer + pool + location + visit.
-    $this->oldTenant = legacyInsert('tenants', Tenant::factory()->make(['slug' => 'oldgpc', 'name' => 'Old GPC'])->getAttributes());
+    // Seed a tiny "old Acme" tenant: admin + customer + pool + location + visit.
+    $this->oldTenant = legacyInsert('tenants', Tenant::factory()->make(['slug' => 'oldacme', 'name' => 'Old Acme'])->getAttributes());
 
     $this->oldAdmin = legacyInsert('users', array_merge(
         User::factory()->make()->getAttributes(),
-        ['tenant_id' => $this->oldTenant, 'role' => 'tenant_admin', 'is_active' => true, 'email' => 'jonathan@gpc.test'],
+        ['tenant_id' => $this->oldTenant, 'role' => 'tenant_admin', 'is_active' => true, 'email' => 'jonathan@acme.test'],
     ));
 
     $this->oldCustomer = legacyInsert('customers', array_merge(
@@ -67,14 +67,14 @@ beforeEach(function () {
 function importOpts(array $over = []): array
 {
     return array_merge([
-        'source' => 'legacy', 'old_slug' => 'oldgpc', 'slug' => 'gpc', 'name' => 'Acme Pool Co', 'dry' => false, 'fresh' => false,
+        'source' => 'legacy', 'old_slug' => 'oldacme', 'slug' => 'acme', 'name' => 'Acme Pool Co', 'dry' => false, 'fresh' => false,
     ], $over);
 }
 
 test('it imports the legacy tenant into a fresh tenant with remapped foreign keys', function () {
     $result = app(LegacyImporter::class)->run(importOpts());
 
-    $tenant = Tenant::query()->where('slug', 'gpc')->firstOrFail();
+    $tenant = Tenant::query()->where('slug', 'acme')->firstOrFail();
     expect($tenant->name)->toBe('Acme Pool Co')
         ->and($result['customers'])->toBe(1)
         ->and($result['pools'])->toBe(1)
@@ -97,7 +97,7 @@ test('it keeps the legacy password hash so staff log in as before', function () 
 
     app(LegacyImporter::class)->run(importOpts());
 
-    $admin = User::query()->where('email', 'jonathan@gpc.test')->firstOrFail();
+    $admin = User::query()->where('email', 'jonathan@acme.test')->firstOrFail();
     expect($admin->getAttribute('password'))->toBe($hash);
 });
 
@@ -106,7 +106,7 @@ test('a dry run reports counts but writes nothing', function () {
 
     expect($result['dry'])->toBeTrue()
         ->and($result['customers'])->toBe(1)
-        ->and(Tenant::query()->where('slug', 'gpc')->exists())->toBeFalse();
+        ->and(Tenant::query()->where('slug', 'acme')->exists())->toBeFalse();
 });
 
 test('re-running is a no-op once imported, unless --fresh', function () {
@@ -116,5 +116,5 @@ test('re-running is a no-op once imported, unless --fresh', function () {
 
     $fresh = app(LegacyImporter::class)->run(importOpts(['fresh' => true]));
     expect($fresh['customers'])->toBe(1)
-        ->and(Tenant::query()->where('slug', 'gpc')->count())->toBe(1); // not duplicated
+        ->and(Tenant::query()->where('slug', 'acme')->count())->toBe(1); // not duplicated
 });

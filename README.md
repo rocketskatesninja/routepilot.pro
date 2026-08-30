@@ -1,27 +1,74 @@
 # RoutePilot
 
-Multi-tenant pool-service SaaS — **Laravel 12 · Inertia v2 · Vue 3 (TS) · Tailwind**.
+**All-in-one pool service management software.** Route optimization, AI-assisted chemistry
+tracking, automated billing, an offline field app for technicians, and a branded customer website
++ portal — for pool cleaning businesses that have outgrown spreadsheets and text threads.
 
-This repository is the **Phase 1 foundation** of the fresh rebuild: clean schema, session-based
-tenancy + custom domains, correct auth/OAuth, the RoutePilot design tokens (dark "ops" +
-daylight), and quality gates (Pest, Pint, Larastan, CI security audits) from commit one. The
-proven domain engines (chemistry/LSI dosing, routing optimizer, AI assistant) are ported in
-Phase 2. See `CLAUDE.md` for the engineering charter.
+[![CI](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/tests.yml/badge.svg)](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/tests.yml)
+[![Lint](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/lint.yml/badge.svg)](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/lint.yml)
+[![License](https://img.shields.io/badge/license-proprietary-lightgrey)](LICENSE)
 
-## Local setup
+Built with **Laravel 12 · Inertia v2 · Vue 3 (TypeScript) · Tailwind**.
 
-```bash
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-npm run dev        # or: npm run build
-php artisan serve
-```
+![RoutePilot public landing page](public/assets/images/screenshots/demo-landing.jpg)
 
-By default the app uses a SQLite database (`database/database.sqlite`); configure MySQL in `.env`
-for a production-like setup.
+## What it does
+
+- **Your own branded customer website + portal** — homeowners see pool health, service history,
+  and their next visit; fewer "when are you coming?" calls.
+- **AI chemistry that thinks for your techs** — reads 12-visit trends and the 7-day forecast and
+  tells the tech exactly what to add, on-device, even offline.
+- **Smart routing + live operations** — pack more stops into fewer miles, then watch the day
+  unfold live: pending, in-progress, and completed stops across every truck on one map.
+- **A field app that works offline** — on-device chemistry dosing and photo capture, no signal
+  required at the pool.
+
+## Screenshots
+
+| Dashboard | Route map |
+|---|---|
+| ![Dashboard](public/assets/images/screenshots/dashboard.png) | ![Route map](public/assets/images/screenshots/route-map.png) |
+
+| Pools (master-detail) | Visit reports |
+|---|---|
+| ![Pools](public/assets/images/screenshots/pools.png) | ![Reports](public/assets/images/screenshots/reports.png) |
+
+| Insights | Field app (agent day view) |
+|---|---|
+| ![Insights](public/assets/images/screenshots/insights.png) | <img src="public/assets/images/screenshots/phone-day.png" width="260"> |
+
+Screenshots are from the seeded demo tenant ("Demo Company") — no real customer data.
+
+## Feature grid
+
+| | | |
+|---|---|---|
+| **Live route status** — real-time per-stop badges and live map colors across every agent | **Automated billing & autopay** — invoices, receipts, and card-on-file autopay run themselves | **Inventory management** — chemical usage auto-deducts from every service visit |
+| **Professional service reports** — photo + chemistry reports emailed after every visit | **Build-your-own dashboard** — drag-to-reorder widgets for stops, map, weather, and billing | **AI assistant** — ask about a customer, a route, or pool chemistry in plain English |
+| **Drag-to-reassign** — move a stop to another tech and every future visit follows | **Customer management** — a pool company CRM built in: pools, contacts, notes, history | |
+
+## Architecture
+
+Four surfaces, one codebase:
+
+1. **Back-office** (tenant admin) — dark "ops" theme, customizable dashboards.
+2. **Agent field PWA** — daylight theme, offline-resilient, installable.
+3. **Customer portal** — lightweight, online-only.
+4. **Public landing** — SSR, section-based page builder, per-tenant branding.
+
+- **Multi-tenant:** shared schema + `tenant_id` scoping (`BelongsToTenant` concern +
+  `TenantScope`); tenant resolved from session (staff) or custom domain/subdomain (public).
+- **Conventions:** thin controllers → Form Requests → single-purpose Action classes; Eloquent
+  relationships and query scopes over raw SQL; `declare(strict_types=1)` everywhere.
+- **Security:** privilege/identity fields (`role`, `tenant_id`, `is_active`) are never
+  mass-assignable — set only via `forceFill()` at controlled call sites; Google OAuth requires a
+  verified email and a linked `google_id`, never an email-match login; secrets are `encrypted` at
+  rest; policies/gates on every sensitive action with audit logging on billing, permissions,
+  deletes, and impersonation.
+- **Theming:** CSS-variable design tokens (`resources/css/app.css`), daylight + dark "ops" themes,
+  per-tenant brand color overlay at runtime.
+
+See `CLAUDE.md` for the full engineering charter.
 
 ## Quality gates
 
@@ -32,15 +79,35 @@ for a production-like setup.
 npm run lint && npm run format:check
 ```
 
-CI (`.github/workflows`) runs the test + static-analysis job, a security job (`composer audit` +
-`npm audit`), and the linter on every push and PR.
+CI runs Pest tests, Larastan (PHPStan level 6) static analysis, Pint style checks,
+ESLint/Prettier, and `composer audit` / `npm audit` security scans on every push and PR.
 
-## Key concepts
+## Local setup
 
-- **Tenancy:** tenant-owned models use `App\Models\Concerns\BelongsToTenant`; `ResolveTenant`
-  binds the tenant from the session (staff) or host (custom domain / subdomain).
-- **Roles:** `users.role` is the single source of truth; Spatie permissions are layered for
-  granular `manage_*` abilities only.
-- **Auth:** email/password + Google OAuth (verified email + linked `google_id` only).
-- **Theming:** CSS-variable tokens in `resources/css/app.css`; per-tenant brand overlay via
-  `resources/js/composables/useBrand.ts`.
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed --class=DemoSeeder   # optional: seeds a demo tenant + sample data
+npm run dev        # or: npm run build
+php artisan serve
+```
+
+By default the app uses SQLite (`database/database.sqlite`); configure MySQL in `.env` for a
+production-like setup.
+
+The `DemoSeeder` creates a "Demo Company" tenant with one login per role, all password `password`:
+
+| Role | Email |
+|---|---|
+| Super admin (platform) | `admin@routepilot.pro` |
+| Tenant admin | `tenant@routepilot.pro` |
+| Agent (field app) | `agent@routepilot.pro` |
+| Customer (portal) | `customer@routepilot.pro` |
+
+## License
+
+Source-available for portfolio and review purposes — see [LICENSE](LICENSE). Not open source; no
+reuse or redistribution rights are granted.
