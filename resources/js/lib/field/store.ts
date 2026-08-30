@@ -66,7 +66,10 @@ function db(): Promise<IDBPDatabase<FieldDB>> {
 
 export async function saveBundle(data: TodayBundle): Promise<void> {
     const database = await db();
-    await database.put('bundles', { date: data.date, data, cached_at: Date.now() });
+    // `data` is often a Vue-reactive proxy (e.g. Index.vue re-saving `bundle.value` after
+    // marking a stop completed) — IndexedDB's structured-clone step rejects that outright
+    // (DOMException: "Proxy object could not be cloned"), so round-trip through JSON first.
+    await database.put('bundles', JSON.parse(JSON.stringify({ date: data.date, data, cached_at: Date.now() })));
 }
 
 export async function getBundle(date: string): Promise<TodayBundle | null> {
@@ -76,9 +79,8 @@ export async function getBundle(date: string): Promise<TodayBundle | null> {
 
 export async function enqueue(item: QueuedVisit): Promise<void> {
     const database = await db();
-    // item.payload is built from Vue-reactive form state; IndexedDB's structured-clone
-    // step can reject a reactive Proxy even where the equivalent plain value clones fine,
-    // so round-trip through JSON to guarantee a plain, storable object.
+    // item.payload is built from Vue-reactive form state; round-trip through JSON as cheap
+    // insurance against the same class of Proxy-clone failure fixed in saveBundle() above.
     await database.put('queue', JSON.parse(JSON.stringify(item)));
 }
 

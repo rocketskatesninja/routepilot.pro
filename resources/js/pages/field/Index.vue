@@ -85,8 +85,16 @@ async function onCompleted(stopId: number) {
         stop.completed = true;
         stop.status = 'completed';
     }
-    if (bundle.value) await saveBundle(bundle.value);
+    // Close first: the visit is already saved (queued/synced) at this point, so a re-cache
+    // failure below must never block the UI from advancing to the next stop.
     selected.value = null;
+    if (bundle.value) {
+        try {
+            await saveBundle(bundle.value);
+        } catch (e) {
+            console.error('Failed to re-cache the route for offline use (visit was still saved):', e);
+        }
+    }
     await refreshCounts();
 }
 

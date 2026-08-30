@@ -147,42 +147,17 @@ async function agentTour(browser) {
     await page.screenshot({ path: `${OUT}/agent/day-offline.png`, clip: PHONE_CLIP });
     console.log('  ✓ agent/day-offline.png');
 
-    // NOTE: completing a stop while offline should show a "waiting to sync" banner —
-    // but the real IndexedDB write throws a DataCloneError in this sandbox's Chrome
-    // build (152.x), reproducibly, even online, even with a JSON-round-tripped payload.
-    // Unconfirmed whether that's a real app bug or just this Chrome build outrunning
-    // the pinned `idb` package — see the JSON.parse(JSON.stringify(...)) hardening
-    // added to lib/field/store.ts either way. Rather than block this screenshot on
-    // that investigation, reconstruct the equivalent visual state directly: the
-    // banner and "done" styling below are copied verbatim from Index.vue's template,
-    // not produced by a live sync queue.
-    await page.evaluate(() => {
-        const item = document.querySelectorAll('main li')[1];
-        if (!item) return;
-        item.className = item.className.replace('border-slate-200', 'border-emerald-200 opacity-70');
-        const circle = item.querySelector('div.rounded-full');
-        if (circle) {
-            circle.className = circle.className.replace('bg-slate-900', 'bg-emerald-500');
-            circle.innerHTML = circle.querySelector('svg')?.outerHTML ?? '✓';
-        }
-        const status = [...item.querySelectorAll('span')].find((el) => el.textContent === 'Pending');
-        if (status) status.textContent = 'Done';
-        item.querySelector('svg.lucide-chevron-right, svg[class*=chevron-right]')?.remove();
-
-        const header = document.querySelector('header p.text-xs');
-        if (header) header.textContent = header.textContent.replace('0/4 done', '1/4 done');
-        const remaining = [...document.querySelectorAll('main p')].find((el) => el.textContent?.includes('stops left today'));
-        if (remaining) remaining.textContent = '3 stops left today';
-
-        const offlineBanner = document.querySelector('header + div, header ~ div');
-        const banner = document.createElement('div');
-        banner.className = 'flex items-center gap-1.5 bg-sky-50 px-4 py-1.5 text-xs font-medium text-sky-700';
-        banner.innerHTML = '<span>&#9729;</span> 1 visit waiting to sync — will send when back online';
-        offlineBanner?.after(banner);
-    });
-    await page.waitForTimeout(300);
+    // Complete a second stop while offline: it queues (rather than failing) and shows
+    // the "waiting to sync" banner. (Previously blocked by a real bug — a Vue-reactive
+    // Proxy passed straight into IndexedDB — fixed in lib/field/store.ts + Index.vue.)
+    await page.locator('main li').nth(1).click();
+    await page.waitForTimeout(600);
+    const completeBtn = page.locator('button:has-text("Complete")');
+    await completeBtn.click();
+    await completeBtn.waitFor({ state: 'detached', timeout: 10000 });
+    await page.waitForTimeout(500);
     await page.screenshot({ path: `${OUT}/agent/day-queued.png`, clip: PHONE_CLIP });
-    console.log('  ✓ agent/day-queued.png (visual reconstruction — see comment above)');
+    console.log('  ✓ agent/day-queued.png');
 
     await ctx.close(); // note: don't setOffline(false) first — that can race a still-in-flight queued request onto the real network right before teardown
     console.log('agent done');
