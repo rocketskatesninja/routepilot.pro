@@ -76,7 +76,10 @@ export async function getBundle(date: string): Promise<TodayBundle | null> {
 
 export async function enqueue(item: QueuedVisit): Promise<void> {
     const database = await db();
-    await database.put('queue', item);
+    // item.payload is built from Vue-reactive form state; IndexedDB's structured-clone
+    // step can reject a reactive Proxy even where the equivalent plain value clones fine,
+    // so round-trip through JSON to guarantee a plain, storable object.
+    await database.put('queue', JSON.parse(JSON.stringify(item)));
 }
 
 export async function allQueued(): Promise<QueuedVisit[]> {

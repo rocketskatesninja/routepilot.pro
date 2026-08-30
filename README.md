@@ -25,19 +25,38 @@ Built with **Laravel 12 · Inertia v2 · Vue 3 (TypeScript) · Tailwind**.
 
 ## Screenshots
 
+Three surfaces, one tenant — all from the seeded demo tenant ("Demo Company"), no real customer
+data. The full tour (every back-office page in light + dark, the complete field-app flow, and
+every customer portal page — 36 screens in all) lives in
+[`public/assets/images/screenshots/tour/`](public/assets/images/screenshots/tour/).
+
+**Back office** (tenant admin)
+
 | Dashboard | Route map |
 |---|---|
-| ![Dashboard](public/assets/images/screenshots/dashboard.png) | ![Route map](public/assets/images/screenshots/route-map.png) |
+| ![Dashboard](public/assets/images/screenshots/tour/tenant/dashboard.png) | ![Route map](public/assets/images/screenshots/tour/tenant/schedule.png) |
 
-| Pools (master-detail) | Visit reports |
+| Pools (master-detail) | Reports |
 |---|---|
-| ![Pools](public/assets/images/screenshots/pools.png) | ![Reports](public/assets/images/screenshots/reports.png) |
+| ![Pools](public/assets/images/screenshots/tour/tenant/pools.png) | ![Reports](public/assets/images/screenshots/tour/tenant/reports.png) |
 
-| Insights | Field app (agent day view) |
-|---|---|
-| ![Insights](public/assets/images/screenshots/insights.png) | <img src="public/assets/images/screenshots/phone-day.png" width="260"> |
+<sub>Dark "ops" theme: [dashboard](public/assets/images/screenshots/tour/tenant/dark/dashboard.png) ·
+[schedule](public/assets/images/screenshots/tour/tenant/dark/schedule.png) ·
+[pools](public/assets/images/screenshots/tour/tenant/dark/pools.png)</sub>
 
-Screenshots are from the seeded demo tenant ("Demo Company") — no real customer data.
+**Agent field app** (offline-resilient PWA)
+
+<img src="public/assets/images/screenshots/tour/agent/day.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/visit-analysis.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/day-offline.png" width="240">
+
+The middle screen is the on-device AI chemistry engine: a water test produces real dosing
+recommendations — computed offline, no round trip to a server.
+
+**Customer portal**
+
+<img src="public/assets/images/screenshots/tour/customer/history.png" width="240"> <img src="public/assets/images/screenshots/tour/customer/balance.png" width="240">
+
+The public landing page (hero image above) is the fourth surface — same tenant, same data,
+rendered SSR with per-tenant branding.
 
 ## Feature grid
 

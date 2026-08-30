@@ -9,6 +9,7 @@
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "screenshots": "node scripts/screenshots.mjs",
+        "screenshots:tour": "node scripts/tour-screenshots.mjs",
         "test:js": "vitest run"
     },
     "devDependencies": {
