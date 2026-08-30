@@ -104,7 +104,7 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
 <template>
     <Head title="Field" />
 
-    <div class="min-h-svh bg-slate-50 text-slate-900 [color-scheme:light]">
+    <div class="daylight min-h-svh bg-slate-50 text-slate-900">
         <!-- top bar -->
         <header class="sticky top-0 z-10 border-b border-slate-200 bg-white">
             <div class="flex items-center gap-3 px-4 py-3">
