@@ -108,7 +108,7 @@ async function complete() {
 </script>
 
 <template>
-    <div class="fixed inset-0 z-50 flex flex-col bg-slate-50 text-slate-900">
+    <div class="fixed inset-0 z-50 flex flex-col bg-slate-50 text-slate-900 [color-scheme:light]">
         <!-- header -->
         <header class="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
             <button class="rounded-lg p-1.5 hover:bg-slate-100" @click="emit('close')"><ChevronLeft class="size-5" /></button>
