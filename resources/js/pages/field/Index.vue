@@ -66,6 +66,14 @@ onMounted(async () => {
     window.addEventListener('offline', onOffline);
     await load();
     restoreLocation();
+    // Deep-link: /field?stop=<id> opens that stop directly (e.g. from the dashboard
+    // route widget), then strips the param so a refresh lands on the list.
+    const stopId = Number(new URLSearchParams(window.location.search).get('stop'));
+    if (stopId) {
+        const target = stops.value.find((s) => s.id === stopId);
+        if (target) open(target);
+        window.history.replaceState({}, '', '/field');
+    }
 });
 onBeforeUnmount(() => {
     window.removeEventListener('online', onOnline);

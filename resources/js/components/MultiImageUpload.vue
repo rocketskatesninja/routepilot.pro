@@ -7,7 +7,13 @@ import { onBeforeUnmount, ref, watch } from 'vue';
  * parent form (v-model array) and only upload on save — add or remove individual
  * photos freely beforehand, each shown as a thumbnail.
  */
-const props = withDefaults(defineProps<{ modelValue: File[] }>(), { modelValue: () => [] });
+// `capture` opts the file input into a device camera (e.g. 'environment' = rear
+// camera) so mobile opens the camera directly instead of the picker; omit for the
+// normal picker (camera + library choice).
+const props = withDefaults(defineProps<{ modelValue: File[]; capture?: 'environment' | 'user' }>(), {
+    modelValue: () => [],
+    capture: undefined,
+});
 const emit = defineEmits<{ 'update:modelValue': [File[]] }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -62,6 +68,8 @@ function removeAt(i: number) {
                 <span class="text-xs">Add</span>
             </button>
         </div>
-        <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="onFiles" />
+        <!-- With capture (camera-first) drop `multiple`: mobile browsers ignore capture
+             when multiple is also set. Tapping Add again captures another photo. -->
+        <input ref="fileInput" type="file" accept="image/*" :capture="props.capture" :multiple="!props.capture" class="hidden" @change="onFiles" />
     </div>
 </template>

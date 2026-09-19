@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import MultiImageUpload from '@/components/MultiImageUpload.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
 import { type FieldStop } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
-import { ChevronLeft, Droplets, FlaskConical, ListChecks, Navigation, Plus, Sparkles, StickyNote, X } from 'lucide-vue-next';
+import { Camera, ChevronLeft, Droplets, FlaskConical, ListChecks, Navigation, Plus, Sparkles, StickyNote, X } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
@@ -28,6 +29,7 @@ const reading = reactive<Record<string, string>>(Object.fromEntries(readingField
 const tasks = reactive((props.stop.service.tasks ?? []).map((name) => ({ name, done: false })));
 const treatments = reactive<{ name: string; amount: string; unit: string }[]>([]);
 const notes = ref('');
+const photos = ref<File[]>([]);
 const analysis = ref<FullAnalysis | null>(null);
 const submitting = ref(false);
 
@@ -109,7 +111,7 @@ async function complete() {
         payload.completed_lat = loc.lat;
         payload.completed_lng = loc.lng;
     }
-    await queueCompletion(props.stop.id, pool.value?.name ?? 'Pool', payload);
+    await queueCompletion(props.stop.id, pool.value?.name ?? 'Pool', payload, photos.value);
     submitting.value = false;
     emit('done', props.stop.id);
 }
@@ -150,12 +152,11 @@ async function complete() {
 
             <!-- checklist: the physical checklist comes first -->
             <section v-if="tasks.length" class="rounded-xl border border-border bg-card p-4">
-                <div class="mb-3 flex items-center gap-2">
-                    <ListChecks class="size-4 shrink-0 text-sky-500 dark:text-sky-400" />
-                    <div>
-                        <h2 class="font-semibold leading-tight">Checklist</h2>
-                        <p class="text-xs text-muted-foreground">{{ stop.service.name || 'Service' }}</p>
-                    </div>
+                <div class="mb-3">
+                    <h2 class="flex items-center gap-2 font-semibold leading-tight">
+                        <ListChecks class="size-4 shrink-0 text-sky-500 dark:text-sky-400" /> Checklist
+                    </h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">{{ stop.service.name || 'Service' }}</p>
                 </div>
                 <label v-for="(t, i) in tasks" :key="i" class="flex items-center gap-3 py-1.5">
                     <input v-model="t.done" type="checkbox" class="size-5 rounded border-input text-sky-600" />
@@ -234,6 +235,12 @@ async function complete() {
                     <input v-model="t.unit" class="w-16 rounded-lg border border-input bg-background px-2 py-2 text-sm text-foreground" />
                     <button class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted" @click="removeTreatment(i)"><X class="size-4" /></button>
                 </div>
+            </section>
+
+            <!-- photos -->
+            <section class="rounded-xl border border-border bg-card p-4">
+                <h2 class="mb-3 flex items-center gap-2 font-semibold"><Camera class="size-4 text-sky-500 dark:text-sky-400" /> Photos</h2>
+                <MultiImageUpload :model-value="photos" capture="environment" @update:model-value="(f) => (photos = f)" />
             </section>
 
             <!-- notes: final flag for the office / homeowner, just before completing -->

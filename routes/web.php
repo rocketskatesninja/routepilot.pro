@@ -109,11 +109,6 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('api/field/visits/{stop}/complete', [FieldController::class, 'complete'])->name('field.complete');
         Route::post('api/field/ping', [FieldController::class, 'ping'])->middleware('throttle:12,1')->name('field.ping');
 
-        // Agent at-pool visit flow (assigned agent or admin — enforced in the controller).
-        Route::get('visit/{stop}', [VisitController::class, 'show'])->name('visit.show');
-        Route::post('visit/{stop}/analyze', [VisitController::class, 'analyze'])->name('visit.analyze');
-        Route::post('visit/{stop}/complete', [VisitController::class, 'complete'])->name('visit.complete');
-
         Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
         Route::get('services', [ServiceController::class, 'index'])->name('services.index');
         Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');

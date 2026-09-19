@@ -18,7 +18,6 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -47,19 +46,12 @@ function visitPayload(array $overrides = []): array
     ], $overrides);
 }
 
-test('the assigned agent sees the visit screen', function () {
-    $this->actingAs($this->agent)
-        ->get("/visit/{$this->stop->id}")
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('agent/Visit')->where('pool.name', 'Backyard Oasis')->has('service.tasks', 3));
-});
-
 test('the agent completes a visit, writing reading + tasks + treatments', function () {
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
             'treatments' => [['name' => 'Liquid Chlorine', 'amount' => 32, 'unit' => 'oz']],
         ]))
-        ->assertRedirect('/dashboard');
+        ->assertOk();
 
     $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->first();
     expect($visit?->status)->toBe('completed');
@@ -74,8 +66,8 @@ test('completing a visit stores uploaded photos', function () {
     Storage::fake('public');
 
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('after.jpg')]]))
-        ->assertRedirect('/dashboard');
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('after.jpg')]]))
+        ->assertOk();
 
     $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->first();
     expect($visit?->photos()->count())->toBe(1);
@@ -85,7 +77,7 @@ test('completing a visit notifies the homeowner portal user', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
     $this->pool->customer->forceFill(['user_id' => $portalUser->id])->save();
 
-    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 
     expect($portalUser->notifications()->count())->toBe(1);
 });
@@ -95,7 +87,7 @@ test('a homeowner who opted out gets no service notification', function () {
     $this->pool->customer->forceFill(['user_id' => $portalUser->id])->save();
     NotificationPreference::create(['user_id' => $portalUser->id, 'category' => 'service', 'email' => false, 'in_app' => false]);
 
-    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 
     expect($portalUser->notifications()->count())->toBe(0);
 });
@@ -104,35 +96,13 @@ test('a treatment deducts matching inventory and logs it', function () {
     $item = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Cal Hypo', 'unit' => 'lbs', 'current_stock' => 10]);
 
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
             'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
         ]))
-        ->assertRedirect('/dashboard');
+        ->assertOk();
 
     expect((float) $item->fresh()?->current_stock)->toBe(8.0);
     expect(InventoryTransaction::query()->where('chemical_inventory_id', $item->id)->where('type', 'usage')->exists())->toBeTrue();
-});
-
-test('the agent re-opens a completed stop and sees the saved report pre-filled', function () {
-    $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
-            'free_chlorine' => 1.5,
-            'notes' => 'First pass.',
-            'treatments' => [['name' => 'Liquid Chlorine', 'amount' => 16, 'unit' => 'oz']],
-        ]))
-        ->assertRedirect('/dashboard');
-
-    $this->actingAs($this->agent)
-        ->get("/visit/{$this->stop->id}")
-        ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page
-            ->component('agent/Visit')
-            ->where('visit.notes', 'First pass.')
-            ->where('visit.reading.free_chlorine', 1.5)
-            ->has('visit.treatments', 1)
-            ->where('visit.treatments.0.name', 'Liquid Chlorine')
-            ->has('visit.tasks', 2)
-        );
 });
 
 test('re-submitting a stop updates the same visit instead of creating a duplicate', function () {
@@ -142,16 +112,16 @@ test('re-submitting a stop updates the same visit instead of creating a duplicat
         'tasks' => [['name' => 'Skim surface', 'done' => false], ['name' => 'Brush walls', 'done' => false]],
     ]);
 
-    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", $payload)->assertRedirect('/dashboard');
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", $payload)->assertOk();
 
     $first = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->sole();
 
     // Re-open and re-save with edited values.
-    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload([
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
         'ph' => 7.6,
         'notes' => 'Edited on a second visit.',
         'tasks' => [['name' => 'Skim surface', 'done' => true], ['name' => 'Brush walls', 'done' => true]],
-    ]))->assertRedirect('/dashboard');
+    ]))->assertOk();
 
     // Exactly one visit for this stop — no duplicate.
     expect(ServiceVisit::query()->where('route_stop_id', $this->stop->id)->count())->toBe(1);
@@ -169,20 +139,20 @@ test('editing a visit does not double-deduct inventory', function () {
 
     // First completion deducts 2 lbs → 8 remain, one usage transaction.
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
             'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
         ]))
-        ->assertRedirect('/dashboard');
+        ->assertOk();
 
     expect((float) $item->fresh()?->current_stock)->toBe(8.0);
 
     // Re-save the SAME treatment: the prior deduction is reversed and re-applied,
     // so stock stays at 8 (not 6) and there's still exactly one usage row.
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
             'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
         ]))
-        ->assertRedirect('/dashboard');
+        ->assertOk();
 
     expect((float) $item->fresh()?->current_stock)->toBe(8.0);
 
@@ -195,18 +165,18 @@ test('editing a visit re-deducts correctly when the treatment amount changes', f
     $item = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Cal Hypo', 'unit' => 'lbs', 'current_stock' => 10]);
 
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
             'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
         ]))
-        ->assertRedirect('/dashboard');
+        ->assertOk();
     expect((float) $item->fresh()?->current_stock)->toBe(8.0);
 
     // Bump the amount to 3 lbs: reverse the old 2 (back to 10) then deduct 3 → 7.
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload([
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
             'treatments' => [['name' => 'Cal Hypo', 'amount' => 3, 'unit' => 'lbs']],
         ]))
-        ->assertRedirect('/dashboard');
+        ->assertOk();
 
     expect((float) $item->fresh()?->current_stock)->toBe(7.0);
 });
@@ -215,47 +185,31 @@ test('editing a visit appends new photos without dropping the originals', functi
     Storage::fake('public');
 
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('before.jpg')]]))
-        ->assertRedirect('/dashboard');
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('before.jpg')]]))
+        ->assertOk();
 
     $this->actingAs($this->agent)
-        ->post("/visit/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('after.jpg')]]))
-        ->assertRedirect('/dashboard');
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('after.jpg')]]))
+        ->assertOk();
 
     $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->sole();
     expect($visit->photos()->count())->toBe(2);
 });
 
-test('analyze returns dosing recommendations as JSON', function () {
-    $this->actingAs($this->agent)
-        ->postJson("/visit/{$this->stop->id}/analyze", ['free_chlorine' => 0.2, 'ph' => 8.2, 'alkalinity' => 140])
-        ->assertOk()
-        ->assertJsonStructure(['lsi', 'parameters', 'recommendations']);
-});
-
-test('a foreign-tenant stop is not found', function () {
-    $other = Tenant::factory()->create();
-    $foreignRoute = Route::factory()->for($other)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
-    $foreignPool = Pool::factory()->for($other)->for(Customer::factory()->for($other))->create();
-    $foreignStop = RouteStop::factory()->for($foreignRoute)->for($foreignPool)->create(['status' => 'pending', 'stop_order' => 1]);
-
-    $this->actingAs($this->agent)->get("/visit/{$foreignStop->id}")->assertNotFound();
-});
-
-test('an agent cannot work another agent\'s stop', function () {
+test('an agent cannot complete another agent\'s stop', function () {
     $otherAgent = User::factory()->agent()->for($this->tenant)->create();
 
-    $this->actingAs($otherAgent)->get("/visit/{$this->stop->id}")->assertForbidden();
+    $this->actingAs($otherAgent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertForbidden();
 });
 
-test('a tenant admin can open any stop', function () {
-    $this->actingAs($this->admin)->get("/visit/{$this->stop->id}")->assertOk();
+test('a tenant admin can complete any stop', function () {
+    $this->actingAs($this->admin)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 });
 
 test('completing a visit emails the homeowner a recap', function () {
     Mail::fake();
 
-    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 
     Mail::assertQueued(VisitRecapMail::class);
 });
@@ -264,7 +218,7 @@ test('an opted-out customer gets no recap email', function () {
     Mail::fake();
     $this->pool->customer->update(['email_opt_out' => true]);
 
-    $this->actingAs($this->agent)->post("/visit/{$this->stop->id}/complete", visitPayload())->assertRedirect();
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 
     Mail::assertNotQueued(VisitRecapMail::class);
 });

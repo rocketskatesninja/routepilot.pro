@@ -42,6 +42,9 @@ export interface QueuedVisit {
     stop_id: number;
     pool_name: string;
     payload: Record<string, unknown>;
+    // Visit photos, kept as Blobs so they survive in the offline queue and upload
+    // (as multipart) when the completion syncs. Absent/empty = no photos.
+    photos?: File[];
     status: 'pending' | 'failed';
     error: string | null;
     created_at: number;
@@ -79,9 +82,14 @@ export async function getBundle(date: string): Promise<TodayBundle | null> {
 
 export async function enqueue(item: QueuedVisit): Promise<void> {
     const database = await db();
-    // item.payload is built from Vue-reactive form state; round-trip through JSON as cheap
-    // insurance against the same class of Proxy-clone failure fixed in saveBundle() above.
-    await database.put('queue', JSON.parse(JSON.stringify(item)));
+    // The JSON-serialisable parts are built from Vue-reactive form state; round-trip
+    // through JSON as cheap insurance against the Proxy-clone failure fixed in
+    // saveBundle() above. Photo Blobs are kept raw — JSON would destroy them, and
+    // IndexedDB clones Blobs fine.
+    const { photos, ...rest } = item;
+    const clean: QueuedVisit = JSON.parse(JSON.stringify(rest));
+    if (photos && photos.length) clean.photos = Array.from(photos);
+    await database.put('queue', clean);
 }
 
 export async function allQueued(): Promise<QueuedVisit[]> {

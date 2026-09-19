@@ -4,7 +4,7 @@
  * field API. Network failures keep work queued; only a definitive 4xx (bad
  * request / not authorized) marks an item failed.
  */
-import { postJson } from '@/lib/http';
+import { postForm, postJson } from '@/lib/http';
 import { allQueued, enqueue, getBundle, patchQueued, removeQueued, saveBundle, type QueuedVisit, type TodayBundle } from './store';
 
 export interface LoadResult {
@@ -34,19 +34,38 @@ const uuid = (): string =>
     typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `k-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 
 /** Queue a visit completion and try to flush it immediately. Returns the queue key. */
-export async function queueCompletion(stopId: number, poolName: string, payload: Record<string, unknown>): Promise<string> {
+export async function queueCompletion(stopId: number, poolName: string, payload: Record<string, unknown>, photos: File[] = []): Promise<string> {
     const key = uuid();
     await enqueue({
         idempotency_key: key,
         stop_id: stopId,
         pool_name: poolName,
         payload: { ...payload, idempotency_key: key },
+        photos,
         status: 'pending',
         error: null,
         created_at: Date.now(),
     });
     void flushQueue();
     return key;
+}
+
+/** Flatten a payload value into FormData keys Laravel parses (tasks[0][name], …). */
+function appendField(fd: FormData, key: string, val: unknown): void {
+    if (val === null || val === undefined) return;
+    if (Array.isArray(val)) {
+        val.forEach((item, i) => {
+            if (item !== null && typeof item === 'object') {
+                for (const [k, v] of Object.entries(item)) appendField(fd, `${key}[${i}][${k}]`, v);
+            } else {
+                appendField(fd, `${key}[${i}]`, item);
+            }
+        });
+    } else if (typeof val === 'boolean') {
+        fd.append(key, val ? '1' : '0');
+    } else {
+        fd.append(key, String(val));
+    }
 }
 
 let flushing = false;
@@ -66,9 +85,18 @@ export async function flushQueue(): Promise<number> {
 }
 
 async function sync(item: QueuedVisit): Promise<void> {
+    const url = `/api/field/visits/${item.stop_id}/complete`;
     let res: Response;
     try {
-        res = await postJson(`/api/field/visits/${item.stop_id}/complete`, item.payload);
+        if (item.photos && item.photos.length) {
+            // With photos → multipart (same shape the online form posts); otherwise JSON.
+            const fd = new FormData();
+            for (const [k, v] of Object.entries(item.payload)) appendField(fd, k, v);
+            for (const photo of item.photos) fd.append('photos[]', photo);
+            res = await postForm(url, fd);
+        } else {
+            res = await postJson(url, item.payload);
+        }
     } catch {
         return; // Offline / network blip — keep it queued for the next flush.
     }

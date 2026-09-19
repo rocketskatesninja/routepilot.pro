@@ -21,3 +21,20 @@ export async function postJson(url: string, body?: unknown): Promise<Response> {
         body: body === undefined ? undefined : JSON.stringify(body),
     });
 }
+
+/**
+ * POST multipart/form-data to a same-origin Laravel route (for file uploads).
+ * No Content-Type header — the browser sets the multipart boundary itself.
+ */
+export async function postForm(url: string, form: FormData): Promise<Response> {
+    return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+        },
+        body: form,
+    });
+}

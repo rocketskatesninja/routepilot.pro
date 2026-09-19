@@ -22,7 +22,7 @@ defineProps<{ data: { label: string | null; stops: Stop[] } }>();
             <ul class="divide-y divide-border text-sm">
                 <li v-for="(stop, i) in data.stops" :key="stop.id">
                     <Link
-                        :href="`/visit/${stop.id}`"
+                        :href="`/field?stop=${stop.id}`"
                         class="flex items-center justify-between gap-2 rounded px-1 py-2.5 transition-colors hover:bg-muted/40"
                     >
                         <span class="flex min-w-0 items-center gap-2">
