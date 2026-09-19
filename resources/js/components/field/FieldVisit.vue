@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
 import { type FieldStop } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
-import { ChevronLeft, FlaskConical, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
+import { ChevronLeft, Droplets, FlaskConical, ListChecks, Navigation, Plus, Sparkles, StickyNote, X } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
@@ -150,22 +150,17 @@ async function complete() {
 
             <!-- checklist: the physical checklist comes first -->
             <section v-if="tasks.length" class="rounded-xl border border-border bg-card p-4">
-                <h2 class="mb-3 font-semibold">{{ stop.service.name || 'Service' }} checklist</h2>
+                <div class="mb-3 flex items-center gap-2">
+                    <ListChecks class="size-4 shrink-0 text-sky-500 dark:text-sky-400" />
+                    <div>
+                        <h2 class="font-semibold leading-tight">Checklist</h2>
+                        <p class="text-xs text-muted-foreground">{{ stop.service.name || 'Service' }}</p>
+                    </div>
+                </div>
                 <label v-for="(t, i) in tasks" :key="i" class="flex items-center gap-3 py-1.5">
                     <input v-model="t.done" type="checkbox" class="size-5 rounded border-input text-sky-600" />
                     <span :class="t.done ? 'text-muted-foreground line-through' : ''">{{ t.name }}</span>
                 </label>
-            </section>
-
-            <!-- notes -->
-            <section class="rounded-xl border border-border bg-card p-4">
-                <h2 class="mb-2 font-semibold">Notes</h2>
-                <textarea
-                    v-model="notes"
-                    rows="3"
-                    class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
-                    placeholder="Anything to flag for the office or the homeowner…"
-                ></textarea>
             </section>
 
             <!-- readings: the water test + dosing is the last thing before completing -->
@@ -191,7 +186,7 @@ async function complete() {
             <!-- analysis -->
             <section v-if="analysis" class="rounded-xl border border-border bg-card p-4">
                 <div class="mb-3 flex items-center justify-between">
-                    <h2 class="font-semibold">Analysis</h2>
+                    <h2 class="flex items-center gap-2 font-semibold"><Sparkles class="size-4 text-sky-500 dark:text-sky-400" /> Analysis</h2>
                     <span class="text-sm font-semibold" :class="lsiTone">LSI {{ analysis.lsi.value }} · {{ analysis.lsi.label }}</span>
                 </div>
                 <p v-if="!analysis.recommendations.length" class="text-sm text-muted-foreground">No dosing needed — chemistry is in range.</p>
@@ -216,7 +211,9 @@ async function complete() {
             <!-- treatments -->
             <section class="rounded-xl border border-border bg-card p-4">
                 <div class="mb-3 flex items-center justify-between">
-                    <h2 class="font-semibold">Treatments applied</h2>
+                    <h2 class="flex items-center gap-2 font-semibold">
+                        <Droplets class="size-4 text-sky-500 dark:text-sky-400" /> Treatments applied
+                    </h2>
                     <Button size="sm" variant="outline" @click="addTreatment"><Plus class="mr-1 size-4" /> Add</Button>
                 </div>
                 <p v-if="!treatments.length" class="text-sm text-muted-foreground">None yet — apply a recommendation or add one.</p>
@@ -237,6 +234,17 @@ async function complete() {
                     <input v-model="t.unit" class="w-16 rounded-lg border border-input bg-background px-2 py-2 text-sm text-foreground" />
                     <button class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted" @click="removeTreatment(i)"><X class="size-4" /></button>
                 </div>
+            </section>
+
+            <!-- notes: final flag for the office / homeowner, just before completing -->
+            <section class="rounded-xl border border-border bg-card p-4">
+                <h2 class="mb-2 flex items-center gap-2 font-semibold"><StickyNote class="size-4 text-sky-500 dark:text-sky-400" /> Notes</h2>
+                <textarea
+                    v-model="notes"
+                    rows="3"
+                    class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                    placeholder="Anything to flag for the office or the homeowner…"
+                ></textarea>
             </section>
         </div>
 
