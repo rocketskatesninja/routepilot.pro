@@ -28,6 +28,7 @@ interface PersonRow {
     phone: string | null;
     balance: number | null;
     last_visit: string | null;
+    portal_status: 'none' | 'active' | 'revoked' | null;
     photo_url: string | null;
 }
 
@@ -428,7 +429,7 @@ function destroyAgent() {
                 <template #list>
                     <ListTable
                         :meta="props.people"
-                        :columns="emailOpen ? 7 : 6"
+                        :columns="emailOpen ? 8 : 7"
                         :row-key="(p) => `${p.person_type}-${p.id}`"
                         :selected-key="selectedKey"
                         @select="openPerson"
@@ -441,6 +442,7 @@ function destroyAgent() {
                             <SortableTh sort-key="type" :active="props.sort">Type</SortableTh>
                             <SortableTh sort-key="email" :active="props.sort" class="hidden md:table-cell">Email</SortableTh>
                             <SortableTh sort-key="phone" :active="props.sort" class="hidden lg:table-cell">Phone</SortableTh>
+                            <th class="hidden px-4 py-2 font-medium md:table-cell">Portal</th>
                             <th class="hidden px-4 py-2 font-medium lg:table-cell">Last visit</th>
                             <th class="px-4 py-2 text-right font-medium">Balance</th>
                         </template>
@@ -473,6 +475,22 @@ function destroyAgent() {
                             </td>
                             <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
                             <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
+                            <td class="hidden px-4 py-2.5 md:table-cell">
+                                <template v-if="person.person_type === 'customer'">
+                                    <span
+                                        v-if="person.portal_status === 'active'"
+                                        class="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                                        >Yes</span
+                                    >
+                                    <span
+                                        v-else-if="person.portal_status === 'revoked'"
+                                        class="inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
+                                        >Revoked</span
+                                    >
+                                    <span v-else class="text-xs text-muted-foreground">No</span>
+                                </template>
+                                <span v-else class="text-muted-foreground">—</span>
+                            </td>
                             <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.last_visit ?? '—' }}</td>
                             <td
                                 class="px-4 py-2.5 text-right font-medium"

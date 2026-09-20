@@ -59,10 +59,12 @@ class PeopleController extends Controller
             ->values()->all();
         $balances = $billing->balancesFor($customerIds);
         $lastVisits = $this->lastVisitsFor($customerIds);
-        $people->setCollection($people->getCollection()->map(function (object $r) use ($balances, $lastVisits): object {
+        $portalStatuses = $this->portalStatusesFor($customerIds);
+        $people->setCollection($people->getCollection()->map(function (object $r) use ($balances, $lastVisits, $portalStatuses): object {
             $isCustomer = $r->person_type === 'customer';
             $r->balance = $isCustomer ? ($balances[(int) $r->id] ?? 0.0) : null;
             $r->last_visit = $isCustomer ? ($lastVisits[(int) $r->id] ?? null) : null;
+            $r->portal_status = $isCustomer ? ($portalStatuses[(int) $r->id] ?? 'none') : null;
             $r->photo_url = $this->photoUrl($r->photo ?? null);
 
             return $r;
@@ -113,6 +115,43 @@ class PeopleController extends Controller
             ->pluck('last', 'cid')
             ->map(fn ($d): ?string => $d !== null ? Carbon::parse((string) $d)->toDateString() : null)
             ->all();
+    }
+
+    /**
+     * Portal-login state per customer for the current page — 'active', 'revoked'
+     * (login soft-deleted, e.g. they deleted their own account) or 'none'.
+     * Batched into two queries to avoid a per-row lookup.
+     *
+     * @param  list<int>  $customerIds
+     * @return array<int, string>
+     */
+    private function portalStatusesFor(array $customerIds): array
+    {
+        if ($customerIds === []) {
+            return [];
+        }
+
+        $userIdByCustomer = Customer::withTrashed()
+            ->whereIn('id', $customerIds)
+            ->whereNotNull('user_id')
+            ->pluck('user_id', 'id');
+        if ($userIdByCustomer->isEmpty()) {
+            return [];
+        }
+
+        $deletedByUserId = User::withTrashed()
+            ->whereIn('id', $userIdByCustomer->values()->all())
+            ->pluck('deleted_at', 'id');
+
+        $out = [];
+        foreach ($userIdByCustomer as $customerId => $userId) {
+            if (! $deletedByUserId->has($userId)) {
+                continue; // dangling reference → treated as no portal ('none')
+            }
+            $out[(int) $customerId] = $deletedByUserId[$userId] === null ? 'active' : 'revoked';
+        }
+
+        return $out;
     }
 
     /** Super-admin platform-wide People (manage + broadcast), table+drawer like the tenant screen. */

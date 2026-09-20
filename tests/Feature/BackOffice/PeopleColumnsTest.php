@@ -64,3 +64,38 @@ test('the People list carries balance + last visit on customer rows', function (
             ->where('people.data.0.balance', 120)
             ->where('people.data.0.last_visit', today()->toDateString()));
 });
+
+test('the People list reports each customer\'s portal status', function () {
+    // No login → none.
+    $plain = Customer::factory()->for($this->tenant)->create(['first_name' => 'Aaa']);
+
+    // Active login → active.
+    $activeUser = User::factory()->customer()->for($this->tenant)->create();
+    $active = Customer::factory()->for($this->tenant)->create(['first_name' => 'Bbb']);
+    $active->forceFill(['user_id' => $activeUser->id])->save();
+
+    // Soft-deleted login → revoked.
+    $revokedUser = User::factory()->customer()->for($this->tenant)->create();
+    $revoked = Customer::factory()->for($this->tenant)->create(['first_name' => 'Ccc']);
+    $revoked->forceFill(['user_id' => $revokedUser->id])->save();
+    $revokedUser->delete();
+
+    $this->actingAs($this->admin)
+        ->get('/people?type=customers&sort=name&dir=asc')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('people/Index')
+            ->where('people.data.0.id', $plain->id)->where('people.data.0.portal_status', 'none')
+            ->where('people.data.1.id', $active->id)->where('people.data.1.portal_status', 'active')
+            ->where('people.data.2.id', $revoked->id)->where('people.data.2.portal_status', 'revoked'));
+});
+
+test('agent rows carry no portal status', function () {
+    $this->actingAs($this->admin)
+        ->get('/people?type=agents')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('people/Index')
+            ->where('people.data.0.person_type', 'agent')
+            ->where('people.data.0.portal_status', null));
+});
