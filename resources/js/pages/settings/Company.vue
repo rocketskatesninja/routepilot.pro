@@ -3,6 +3,7 @@ import HeadingSmall from '@/components/HeadingSmall.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -238,10 +239,9 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                             </div>
                             <div class="grid gap-2">
                                 <Label for="pass">Password</Label>
-                                <Input
+                                <PasswordInput
                                     id="pass"
                                     v-model="mailForm.password"
-                                    type="password"
                                     autocomplete="new-password"
                                     :placeholder="props.mail.has_password ? '•••••••• (leave blank to keep)' : ''"
                                 />

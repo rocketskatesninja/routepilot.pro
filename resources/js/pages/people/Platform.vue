@@ -3,6 +3,7 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -370,7 +371,7 @@ function closePane() {
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="pw">Temporary password</Label>
-                            <Input id="pw" v-model="createForm.password" type="password" autocomplete="new-password" />
+                            <PasswordInput id="pw" v-model="createForm.password" autocomplete="new-password" />
                             <p v-if="createForm.errors.password" class="text-xs text-red-600">{{ createForm.errors.password }}</p>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">

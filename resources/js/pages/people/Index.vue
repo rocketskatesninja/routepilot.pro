@@ -6,6 +6,7 @@ import MasterDetail from '@/components/MasterDetail.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -645,7 +646,7 @@ function destroyAgent() {
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="a_pw">{{ agentFormMode === 'create' ? 'Initial password' : 'New password (optional)' }}</Label>
-                            <Input id="a_pw" v-model="agentForm.password" type="password" autocomplete="new-password" />
+                            <PasswordInput id="a_pw" v-model="agentForm.password" autocomplete="new-password" />
                             <p v-if="agentForm.errors.password" class="text-xs text-red-600">{{ agentForm.errors.password }}</p>
                         </div>
                         <label class="flex items-center gap-2"

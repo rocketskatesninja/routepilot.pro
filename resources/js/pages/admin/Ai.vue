@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -93,9 +94,8 @@ const save = () =>
                             <span>{{ p.label }}</span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <Input
+                            <PasswordInput
                                 v-model="(form as unknown as Record<string, string>)[`${p.key}_key`]"
-                                type="password"
                                 autocomplete="off"
                                 :placeholder="
                                     props.keys[p.key]?.configured
