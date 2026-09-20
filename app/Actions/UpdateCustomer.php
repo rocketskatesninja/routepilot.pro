@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Customer;
+use App\Models\User;
 use App\Services\PhotoService;
 
 /**
@@ -32,6 +33,16 @@ class UpdateCustomer
             'notes' => $data['notes'] ?? null,
             'bill_chemicals' => $data['bill_chemicals'] ?? false,
         ]);
+
+        // Keep the portal login's email in lockstep — an admin editing the
+        // contact email is authoritative, so it applies straight away (the
+        // request guarantees it's present + unique when a login exists).
+        if ($customer->user_id !== null && $customer->email !== null) {
+            $user = User::find($customer->user_id);
+            if ($user !== null && $user->email !== $customer->email) {
+                $user->forceFill(['email' => $customer->email])->save();
+            }
+        }
 
         $this->photos->attach($customer, $data['photo'] ?? null, 'photo_path', 'customers');
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { TransitionRoot } from '@headlessui/vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 
 import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
@@ -16,6 +17,7 @@ import { type BreadcrumbItem, type SharedData, type User } from '@/types';
 interface Props {
     mustVerifyEmail: boolean;
     status?: string;
+    pendingEmail?: string | null;
     className?: string;
     canDeleteAccount?: boolean;
 }
@@ -31,6 +33,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
+const isCustomer = computed(() => page.props.auth.role === 'customer');
 
 const form = useForm({
     first_name: user.first_name,
@@ -53,6 +56,13 @@ const submit = () => {
         <SettingsLayout>
             <div class="flex flex-col space-y-6">
                 <HeadingSmall title="Profile information" description="Update your name and email address" />
+
+                <div
+                    v-if="status && status !== 'verification-link-sent' && status !== 'email-change-sent'"
+                    class="rounded-md bg-green-50 px-3 py-2 text-sm font-medium text-green-700 dark:bg-green-500/10 dark:text-green-400"
+                >
+                    {{ status }}
+                </div>
 
                 <form @submit.prevent="submit" class="space-y-6">
                     <div class="grid gap-2">
@@ -95,6 +105,17 @@ const submit = () => {
                             placeholder="Email address"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
+                        <p v-if="isCustomer" class="mt-1 text-xs text-muted-foreground">
+                            This is also your sign-in email. Changing it sends a confirmation link to the new address — the change takes effect
+                            only after you confirm it there.
+                        </p>
+                        <div
+                            v-if="isCustomer && status === 'email-change-sent'"
+                            class="mt-2 rounded-md bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                        >
+                            Confirmation sent{{ pendingEmail ? ` to ${pendingEmail}` : '' }}. Your email will change once you click the link in
+                            that inbox.
+                        </div>
                     </div>
 
                     <div v-if="mustVerifyEmail && !user.email_verified_at">

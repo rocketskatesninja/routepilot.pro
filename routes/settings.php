@@ -27,3 +27,9 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes'])->name('two-factor.recovery-codes');
     Route::delete('settings/two-factor', [TwoFactorController::class, 'destroy'])->name('two-factor.disable');
 });
+
+// Confirming a new email is reachable while signed out (the link is often opened
+// on the new inbox's device); the signed URL is the proof of ownership.
+Route::get('settings/email/confirm', [ProfileController::class, 'confirmEmailChange'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('email-change.confirm');

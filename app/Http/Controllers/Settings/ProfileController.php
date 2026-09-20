@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\ConfirmEmailChange;
+use App\Actions\SendEmailChangeVerification;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
 use App\Services\PhotoService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +26,7 @@ class ProfileController extends Controller
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'pendingEmail' => $request->session()->get('pendingEmail'),
             'canDeleteAccount' => $this->canSelfDelete($request),
         ]);
     }
@@ -36,13 +40,20 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request, PhotoService $photos): RedirectResponse
+    public function update(ProfileUpdateRequest $request, PhotoService $photos, SendEmailChangeVerification $verifier): RedirectResponse
     {
         $user = $request->user();
-        $user->fill($request->safe()->only(['first_name', 'last_name', 'email']));
+        $newEmail = strtolower(trim((string) $request->validated('email')));
+        $emailChanged = $newEmail !== $user->email;
 
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
+        // A customer's login and contact email are one and the same, so a change
+        // only lands after they confirm it from the new inbox. Staff keep the
+        // immediate change (they have no contact-record duality).
+        $needsVerification = $emailChanged && $user->role === 'customer';
+
+        $user->fill($request->safe()->only(['first_name', 'last_name']));
+        if ($emailChanged && ! $needsVerification) {
+            $user->forceFill(['email' => $newEmail, 'email_verified_at' => null]);
         }
 
         $photo = $request->file('photo');
@@ -53,7 +64,37 @@ class ProfileController extends Controller
 
         $user->save();
 
+        if ($needsVerification) {
+            $verifier->handle($user, $newEmail);
+
+            return to_route('profile.edit')
+                ->with('status', 'email-change-sent')
+                ->with('pendingEmail', $newEmail);
+        }
+
         return to_route('profile.edit');
+    }
+
+    /**
+     * Land a customer's verified email change (signed link opened from the new
+     * inbox). Reachable while signed out, so redirect accordingly.
+     */
+    public function confirmEmailChange(Request $request, ConfirmEmailChange $action): RedirectResponse
+    {
+        $user = User::find($request->integer('user'));
+        $newEmail = strtolower(trim((string) $request->query('email')));
+
+        if ($user === null || $newEmail === '') {
+            return redirect('/login')->with('status', 'That email confirmation link is no longer valid.');
+        }
+
+        $status = $action->handle($user, $newEmail)
+            ? 'Your email address has been updated.'
+            : 'That email address is already in use, so the change was not applied.';
+
+        return Auth::check() && Auth::id() === $user->id
+            ? to_route('profile.edit')->with('status', $status)
+            : redirect('/login')->with('status', $status);
     }
 
     /**

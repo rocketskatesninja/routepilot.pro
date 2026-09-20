@@ -118,7 +118,8 @@ class DemoSeeder extends Seeder
                 $portalUser = User::factory()->customer()->for($tenant)->create([
                     'first_name' => $first, 'last_name' => $last, 'email' => 'customer@routepilot.pro',
                 ]);
-                $customer->forceFill(['user_id' => $portalUser->id])->save();
+                // Login and contact email are one and the same for a customer.
+                $customer->forceFill(['user_id' => $portalUser->id, 'email' => 'customer@routepilot.pro'])->save();
                 $firstCustomer = $customer;
             }
 

@@ -26,6 +26,14 @@ class RestorePortalAccess
             if ($password !== null) {
                 $user->fill(['password' => $password]);
             }
+
+            // Realign the login email with the contact record in case it changed
+            // while the login was gone (skip if another login now holds it).
+            if ($customer->email !== null && $customer->email !== $user->email
+                && ! User::query()->where('email', $customer->email)->where('id', '!=', $user->id)->exists()) {
+                $user->email = $customer->email;
+            }
+
             $user->forceFill(['is_active' => true])->save();
 
             return $user;
