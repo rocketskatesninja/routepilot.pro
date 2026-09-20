@@ -141,6 +141,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->withTrashed()->name('customers.restore');
         Route::delete('customers/{customer}/force', [CustomerController::class, 'forceDestroy'])->withTrashed()->name('customers.force');
         Route::post('customers/{customer}/portal', [CustomerController::class, 'grantPortal'])->name('customers.portal');
+        Route::post('customers/{customer}/portal/restore', [CustomerController::class, 'restorePortal'])->name('customers.portal.restore');
         Route::get('customers/{customer}/export', [CustomerController::class, 'export'])->name('customers.export');
         Route::post('agents', [AgentController::class, 'store'])->name('agents.store');
         Route::patch('agents/{agent}', [AgentController::class, 'update'])->name('agents.update');

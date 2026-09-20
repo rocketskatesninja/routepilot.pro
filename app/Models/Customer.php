@@ -64,6 +64,27 @@ class Customer extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Portal-login state: 'none' (no login), 'active' (a usable login), or
+     * 'revoked' (a login exists but was soft-deleted — e.g. the customer
+     * deleted their own account). Only 'revoked' is restorable; a dangling
+     * reference to a hard-deleted user reads as 'none' so a fresh grant works.
+     */
+    public function portalStatus(): string
+    {
+        if ($this->user_id === null) {
+            return 'none';
+        }
+
+        $user = User::withTrashed()->select(['id', 'deleted_at'])->find($this->user_id);
+
+        return match (true) {
+            $user === null => 'none',
+            $user->trashed() => 'revoked',
+            default => 'active',
+        };
+    }
+
     /** @return HasMany<Pool, $this> */
     public function pools(): HasMany
     {

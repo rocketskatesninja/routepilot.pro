@@ -9,6 +9,7 @@ use App\Actions\CreateCustomer;
 use App\Actions\GrantPortalAccess;
 use App\Actions\PurgeCustomer;
 use App\Actions\RestoreCustomer;
+use App\Actions\RestorePortalAccess;
 use App\Actions\UpdateCustomer;
 use App\Http\Requests\GrantPortalRequest;
 use App\Http\Requests\StoreCustomerRequest;
@@ -110,10 +111,27 @@ class CustomerController extends Controller
         AuditLog::record($request->user(), $action, $customer);
     }
 
-    public function grantPortal(GrantPortalRequest $request, Customer $customer, GrantPortalAccess $action): RedirectResponse
+    public function grantPortal(GrantPortalRequest $request, Customer $customer, GrantPortalAccess $action, RestorePortalAccess $restore): RedirectResponse
     {
         if ($customer->user_id !== null) {
-            return back()->with('error', 'This customer already has portal access.');
+            $existing = User::withTrashed()->find($customer->user_id);
+
+            if ($existing !== null && ! $existing->trashed()) {
+                return back()->with('error', 'This customer already has portal access.');
+            }
+
+            // A self-deleted login leaves user_id pointing at a soft-deleted user.
+            // Restore it (preserving their history) and apply the new password,
+            // instead of wrongly reporting that access already exists.
+            if ($existing !== null) {
+                $restore->handle($customer, (string) $request->validated()['password']);
+                $this->audit($request, 'customer.portal_restored', $customer);
+
+                return back()->with('success', 'Portal access restored.');
+            }
+
+            // Dangling reference (the login row is gone): clear it and grant fresh.
+            $customer->forceFill(['user_id' => null])->save();
         }
         if ($customer->email === null) {
             return back()->with('error', 'Add an email for this customer first.');
@@ -126,5 +144,26 @@ class CustomerController extends Controller
         $this->audit($request, 'customer.portal_granted', $customer);
 
         return back()->with('success', 'Portal access granted.');
+    }
+
+    /**
+     * Restore a customer's soft-deleted portal login (e.g. they deleted their own
+     * account and want service again). Keeps their password + history intact.
+     */
+    public function restorePortal(Request $request, Customer $customer, RestorePortalAccess $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $restorable = $customer->user_id !== null
+            && User::onlyTrashed()->whereKey($customer->user_id)->exists();
+
+        if (! $restorable) {
+            return back()->with('error', 'There is no deleted portal login to restore for this customer.');
+        }
+
+        $action->handle($customer);
+        $this->audit($request, 'customer.portal_restored', $customer);
+
+        return back()->with('success', 'Portal access restored.');
     }
 }

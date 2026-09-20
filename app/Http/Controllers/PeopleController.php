@@ -305,7 +305,7 @@ class PeopleController extends Controller
             'email' => $customer->getAttribute('email'),
             'phone' => $customer->getAttribute('phone'),
             'city' => $customer->getAttribute('city'),
-            'has_portal' => $customer->getAttribute('user_id') !== null,
+            'portal_status' => $customer->portalStatus(),
             'archived' => $customer->trashed(),
             'archived_on' => $customer->deleted_at?->toDateString(),
             // What a permanent delete would remove — shown on the archived panel.

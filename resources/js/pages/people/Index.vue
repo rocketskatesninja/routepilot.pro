@@ -52,7 +52,7 @@ interface CustomerDetail {
     email: string | null;
     phone: string | null;
     city: string | null;
-    has_portal: boolean;
+    portal_status: 'none' | 'active' | 'revoked';
     archived: boolean;
     archived_on: string | null;
     summary: { pools: number; visits: number; invoices: number; charges: number } | null;
@@ -314,6 +314,10 @@ function grantPortal() {
     const pw = window.prompt('Set an initial portal password for this customer (min 8 characters):');
     if (!pw || pw.length < 8) return;
     router.post(`/customers/${props.selected.id}/portal`, { password: pw }, { preserveScroll: true });
+}
+function restorePortal() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    router.post(`/customers/${props.selected.id}/portal/restore`, {}, { preserveScroll: true });
 }
 function exportCustomer() {
     if (!props.selected || props.selected.type !== 'customer') return;
@@ -720,7 +724,16 @@ function destroyAgent() {
                                 <!-- active customer: normal actions -->
                                 <div v-else class="flex flex-wrap gap-2">
                                     <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                    <Button v-if="!props.selected.has_portal" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
+                                    <Button v-if="props.selected.portal_status === 'none'" size="sm" variant="outline" @click="grantPortal"
+                                        >Grant portal</Button
+                                    >
+                                    <Button
+                                        v-else-if="props.selected.portal_status === 'revoked'"
+                                        size="sm"
+                                        variant="outline"
+                                        @click="restorePortal"
+                                        ><RotateCcw class="mr-1 size-3.5" /> Restore access</Button
+                                    >
                                     <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
                                     <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
                                         ><Trash2 class="mr-1 size-3.5" /> Archive</Button
