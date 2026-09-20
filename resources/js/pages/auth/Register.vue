@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GoogleAuthButton from '@/components/GoogleAuthButton.vue';
 import InputError from '@/components/InputError.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Input } from '@/components/ui/input';
@@ -85,9 +86,8 @@ const submit = () => {
 
                 <div class="grid gap-2">
                     <Label for="password">Password</Label>
-                    <Input
+                    <PasswordInput
                         id="password"
-                        type="password"
                         required
                         tabindex="3"
                         autocomplete="new-password"
@@ -99,9 +99,8 @@ const submit = () => {
 
                 <div class="grid gap-2">
                     <Label for="password_confirmation">Confirm password</Label>
-                    <Input
+                    <PasswordInput
                         id="password_confirmation"
-                        type="password"
                         required
                         tabindex="4"
                         autocomplete="new-password"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GoogleAuthButton from '@/components/GoogleAuthButton.vue';
 import InputError from '@/components/InputError.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import SubmitButton from '@/components/SubmitButton.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -8,8 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { Eye, EyeOff } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 defineProps<{
     status?: string;
@@ -20,8 +20,6 @@ defineProps<{
 // OAuth failures redirect back to /login with a flash error.
 const page = usePage();
 const flashError = computed(() => (page.props.flash as { error?: string } | undefined)?.error);
-
-const showPassword = ref(false);
 
 const form = useForm({
     email: '',
@@ -78,28 +76,14 @@ const submit = () => {
                         <Label for="password">Password</Label>
                         <TextLink v-if="canResetPassword" :href="route('password.request')" class="text-sm" tabindex="5"> Forgot password? </TextLink>
                     </div>
-                    <div class="relative">
-                        <Input
-                            id="password"
-                            :type="showPassword ? 'text' : 'password'"
-                            required
-                            tabindex="2"
-                            autocomplete="current-password"
-                            v-model="form.password"
-                            placeholder="Password"
-                            class="pr-10"
-                        />
-                        <button
-                            type="button"
-                            :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                            :aria-pressed="showPassword"
-                            class="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
-                            @click="showPassword = !showPassword"
-                        >
-                            <EyeOff v-if="showPassword" class="size-4" />
-                            <Eye v-else class="size-4" />
-                        </button>
-                    </div>
+                    <PasswordInput
+                        id="password"
+                        required
+                        tabindex="2"
+                        autocomplete="current-password"
+                        v-model="form.password"
+                        placeholder="Password"
+                    />
                     <InputError :message="form.errors.password" />
                 </div>
 
