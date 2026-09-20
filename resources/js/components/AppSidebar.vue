@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NavFieldStatus from '@/components/NavFieldStatus.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavNotifications from '@/components/NavNotifications.vue';
 import NavUser from '@/components/NavUser.vue';
@@ -118,6 +119,8 @@ const navSections = computed<NavSection[]>(() => {
     return navByRole[role] ?? navByRole.customer;
 });
 
+const isAgent = computed(() => page.props.auth.role === 'agent');
+
 const { isMobile, toggleSidebar } = useSidebar();
 </script>
 
@@ -140,6 +143,7 @@ const { isMobile, toggleSidebar } = useSidebar();
         </SidebarContent>
 
         <SidebarFooter>
+            <NavFieldStatus v-if="isAgent" />
             <NavNotifications v-if="!isMobile" />
             <NavUser />
         </SidebarFooter>

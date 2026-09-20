@@ -8,7 +8,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Check, ChevronRight, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-const { sharing: sharingLocation, toggle: toggleLocation, restore: restoreLocation, cleanup: cleanupLocation } = useAgentTracking();
+const { sharing: sharingLocation, toggle: toggleLocation, restore: restoreLocation } = useAgentTracking();
 
 const bundle = ref<TodayBundle | null>(null);
 const source = ref<'network' | 'cache' | 'none'>('none');
@@ -78,7 +78,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
     window.removeEventListener('online', onOnline);
     window.removeEventListener('offline', onOffline);
-    cleanupLocation();
 });
 
 function open(stop: FieldStop) {
