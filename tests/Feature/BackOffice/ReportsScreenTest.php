@@ -52,6 +52,18 @@ test('the drawer carries the reading and treatments', function () {
         );
 });
 
+test('the drawer carries service photos', function () {
+    $visit = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create([
+        'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(),
+    ]);
+    $visit->photos()->create(['photo_path' => 'visit-photos/'.$visit->id.'/a.jpg']);
+    $visit->photos()->create(['photo_path' => 'visit-photos/'.$visit->id.'/b.jpg']);
+
+    $this->actingAs($this->admin)
+        ->get("/reports?selected={$visit->id}")
+        ->assertInertia(fn (Assert $page) => $page->has('selected.photos', 2));
+});
+
 test('customers are denied the Reports screen', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
 

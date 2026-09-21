@@ -29,7 +29,7 @@ class VisitRecapMail extends Mailable
 
     public function content(): Content
     {
-        $visit = $this->visit->load(['pool.customer.tenant', 'chemicalReading', 'treatments']);
+        $visit = $this->visit->load(['pool.customer.tenant', 'chemicalReading', 'treatments', 'photos']);
 
         return new Content(view: 'emails.visit-recap', with: [
             'customerName' => $visit->pool->customer->displayName(),
@@ -38,6 +38,10 @@ class VisitRecapMail extends Mailable
             'date' => $visit->completed_at?->toFormattedDateString() ?? '',
             'reading' => $visit->chemicalReading,
             'treatments' => $visit->treatments,
+            // Absolute URLs — email clients can't resolve relative paths.
+            'photos' => $visit->photos
+                ->map(fn ($p) => asset('storage/'.$p->getAttribute('photo_path')))
+                ->all(),
             'balance' => $this->balance,
             'payUrl' => $this->payUrl,
         ]);

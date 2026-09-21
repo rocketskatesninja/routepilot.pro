@@ -49,6 +49,7 @@ interface VisitDetail {
     reading: Reading | null;
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
+    photos: string[];
     can_edit?: boolean;
 }
 
@@ -313,6 +314,19 @@ function submitEdit() {
                                 <ul class="space-y-0.5 text-muted-foreground">
                                     <li v-for="(t, i) in props.selected.tasks" :key="i">{{ t.done ? '✓' : '○' }} {{ t.name }}</li>
                                 </ul>
+                            </section>
+
+                            <section v-if="props.selected.photos.length">
+                                <h3 class="mb-1 font-medium">Photos</h3>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <a v-for="(photo, i) in props.selected.photos" :key="i" :href="photo" target="_blank" rel="noopener">
+                                        <img
+                                            :src="photo"
+                                            alt="Service photo"
+                                            class="aspect-square w-full rounded-md border border-border object-cover transition hover:opacity-90"
+                                        />
+                                    </a>
+                                </div>
                             </section>
 
                             <section v-if="props.selected.notes">

@@ -73,6 +73,19 @@ test('completing a visit stores uploaded photos', function () {
     expect($visit?->photos()->count())->toBe(1);
 });
 
+test('the recap email includes the visit photos', function () {
+    Storage::fake('public');
+
+    $this->actingAs($this->agent)
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload(['photos' => [UploadedFile::fake()->image('after.jpg')]]))
+        ->assertOk();
+
+    $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->first();
+    $mail = new VisitRecapMail($visit, 0.0, null);
+    $mail->assertSeeInHtml('Service photos');
+    $mail->assertSeeInHtml('storage/visit-photos/');
+});
+
 test('completing a visit notifies the homeowner portal user', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
     $this->pool->customer->forceFill(['user_id' => $portalUser->id])->save();

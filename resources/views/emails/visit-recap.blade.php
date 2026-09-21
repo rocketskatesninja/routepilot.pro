@@ -29,6 +29,15 @@
             </ul>
         @endif
 
+        @if (!empty($photos))
+            <h3 style="margin: 18px 0 6px; font-size: 14px;">Service photos</h3>
+            <div>
+                @foreach ($photos as $photo)
+                    <a href="{{ $photo }}" style="text-decoration: none;"><img src="{{ $photo }}" alt="Service photo" width="120" height="120" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; margin: 0 6px 6px 0; vertical-align: top;" /></a>
+                @endforeach
+            </div>
+        @endif
+
         @if ($balance > 0)
             <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
                 <p style="margin: 0 0 10px;">Your current balance is <strong>${{ number_format($balance, 2) }}</strong>.</p>

@@ -62,7 +62,7 @@ class ReportController extends Controller
         $selectedId = $request->integer('selected');
         if ($selectedId > 0) {
             $visit = ServiceVisit::query()
-                ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name', 'chemicalReading', 'treatments', 'tasks'])
+                ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name', 'chemicalReading', 'treatments', 'tasks', 'photos'])
                 ->find($selectedId);
             if ($visit !== null) {
                 $selected = $this->toDetail($visit);
@@ -120,6 +120,11 @@ class ReportController extends Controller
                 'name' => $t->getAttribute('task_name'),
                 'done' => (bool) $t->getAttribute('is_completed'),
             ])->all(),
+            'photos' => $visit->photos
+                ->map(fn ($p) => $this->photoUrl($p->getAttribute('photo_path')))
+                ->filter()
+                ->values()
+                ->all(),
         ];
     }
 }
