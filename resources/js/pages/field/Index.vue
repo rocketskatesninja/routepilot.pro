@@ -47,8 +47,15 @@ async function load() {
 }
 
 async function refresh() {
-    if (online.value) await flushQueue();
-    await load();
+    // Spin from the moment of the tap, through the sync (flushQueue) AND the
+    // reload — the sync is the slow part (uploads), so it needs the feedback.
+    loading.value = true;
+    try {
+        if (online.value) await flushQueue();
+        await load();
+    } finally {
+        loading.value = false;
+    }
 }
 
 const onOnline = async () => {
