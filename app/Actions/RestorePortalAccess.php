@@ -30,7 +30,7 @@ class RestorePortalAccess
             // Realign the login email with the contact record in case it changed
             // while the login was gone (skip if another login now holds it).
             if ($customer->email !== null && $customer->email !== $user->email
-                && ! User::query()->where('email', $customer->email)->where('id', '!=', $user->id)->exists()) {
+                && ! User::emailInUse($customer->email, $user->id)) {
                 $user->email = $customer->email;
             }
 

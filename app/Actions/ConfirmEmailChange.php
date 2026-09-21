@@ -20,8 +20,7 @@ class ConfirmEmailChange
     /** @return bool true if applied; false if the address is now in use elsewhere */
     public function handle(User $user, string $newEmail): bool
     {
-        if ($user->email !== $newEmail
-            && User::query()->where('email', $newEmail)->where('id', '!=', $user->id)->exists()) {
+        if ($user->email !== $newEmail && User::emailInUse($newEmail, $user->id)) {
             return false;
         }
 

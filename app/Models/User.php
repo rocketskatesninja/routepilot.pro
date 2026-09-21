@@ -154,6 +154,15 @@ class User extends Authenticatable implements MustVerifyEmail
         return in_array($this->role, ['super_admin', 'tenant_admin', 'agent'], true);
     }
 
+    /** Whether an active (non-trashed) login already uses this email — optionally excluding one id. */
+    public static function emailInUse(string $email, ?int $exceptId = null): bool
+    {
+        return static::query()
+            ->where('email', $email)
+            ->when($exceptId !== null, fn ($q) => $q->where('id', '!=', $exceptId))
+            ->exists();
+    }
+
     // --- Two-factor authentication ---
 
     /** 2FA is active only once a secret exists AND the user confirmed a code. */

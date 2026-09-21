@@ -130,13 +130,14 @@ class CustomerController extends Controller
                 return back()->with('success', 'Portal access restored.');
             }
 
-            // Dangling reference (the login row is gone): clear it and grant fresh.
-            $customer->forceFill(['user_id' => null])->save();
+            // $existing === null: user_id points to a hard-deleted row (not expected
+            // — logins are only soft-deleted). Fall through; GrantPortalAccess
+            // creates a fresh login and repoints user_id.
         }
         if ($customer->email === null) {
             return back()->with('error', 'Add an email for this customer first.');
         }
-        if (User::query()->where('email', $customer->email)->exists()) {
+        if (User::emailInUse($customer->email)) {
             return back()->with('error', 'That email is already in use by another login.');
         }
 
