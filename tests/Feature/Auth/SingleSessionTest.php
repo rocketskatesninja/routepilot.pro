@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -24,6 +26,22 @@ test('a superseded session is signed out on its next request', function () {
 
     $this->get('/settings/profile')->assertRedirect(route('login'));
     $this->assertGuest();
+});
+
+test('a signed public link (the emailed pay link) is exempt from eviction', function () {
+    $user = User::factory()->for($this->tenant)->create();
+    $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+
+    // Superseded by a login elsewhere (would normally evict on the next request).
+    $user->forceFill(['session_token' => 'newer-device-token'])->save();
+    $this->app['auth']->forgetGuards();
+
+    // A paid-up customer's signed pay link resolves to the thanks page (no Stripe
+    // needed) — the point is it is NOT bounced to /login.
+    $customer = Customer::factory()->for($this->tenant)->create();
+
+    $this->get(URL::signedRoute('pay.link', ['customer' => $customer->id]))
+        ->assertRedirect('/pay/thanks');
 });
 
 test('the active single session keeps working', function () {

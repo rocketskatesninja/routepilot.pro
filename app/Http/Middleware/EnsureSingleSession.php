@@ -21,6 +21,14 @@ class EnsureSingleSession
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // Public signed links (the emailed pay link, email-change confirmation, …)
+        // carry their own proof and aren't an app session — never sign a visitor
+        // out for hitting one, even if they happen to be logged in elsewhere.
+        $route = $request->route();
+        if ($route !== null && in_array('signed', $route->gatherMiddleware(), true)) {
+            return $next($request);
+        }
+
         $user = $request->user();
 
         if ($user instanceof User
