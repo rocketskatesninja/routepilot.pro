@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCommandPalette } from '@/composables/useCommandPalette';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
@@ -18,7 +19,7 @@ interface Group {
 const page = usePage<SharedData>();
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 
-const open = ref(false);
+const { isOpen } = useCommandPalette();
 const q = ref('');
 const remote = ref<Group[]>([]);
 const loading = ref(false);
@@ -94,18 +95,23 @@ watch(q, () => {
     }, 200);
 });
 
-function openPalette() {
-    if (!isStaff.value) {
+// Reset + focus whenever the palette opens (via ⌘K or the sidebar button); a
+// non-staff opener is bounced immediately (the endpoint is staff-only anyway).
+watch(isOpen, (v) => {
+    if (!v) {
         return;
     }
-    open.value = true;
+    if (!isStaff.value) {
+        isOpen.value = false;
+        return;
+    }
     q.value = '';
     remote.value = [];
     active.value = 0;
     nextTick(() => inputEl.value?.focus());
-}
+});
 function close() {
-    open.value = false;
+    isOpen.value = false;
 }
 function select(item?: Item) {
     const it = item ?? flat.value[active.value];
@@ -133,11 +139,10 @@ function onListKey(e: KeyboardEvent) {
 function onGlobalKey(e: KeyboardEvent) {
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
-        if (open.value) {
-            close();
-        } else {
-            openPalette();
+        if (!isStaff.value) {
+            return;
         }
+        isOpen.value = !isOpen.value;
     }
 }
 onMounted(() => window.addEventListener('keydown', onGlobalKey));
@@ -151,7 +156,7 @@ onBeforeUnmount(() => {
 
 <template>
     <Teleport to="body">
-        <div v-if="open" class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh]" role="dialog" aria-modal="true" @keydown="onListKey">
+        <div v-if="isOpen" class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh]" role="dialog" aria-modal="true" @keydown="onListKey">
             <div class="fixed inset-0 bg-black/40" @click="close"></div>
             <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl">
                 <div class="flex items-center gap-2 border-b border-border px-3">

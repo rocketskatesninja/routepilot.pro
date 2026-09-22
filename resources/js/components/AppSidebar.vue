@@ -13,6 +13,7 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { useCommandPalette } from '@/composables/useCommandPalette';
 import { type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import {
@@ -30,6 +31,7 @@ import {
     LayoutGrid,
     Map,
     Navigation,
+    Search,
     ShieldCheck,
     Users,
     Waves,
@@ -120,7 +122,9 @@ const navSections = computed<NavSection[]>(() => {
 });
 
 const isAgent = computed(() => page.props.auth.role === 'agent');
+const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 
+const { open: openCommand } = useCommandPalette();
 const { isMobile, toggleSidebar } = useSidebar();
 </script>
 
@@ -133,6 +137,13 @@ const { isMobile, toggleSidebar } = useSidebar();
                         <button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" @click="toggleSidebar">
                             <AppLogo />
                         </button>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem v-if="isStaff">
+                    <SidebarMenuButton tooltip="Search (⌘K)" @click="openCommand()">
+                        <Search />
+                        <span>Search</span>
+                        <kbd class="ml-auto rounded border border-sidebar-border px-1 text-[10px] text-muted-foreground">⌘K</kbd>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
