@@ -507,7 +507,7 @@ const features = [
                         </p>
                     </div>
                     <div>
-                        <h3 class="mb-3 text-xs font-semibold uppercase tracking-widest text-foreground">Product</h3>
+                        <h3 class="mb-3 text-sm font-semibold text-foreground">Product</h3>
                         <ul class="space-y-2 text-sm">
                             <li><a href="#how" class="text-muted-foreground transition-colors hover:text-foreground">How it works</a></li>
                             <li><a href="#features" class="text-muted-foreground transition-colors hover:text-foreground">Features</a></li>
@@ -520,7 +520,7 @@ const features = [
                         </ul>
                     </div>
                     <div>
-                        <h3 class="mb-3 text-xs font-semibold uppercase tracking-widest text-foreground">Account</h3>
+                        <h3 class="mb-3 text-sm font-semibold text-foreground">Account</h3>
                         <ul class="space-y-2 text-sm">
                             <li><Link :href="route('login')" class="text-muted-foreground transition-colors hover:text-foreground">Sign In</Link></li>
                             <li>

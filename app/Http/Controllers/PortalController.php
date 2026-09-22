@@ -63,6 +63,17 @@ class PortalController extends Controller
                 ->first();
             if ($visit !== null) {
                 $selected = $this->toDetail($visit);
+                // Recent chlorine/pH for this pool → the detail's chemistry trend sparklines.
+                $trendVisits = ServiceVisit::query()
+                    ->where('pool_id', $visit->pool_id)
+                    ->where('status', 'completed')
+                    ->latest('completed_at')
+                    ->with('chemicalReading')
+                    ->limit(8)->get()->reverse()->values();
+                $selected['trend'] = [
+                    'chlorine' => $trendVisits->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                    'ph' => $trendVisits->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                ];
             }
         }
 
@@ -80,8 +91,15 @@ class PortalController extends Controller
         $customer = $this->resolveCustomer($request);
 
         $pools = $customer->pools()->orderBy('name')->get()->map(function (Pool $pool) use ($chem): array {
-            $visit = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->first();
+            // Newest first — drives both the latest reading and the recent-trend sparklines.
+            $history = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->limit(8)->get();
+            $visit = $history->first();
             $reading = $visit?->chemicalReading;
+            $chronological = $history->reverse()->values();
+            $trend = [
+                'chlorine' => $chronological->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                'ph' => $chronological->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+            ];
             $health = $reading === null ? null : $chem->getLSIStatus((float) ($reading->lsi_score ?? $chem->calculateLSI([
                 'temperature' => $reading->water_temperature, 'ph' => $reading->ph,
                 'alkalinity' => $reading->alkalinity, 'calcium_hardness' => $reading->calcium_hardness, 'salt' => $reading->salt,
@@ -104,6 +122,7 @@ class PortalController extends Controller
                     'cyanuric_acid' => $reading->cyanuric_acid,
                     'salt' => $reading->salt,
                 ],
+                'trend' => $trend,
             ];
         })->all();
 

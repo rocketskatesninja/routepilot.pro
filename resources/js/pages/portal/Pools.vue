@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import HealthRing from '@/components/charts/HealthRing.vue';
+import Sparkline from '@/components/charts/Sparkline.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
@@ -21,8 +23,9 @@ interface PoolCard {
     volume: number | null;
     has_heater: boolean;
     last_serviced: string | null;
-    health: { label: string; color: string; description: string } | null;
+    health: { label: string; color: 'green' | 'amber' | 'red'; description: string } | null;
     reading: Reading | null;
+    trend: { chlorine: number[]; ph: number[] };
 }
 
 const props = defineProps<{
@@ -32,21 +35,7 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'My Pools', href: '/my-pools' }];
 
-const healthClass = (color: string): string =>
-    ({
-        green: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-        red: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
-    })[color] ?? 'bg-muted text-muted-foreground';
-
-const metrics = (r: Reading): { label: string; value: string }[] => [
-    { label: 'Free chlorine', value: r.free_chlorine != null ? `${r.free_chlorine} ppm` : '—' },
-    { label: 'pH', value: r.ph != null ? String(r.ph) : '—' },
-    { label: 'Alkalinity', value: r.alkalinity != null ? `${r.alkalinity} ppm` : '—' },
-    { label: 'Calcium', value: r.calcium_hardness != null ? `${r.calcium_hardness} ppm` : '—' },
-    { label: 'Cyanuric acid', value: r.cyanuric_acid != null ? `${r.cyanuric_acid} ppm` : '—' },
-    { label: 'Salt', value: r.salt != null ? `${r.salt} ppm` : '—' },
-];
+const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
 </script>
 
 <template>
@@ -76,20 +65,37 @@ const metrics = (r: Reading): { label: string; value: string }[] => [
                                 {{ p.sanitizer }}<template v-if="p.volume"> · {{ p.volume.toLocaleString() }} gal</template>
                             </p>
                         </div>
-                        <span
-                            v-if="p.health"
-                            class="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
-                            :class="healthClass(p.health.color)"
-                            :title="p.health.description"
-                        >
-                            {{ p.health.label }}
-                        </span>
                     </div>
                     <div class="p-4">
-                        <div v-if="p.reading" class="grid grid-cols-3 gap-3 text-center">
-                            <div v-for="m in metrics(p.reading)" :key="m.label">
-                                <p class="text-sm font-semibold text-foreground">{{ m.value }}</p>
-                                <p class="text-[11px] leading-tight text-muted-foreground">{{ m.label }}</p>
+                        <div v-if="p.reading" class="flex items-start gap-4">
+                            <HealthRing
+                                v-if="p.health"
+                                :tone="p.health.color"
+                                :label="p.health.label"
+                                class="shrink-0"
+                                :title="p.health.description"
+                            />
+                            <div class="min-w-0 flex-1 space-y-3">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p class="text-sm font-semibold">
+                                            {{ p.reading.free_chlorine ?? '—' }}<span class="text-xs font-normal text-muted-foreground"> ppm</span>
+                                        </p>
+                                        <p class="text-[11px] leading-tight text-muted-foreground">Free chlorine</p>
+                                        <Sparkline v-if="p.trend.chlorine.length > 1" :values="p.trend.chlorine" color="hsl(var(--chart-1))" class="mt-1" />
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold">{{ p.reading.ph ?? '—' }}</p>
+                                        <p class="text-[11px] leading-tight text-muted-foreground">pH</p>
+                                        <Sparkline v-if="p.trend.ph.length > 1" :values="p.trend.ph" color="hsl(var(--chart-2))" class="mt-1" />
+                                    </div>
+                                </div>
+                                <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                    <div class="flex justify-between gap-2"><dt>Alkalinity</dt><dd>{{ ppm(p.reading.alkalinity) }}</dd></div>
+                                    <div class="flex justify-between gap-2"><dt>Calcium</dt><dd>{{ ppm(p.reading.calcium_hardness) }}</dd></div>
+                                    <div class="flex justify-between gap-2"><dt>Cyanuric</dt><dd>{{ ppm(p.reading.cyanuric_acid) }}</dd></div>
+                                    <div class="flex justify-between gap-2"><dt>Salt</dt><dd>{{ ppm(p.reading.salt) }}</dd></div>
+                                </dl>
                             </div>
                         </div>
                         <p v-else class="text-sm text-muted-foreground">No water chemistry recorded yet.</p>

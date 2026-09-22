@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Sparkline from '@/components/charts/Sparkline.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import { subscribeCustomerEta } from '@/echo';
@@ -35,6 +36,7 @@ interface VisitDetail {
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
     photos: string[];
+    trend: { chlorine: number[]; ph: number[] };
 }
 
 interface NextVisit {
@@ -169,6 +171,20 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                         </div>
 
                         <div class="space-y-5 text-sm">
+                            <section v-if="props.selected.trend && (props.selected.trend.chlorine.length > 1 || props.selected.trend.ph.length > 1)">
+                                <h3 class="mb-2 font-medium">Chemistry trend</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div v-if="props.selected.trend.chlorine.length > 1">
+                                        <p class="text-[11px] text-muted-foreground">Free chlorine</p>
+                                        <Sparkline :values="props.selected.trend.chlorine" color="hsl(var(--chart-1))" class="mt-1" />
+                                    </div>
+                                    <div v-if="props.selected.trend.ph.length > 1">
+                                        <p class="text-[11px] text-muted-foreground">pH</p>
+                                        <Sparkline :values="props.selected.trend.ph" color="hsl(var(--chart-2))" class="mt-1" />
+                                    </div>
+                                </div>
+                            </section>
+
                             <section v-if="props.selected.reading">
                                 <h3 class="mb-2 font-medium">Water chemistry</h3>
                                 <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">

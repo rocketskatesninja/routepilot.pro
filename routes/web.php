@@ -28,6 +28,7 @@ use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionController;
@@ -116,6 +117,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::patch('reports/{visit}', [ReportController::class, 'update'])->name('reports.update'); // admin or own agent
         Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
         Route::get('people', [PeopleController::class, 'index'])->name('people.index'); // super → platform view
+        Route::get('search', [SearchController::class, 'index'])->name('search'); // ⌘K command palette
     });
 
     // ---- Back-office writes + admin screens (tenant_admin) ----
