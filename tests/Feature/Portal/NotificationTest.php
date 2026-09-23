@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -40,6 +41,38 @@ test('a user reads a notification', function () {
     $this->actingAs($this->admin)->post("/notifications/{$notification?->id}/read")->assertRedirect();
 
     expect($this->admin->unreadNotifications()->count())->toBe(0);
+});
+
+test('a user marks a notification back to unread', function () {
+    $this->actingAs($this->user)->post('/requests', ['type' => 'service', 'message' => 'Help'])->assertRedirect();
+    $notification = $this->admin->notifications()->first();
+    $this->actingAs($this->admin)->post("/notifications/{$notification?->id}/read")->assertRedirect();
+    expect($this->admin->unreadNotifications()->count())->toBe(0);
+
+    $this->actingAs($this->admin)->post("/notifications/{$notification?->id}/unread")->assertRedirect();
+
+    expect($this->admin->unreadNotifications()->count())->toBe(1);
+});
+
+test('a user dismisses a single notification, leaving the rest', function () {
+    $drop = $this->admin->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'App\Notifications\OpsAlert', 'data' => ['title' => 'A'], 'read_at' => null]);
+    $keep = $this->admin->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'App\Notifications\VisitCompleted', 'data' => ['title' => 'B'], 'read_at' => null]);
+
+    $this->actingAs($this->admin)->delete("/notifications/{$drop->id}")->assertRedirect();
+
+    expect($this->admin->notifications()->count())->toBe(1)
+        ->and($this->admin->notifications()->first()->id)->toBe($keep->id);
+});
+
+test('the index exposes a severity and icon derived from the notification type', function () {
+    $this->admin->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'App\Notifications\OpsAlert', 'data' => ['title' => 'Down'], 'read_at' => null]);
+
+    $this->actingAs($this->admin)
+        ->get('/notifications')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('notifications', 1)
+            ->where('notifications.0.severity', 'alert')
+            ->where('notifications.0.icon', 'TriangleAlert'));
 });
 
 test('a user clears all their notifications', function () {

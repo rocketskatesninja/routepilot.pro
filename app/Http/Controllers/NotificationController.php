@@ -27,15 +27,57 @@ class NotificationController extends Controller
                 'body' => $n->data['body'] ?? '',
                 'url' => $n->data['url'] ?? null,
                 'read' => $n->read_at !== null,
+                'severity' => self::severityFor($n->type),
+                'icon' => self::iconFor($n->type),
                 'on' => $n->created_at?->diffForHumans(),
             ])->all();
 
         return Inertia::render('notifications/Index', ['notifications' => $notifications]);
     }
 
+    /** Color bucket for a notification, derived from its class so it's consistent. */
+    private static function severityFor(?string $type): string
+    {
+        return match (class_basename((string) $type)) {
+            'OpsAlert', 'AutopayDeclined' => 'alert',
+            'BalanceReminder', 'ServiceReminder' => 'warning',
+            'VisitCompleted' => 'success',
+            default => 'info',
+        };
+    }
+
+    /** Lucide icon name (resolved to a component on the client) for a notification type. */
+    private static function iconFor(?string $type): string
+    {
+        return match (class_basename((string) $type)) {
+            'OpsAlert' => 'TriangleAlert',
+            'AutopayDeclined' => 'CreditCard',
+            'BalanceReminder' => 'Banknote',
+            'ServiceReminder' => 'CalendarClock',
+            'VisitCompleted' => 'CircleCheck',
+            'LeadSubmitted' => 'UserPlus',
+            'ServiceRequestSubmitted' => 'Inbox',
+            default => 'Bell',
+        };
+    }
+
     public function read(Request $request, string $id): RedirectResponse
     {
         $request->user()?->notifications()->where('id', $id)->update(['read_at' => now()]);
+
+        return back();
+    }
+
+    public function unread(Request $request, string $id): RedirectResponse
+    {
+        $request->user()?->notifications()->where('id', $id)->update(['read_at' => null]);
+
+        return back();
+    }
+
+    public function destroy(Request $request, string $id): RedirectResponse
+    {
+        $request->user()?->notifications()->where('id', $id)->delete();
 
         return back();
     }
