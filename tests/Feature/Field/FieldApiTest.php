@@ -15,7 +15,7 @@ beforeEach(function () {
     $this->agent = User::factory()->agent()->for($this->tenant)->create();
     $this->customer = Customer::factory()->for($this->tenant)->create();
     $this->pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
-    $this->route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
+    $this->route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => $this->tenant->today()]);
     $this->stop = RouteStop::factory()->for($this->route)->for($this->pool)->create(['stop_order' => 1, 'status' => 'pending']);
 });
 
@@ -23,7 +23,7 @@ test('today returns the agent\'s route bundle with stops and inventory', functio
     $this->actingAs($this->agent)
         ->getJson('/api/field/today')
         ->assertOk()
-        ->assertJsonPath('date', today()->toDateString())
+        ->assertJsonPath('date', $this->tenant->today()->toDateString())
         ->assertJsonPath('agent.id', $this->agent->id)
         ->assertJsonCount(1, 'stops')
         ->assertJsonPath('stops.0.id', $this->stop->id)
@@ -32,7 +32,7 @@ test('today returns the agent\'s route bundle with stops and inventory', functio
 });
 
 test('today exposes each stop\'s estimated arrival', function () {
-    $this->stop->forceFill(['estimated_arrival' => today()->setTime(8, 5)])->save();
+    $this->stop->forceFill(['estimated_arrival' => $this->tenant->today()->setTime(8, 5)])->save();
 
     $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()
         ->assertJsonPath('stops.0.eta', '8:05 AM');
@@ -41,7 +41,7 @@ test('today exposes each stop\'s estimated arrival', function () {
 test('today only returns the acting agent\'s own stops', function () {
     // A second agent's route for the same day must not leak into the first agent's bundle.
     $other = User::factory()->agent()->for($this->tenant)->create();
-    $otherRoute = Route::factory()->for($this->tenant)->create(['agent_id' => $other->id, 'scheduled_date' => today()]);
+    $otherRoute = Route::factory()->for($this->tenant)->create(['agent_id' => $other->id, 'scheduled_date' => $this->tenant->today()]);
     RouteStop::factory()->for($otherRoute)->for($this->pool)->create(['stop_order' => 1]);
 
     $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()->assertJsonCount(1, 'stops');

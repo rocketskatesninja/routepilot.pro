@@ -36,7 +36,9 @@ class FieldController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $date = $request->date('date')?->toImmutable() ?? now()->toImmutable();
+        // The agent's "today" is the tenant's local day — matching the dashboard
+        // and schedule (which use Tenant::localToday()), not the server/UTC date.
+        $date = $request->date('date')?->toImmutable() ?? Tenant::localToday()->toImmutable();
 
         $route = Route::query()
             ->where('agent_id', $user->id)
