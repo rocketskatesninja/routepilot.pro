@@ -25,6 +25,9 @@ const props = defineProps<{
     editing: boolean;
     catalog: Record<string, CatalogMeta>;
     widgets: Record<string, unknown>;
+    // [horizontal, vertical] gap. On a phone the layout is a single full-width
+    // column, so the horizontal margin is dropped (the page padding is the gutter).
+    margin?: [number, number];
 }>();
 const emit = defineEmits<{ 'update:layout': [LayoutItem[]]; remove: [string] }>();
 
@@ -66,7 +69,7 @@ const commit = () =>
             v-model:layout="work"
             :col-num="12"
             :row-height="60"
-            :margin="[12, 12]"
+            :margin="props.margin ?? [12, 12]"
             :is-draggable="editing"
             :is-resizable="editing"
             :responsive="false"

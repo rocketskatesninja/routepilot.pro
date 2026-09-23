@@ -412,7 +412,7 @@ function destroyAgent() {
         </template>
 
         <template #actions>
-            <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-40 lg:w-52" />
+            <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-full sm:w-40 lg:w-52" />
             <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
             <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
             <Button v-if="props.canEmail" size="sm" variant="outline" @click="openEmail"

@@ -182,7 +182,8 @@ function submitEdit() {
 
                 <template #detail>
                     <div v-if="props.selected">
-                        <div class="mb-4 flex items-start justify-between gap-2">
+                        <!-- pr-8 below xl clears the overlay Sheet's close (X); the docked pane (xl+) has none. -->
+                        <div class="mb-4 flex items-start justify-between gap-2 pr-8 xl:pr-0">
                             <div>
                                 <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
                                 <p class="text-sm text-muted-foreground">{{ props.selected.completed_on }}</p>

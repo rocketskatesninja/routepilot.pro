@@ -227,6 +227,7 @@ onBeforeUnmount(() => {
                     :editing="editing"
                     :catalog="catalog"
                     :widgets="widgets"
+                    :margin="mobileView ? [0, 12] : [12, 12]"
                     @update:layout="onLayoutUpdate"
                     @remove="removeWidget"
                 />

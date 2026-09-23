@@ -169,7 +169,7 @@ function submitAdjust() {
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.items.total} chemicals`">
         <template #actions>
-            <Input v-model="search" type="search" placeholder="Search chemicals…" class="h-9 w-44 lg:w-56" />
+            <Input v-model="search" type="search" placeholder="Search chemicals…" class="h-9 w-full sm:w-44 lg:w-56" />
             <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Chemical</Button>
         </template>
 
