@@ -20,14 +20,16 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
 </script>
 
 <template>
+    <!-- Wraps to multiple rows on a phone (page actions get their own full-width row);
+         a single fixed-height row on md+ where there's room. -->
     <header
-        class="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/70 px-6 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 md:px-4"
+        class="flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b border-sidebar-border/70 px-4 py-2.5 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12 md:h-16 md:flex-nowrap md:py-0"
     >
-        <div class="flex min-w-0 items-center gap-2">
+        <div class="flex min-w-0 flex-1 items-center gap-2 md:flex-none">
             <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->
             <SidebarTrigger v-if="isMobile" class="-ml-1" />
             <template v-if="breadcrumbs.length > 0">
-                <Breadcrumb>
+                <Breadcrumb class="min-w-0">
                     <BreadcrumbList>
                         <template v-for="(item, index) in breadcrumbs" :key="index">
                             <BreadcrumbItem>
@@ -45,7 +47,7 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                     </BreadcrumbList>
                 </Breadcrumb>
             </template>
-            <span v-if="meta" class="whitespace-nowrap text-sm text-muted-foreground">{{ meta }}</span>
+            <span v-if="meta" class="truncate text-sm text-muted-foreground">{{ meta }}</span>
             <template v-if="$slots.filters">
                 <div class="mx-1 h-5 w-px shrink-0 bg-sidebar-border/70"></div>
                 <div class="flex items-center gap-1">
@@ -53,10 +55,11 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                 </div>
             </template>
         </div>
-        <div class="ml-auto flex items-center gap-2">
-            <slot name="actions" />
+
+        <!-- Mobile quick actions stay pinned to the top row's right. -->
+        <div v-if="isMobile" class="flex items-center gap-1">
             <button
-                v-if="isMobile && isStaff"
+                v-if="isStaff"
                 type="button"
                 class="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Search"
@@ -65,7 +68,6 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                 <Search class="size-5" />
             </button>
             <Link
-                v-if="isMobile"
                 href="/notifications"
                 class="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-label="Notifications"
@@ -77,6 +79,11 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                     >{{ unread > 9 ? '9+' : unread }}</span
                 >
             </Link>
+        </div>
+
+        <!-- Page actions: full-width wrapping row on mobile, inline on the right on desktop. -->
+        <div v-if="$slots.actions" class="flex w-full flex-wrap items-center gap-2 md:ml-auto md:w-auto md:flex-nowrap">
+            <slot name="actions" />
         </div>
     </header>
 </template>
