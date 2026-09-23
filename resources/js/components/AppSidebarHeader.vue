@@ -48,12 +48,6 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                 </Breadcrumb>
             </template>
             <span v-if="meta" class="truncate text-sm text-muted-foreground">{{ meta }}</span>
-            <template v-if="$slots.filters">
-                <div class="mx-1 h-5 w-px shrink-0 bg-sidebar-border/70"></div>
-                <div class="flex items-center gap-1">
-                    <slot name="filters" />
-                </div>
-            </template>
         </div>
 
         <!-- Mobile quick actions stay pinned to the top row's right. -->
@@ -79,6 +73,12 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                     >{{ unread > 9 ? '9+' : unread }}</span
                 >
             </Link>
+        </div>
+
+        <!-- Filters (list tabs): their own scrollable row on mobile, inline after the title on desktop. -->
+        <div v-if="$slots.filters" class="flex w-full items-center gap-1 overflow-x-auto md:w-auto">
+            <div class="hidden h-5 w-px shrink-0 bg-sidebar-border/70 md:block"></div>
+            <slot name="filters" />
         </div>
 
         <!-- Page actions: full-width wrapping row on mobile, inline on the right on desktop. -->

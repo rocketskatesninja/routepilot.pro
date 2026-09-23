@@ -403,7 +403,7 @@ function destroyAgent() {
             <button
                 v-for="t in tabs"
                 :key="t.key"
-                class="rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
+                class="shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
                 :class="props.filters.type === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
                 @click="setType(t.key)"
             >
@@ -412,7 +412,7 @@ function destroyAgent() {
         </template>
 
         <template #actions>
-            <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-full sm:w-40 lg:w-52" />
+            <Input v-model="search" type="search" placeholder="Search people…" class="h-9 min-w-0 flex-1 sm:w-40 sm:flex-none lg:w-52" />
             <Button v-if="props.canManage" size="sm" title="New customer" @click="openCreate">
                 <UserPlus class="size-4 sm:mr-1" /><span class="hidden sm:inline">Customer</span>
             </Button>
