@@ -93,15 +93,15 @@ const commit = () =>
             </GridItem>
         </GridLayout>
 
-        <!-- Mobile (and SSR / pre-mount): a single-column, natural-height stack so
-             widgets fill the width and never clip. Height floors at the widget's
-             designed rows so tall widgets (map) still get room, but can grow. -->
+        <!-- Mobile (and SSR / pre-mount): a single-column stack. Every widget gets the
+             same height for a uniform, tidy column; each fills + scrolls internally. -->
         <div v-else class="space-y-3">
-            <div v-for="item in ordered" :key="item.i" :style="{ minHeight: item.h * 60 + 'px' }">
+            <div v-for="item in ordered" :key="item.i" class="h-64">
                 <DashboardWidgetCard
                     :title="meta(item.i).label"
                     :icon="meta(item.i).icon"
                     :editing="editing"
+                    :draggable="false"
                     @remove="emit('remove', item.i)"
                 >
                     <WidgetRenderer :widget-key="item.i" :data="widgets[item.i]" />

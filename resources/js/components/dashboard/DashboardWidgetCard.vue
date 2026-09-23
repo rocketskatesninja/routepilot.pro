@@ -19,7 +19,9 @@ import {
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-const props = defineProps<{ title: string; icon: string; editing?: boolean }>();
+const props = withDefaults(defineProps<{ title: string; icon: string; editing?: boolean; draggable?: boolean }>(), {
+    draggable: true,
+});
 defineEmits<{ remove: [] }>();
 
 // Catalog icon names (from App\Dashboard\DashboardWidgets) → lucide components.
@@ -58,6 +60,7 @@ const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
                     <X class="size-4" />
                 </button>
                 <span
+                    v-if="props.draggable"
                     class="widget-drag-handle cursor-move rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                     title="Drag to move"
                 >
