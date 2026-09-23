@@ -100,13 +100,7 @@ const commit = () =>
              grid hydrates, so first paint has no layout shift and no clipping. -->
         <div v-else class="space-y-3">
             <div v-for="item in ordered" :key="item.i" class="h-64">
-                <DashboardWidgetCard
-                    :title="meta(item.i).label"
-                    :icon="meta(item.i).icon"
-                    :editing="editing"
-                    :draggable="false"
-                    @remove="emit('remove', item.i)"
-                >
+                <DashboardWidgetCard :title="meta(item.i).label" :icon="meta(item.i).icon" :editing="editing" @remove="emit('remove', item.i)">
                     <WidgetRenderer :widget-key="item.i" :data="widgets[item.i]" />
                 </DashboardWidgetCard>
             </div>
