@@ -25,9 +25,6 @@ const props = defineProps<{
     editing: boolean;
     catalog: Record<string, CatalogMeta>;
     widgets: Record<string, unknown>;
-    // On real phones we render a single-column, natural-height stack instead of the
-    // fixed 12-col drag grid, so widgets flow with the width instead of clipping.
-    stacked?: boolean;
 }>();
 const emit = defineEmits<{ 'update:layout': [LayoutItem[]]; remove: [string] }>();
 
@@ -61,8 +58,11 @@ const commit = () =>
 
 <template>
     <div>
+        <!-- Both desktop and phone use the same 12-col drag grid — on a phone the
+             layout is full-width widgets, so it reads as a stack you can still
+             drag to reorder and drag the corner to resize. -->
         <GridLayout
-            v-if="mounted && !stacked"
+            v-if="mounted"
             v-model:layout="work"
             :col-num="12"
             :row-height="60"
@@ -93,8 +93,8 @@ const commit = () =>
             </GridItem>
         </GridLayout>
 
-        <!-- Mobile (and SSR / pre-mount): a single-column stack. Every widget gets the
-             same height for a uniform, tidy column; each fills + scrolls internally. -->
+        <!-- SSR / pre-mount only: a static single-column stack until the interactive
+             grid hydrates, so first paint has no layout shift and no clipping. -->
         <div v-else class="space-y-3">
             <div v-for="item in ordered" :key="item.i" class="h-64">
                 <DashboardWidgetCard
@@ -123,5 +123,12 @@ const commit = () =>
 }
 .vgl-item__resizer {
     z-index: 10;
+}
+/* A bigger, easier-to-grab resize target on touch screens (phones/tablets). */
+@media (pointer: coarse) {
+    .vgl-item__resizer {
+        width: 32px;
+        height: 32px;
+    }
 }
 </style>

@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
             <GettingStarted v-if="showOnboarding && onboarding" :data="onboarding" />
 
             <!-- The 26rem phone frame is only for previewing the mobile layout on a
-                 desktop; a real phone uses full width (and the stacked grid below). -->
+                 desktop; a real phone uses full width for the same interactive grid. -->
             <div :class="mobileView && actualMode === 'desktop' ? 'mx-auto w-full max-w-[26rem]' : 'w-full'">
                 <div
                     v-if="mobileView && editing"
@@ -227,7 +227,6 @@ onBeforeUnmount(() => {
                     :editing="editing"
                     :catalog="catalog"
                     :widgets="widgets"
-                    :stacked="actualMode === 'mobile'"
                     @update:layout="onLayoutUpdate"
                     @remove="removeWidget"
                 />
