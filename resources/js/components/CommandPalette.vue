@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
@@ -20,6 +21,7 @@ const page = usePage<SharedData>();
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 
 const { isOpen } = useCommandPalette();
+const { setOpenMobile } = useSidebar();
 const mounted = ref(false); // gate the Teleport to client-only — keeps it out of SSR/hydration
 const q = ref('');
 const remote = ref<Group[]>([]);
@@ -42,9 +44,10 @@ const NAV: Item[] = [
     { type: 'page', label: 'Assistant', url: '/assistant' },
 ];
 
+// Pages only surface once you type (so an empty palette isn't a clone of the sidebar).
 const navMatches = computed<Item[]>(() => {
     const t = q.value.trim().toLowerCase();
-    return t ? NAV.filter((n) => n.label.toLowerCase().includes(t)) : NAV;
+    return t ? NAV.filter((n) => n.label.toLowerCase().includes(t)) : [];
 });
 
 const groups = computed<Group[]>(() => {
@@ -106,6 +109,7 @@ watch(isOpen, (v) => {
         isOpen.value = false;
         return;
     }
+    setOpenMobile(false); // close the off-canvas nav so it isn't left open behind the palette
     q.value = '';
     remote.value = [];
     active.value = 0;
@@ -186,7 +190,10 @@ onBeforeUnmount(() => {
                     <button type="button" class="shrink-0 px-1 text-sm font-medium text-primary sm:hidden" @click="close">Cancel</button>
                 </div>
                 <div class="min-h-0 flex-1 overflow-y-auto p-2 sm:max-h-[60vh] sm:flex-none">
-                    <p v-if="loading && !remote.length" class="px-2 py-3 text-sm text-muted-foreground">Searching…</p>
+                    <p v-if="!q.trim()" class="px-3 py-10 text-center text-sm text-muted-foreground">
+                        Search customers, pools, and agents — or type a page name to jump there.
+                    </p>
+                    <p v-else-if="loading && !remote.length" class="px-2 py-3 text-sm text-muted-foreground">Searching…</p>
                     <template v-for="(g, gi) in groups" :key="g.label">
                         <p class="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ g.label }}</p>
                         <button
@@ -205,7 +212,7 @@ onBeforeUnmount(() => {
                             <span class="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">{{ it.type }}</span>
                         </button>
                     </template>
-                    <p v-if="!loading && !flat.length" class="px-2 py-6 text-center text-sm text-muted-foreground">No matches.</p>
+                    <p v-if="q.trim() && !loading && !flat.length" class="px-2 py-6 text-center text-sm text-muted-foreground">No matches.</p>
                 </div>
             </div>
         </div>

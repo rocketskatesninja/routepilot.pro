@@ -139,7 +139,7 @@ const { isMobile, toggleSidebar } = useSidebar();
                         </button>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem v-if="isStaff">
+                <SidebarMenuItem v-if="isStaff && !isMobile">
                     <SidebarMenuButton tooltip="Search (⌘K)" @click="openCommand()">
                         <Search />
                         <span>Search</span>
