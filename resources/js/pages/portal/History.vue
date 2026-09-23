@@ -176,11 +176,11 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                 <div class="grid grid-cols-2 gap-4">
                                     <div v-if="props.selected.trend.chlorine.length > 1">
                                         <p class="text-[11px] text-muted-foreground">Free chlorine</p>
-                                        <Sparkline :values="props.selected.trend.chlorine" color="hsl(var(--chart-1))" class="mt-1" />
+                                        <Sparkline :values="props.selected.trend.chlorine" :band="[1, 3]" color="hsl(var(--chart-1))" class="mt-1" />
                                     </div>
                                     <div v-if="props.selected.trend.ph.length > 1">
                                         <p class="text-[11px] text-muted-foreground">pH</p>
-                                        <Sparkline :values="props.selected.trend.ph" color="hsl(var(--chart-2))" class="mt-1" />
+                                        <Sparkline :values="props.selected.trend.ph" :band="[7.2, 7.8]" color="hsl(var(--chart-2))" class="mt-1" />
                                     </div>
                                 </div>
                                 <p v-if="props.selected.trend.dates.length > 1" class="mt-1.5 text-[10px] text-muted-foreground">
