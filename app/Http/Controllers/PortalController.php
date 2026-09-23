@@ -69,10 +69,11 @@ class PortalController extends Controller
                     ->where('status', 'completed')
                     ->latest('completed_at')
                     ->with('chemicalReading')
-                    ->limit(8)->get()->reverse()->values();
+                    ->limit(8)->get()->reverse()->values()->filter(fn (ServiceVisit $v): bool => $v->chemicalReading !== null)->values();
                 $selected['trend'] = [
                     'chlorine' => $trendVisits->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
                     'ph' => $trendVisits->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                    'dates' => $trendVisits->map(fn (ServiceVisit $v): ?string => $v->completed_at?->format('M j'))->filter()->values()->all(),
                 ];
             }
         }
@@ -95,10 +96,11 @@ class PortalController extends Controller
             $history = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->limit(8)->get();
             $visit = $history->first();
             $reading = $visit?->chemicalReading;
-            $chronological = $history->reverse()->values();
+            $readingVisits = $history->reverse()->values()->filter(fn (ServiceVisit $v): bool => $v->chemicalReading !== null)->values();
             $trend = [
-                'chlorine' => $chronological->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
-                'ph' => $chronological->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                'chlorine' => $readingVisits->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                'ph' => $readingVisits->map(fn (ServiceVisit $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+                'dates' => $readingVisits->map(fn (ServiceVisit $v): ?string => $v->completed_at?->format('M j'))->filter()->values()->all(),
             ];
             $health = $reading === null ? null : $chem->getLSIStatus((float) ($reading->lsi_score ?? $chem->calculateLSI([
                 'temperature' => $reading->water_temperature, 'ph' => $reading->ph,

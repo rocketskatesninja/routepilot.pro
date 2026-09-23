@@ -36,7 +36,7 @@ interface VisitDetail {
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
     photos: string[];
-    trend: { chlorine: number[]; ph: number[] };
+    trend: { chlorine: number[]; ph: number[]; dates: string[] };
 }
 
 interface NextVisit {
@@ -183,6 +183,9 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                         <Sparkline :values="props.selected.trend.ph" color="hsl(var(--chart-2))" class="mt-1" />
                                     </div>
                                 </div>
+                                <p v-if="props.selected.trend.dates.length > 1" class="mt-1.5 text-[10px] text-muted-foreground">
+                                    {{ props.selected.trend.dates[0] }} – {{ props.selected.trend.dates[props.selected.trend.dates.length - 1] }}
+                                </p>
                             </section>
 
                             <section v-if="props.selected.reading">

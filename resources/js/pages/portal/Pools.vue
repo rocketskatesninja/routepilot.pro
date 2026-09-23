@@ -25,7 +25,7 @@ interface PoolCard {
     last_serviced: string | null;
     health: { label: string; color: 'green' | 'amber' | 'red'; description: string } | null;
     reading: Reading | null;
-    trend: { chlorine: number[]; ph: number[] };
+    trend: { chlorine: number[]; ph: number[]; dates: string[] };
 }
 
 const props = defineProps<{
@@ -90,6 +90,9 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                                         <Sparkline v-if="p.trend.ph.length > 1" :values="p.trend.ph" color="hsl(var(--chart-2))" class="mt-1" />
                                     </div>
                                 </div>
+                                <p v-if="p.trend.dates.length > 1" class="text-[10px] text-muted-foreground">
+                                    {{ p.trend.dates[0] }} – {{ p.trend.dates[p.trend.dates.length - 1] }}
+                                </p>
                                 <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                     <div class="flex justify-between gap-2"><dt>Alkalinity</dt><dd>{{ ppm(p.reading.alkalinity) }}</dd></div>
                                     <div class="flex justify-between gap-2"><dt>Calcium</dt><dd>{{ ppm(p.reading.calcium_hardness) }}</dd></div>
