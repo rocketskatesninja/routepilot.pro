@@ -20,6 +20,7 @@ const page = usePage<SharedData>();
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 
 const { isOpen } = useCommandPalette();
+const mounted = ref(false); // gate the Teleport to client-only — keeps it out of SSR/hydration
 const q = ref('');
 const remote = ref<Group[]>([]);
 const loading = ref(false);
@@ -145,7 +146,10 @@ function onGlobalKey(e: KeyboardEvent) {
         isOpen.value = !isOpen.value;
     }
 }
-onMounted(() => window.addEventListener('keydown', onGlobalKey));
+onMounted(() => {
+    mounted.value = true;
+    window.addEventListener('keydown', onGlobalKey);
+});
 onBeforeUnmount(() => {
     window.removeEventListener('keydown', onGlobalKey);
     if (debounce) {
@@ -155,7 +159,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Teleport to="body">
+    <Teleport v-if="mounted" to="body">
         <div v-if="isOpen" class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh]" role="dialog" aria-modal="true" @keydown="onListKey">
             <div class="fixed inset-0 bg-black/40" @click="close"></div>
             <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl">
