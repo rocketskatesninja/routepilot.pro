@@ -160,22 +160,32 @@ onBeforeUnmount(() => {
 
 <template>
     <Teleport v-if="mounted" to="body">
-        <div v-if="isOpen" class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[12vh]" role="dialog" aria-modal="true" @keydown="onListKey">
-            <div class="fixed inset-0 bg-black/40" @click="close"></div>
-            <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl">
+        <div
+            v-if="isOpen"
+            class="fixed inset-0 z-50 flex flex-col sm:items-start sm:justify-center sm:p-4 sm:pt-[12vh]"
+            role="dialog"
+            aria-modal="true"
+            @keydown="onListKey"
+        >
+            <!-- Dim only matters for the centered desktop card; the mobile sheet covers the screen. -->
+            <div class="fixed inset-0 hidden bg-black/40 sm:block" @click="close"></div>
+            <div
+                class="relative z-10 flex h-full w-full flex-col overflow-hidden bg-popover text-popover-foreground shadow-2xl sm:mx-auto sm:h-auto sm:max-w-lg sm:rounded-xl sm:border sm:border-border"
+            >
                 <div class="flex items-center gap-2 border-b border-border px-3">
                     <Search class="size-4 shrink-0 text-muted-foreground" />
                     <input
                         ref="inputEl"
                         v-model="q"
                         type="text"
-                        placeholder="Search customers, pools, agents — or jump to a page"
-                        class="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                        placeholder="Search customers, pools, agents…"
+                        class="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground sm:h-12 sm:text-sm"
                         aria-label="Search"
                     />
-                    <kbd class="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">Esc</kbd>
+                    <kbd class="hidden shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">Esc</kbd>
+                    <button type="button" class="shrink-0 px-1 text-sm font-medium text-primary sm:hidden" @click="close">Cancel</button>
                 </div>
-                <div class="max-h-[60vh] overflow-y-auto p-2">
+                <div class="min-h-0 flex-1 overflow-y-auto p-2 sm:max-h-[60vh] sm:flex-none">
                     <p v-if="loading && !remote.length" class="px-2 py-3 text-sm text-muted-foreground">Searching…</p>
                     <template v-for="(g, gi) in groups" :key="g.label">
                         <p class="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ g.label }}</p>
@@ -183,7 +193,7 @@ onBeforeUnmount(() => {
                             v-for="(it, ii) in g.items"
                             :key="it.type + it.url"
                             type="button"
-                            class="flex w-full items-center justify-between gap-3 rounded-md px-2 py-2 text-left"
+                            class="flex w-full items-center justify-between gap-3 rounded-md px-2 py-3 text-left sm:py-2"
                             :class="itemIndex(gi, ii) === active ? 'bg-muted' : 'hover:bg-muted/60'"
                             @mousemove="active = itemIndex(gi, ii)"
                             @click="select(it)"

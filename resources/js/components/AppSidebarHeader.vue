@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { useCommandPalette } from '@/composables/useCommandPalette';
 import type { BreadcrumbItemType, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Bell } from 'lucide-vue-next';
+import { Bell, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 defineProps<{
@@ -13,7 +14,9 @@ defineProps<{
 
 const page = usePage<SharedData>();
 const { isMobile } = useSidebar();
+const { open: openCommand } = useCommandPalette();
 const unread = computed(() => page.props.auth.unread ?? 0);
+const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 </script>
 
 <template>
@@ -52,6 +55,15 @@ const unread = computed(() => page.props.auth.unread ?? 0);
         </div>
         <div class="ml-auto flex items-center gap-2">
             <slot name="actions" />
+            <button
+                v-if="isMobile && isStaff"
+                type="button"
+                class="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Search"
+                @click="openCommand()"
+            >
+                <Search class="size-5" />
+            </button>
             <Link
                 v-if="isMobile"
                 href="/notifications"
