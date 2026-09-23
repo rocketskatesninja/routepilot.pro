@@ -220,8 +220,12 @@ function closePane() {
             <span class="mr-1 whitespace-nowrap text-sm"
                 ><span class="font-semibold">{{ money(props.total) }}</span> <span class="text-muted-foreground">outstanding</span></span
             >
-            <Button v-if="props.canManage" size="sm" variant="outline" @click="openCharge"><Plus class="mr-1 size-4" /> Charge</Button>
-            <Button v-if="props.canManage" size="sm" variant="outline" @click="exportCsv"><Download class="mr-1 size-4" /> Export</Button>
+            <Button v-if="props.canManage" size="sm" variant="outline" title="Add charge" @click="openCharge">
+                <Plus class="size-4 sm:mr-1" /><span class="hidden sm:inline">Charge</span>
+            </Button>
+            <Button v-if="props.canManage" size="sm" variant="outline" title="Export CSV" @click="exportCsv">
+                <Download class="size-4 sm:mr-1" /><span class="hidden sm:inline">Export</span>
+            </Button>
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">

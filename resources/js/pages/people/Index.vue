@@ -15,7 +15,7 @@ import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Mail, Pencil, Plus, RotateCcw, Send, Trash2, Users } from 'lucide-vue-next';
+import { HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -413,11 +413,16 @@ function destroyAgent() {
 
         <template #actions>
             <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-full sm:w-40 lg:w-52" />
-            <Button v-if="props.canManage" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Customer</Button>
-            <Button v-if="props.canManage" size="sm" variant="outline" @click="openAgentCreate"><Plus class="mr-1 size-4" /> Agent</Button>
-            <Button v-if="props.canEmail" size="sm" variant="outline" @click="openEmail"
-                ><Mail class="mr-1 size-4" /> Email<span v-if="picked.length"> ({{ picked.length }})</span></Button
-            >
+            <Button v-if="props.canManage" size="sm" title="New customer" @click="openCreate">
+                <UserPlus class="size-4 sm:mr-1" /><span class="hidden sm:inline">Customer</span>
+            </Button>
+            <Button v-if="props.canManage" size="sm" variant="outline" title="New agent" @click="openAgentCreate">
+                <HardHat class="size-4 sm:mr-1" /><span class="hidden sm:inline">Agent</span>
+            </Button>
+            <Button v-if="props.canEmail" size="sm" variant="outline" title="Email selected" @click="openEmail">
+                <Mail class="size-4 sm:mr-1" /><span class="hidden sm:inline">Email</span
+                ><span v-if="picked.length" class="ml-1">({{ picked.length }})</span>
+            </Button>
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
