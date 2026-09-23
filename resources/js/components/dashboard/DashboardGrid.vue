@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { GridItem, GridLayout } from 'grid-layout-plus';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import DashboardWidgetCard from './DashboardWidgetCard.vue';
 import WidgetRenderer from './WidgetRenderer.vue';
 
@@ -25,6 +25,9 @@ const props = defineProps<{
     editing: boolean;
     catalog: Record<string, CatalogMeta>;
     widgets: Record<string, unknown>;
+    // On real phones we render a single-column, natural-height stack instead of the
+    // fixed 12-col drag grid, so widgets flow with the width instead of clipping.
+    stacked?: boolean;
 }>();
 const emit = defineEmits<{ 'update:layout': [LayoutItem[]]; remove: [string] }>();
 
@@ -46,6 +49,9 @@ watch(
 const fallback: CatalogMeta = { label: '', icon: 'LayoutGrid', w: 6, h: 4, minW: 2, minH: 2 };
 const meta = (key: string): CatalogMeta => props.catalog[key] ?? { ...fallback, label: key };
 
+// Stack order follows the layout's reading order (top row first, then left→right).
+const ordered = computed(() => [...work.value].sort((a, b) => a.y - b.y || a.x - b.x));
+
 const commit = () =>
     emit(
         'update:layout',
@@ -56,7 +62,7 @@ const commit = () =>
 <template>
     <div>
         <GridLayout
-            v-if="mounted"
+            v-if="mounted && !stacked"
             v-model:layout="work"
             :col-num="12"
             :row-height="60"
@@ -87,10 +93,17 @@ const commit = () =>
             </GridItem>
         </GridLayout>
 
-        <!-- SSR / pre-mount fallback: a plain stack so the dashboard renders without JS. -->
-        <div v-else class="grid gap-3 lg:grid-cols-2">
-            <div v-for="item in work" :key="item.i" class="min-h-[180px]" :class="meta(item.i).w >= 12 ? 'lg:col-span-2' : ''">
-                <DashboardWidgetCard :title="meta(item.i).label" :icon="meta(item.i).icon">
+        <!-- Mobile (and SSR / pre-mount): a single-column, natural-height stack so
+             widgets fill the width and never clip. Height floors at the widget's
+             designed rows so tall widgets (map) still get room, but can grow. -->
+        <div v-else class="space-y-3">
+            <div v-for="item in ordered" :key="item.i" :style="{ minHeight: item.h * 60 + 'px' }">
+                <DashboardWidgetCard
+                    :title="meta(item.i).label"
+                    :icon="meta(item.i).icon"
+                    :editing="editing"
+                    @remove="emit('remove', item.i)"
+                >
                     <WidgetRenderer :widget-key="item.i" :data="widgets[item.i]" />
                 </DashboardWidgetCard>
             </div>

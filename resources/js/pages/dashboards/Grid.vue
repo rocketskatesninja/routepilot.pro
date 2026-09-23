@@ -202,8 +202,9 @@ onBeforeUnmount(() => {
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <GettingStarted v-if="showOnboarding && onboarding" :data="onboarding" />
 
-            <!-- Mobile layouts are designed/shown in a phone-width frame. -->
-            <div :class="mobileView ? 'mx-auto w-full max-w-[26rem]' : 'w-full'">
+            <!-- The 26rem phone frame is only for previewing the mobile layout on a
+                 desktop; a real phone uses full width (and the stacked grid below). -->
+            <div :class="mobileView && actualMode === 'desktop' ? 'mx-auto w-full max-w-[26rem]' : 'w-full'">
                 <div
                     v-if="mobileView && editing"
                     class="mb-2 rounded-md border border-dashed border-border px-3 py-1.5 text-center text-xs text-muted-foreground"
@@ -226,6 +227,7 @@ onBeforeUnmount(() => {
                     :editing="editing"
                     :catalog="catalog"
                     :widgets="widgets"
+                    :stacked="actualMode === 'mobile'"
                     @update:layout="onLayoutUpdate"
                     @remove="removeWidget"
                 />
