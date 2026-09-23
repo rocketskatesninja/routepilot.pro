@@ -69,6 +69,14 @@ class ReportController extends Controller
                 // Admins may edit any report; an agent only their own.
                 $selected['can_edit'] = $this->canManage($request->user())
                     || (int) $visit->getAttribute('agent_id') === $request->user()?->id;
+                // Recent chlorine/pH for this pool → the drawer's chemistry trend.
+                $trendVisits = ServiceVisit::query()
+                    ->where('pool_id', $visit->getAttribute('pool_id'))
+                    ->where('status', 'completed')
+                    ->latest('completed_at')
+                    ->with('chemicalReading')
+                    ->limit(8)->get()->reverse()->values();
+                $selected['trend'] = ServiceVisit::chemistryTrend($trendVisits);
             }
         }
 

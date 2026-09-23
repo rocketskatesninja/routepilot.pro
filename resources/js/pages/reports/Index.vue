@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Sparkline from '@/components/charts/Sparkline.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -50,6 +51,7 @@ interface VisitDetail {
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
     photos: string[];
+    trend: { chlorine: number[]; ph: number[]; dates: string[] };
     can_edit?: boolean;
 }
 
@@ -287,6 +289,23 @@ function submitEdit() {
                                     </dd>
                                 </div>
                             </dl>
+                            <section v-if="props.selected.trend && (props.selected.trend.chlorine.length > 1 || props.selected.trend.ph.length > 1)">
+                                <h3 class="mb-1 font-medium">Chemistry trend</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div v-if="props.selected.trend.chlorine.length > 1">
+                                        <p class="text-[11px] text-muted-foreground">Free chlorine</p>
+                                        <Sparkline :values="props.selected.trend.chlorine" color="hsl(var(--chart-1))" class="mt-1" />
+                                    </div>
+                                    <div v-if="props.selected.trend.ph.length > 1">
+                                        <p class="text-[11px] text-muted-foreground">pH</p>
+                                        <Sparkline :values="props.selected.trend.ph" color="hsl(var(--chart-2))" class="mt-1" />
+                                    </div>
+                                </div>
+                                <p v-if="props.selected.trend.dates.length > 1" class="mt-1.5 text-[10px] text-muted-foreground">
+                                    {{ props.selected.trend.dates[0] }} – {{ props.selected.trend.dates[props.selected.trend.dates.length - 1] }}
+                                </p>
+                            </section>
+
                             <section v-if="props.selected.reading">
                                 <h3 class="mb-1 font-medium">Readings</h3>
                                 <dl class="grid grid-cols-3 gap-2 text-muted-foreground">

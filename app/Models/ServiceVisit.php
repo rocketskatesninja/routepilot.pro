@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * ServiceVisit — the record of work done at a pool: checklist tasks,
@@ -88,5 +89,24 @@ class ServiceVisit extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(VisitPhoto::class);
+    }
+
+    /**
+     * Chemistry trend (chlorine, pH, dates) for the portal + reports sparklines.
+     * Expects a chronological (oldest → newest) collection of completed visits
+     * with chemicalReading loaded.
+     *
+     * @param  Collection<int, ServiceVisit>  $visits
+     * @return array{chlorine: list<float>, ph: list<float>, dates: list<string>}
+     */
+    public static function chemistryTrend(Collection $visits): array
+    {
+        $withReading = $visits->filter(fn (self $v): bool => $v->chemicalReading !== null)->values();
+
+        return [
+            'chlorine' => $withReading->map(fn (self $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+            'ph' => $withReading->map(fn (self $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
+            'dates' => $withReading->map(fn (self $v): ?string => $v->completed_at?->format('M j'))->filter()->values()->all(),
+        ];
     }
 }

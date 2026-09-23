@@ -52,6 +52,21 @@ test('the drawer carries the reading and treatments', function () {
         );
 });
 
+test('the drawer carries a chemistry trend for the pool', function () {
+    $v1 = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create(['agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now()->subWeek()]);
+    $v1->chemicalReading()->create(['free_chlorine' => 2.4, 'ph' => 7.4]);
+    $v2 = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create(['agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now()]);
+    $v2->chemicalReading()->create(['free_chlorine' => 1.5, 'ph' => 7.6]);
+
+    $this->actingAs($this->admin)
+        ->get("/reports?selected={$v2->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('selected.trend.chlorine', 2)
+            ->has('selected.trend.dates', 2)
+            ->where('selected.trend.chlorine.0', 2.4) // oldest → newest
+            ->where('selected.trend.chlorine.1', 1.5));
+});
+
 test('the drawer carries service photos', function () {
     $visit = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create([
         'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(),
