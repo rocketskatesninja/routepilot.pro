@@ -379,7 +379,7 @@ const included = [
             <section id="how" class="border-y border-border bg-muted/30 py-20">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
                     <div class="reveal mx-auto mb-14 max-w-2xl text-center">
-                        <h2 class="text-2xl font-bold sm:text-3xl">From schedule to invoice, without the busywork</h2>
+                        <h2 class="text-2xl font-bold sm:text-3xl">From schedule to invoice,<br />without the busywork</h2>
                         <p class="mt-3 text-muted-foreground">
                             Pool route software that carries a job from planning to payment — so your team spends less time on admin and more time on
                             pools.
@@ -392,11 +392,13 @@ const included = [
                             class="reveal relative rounded-2xl border border-border bg-card/40 p-6"
                             :style="{ transitionDelay: `${i * 0.1}s` }"
                         >
-                            <span class="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                <component :is="s.icon" class="size-6" />
-                            </span>
                             <span class="absolute right-5 top-5 text-4xl font-black text-muted-foreground/15">{{ i + 1 }}</span>
-                            <h3 class="mb-2 text-lg font-bold">{{ s.title }}</h3>
+                            <div class="mb-2 flex items-center gap-3">
+                                <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <component :is="s.icon" class="size-6" />
+                                </span>
+                                <h3 class="text-lg font-bold">{{ s.title }}</h3>
+                            </div>
                             <p class="text-sm leading-relaxed text-muted-foreground">{{ s.desc }}</p>
                         </div>
                     </div>
@@ -420,10 +422,12 @@ const included = [
                             :class="i === 0 ? 'lg:row-span-1 lg:ring-1 lg:ring-primary/20' : ''"
                             :style="{ transitionDelay: `${i * 0.08}s` }"
                         >
-                            <span class="mb-4 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                <component :is="s.icon" class="size-6" />
-                            </span>
-                            <h3 class="mb-2 text-lg font-bold">{{ s.title }}</h3>
+                            <div class="mb-3 flex items-center gap-3">
+                                <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <component :is="s.icon" class="size-6" />
+                                </span>
+                                <h3 class="text-lg font-bold">{{ s.title }}</h3>
+                            </div>
                             <p class="flex-1 text-sm leading-relaxed text-muted-foreground">{{ s.desc }}</p>
                             <a
                                 v-if="s.cta"
@@ -449,11 +453,13 @@ const included = [
                         A pool company CRM, billing, inventory, and pool technician software — no more stitching together five disconnected tools.
                     </p>
                     <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-                        <div v-for="(f, i) in features" :key="f.title" class="reveal text-center" :style="{ transitionDelay: `${(i % 4) * 0.08}s` }">
-                            <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                <component :is="f.icon" class="size-6" />
+                        <div v-for="(f, i) in features" :key="f.title" class="reveal" :style="{ transitionDelay: `${(i % 4) * 0.08}s` }">
+                            <div class="mb-2 flex items-center gap-3">
+                                <div class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                    <component :is="f.icon" class="size-6" />
+                                </div>
+                                <h3 class="font-bold">{{ f.title }}</h3>
                             </div>
-                            <h3 class="mb-2 font-bold">{{ f.title }}</h3>
                             <p class="text-sm leading-relaxed text-muted-foreground">{{ f.desc }}</p>
                         </div>
                     </div>
