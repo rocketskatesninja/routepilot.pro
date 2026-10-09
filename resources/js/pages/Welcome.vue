@@ -231,7 +231,7 @@ const features = [
                     ></div>
                 </div>
 
-                <div class="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[1fr_1.3fr] lg:gap-12">
+                <div class="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 lg:grid-cols-[1.2fr_1fr] lg:gap-12">
                     <!-- Left: copy -->
                     <div class="text-center lg:text-left">
                         <span
@@ -241,7 +241,7 @@ const features = [
                             A Punchlist Labs Product
                         </span>
                         <h1 class="hero-animate hero-d2 font-bold leading-tight text-white" style="font-size: clamp(2.3rem, 5vw, 3.7rem)">
-                            Run your whole pool business —<br />
+                            Run your whole pool business&nbsp;—<br />
                             <span class="bg-gradient-to-br from-orange-300 to-orange-500 bg-clip-text text-transparent">plus your own website.</span>
                         </h1>
                         <p class="hero-animate hero-d3 mx-auto mt-5 max-w-xl text-lg leading-relaxed text-sky-100/80 lg:mx-0">
@@ -267,48 +267,13 @@ const features = [
                         <p class="hero-animate hero-d5 mt-4 text-sm text-sky-300/60">14-day free trial · No credit card required · Cancel anytime</p>
                     </div>
 
-                    <!-- Right: a preview of a real RoutePilot demo site (light/dark aware) -->
-                    <div class="hero-animate hero-d3 hidden lg:block">
-                        <div class="overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/20">
-                            <div
-                                class="flex items-center gap-2 border-b border-black/5 bg-slate-100 px-3 py-2 text-slate-400 dark:border-white/5 dark:bg-slate-800 dark:text-slate-400"
-                            >
-                                <ArrowLeft class="size-3.5" />
-                                <ArrowRight class="size-3.5 opacity-40" />
-                                <RotateCw class="size-3.5" />
-                                <span
-                                    class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-white px-3 py-1 text-xs text-slate-500 dark:bg-slate-700/70 dark:text-slate-300"
-                                >
-                                    <Lock class="size-3 text-emerald-600 dark:text-emerald-400" /> routepilot.pro/t/demo
-                                </span>
-                            </div>
-                            <a
-                                :href="demoUrl"
-                                target="_blank"
-                                rel="noopener"
-                                class="group relative block h-[550px] overflow-hidden bg-white dark:bg-slate-900"
-                                aria-label="Open the live demo pool service website"
-                            >
-                                <img
-                                    src="/assets/images/screenshots/demo-landing.jpg"
-                                    alt="A live pool service company website built and hosted on RoutePilot"
-                                    class="absolute inset-0 size-full object-cover object-top dark:hidden"
-                                />
-                                <img
-                                    src="/assets/images/screenshots/dark/demo-landing.jpg"
-                                    alt="A live pool service company website built and hosted on RoutePilot"
-                                    class="absolute inset-0 hidden size-full object-cover object-top dark:block"
-                                />
-                                <span class="absolute inset-0 flex items-end justify-center pb-4">
-                                    <span
-                                        class="translate-y-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-orange-600 opacity-0 shadow-lg transition-all group-hover:translate-y-0 group-hover:opacity-100"
-                                    >
-                                        Open the live demo →
-                                    </span>
-                                </span>
-                            </a>
+                    <!-- Right: the RoutePilot mark at size — the same glyph as the header logo,
+                         rendered as a glowing object. Decorative (the name is in the header + h1),
+                         so it's hidden from assistive tech. The live demo now has its own section. -->
+                    <div class="hero-animate hero-d3 hidden lg:flex lg:items-center lg:justify-center">
+                        <div class="rp-mark" aria-hidden="true">
+                            <RouteIcon :stroke-width="2.5" />
                         </div>
-                        <p class="mt-3 text-center text-xs text-sky-300/60">A real customer-facing site, built and hosted on RoutePilot.</p>
                     </div>
                 </div>
             </section>
@@ -325,8 +290,90 @@ const features = [
                 </div>
             </section>
 
+            <!-- Live preview: the demo site in a wide, real-screen browser frame (left),
+                 with the pitch + what's inside on the right. -->
+            <section class="bg-background py-20">
+                <div class="mx-auto max-w-7xl px-4 sm:px-6">
+                    <div class="grid items-center gap-10 lg:grid-cols-[1.7fr_1fr] lg:gap-14">
+                        <!-- Left: the demo site in a wide, real-screen browser frame -->
+                        <div class="reveal">
+                            <a
+                                :href="demoUrl"
+                                target="_blank"
+                                rel="noopener"
+                                class="block overflow-hidden rounded-xl border border-border shadow-2xl ring-1 ring-black/5 transition-transform duration-300 hover:-translate-y-1"
+                                aria-label="Open the live demo pool service website"
+                            >
+                                <div class="flex items-center gap-2 border-b border-border bg-muted px-3 py-2.5 text-muted-foreground">
+                                    <ArrowLeft class="size-3.5" />
+                                    <ArrowRight class="size-3.5 opacity-40" />
+                                    <RotateCw class="size-3.5" />
+                                    <span class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-background px-3 py-1 text-xs">
+                                        <Lock class="size-3 text-emerald-500" /> routepilot.pro/t/demo
+                                    </span>
+                                </div>
+                                <div class="relative aspect-[16/10] overflow-hidden bg-white dark:bg-slate-900">
+                                    <img
+                                        src="/assets/images/screenshots/demo-landing.jpg"
+                                        alt="A live pool service company website built and hosted on RoutePilot"
+                                        class="size-full object-cover object-top dark:hidden"
+                                        loading="lazy"
+                                    />
+                                    <img
+                                        src="/assets/images/screenshots/dark/demo-landing.jpg"
+                                        alt="A live pool service company website built and hosted on RoutePilot"
+                                        class="hidden size-full object-cover object-top dark:block"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Right: the pitch + what's inside the demo -->
+                        <div class="reveal" style="transition-delay: 0.1s">
+                            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">Live preview</p>
+                            <h2 class="text-2xl font-bold sm:text-3xl">See a real customer site in action</h2>
+                            <p class="mt-4 leading-relaxed text-muted-foreground">
+                                Every RoutePilot account includes a branded website and customer portal — not a template you wrestle with, but a
+                                complete, ready-to-go site that's live the day you sign up. Explore the demo to see exactly what your clients get.
+                            </p>
+                            <ul class="mt-6 space-y-3 text-sm">
+                                <li class="flex items-start gap-3">
+                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
+                                    <span>Browse services with photos, pricing, and FAQs</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
+                                    <span>Book a visit online — no phone tag</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
+                                    <span>An AI assistant that answers pool questions around the clock</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
+                                    <span>A customer login to track pool health, chemistry, and visit history</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
+                                    <span>Your branding end to end — logo, colors, and your own domain</span>
+                                </li>
+                            </ul>
+                            <a
+                                :href="demoUrl"
+                                target="_blank"
+                                rel="noopener"
+                                class="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+                            >
+                                Open the live demo <ArrowRight class="size-4" />
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- How it works: the scheduling → service → invoicing story -->
-            <section id="how" class="bg-background py-20">
+            <section id="how" class="border-y border-border bg-muted/30 py-20">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
                     <div class="reveal mx-auto mb-14 max-w-2xl text-center">
                         <h2 class="text-2xl font-bold sm:text-3xl">From schedule to invoice, without the busywork</h2>
@@ -354,7 +401,7 @@ const features = [
             </section>
 
             <!-- Signature features: the differentiators, weighted heavier than the rest -->
-            <section class="border-y border-border bg-muted/30 py-20">
+            <section class="bg-background py-20">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
                     <h2 class="reveal mx-auto mb-4 max-w-2xl text-center text-2xl font-bold sm:text-3xl">
                         The all-in-one pool service app — and the only one that hands you a website
@@ -390,7 +437,7 @@ const features = [
             </section>
 
             <!-- Everything else -->
-            <section id="features" class="bg-background py-20">
+            <section id="features" class="border-y border-border bg-muted/30 py-20">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
                     <h2 class="reveal mx-auto mb-3 max-w-2xl text-center text-2xl font-bold sm:text-3xl">
                         Everything a pool service business needs, in one place
@@ -422,7 +469,7 @@ const features = [
             -->
 
             <!-- Pricing -->
-            <section id="pricing" class="border-t border-border bg-muted/30 py-20">
+            <section id="pricing" class="bg-background py-20">
                 <div class="mx-auto max-w-5xl px-4 sm:px-6">
                     <div class="reveal mx-auto mb-10 max-w-2xl text-center">
                         <h2 class="text-2xl font-bold sm:text-3xl">Simple, transparent pricing</h2>
@@ -431,7 +478,7 @@ const features = [
 
                     <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
                         <!-- Plan card -->
-                        <div class="reveal rounded-2xl border border-border bg-background p-8 text-center shadow-xl">
+                        <div class="reveal rounded-2xl border border-border bg-muted/30 p-8 text-center shadow-xl">
                             <p class="font-bold">
                                 <span class="text-5xl">${{ dollars }}</span
                                 ><span class="text-2xl">.{{ cents }}</span
