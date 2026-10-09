@@ -141,6 +141,25 @@ const features = [
     { icon: Move, title: 'Drag-to-reassign', desc: 'Move a stop to another tech in one drag and every future visit follows automatically.' },
     { icon: Users, title: 'Customer management', desc: 'A pool company CRM built in — pools, contacts, notes, and history in one place.' },
 ];
+
+// What the live-preview site shows, and what every plan includes — data, not inline markup.
+const demoFeatures = [
+    'Browse services with photos, pricing, and FAQs',
+    'Book a visit online — no phone tag',
+    'An AI assistant that answers pool questions around the clock',
+    'A customer login to track pool health, chemistry, and visit history',
+    'Your branding end to end — logo, colors, and your own domain',
+];
+const included = [
+    'Route optimization',
+    'AI chemistry & dosing',
+    'Scheduling & dispatch',
+    'Customer website + portal',
+    'Billing & autopay',
+    'Offline field app',
+    'Inventory tracking',
+    'Service reports',
+];
 </script>
 
 <template>
@@ -338,25 +357,9 @@ const features = [
                                 complete, ready-to-go site that's live the day you sign up. Explore the demo to see exactly what your clients get.
                             </p>
                             <ul class="mt-6 space-y-3 text-sm">
-                                <li class="flex items-start gap-3">
+                                <li v-for="item in demoFeatures" :key="item" class="flex items-start gap-3">
                                     <Check class="mt-0.5 size-5 shrink-0 text-primary" />
-                                    <span>Browse services with photos, pricing, and FAQs</span>
-                                </li>
-                                <li class="flex items-start gap-3">
-                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
-                                    <span>Book a visit online — no phone tag</span>
-                                </li>
-                                <li class="flex items-start gap-3">
-                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
-                                    <span>An AI assistant that answers pool questions around the clock</span>
-                                </li>
-                                <li class="flex items-start gap-3">
-                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
-                                    <span>A customer login to track pool health, chemistry, and visit history</span>
-                                </li>
-                                <li class="flex items-start gap-3">
-                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
-                                    <span>Your branding end to end — logo, colors, and your own domain</span>
+                                    <span>{{ item }}</span>
                                 </li>
                             </ul>
                             <a
@@ -506,20 +509,7 @@ const features = [
                         <div class="reveal" style="transition-delay: 0.12s">
                             <h3 class="mb-3 flex items-center gap-2 font-bold"><Sparkles class="size-4 text-primary" /> What's included</h3>
                             <ul class="mb-8 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                                <li
-                                    v-for="inc in [
-                                        'Route optimization',
-                                        'AI chemistry & dosing',
-                                        'Scheduling & dispatch',
-                                        'Customer website + portal',
-                                        'Billing & autopay',
-                                        'Offline field app',
-                                        'Inventory tracking',
-                                        'Service reports',
-                                    ]"
-                                    :key="inc"
-                                    class="flex items-center gap-2"
-                                >
+                                <li v-for="inc in included" :key="inc" class="flex items-center gap-2">
                                     <Check class="size-4 shrink-0 text-green-500" /> <span>{{ inc }}</span>
                                 </li>
                             </ul>
