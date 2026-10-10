@@ -133,7 +133,7 @@ const { isMobile, toggleSidebar } = useSidebar();
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
+                    <SidebarMenuButton size="lg" as-child class="h-14">
                         <button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" @click="toggleSidebar">
                             <AppLogo />
                         </button>

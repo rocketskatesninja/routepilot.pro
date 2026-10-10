@@ -36,8 +36,10 @@ export const sidebarMenuButtonVariants = cva(
                     'bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]',
             },
             size: {
-                // Bigger tap target on mobile (the off-canvas sheet); unchanged on desktop (md+).
-                default: 'h-11 gap-3 text-base md:h-8 md:gap-2 md:text-sm',
+                // Bigger tap target on mobile (the off-canvas sheet). On desktop the nav
+                // links are deliberately large and wide-spaced (bigger text, taller rows,
+                // roomier icon/label gap + horizontal padding, larger icons).
+                default: 'h-11 gap-3 text-base md:h-10 md:gap-4 md:px-3 md:text-xl md:[&>svg]:size-6',
                 sm: 'h-7 text-xs',
                 lg: 'h-12 text-sm group-data-[collapsible=icon]:!p-0',
             },
