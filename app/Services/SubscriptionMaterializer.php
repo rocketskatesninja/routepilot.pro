@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
+use App\Models\Tenant;
 use App\Support\Weekday;
 use Carbon\Carbon;
 
@@ -122,6 +123,23 @@ class SubscriptionMaterializer
         }
 
         return $created;
+    }
+
+    /**
+     * Re-sync one plan's upcoming schedule after an edit that changes where or
+     * when it lands (day, cadence, tech, status, vacation hold): drop its future
+     * pending stops — completed/skipped history is never touched — and
+     * re-materialize, so the routes reflect the plan as it is now.
+     */
+    public function resync(ServiceSubscription $sub): int
+    {
+        RouteStop::query()
+            ->where('service_subscription_id', $sub->id)
+            ->where('status', 'pending')
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
+            ->delete();
+
+        return $this->run((int) $sub->getAttribute('tenant_id'));
     }
 
     /**

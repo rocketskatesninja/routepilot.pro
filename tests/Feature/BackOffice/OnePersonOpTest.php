@@ -11,6 +11,7 @@ use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\SubscriptionMaterializer;
+use Illuminate\Support\Carbon;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -62,4 +63,63 @@ test('reassigning a plan moves its upcoming pending stops to the new tech', func
     ]);
 
     expect($stopsOn($this->admin->id))->toBeGreaterThan(0)->and($stopsOn($agent->id))->toBe(0);
+});
+
+test('changing a plan\'s service day moves its upcoming stops to the new day, including today', function () {
+    Carbon::setTestNow('2026-10-10 10:00:00'); // a Saturday
+    $sub = $this->pool->subscriptions()->create([
+        'service_type_id' => $this->serviceType->id,
+        'assigned_agent_id' => $this->admin->id,
+        'frequency' => 'weekly',
+        'preferred_day' => 'monday',
+        'status' => 'active',
+    ]);
+    app(SubscriptionMaterializer::class)->run($this->tenant->id);
+
+    $pendingDays = fn (): array => RouteStop::query()
+        ->where('service_subscription_id', $sub->id)
+        ->where('status', 'pending')
+        ->with('route')
+        ->get()
+        ->map(fn (RouteStop $s): string => $s->route->scheduled_date->format('l'))
+        ->unique()->values()->all();
+
+    expect($pendingDays())->toBe(['Monday']);
+
+    app(UpdateSubscription::class)->handle($sub, [
+        'service_type_id' => $this->serviceType->id,
+        'assigned_agent_id' => $this->admin->id,
+        'frequency' => 'weekly',
+        'preferred_day' => 'saturday',
+        'status' => 'active',
+    ]);
+
+    expect($pendingDays())->toBe(['Saturday'])
+        ->and(RouteStop::query()->where('service_subscription_id', $sub->id)
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '2026-10-10'))->exists())->toBeTrue();
+});
+
+test('pausing a plan clears its upcoming stops but keeps completed history', function () {
+    Carbon::setTestNow('2026-10-10 10:00:00');
+    $sub = $this->pool->subscriptions()->create([
+        'service_type_id' => $this->serviceType->id,
+        'assigned_agent_id' => $this->admin->id,
+        'frequency' => 'weekly',
+        'preferred_day' => 'monday',
+        'status' => 'active',
+    ]);
+    app(SubscriptionMaterializer::class)->run($this->tenant->id);
+    $done = RouteStop::query()->where('service_subscription_id', $sub->id)->first();
+    $done->update(['status' => 'completed']);
+
+    app(UpdateSubscription::class)->handle($sub, [
+        'service_type_id' => $this->serviceType->id,
+        'assigned_agent_id' => $this->admin->id,
+        'frequency' => 'weekly',
+        'preferred_day' => 'monday',
+        'status' => 'paused',
+    ]);
+
+    expect(RouteStop::query()->where('service_subscription_id', $sub->id)->where('status', 'pending')->count())->toBe(0)
+        ->and($done->fresh())->not->toBeNull();
 });

@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
-use App\Models\Tenant;
 use App\Services\SubscriptionMaterializer;
 
 /**
  * Update a subscription's plan/cadence/agent/status, including pause
- * (status) and dated vacation holds. Reassigning the agent moves the
- * plan's upcoming (pending) stops to the new tech.
+ * (status) and dated vacation holds. Any change to where or when the plan
+ * lands re-syncs its upcoming (pending) stops onto the new schedule.
  */
 class UpdateSubscription
 {
@@ -33,17 +31,11 @@ class UpdateSubscription
             'hold_ends_at' => $data['hold_ends_at'] ?? null,
         ]);
 
-        // When the tech changes, hand the upcoming work to them: drop this plan's
-        // future pending stops (completed history stays) and re-materialize, which
-        // recreates them on the newly-assigned agent's routes.
-        if ($subscription->wasChanged('assigned_agent_id')) {
-            RouteStop::query()
-                ->where('service_subscription_id', $subscription->id)
-                ->where('status', 'pending')
-                ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
-                ->delete();
-
-            $this->materializer->run((int) $subscription->getAttribute('tenant_id'));
+        // Anything that changes where or when the plan lands (tech, day, cadence,
+        // status, vacation hold) re-syncs its upcoming stops; completed history
+        // is never touched.
+        if ($subscription->wasChanged(['assigned_agent_id', 'preferred_day', 'frequency', 'status', 'hold_starts_at', 'hold_ends_at'])) {
+            $this->materializer->resync($subscription);
         }
 
         return $subscription;
