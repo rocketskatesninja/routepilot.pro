@@ -105,7 +105,13 @@ class Pool extends Model
             'service_visit_id', // chemical_readings.service_visit_id -> service_visits.id
             'id',
             'id',
-        )->latest('chemical_readings.created_at');
+        )
+            // "Latest" = the reading from the most recently *completed* service, with
+            // the reading id as a deterministic tiebreak. Readings seeded (or imported)
+            // in one batch can share a created_at, and ordering on that alone lets the
+            // database return an arbitrary row — which flips between requests.
+            ->orderByDesc('service_visits.completed_at')
+            ->orderByDesc('chemical_readings.id');
     }
 
     /**

@@ -9,7 +9,6 @@ use App\Actions\UpdatePool;
 use App\Http\Requests\StorePoolRequest;
 use App\Http\Requests\UpdatePoolRequest;
 use App\Models\AuditLog;
-use App\Models\ChemicalReading;
 use App\Models\Customer;
 use App\Models\EquipmentServiceLog;
 use App\Models\Pool;
@@ -64,6 +63,7 @@ class PoolController extends Controller
                 'customer:id,first_name,last_name,email,phone',
                 'serviceLocation',
                 'subscriptions' => fn ($q) => $q->whereIn('status', ['active', 'paused'])->with(['agent:id,first_name,last_name', 'serviceType:id,name']),
+                'latestReading',
             ])->find($selectedId);
             if ($pool) {
                 $selected = $this->toDetail($pool, $chem);
@@ -172,10 +172,9 @@ class PoolController extends Controller
     /** @return array<string, mixed> */
     private function toDetail(Pool $pool, ChemistryService $chem): array
     {
-        $reading = ChemicalReading::query()
-            ->whereHas('serviceVisit', fn ($q) => $q->where('pool_id', $pool->id))
-            ->latest()
-            ->first();
+        // Single source of truth: the same relation the list rows use, so the detail
+        // pane and the list's health dot can never disagree on "the latest reading".
+        $reading = $pool->latestReading;
 
         $health = null;
         if ($reading !== null) {
