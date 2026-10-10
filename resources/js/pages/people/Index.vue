@@ -3,10 +3,10 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -751,11 +751,7 @@ function destroyAgent() {
                                     <Button v-if="props.selected.portal_status === 'none'" size="sm" variant="outline" @click="grantPortal"
                                         >Grant portal</Button
                                     >
-                                    <Button
-                                        v-else-if="props.selected.portal_status === 'revoked'"
-                                        size="sm"
-                                        variant="outline"
-                                        @click="restorePortal"
+                                    <Button v-else-if="props.selected.portal_status === 'revoked'" size="sm" variant="outline" @click="restorePortal"
                                         ><RotateCcw class="mr-1 size-3.5" /> Restore access</Button
                                     >
                                     <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>

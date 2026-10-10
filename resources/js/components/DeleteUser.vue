@@ -5,6 +5,7 @@ import { ref } from 'vue';
 // Components
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import InputError from '@/components/InputError.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -16,7 +17,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import PasswordInput from '@/components/PasswordInput.vue';
 import { Label } from '@/components/ui/label';
 
 const passwordInput = ref<InstanceType<typeof PasswordInput> | null>(null);

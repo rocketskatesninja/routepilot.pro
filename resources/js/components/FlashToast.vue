@@ -41,9 +41,7 @@ watch(
 </script>
 
 <template>
-    <div
-        class="pointer-events-none fixed inset-x-4 bottom-4 z-[70] flex flex-col gap-2 sm:inset-x-auto sm:right-4 sm:w-full sm:max-w-sm"
-    >
+    <div class="pointer-events-none fixed inset-x-4 bottom-4 z-[70] flex flex-col gap-2 sm:inset-x-auto sm:right-4 sm:w-full sm:max-w-sm">
         <TransitionGroup name="rp-toast">
             <div
                 v-for="t in toasts"

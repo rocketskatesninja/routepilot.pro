@@ -23,7 +23,7 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
     <!-- Wraps to multiple rows on a phone (page actions get their own full-width row);
          a single fixed-height row on md+ where there's room. -->
     <header
-        class="flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b border-sidebar-border/70 px-4 py-2.5 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12 md:h-16 md:flex-nowrap md:py-0"
+        class="flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b border-sidebar-border/70 px-4 py-2.5 transition-[width,height] ease-linear md:h-16 md:flex-nowrap md:py-0 group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12"
     >
         <div class="flex min-w-0 flex-1 items-center gap-2 md:flex-none">
             <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->

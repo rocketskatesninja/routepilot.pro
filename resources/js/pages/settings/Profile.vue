@@ -106,15 +106,15 @@ const submit = () => {
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
                         <p v-if="isCustomer" class="mt-1 text-xs text-muted-foreground">
-                            This is also your sign-in email. Changing it sends a confirmation link to the new address — the change takes effect
-                            only after you confirm it there.
+                            This is also your sign-in email. Changing it sends a confirmation link to the new address — the change takes effect only
+                            after you confirm it there.
                         </p>
                         <div
                             v-if="isCustomer && status === 'email-change-sent'"
                             class="mt-2 rounded-md bg-sky-50 px-3 py-2 text-sm font-medium text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
                         >
-                            Confirmation sent{{ pendingEmail ? ` to ${pendingEmail}` : '' }}. Your email will change once you click the link in
-                            that inbox.
+                            Confirmation sent{{ pendingEmail ? ` to ${pendingEmail}` : '' }}. Your email will change once you click the link in that
+                            inbox.
                         </div>
                     </div>
 

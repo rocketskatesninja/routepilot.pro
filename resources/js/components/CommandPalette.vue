@@ -186,7 +186,9 @@ onBeforeUnmount(() => {
                         class="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground sm:h-12 sm:text-sm"
                         aria-label="Search"
                     />
-                    <kbd class="hidden shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">Esc</kbd>
+                    <kbd class="hidden shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block"
+                        >Esc</kbd
+                    >
                     <button type="button" class="shrink-0 px-1 text-sm font-medium text-primary sm:hidden" @click="close">Cancel</button>
                 </div>
                 <div class="min-h-0 flex-1 overflow-y-auto p-2 sm:max-h-[60vh] sm:flex-none">

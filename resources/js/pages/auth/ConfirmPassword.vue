@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
-import SubmitButton from '@/components/SubmitButton.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import SubmitButton from '@/components/SubmitButton.vue';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';

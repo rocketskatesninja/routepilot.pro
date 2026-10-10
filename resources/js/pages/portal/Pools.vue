@@ -82,22 +82,46 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                                             {{ p.reading.free_chlorine ?? '—' }}<span class="text-xs font-normal text-muted-foreground"> ppm</span>
                                         </p>
                                         <p class="text-[11px] leading-tight text-muted-foreground">Free chlorine</p>
-                                        <Sparkline v-if="p.trend.chlorine.length > 1" :values="p.trend.chlorine" :band="[1, 3]" color="hsl(var(--chart-1))" class="mt-1" />
+                                        <Sparkline
+                                            v-if="p.trend.chlorine.length > 1"
+                                            :values="p.trend.chlorine"
+                                            :band="[1, 3]"
+                                            color="hsl(var(--chart-1))"
+                                            class="mt-1"
+                                        />
                                     </div>
                                     <div>
                                         <p class="text-sm font-semibold">{{ p.reading.ph ?? '—' }}</p>
                                         <p class="text-[11px] leading-tight text-muted-foreground">pH</p>
-                                        <Sparkline v-if="p.trend.ph.length > 1" :values="p.trend.ph" :band="[7.2, 7.8]" color="hsl(var(--chart-2))" class="mt-1" />
+                                        <Sparkline
+                                            v-if="p.trend.ph.length > 1"
+                                            :values="p.trend.ph"
+                                            :band="[7.2, 7.8]"
+                                            color="hsl(var(--chart-2))"
+                                            class="mt-1"
+                                        />
                                     </div>
                                 </div>
                                 <p v-if="p.trend.dates.length > 1" class="text-[10px] text-muted-foreground">
                                     {{ p.trend.dates[0] }} – {{ p.trend.dates[p.trend.dates.length - 1] }}
                                 </p>
                                 <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                                    <div class="flex justify-between gap-2"><dt>Alkalinity</dt><dd>{{ ppm(p.reading.alkalinity) }}</dd></div>
-                                    <div class="flex justify-between gap-2"><dt>Calcium</dt><dd>{{ ppm(p.reading.calcium_hardness) }}</dd></div>
-                                    <div class="flex justify-between gap-2"><dt>Cyanuric</dt><dd>{{ ppm(p.reading.cyanuric_acid) }}</dd></div>
-                                    <div class="flex justify-between gap-2"><dt>Salt</dt><dd>{{ ppm(p.reading.salt) }}</dd></div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt>Alkalinity</dt>
+                                        <dd>{{ ppm(p.reading.alkalinity) }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt>Calcium</dt>
+                                        <dd>{{ ppm(p.reading.calcium_hardness) }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt>Cyanuric</dt>
+                                        <dd>{{ ppm(p.reading.cyanuric_acid) }}</dd>
+                                    </div>
+                                    <div class="flex justify-between gap-2">
+                                        <dt>Salt</dt>
+                                        <dd>{{ ppm(p.reading.salt) }}</dd>
+                                    </div>
                                 </dl>
                             </div>
                         </div>

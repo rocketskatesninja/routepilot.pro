@@ -86,14 +86,7 @@ const submit = () => {
 
                 <div class="grid gap-2">
                     <Label for="password">Password</Label>
-                    <PasswordInput
-                        id="password"
-                        required
-                        tabindex="3"
-                        autocomplete="new-password"
-                        v-model="form.password"
-                        placeholder="Password"
-                    />
+                    <PasswordInput id="password" required tabindex="3" autocomplete="new-password" v-model="form.password" placeholder="Password" />
                     <InputError :message="form.errors.password" />
                 </div>
 

@@ -31,7 +31,7 @@ const width = (v: number) => `${Math.max(v > 0 ? 2 : 0, (v / max.value) * 100)}%
             <span class="relative h-2.5 overflow-hidden rounded-full bg-muted">
                 <span class="absolute inset-y-0 left-0 rounded-full" :style="{ width: width(b.value), backgroundColor: b.color ?? color }"></span>
             </span>
-            <span class="tabular-nums font-medium">{{ format(b.value) }}</span>
+            <span class="font-medium tabular-nums">{{ format(b.value) }}</span>
         </li>
     </ul>
     <p v-else class="py-6 text-center text-sm text-muted-foreground">{{ emptyText }}</p>

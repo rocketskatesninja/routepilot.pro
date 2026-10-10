@@ -37,9 +37,7 @@ const yAt = (n: number) => {
 };
 
 const points = computed(() =>
-    props.values
-        .map((n, i) => `${(props.values.length > 1 ? (i / (props.values.length - 1)) * W : 0).toFixed(2)},${yAt(n).toFixed(2)}`)
-        .join(' '),
+    props.values.map((n, i) => `${(props.values.length > 1 ? (i / (props.values.length - 1)) * W : 0).toFixed(2)},${yAt(n).toFixed(2)}`).join(' '),
 );
 
 const bandRect = computed(() => {
