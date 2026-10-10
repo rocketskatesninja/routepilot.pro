@@ -160,13 +160,13 @@ function submitEdit() {
                                     <span>{{ item.pool }}</span>
                                 </div>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
                                 <div class="flex items-center gap-2">
                                     <EntityAvatar :src="item.customer_photo" type="person" :name="item.customer" size="sm" shape="circle" />
                                     <span>{{ item.customer }}</span>
                                 </div>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">
                                 <div class="flex items-center gap-2">
                                     <EntityAvatar :src="item.agent_photo" type="person" :name="item.agent" size="sm" shape="circle" />
                                     <span>{{ item.agent }}</span>
@@ -186,7 +186,7 @@ function submitEdit() {
                         <div class="mb-4 flex items-start justify-between gap-2 pr-8 xl:pr-0">
                             <div>
                                 <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
-                                <p class="text-sm text-muted-foreground">{{ props.selected.completed_on }}</p>
+                                <p class="text-muted-foreground text-sm">{{ props.selected.completed_on }}</p>
                             </div>
                             <Button v-if="props.selected.can_edit && !editing" size="sm" variant="outline" @click="openEdit">
                                 <Pencil class="mr-1 size-3.5" /> Edit
@@ -200,7 +200,7 @@ function submitEdit() {
                                 <Input id="r_date" v-model="form.completed_on" type="date" />
                             </div>
                             <div>
-                                <span class="text-xs font-medium text-muted-foreground">Readings</span>
+                                <span class="text-muted-foreground text-xs font-medium">Readings</span>
                                 <div class="mt-1 grid grid-cols-3 gap-2">
                                     <div v-for="k in editReadingKeys" :key="k" class="grid gap-1">
                                         <Label :for="`r_${k}`" class="text-xs">{{ readingLabels[k] }}</Label>
@@ -210,7 +210,7 @@ function submitEdit() {
                             </div>
                             <div>
                                 <div class="mb-1 flex items-center justify-between">
-                                    <span class="text-xs font-medium text-muted-foreground">Treatments</span>
+                                    <span class="text-muted-foreground text-xs font-medium">Treatments</span>
                                     <Button
                                         type="button"
                                         size="sm"
@@ -233,7 +233,7 @@ function submitEdit() {
                             </div>
                             <div>
                                 <div class="mb-1 flex items-center justify-between">
-                                    <span class="text-xs font-medium text-muted-foreground">Tasks</span>
+                                    <span class="text-muted-foreground text-xs font-medium">Tasks</span>
                                     <Button type="button" size="sm" variant="outline" @click="form.tasks.push({ name: '', done: false })">
                                         <Plus class="mr-1 size-3.5" /> Add
                                     </Button>
@@ -254,7 +254,7 @@ function submitEdit() {
                                     id="r_notes"
                                     v-model="form.notes"
                                     rows="3"
-                                    class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                                 ></textarea>
                             </div>
                             <div class="flex justify-end gap-2 pt-2">
@@ -266,7 +266,7 @@ function submitEdit() {
                         <div v-else class="space-y-5 text-sm">
                             <dl class="grid grid-cols-2 gap-3">
                                 <div>
-                                    <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Customer</dt>
+                                    <dt class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Customer</dt>
                                     <dd class="mt-0.5">
                                         <Link
                                             v-if="props.selected.customer_id"
@@ -278,7 +278,7 @@ function submitEdit() {
                                     </dd>
                                 </div>
                                 <div>
-                                    <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent</dt>
+                                    <dt class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Agent</dt>
                                     <dd class="mt-0.5">
                                         <Link
                                             v-if="props.selected.agent_id"
@@ -294,22 +294,22 @@ function submitEdit() {
                                 <h3 class="mb-1 font-medium">Chemistry trend</h3>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div v-if="props.selected.trend.chlorine.length > 1">
-                                        <p class="text-[11px] text-muted-foreground">Free chlorine</p>
+                                        <p class="text-muted-foreground text-[11px]">Free chlorine</p>
                                         <Sparkline :values="props.selected.trend.chlorine" :band="[1, 3]" color="hsl(var(--chart-1))" class="mt-1" />
                                     </div>
                                     <div v-if="props.selected.trend.ph.length > 1">
-                                        <p class="text-[11px] text-muted-foreground">pH</p>
+                                        <p class="text-muted-foreground text-[11px]">pH</p>
                                         <Sparkline :values="props.selected.trend.ph" :band="[7.2, 7.8]" color="hsl(var(--chart-2))" class="mt-1" />
                                     </div>
                                 </div>
-                                <p v-if="props.selected.trend.dates.length > 1" class="mt-1.5 text-[10px] text-muted-foreground">
+                                <p v-if="props.selected.trend.dates.length > 1" class="text-muted-foreground mt-1.5 text-[10px]">
                                     {{ props.selected.trend.dates[0] }} – {{ props.selected.trend.dates[props.selected.trend.dates.length - 1] }}
                                 </p>
                             </section>
 
                             <section v-if="props.selected.reading">
                                 <h3 class="mb-1 font-medium">Readings</h3>
-                                <dl class="grid grid-cols-3 gap-2 text-muted-foreground">
+                                <dl class="text-muted-foreground grid grid-cols-3 gap-2">
                                     <template v-for="k in readingKeys" :key="k">
                                         <div v-if="props.selected.reading[k] !== null">
                                             <dt class="text-xs">{{ readingLabels[k] }}</dt>
@@ -321,7 +321,7 @@ function submitEdit() {
 
                             <section v-if="props.selected.treatments.length">
                                 <h3 class="mb-1 font-medium">Treatments</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="(t, i) in props.selected.treatments" :key="i" class="flex justify-between">
                                         <span>{{ t.name }}</span
                                         ><span>{{ t.amount }} {{ t.unit }}</span>
@@ -331,7 +331,7 @@ function submitEdit() {
 
                             <section v-if="props.selected.tasks.length">
                                 <h3 class="mb-1 font-medium">Tasks</h3>
-                                <ul class="space-y-0.5 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-0.5">
                                     <li v-for="(t, i) in props.selected.tasks" :key="i">{{ t.done ? '✓' : '○' }} {{ t.name }}</li>
                                 </ul>
                             </section>
@@ -343,7 +343,7 @@ function submitEdit() {
                                         <img
                                             :src="photo"
                                             alt="Service photo"
-                                            class="aspect-square w-full rounded-md border border-border object-cover transition hover:opacity-90"
+                                            class="border-border aspect-square w-full rounded-md border object-cover transition hover:opacity-90"
                                         />
                                     </a>
                                 </div>

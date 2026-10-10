@@ -283,7 +283,7 @@ function save() {
                 <div class="flex items-center justify-between gap-2">
                     <div>
                         <h1 class="text-lg font-semibold">Landing page</h1>
-                        <p class="text-xs text-muted-foreground">Edits preview live · saving keeps your place</p>
+                        <p class="text-muted-foreground text-xs">Edits preview live · saving keeps your place</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <span v-if="saved" class="flex items-center gap-1 text-sm text-emerald-600"><Check class="size-4" /> Saved</span>
@@ -292,16 +292,16 @@ function save() {
                 </div>
 
                 <!-- SEO -->
-                <div class="rounded-xl border border-border">
+                <div class="border-border rounded-xl border">
                     <button
                         type="button"
                         class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
                         @click="toggleOpen('__seo')"
                     >
                         SEO &amp; social sharing
-                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__seo' ? 'rotate-180' : ''" />
+                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__seo' ? 'rotate-180' : ''" />
                     </button>
-                    <div v-show="expanded === '__seo'" class="space-y-3 border-t border-border bg-muted/20 p-4 text-sm">
+                    <div v-show="expanded === '__seo'" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
                         <div class="grid gap-1">
                             <Label>Page title</Label><Input v-model="seo.title" placeholder="Acme Pools — Weekly Pool Service" />
                         </div>
@@ -316,17 +316,17 @@ function save() {
                 </div>
 
                 <!-- Social links -->
-                <div class="rounded-xl border border-border">
+                <div class="border-border rounded-xl border">
                     <button
                         type="button"
                         class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
                         @click="toggleOpen('__social')"
                     >
                         Social links
-                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__social' ? 'rotate-180' : ''" />
+                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__social' ? 'rotate-180' : ''" />
                     </button>
-                    <div v-show="expanded === '__social'" class="space-y-3 border-t border-border bg-muted/20 p-4 text-sm">
-                        <p class="text-xs text-muted-foreground">Links for the footer icons — leave a field blank to hide that icon.</p>
+                    <div v-show="expanded === '__social'" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
+                        <p class="text-muted-foreground text-xs">Links for the footer icons — leave a field blank to hide that icon.</p>
                         <div v-for="f in socialFields" :key="f.key" class="grid gap-1">
                             <Label>{{ f.label }}</Label>
                             <Input v-model="social[f.key]" type="url" placeholder="https://…" />
@@ -335,25 +335,25 @@ function save() {
                 </div>
 
                 <!-- Company title -->
-                <div class="rounded-xl border border-border">
+                <div class="border-border rounded-xl border">
                     <button
                         type="button"
                         class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
                         @click="toggleOpen('__title')"
                     >
                         Company title
-                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__title' ? 'rotate-180' : ''" />
+                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__title' ? 'rotate-180' : ''" />
                     </button>
-                    <div v-show="expanded === '__title'" class="space-y-3 border-t border-border bg-muted/20 p-4 text-sm">
+                    <div v-show="expanded === '__title'" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
                         <!-- Live preview of the styled title, on a header-like background. -->
                         <div
-                            class="flex min-h-14 items-center justify-center overflow-hidden rounded-lg border border-border bg-background px-4 py-3"
+                            class="border-border bg-background flex min-h-14 items-center justify-center overflow-hidden rounded-lg border px-4 py-3"
                         >
                             <span class="whitespace-nowrap" :style="titleStyle(title)">{{ title.text || 'Company Name' }}</span>
                         </div>
 
                         <div class="grid gap-1">
-                            <Label>Title text <span class="font-normal text-muted-foreground">(blank = company name)</span></Label>
+                            <Label>Title text <span class="text-muted-foreground font-normal">(blank = company name)</span></Label>
                             <Input v-model="title.text" placeholder="Your company name" />
                         </div>
 
@@ -364,7 +364,7 @@ function save() {
                             </div>
                             <div class="grid gap-1">
                                 <Label>Shadow</Label>
-                                <select v-model="title.shadow" class="h-9 w-full rounded-md border border-input bg-background px-2 text-sm">
+                                <select v-model="title.shadow" class="border-input bg-background h-9 w-full rounded-md border px-2 text-sm">
                                     <option v-for="o in TITLE_SHADOWS" :key="o.value" :value="o.value">{{ o.label }}</option>
                                 </select>
                             </div>
@@ -373,19 +373,19 @@ function save() {
                         <div class="grid grid-cols-3 gap-2">
                             <div class="grid gap-1">
                                 <Label>Size</Label>
-                                <select v-model="title.size" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select v-model="title.size" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option v-for="o in TITLE_SIZES" :key="o.value" :value="o.value">{{ o.label }}</option>
                                 </select>
                             </div>
                             <div class="grid gap-1">
                                 <Label>Weight</Label>
-                                <select v-model="title.weight" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select v-model="title.weight" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option v-for="o in TITLE_WEIGHTS" :key="o.value" :value="o.value">{{ o.label }}</option>
                                 </select>
                             </div>
                             <div class="grid gap-1">
                                 <Label>Spacing</Label>
-                                <select v-model="title.tracking" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select v-model="title.tracking" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option v-for="o in TITLE_TRACKINGS" :key="o.value" :value="o.value">{{ o.label }}</option>
                                 </select>
                             </div>
@@ -402,19 +402,19 @@ function save() {
                         </div>
                         <div v-if="title.color_type === 'solid'" class="flex items-center gap-2">
                             <label class="flex items-center gap-1.5"
-                                ><input v-model="useCustomColor" type="checkbox" class="size-4 rounded border-input" /> Custom color</label
+                                ><input v-model="useCustomColor" type="checkbox" class="border-input size-4 rounded" /> Custom color</label
                             >
                             <input
                                 v-if="title.color !== null"
                                 v-model="title.color"
                                 type="color"
-                                class="h-8 w-12 rounded border border-input bg-background"
+                                class="border-input bg-background h-8 w-12 rounded border"
                             />
                         </div>
                         <div v-else class="flex items-center gap-2">
-                            <input v-model="title.gradient_start" type="color" class="h-8 w-9 rounded border border-input" title="Start color" />
-                            <input v-model="title.gradient_via" type="color" class="h-8 w-9 rounded border border-input" title="Middle color" />
-                            <input v-model="title.gradient_end" type="color" class="h-8 w-9 rounded border border-input" title="End color" />
+                            <input v-model="title.gradient_start" type="color" class="border-input h-8 w-9 rounded border" title="Start color" />
+                            <input v-model="title.gradient_via" type="color" class="border-input h-8 w-9 rounded border" title="Middle color" />
+                            <input v-model="title.gradient_end" type="color" class="border-input h-8 w-9 rounded border" title="End color" />
                             <div class="ml-auto flex items-center gap-1.5">
                                 <Label class="text-xs">Angle</Label>
                                 <Input v-model.number="title.gradient_angle" type="number" min="0" max="360" class="w-16" />
@@ -423,11 +423,11 @@ function save() {
 
                         <div class="flex items-center gap-2">
                             <label class="flex items-center gap-1.5"
-                                ><input v-model="title.outline" type="checkbox" class="size-4 rounded border-input" /> Outline</label
+                                ><input v-model="title.outline" type="checkbox" class="border-input size-4 rounded" /> Outline</label
                             >
                             <template v-if="title.outline">
-                                <input v-model="title.outline_color" type="color" class="h-8 w-9 rounded border border-input" title="Outline color" />
-                                <select v-model.number="title.outline_width" class="h-8 rounded-md border border-input bg-background px-2 text-sm">
+                                <input v-model="title.outline_color" type="color" class="border-input h-8 w-9 rounded border" title="Outline color" />
+                                <select v-model.number="title.outline_width" class="border-input bg-background h-8 rounded-md border px-2 text-sm">
                                     <option :value="1">Thin</option>
                                     <option :value="2">Medium</option>
                                     <option :value="3">Thick</option>
@@ -438,21 +438,21 @@ function save() {
                 </div>
 
                 <!-- AI chat assistant -->
-                <div class="rounded-xl border border-border">
+                <div class="border-border rounded-xl border">
                     <button
                         type="button"
                         class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
                         @click="toggleOpen('__chat')"
                     >
                         AI chat assistant
-                        <ChevronDown class="size-4 text-muted-foreground transition-transform" :class="expanded === '__chat' ? 'rotate-180' : ''" />
+                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__chat' ? 'rotate-180' : ''" />
                     </button>
-                    <div v-show="expanded === '__chat'" class="space-y-2 border-t border-border bg-muted/20 p-4 text-sm">
+                    <div v-show="expanded === '__chat'" class="border-border bg-muted/20 space-y-2 border-t p-4 text-sm">
                         <label class="flex items-center gap-2">
-                            <input v-model="theme.chatbot" type="checkbox" class="size-4 rounded border-input" />
+                            <input v-model="theme.chatbot" type="checkbox" class="border-input size-4 rounded" />
                             <span>Show a lead-capture chat widget on the public site</span>
                         </label>
-                        <p class="text-xs text-muted-foreground">
+                        <p class="text-muted-foreground text-xs">
                             Answers visitor questions and captures leads. Uses your AI allowance; appears only while AI is configured.
                         </p>
                     </div>
@@ -461,13 +461,13 @@ function save() {
                 <!-- Sections -->
                 <draggable v-model="sections" item-key="key" handle=".drag-handle" :animation="150" class="space-y-2">
                     <template #item="{ element: s }">
-                        <div class="rounded-xl border border-border">
+                        <div class="border-border rounded-xl border">
                             <div class="flex items-center gap-2 px-3 py-2.5">
-                                <GripVertical class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
+                                <GripVertical class="drag-handle text-muted-foreground size-4 shrink-0 cursor-grab active:cursor-grabbing" />
                                 <button type="button" class="flex flex-1 items-center gap-2 text-left text-sm font-medium" @click="toggleOpen(s.key)">
                                     {{ sectionLabel(s) }}
                                     <ChevronDown
-                                        class="size-4 text-muted-foreground transition-transform"
+                                        class="text-muted-foreground size-4 transition-transform"
                                         :class="expanded === s.key ? 'rotate-180' : ''"
                                     />
                                 </button>
@@ -481,7 +481,7 @@ function save() {
                                 </button>
                             </div>
 
-                            <div v-show="expanded === s.key" class="space-y-3 border-t border-border bg-muted/20 p-4 text-sm">
+                            <div v-show="expanded === s.key" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
                                 <!-- HERO -->
                                 <template v-if="s.key === 'hero'">
                                     <div class="grid gap-1"><Label>Headline</Label><Input v-model="s.headline" /></div>
@@ -574,7 +574,7 @@ function save() {
                                                 ><input
                                                     type="color"
                                                     :value="strOr(s.gradient_start, '#0f172a')"
-                                                    class="h-9 w-full rounded border border-input"
+                                                    class="border-input h-9 w-full rounded border"
                                                     @input="s.gradient_start = ($event.target as HTMLInputElement).value"
                                                 />
                                             </div>
@@ -583,7 +583,7 @@ function save() {
                                                 ><input
                                                     type="color"
                                                     :value="strOr(s.gradient_end, '#0369a1')"
-                                                    class="h-9 w-full rounded border border-input"
+                                                    class="border-input h-9 w-full rounded border"
                                                     @input="s.gradient_end = ($event.target as HTMLInputElement).value"
                                                 />
                                             </div>
@@ -671,11 +671,11 @@ function save() {
                                 <!-- SERVICES -->
                                 <template v-else-if="s.key === 'services'">
                                     <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="space-y-2 rounded-lg border border-border bg-background p-3">
+                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="border-border bg-background space-y-2 rounded-lg border p-3">
                                         <div class="flex items-center justify-between">
-                                            <span class="text-xs font-medium text-muted-foreground">Service {{ i + 1 }}</span
+                                            <span class="text-muted-foreground text-xs font-medium">Service {{ i + 1 }}</span
                                             ><button type="button" @click="removeItem(s, i)">
-                                                <Trash2 class="size-4 text-muted-foreground hover:text-red-600" />
+                                                <Trash2 class="text-muted-foreground size-4 hover:text-red-600" />
                                             </button>
                                         </div>
                                         <div class="flex items-center gap-2">
@@ -698,9 +698,9 @@ function save() {
                                     <div>
                                         <Label
                                             >Featured photos
-                                            <span class="font-normal text-muted-foreground">(tap to feature on your site)</span></Label
+                                            <span class="text-muted-foreground font-normal">(tap to feature on your site)</span></Label
                                         >
-                                        <p v-if="!photos.length" class="mt-1 text-xs text-muted-foreground">
+                                        <p v-if="!photos.length" class="text-muted-foreground mt-1 text-xs">
                                             No visit photos yet — photos your team uploads on visits will appear here to feature.
                                         </p>
                                         <div v-else class="mt-2 grid grid-cols-4 gap-2">
@@ -720,7 +720,7 @@ function save() {
                                                 />
                                                 <span
                                                     v-if="p.is_showcase"
-                                                    class="absolute right-1 top-1 rounded-full bg-primary p-0.5 text-primary-foreground"
+                                                    class="bg-primary text-primary-foreground absolute top-1 right-1 rounded-full p-0.5"
                                                     ><Star class="size-3"
                                                 /></span>
                                             </button>
@@ -731,8 +731,8 @@ function save() {
                                 <!-- TEAM -->
                                 <template v-else-if="s.key === 'team'">
                                     <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <p v-if="!agents.length" class="text-xs text-muted-foreground">No team members to show yet.</p>
-                                    <div v-for="a in agents" :key="a.id" class="rounded-lg border border-border bg-background p-3">
+                                    <p v-if="!agents.length" class="text-muted-foreground text-xs">No team members to show yet.</p>
+                                    <div v-for="a in agents" :key="a.id" class="border-border bg-background rounded-lg border p-3">
                                         <div class="flex items-center gap-3">
                                             <label class="flex flex-1 items-center gap-2 font-medium"
                                                 ><input type="checkbox" :checked="!!memberOf(s, a.id)" @change="toggleMember(s, a.id)" />
@@ -765,10 +765,10 @@ function save() {
                                         <Label>Area caption</Label><Input v-model="s.radius_label" placeholder="Serving a 25-mile radius" />
                                     </div>
                                     <div class="grid gap-1">
-                                        <Label>Center ZIP code <span class="font-normal text-muted-foreground">(optional)</span></Label>
+                                        <Label>Center ZIP code <span class="text-muted-foreground font-normal">(optional)</span></Label>
                                         <Input v-model="s.zip" placeholder="e.g. 90210" class="w-40" />
                                     </div>
-                                    <p class="text-xs text-muted-foreground">
+                                    <p class="text-muted-foreground text-xs">
                                         The map centers on your business address (set in
                                         <a href="/company" class="text-primary">Company settings</a>). Enter a ZIP code to center it there instead —
                                         useful to show a service area without revealing your exact address.
@@ -778,11 +778,11 @@ function save() {
                                 <!-- TESTIMONIALS -->
                                 <template v-else-if="s.key === 'testimonials'">
                                     <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="space-y-2 rounded-lg border border-border bg-background p-3">
+                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="border-border bg-background space-y-2 rounded-lg border p-3">
                                         <div class="flex items-center justify-between">
-                                            <span class="text-xs font-medium text-muted-foreground">Review {{ i + 1 }}</span
+                                            <span class="text-muted-foreground text-xs font-medium">Review {{ i + 1 }}</span
                                             ><button type="button" @click="removeItem(s, i)">
-                                                <Trash2 class="size-4 text-muted-foreground hover:text-red-600" />
+                                                <Trash2 class="text-muted-foreground size-4 hover:text-red-600" />
                                             </button>
                                         </div>
                                         <textarea v-model="it.quote" rows="2" :class="taClass" placeholder="Quote" />
@@ -798,11 +798,11 @@ function save() {
                                 <!-- FAQ -->
                                 <template v-else-if="s.key === 'faq'">
                                     <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="space-y-2 rounded-lg border border-border bg-background p-3">
+                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="border-border bg-background space-y-2 rounded-lg border p-3">
                                         <div class="flex items-center justify-between">
-                                            <span class="text-xs font-medium text-muted-foreground">Q{{ i + 1 }}</span
+                                            <span class="text-muted-foreground text-xs font-medium">Q{{ i + 1 }}</span
                                             ><button type="button" @click="removeItem(s, i)">
-                                                <Trash2 class="size-4 text-muted-foreground hover:text-red-600" />
+                                                <Trash2 class="text-muted-foreground size-4 hover:text-red-600" />
                                             </button>
                                         </div>
                                         <Input v-model="it.q" placeholder="Question" />
@@ -828,7 +828,7 @@ function save() {
                                 <template v-else-if="s.key === 'quote' || s.key === 'booking'">
                                     <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
                                     <div class="grid gap-1"><Label>Blurb</Label><textarea v-model="s.blurb" rows="2" :class="taClass" /></div>
-                                    <p class="text-xs text-muted-foreground">
+                                    <p class="text-muted-foreground text-xs">
                                         Uses your active services and their prices. Set prices under Services.
                                     </p>
                                 </template>
@@ -846,16 +846,16 @@ function save() {
 
             <!-- Live preview (faux browser frame) -->
             <aside class="sticky top-4 hidden flex-1 xl:block">
-                <div class="overflow-hidden rounded-xl border border-border shadow-lg">
-                    <div class="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                <div class="border-border overflow-hidden rounded-xl border shadow-lg">
+                    <div class="border-border bg-muted/50 text-muted-foreground flex items-center gap-2 border-b px-3 py-2 text-xs">
                         <ArrowLeft class="size-3.5" />
                         <ArrowRight class="size-3.5 opacity-40" />
                         <RotateCw class="size-3.5" />
-                        <span class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-background px-3 py-1">
+                        <span class="bg-background ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full px-3 py-1">
                             <Lock class="size-3 text-emerald-600" /> routepilot.pro/t/{{ brand.slug }}
                         </span>
                     </div>
-                    <div class="h-[calc(100vh-9rem)] overflow-y-auto bg-background">
+                    <div class="bg-background h-[calc(100vh-9rem)] overflow-y-auto">
                         <div class="preview-live landing-scale">
                             <SectionRenderer :sections="enabledDraft" :live="live" :brand="brand" editing />
                         </div>

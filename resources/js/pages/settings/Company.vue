@@ -95,9 +95,9 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="px-4 py-6">
-            <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-x-12 lg:space-y-0">
+            <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
                 <aside class="w-full max-w-xl lg:w-48">
-                    <nav class="flex flex-col space-x-0 space-y-1">
+                    <nav class="flex flex-col space-y-1 space-x-0">
                         <Button
                             v-for="tab in tabs"
                             :key="tab.key"
@@ -136,7 +136,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                     <select
                                         id="timezone"
                                         v-model="form.timezone"
-                                        class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                        class="border-input bg-background h-9 rounded-md border px-3 text-sm"
                                     >
                                         <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                                     </select>
@@ -150,7 +150,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                             <div class="grid gap-2">
                                 <Label for="brand">Brand color</Label>
                                 <div class="flex items-center gap-2">
-                                    <input id="brand" v-model="form.brand_color" type="color" class="h-9 w-12 rounded border border-input" />
+                                    <input id="brand" v-model="form.brand_color" type="color" class="border-input h-9 w-12 rounded border" />
                                     <Input v-model="form.brand_color" class="max-w-32" />
                                 </div>
                                 <p v-if="form.errors.brand_color" class="text-sm text-red-600">{{ form.errors.brand_color }}</p>
@@ -166,7 +166,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                     <p v-if="form.errors.address_line1" class="text-sm text-red-600">{{ form.errors.address_line1 }}</p>
                                 </div>
                                 <div class="grid gap-2">
-                                    <Label for="addr2">Suite / unit <span class="font-normal text-muted-foreground">(optional)</span></Label>
+                                    <Label for="addr2">Suite / unit <span class="text-muted-foreground font-normal">(optional)</span></Label>
                                     <Input id="addr2" v-model="form.address_line2" autocomplete="address-line2" />
                                 </div>
                             </div>
@@ -229,7 +229,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                     <select
                                         id="enc"
                                         v-model="mailForm.encryption"
-                                        class="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                        class="border-input bg-background h-9 rounded-md border px-3 text-sm"
                                     >
                                         <option value="tls">TLS</option>
                                         <option value="ssl">SSL</option>

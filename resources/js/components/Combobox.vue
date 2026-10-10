@@ -97,7 +97,7 @@ function enter() {
             :aria-expanded="open"
             :placeholder="placeholder"
             :disabled="disabled"
-            class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm disabled:opacity-60"
+            class="border-input bg-background h-9 w-full rounded-md border px-3 text-sm disabled:opacity-60"
             @input="onInput"
             @focus="onFocus"
             @blur="onBlur"
@@ -108,7 +108,7 @@ function enter() {
         />
         <ul
             v-if="open && filtered.length"
-            class="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-popover py-1 text-popover-foreground shadow-md"
+            class="border-border bg-popover text-popover-foreground absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-md border py-1 shadow-md"
         >
             <li
                 v-for="(o, i) in filtered"
@@ -123,7 +123,7 @@ function enter() {
         </ul>
         <p
             v-else-if="open && query.trim() !== ''"
-            class="absolute z-30 mt-1 w-full rounded-md border border-border bg-popover px-3 py-2 text-sm text-muted-foreground shadow-md"
+            class="border-border bg-popover text-muted-foreground absolute z-30 mt-1 w-full rounded-md border px-3 py-2 text-sm shadow-md"
         >
             No matches.
         </p>

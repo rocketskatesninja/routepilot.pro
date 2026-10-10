@@ -11,15 +11,15 @@ defineProps<{
 </script>
 
 <template>
-    <div class="min-h-svh bg-muted/30 text-foreground">
+    <div class="bg-muted/30 text-foreground min-h-svh">
         <!-- Header -->
-        <header class="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
+        <header class="border-border bg-background/90 sticky top-0 z-30 border-b backdrop-blur">
             <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
                 <Link href="/" class="flex items-center gap-2 text-lg font-bold">
                     <span class="flex size-7 items-center justify-center rounded-md bg-orange-500 text-white"><RouteIcon class="size-4" /></span>
                     <span><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span>
                 </Link>
-                <Link href="/" class="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                <Link href="/" class="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors">
                     <ArrowLeft class="size-4" /> Back to Home
                 </Link>
             </div>
@@ -27,7 +27,7 @@ defineProps<{
 
         <!-- Hero -->
         <div class="px-4 py-12 text-center text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0369a1 100%)">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-300">Legal</p>
+            <p class="mb-2 text-xs font-semibold tracking-widest text-sky-300 uppercase">Legal</p>
             <h1 class="text-3xl font-bold sm:text-4xl">{{ title }}</h1>
             <p class="mx-auto mt-3 max-w-xl text-sky-100/80">{{ subtitle }}</p>
             <p class="mt-3 text-xs text-sky-300/70">{{ updated }}</p>
@@ -36,13 +36,13 @@ defineProps<{
         <!-- Body -->
         <div class="mx-auto max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid lg:grid-cols-4">
             <aside class="hidden lg:block">
-                <nav class="sticky top-20 rounded-xl border border-border bg-background p-4">
-                    <p class="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Contents</p>
+                <nav class="border-border bg-background sticky top-20 rounded-xl border p-4">
+                    <p class="text-muted-foreground mb-3 text-xs font-semibold tracking-widest uppercase">Contents</p>
                     <ul class="space-y-0.5">
                         <li v-for="t in toc" :key="t.id">
                             <a
                                 :href="`#${t.id}`"
-                                class="block rounded px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-primary/5 hover:text-primary"
+                                class="text-muted-foreground hover:bg-primary/5 hover:text-primary block rounded px-2 py-1 text-sm transition-colors"
                                 >{{ t.label }}</a
                             >
                         </li>
@@ -53,12 +53,12 @@ defineProps<{
         </div>
 
         <!-- Footer -->
-        <footer class="border-t border-border bg-background py-6">
+        <footer class="border-border bg-background border-t py-6">
             <div class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 sm:flex-row sm:px-6">
-                <p class="text-sm text-muted-foreground">© {{ new Date().getFullYear() }} Punchlist Labs. All rights reserved.</p>
+                <p class="text-muted-foreground text-sm">© {{ new Date().getFullYear() }} Punchlist Labs. All rights reserved.</p>
                 <div class="flex gap-4 text-sm">
-                    <Link href="/privacy" class="text-muted-foreground transition-colors hover:text-foreground">Privacy Policy</Link>
-                    <Link href="/terms" class="text-muted-foreground transition-colors hover:text-foreground">Terms of Service</Link>
+                    <Link href="/privacy" class="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+                    <Link href="/terms" class="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
                 </div>
             </div>
         </footer>

@@ -19,13 +19,13 @@ defineProps<{ data: Activity[] }>();
 
 <template>
     <div class="h-full overflow-y-auto">
-        <ul v-if="data.length" class="divide-y divide-border text-sm">
+        <ul v-if="data.length" class="divide-border divide-y text-sm">
             <li v-for="a in data" :key="a.key">
                 <component
                     :is="a.report_url ? Link : 'div'"
                     :href="a.report_url ?? undefined"
                     class="-mx-1 flex items-center justify-between gap-2 rounded px-1 py-2.5"
-                    :class="a.report_url ? 'cursor-pointer hover:bg-muted hover:text-foreground' : ''"
+                    :class="a.report_url ? 'hover:bg-muted hover:text-foreground cursor-pointer' : ''"
                 >
                     <span class="flex min-w-0 items-center gap-2">
                         <EntityAvatar :src="a.pool_photo" type="pool" :name="a.pool" size="sm" />
@@ -34,7 +34,7 @@ defineProps<{ data: Activity[] }>();
                             <span class="text-muted-foreground"> · {{ a.agent }}</span>
                         </span>
                     </span>
-                    <span class="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <span class="text-muted-foreground flex shrink-0 items-center gap-1.5 text-xs">
                         <span
                             v-if="a.status === 'skipped'"
                             class="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-amber-600 dark:text-amber-400"

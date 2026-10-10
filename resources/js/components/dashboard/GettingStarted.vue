@@ -29,21 +29,21 @@ const dismiss = () => {
 
 <template>
     <Card class="overflow-hidden border-sky-500/30 bg-gradient-to-br from-sky-500/[0.07] to-orange-500/[0.05]">
-        <div class="flex flex-wrap items-center gap-3 border-b border-border/60 px-4 py-3">
+        <div class="border-border/60 flex flex-wrap items-center gap-3 border-b px-4 py-3">
             <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400">
                 <Rocket class="size-5" />
             </span>
             <div class="min-w-0 flex-1">
-                <h2 class="text-sm font-semibold text-foreground">Getting started</h2>
-                <p class="text-xs text-muted-foreground">Finish setting up RoutePilot — {{ data.done }} of {{ data.total }} done</p>
+                <h2 class="text-foreground text-sm font-semibold">Getting started</h2>
+                <p class="text-muted-foreground text-xs">Finish setting up RoutePilot — {{ data.done }} of {{ data.total }} done</p>
             </div>
             <div class="flex items-center gap-3">
-                <div class="hidden h-1.5 w-28 overflow-hidden rounded-full bg-border sm:block" role="progressbar" :aria-valuenow="pct">
+                <div class="bg-border hidden h-1.5 w-28 overflow-hidden rounded-full sm:block" role="progressbar" :aria-valuenow="pct">
                     <div class="h-full rounded-full bg-sky-500 transition-[width] duration-500" :style="{ width: pct + '%' }" />
                 </div>
                 <button
                     type="button"
-                    class="shrink-0 rounded px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    class="text-muted-foreground hover:text-foreground shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors"
                     @click="dismiss"
                 >
                     Dismiss for now
@@ -51,11 +51,11 @@ const dismiss = () => {
             </div>
         </div>
 
-        <ul class="divide-y divide-border/60">
+        <ul class="divide-border/60 divide-y">
             <li v-for="step in rows" :key="step.key">
                 <Link
                     :href="step.href"
-                    class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50"
+                    class="hover:bg-muted/50 flex items-center gap-3 px-4 py-2.5 transition-colors"
                     :class="{ 'bg-sky-500/[0.06]': step.key === nextKey }"
                 >
                     <span
@@ -74,17 +74,17 @@ const dismiss = () => {
                     </span>
                     <span
                         class="flex flex-1 items-center gap-2 text-sm"
-                        :class="step.done ? 'text-muted-foreground line-through' : 'font-medium text-foreground'"
+                        :class="step.done ? 'text-muted-foreground line-through' : 'text-foreground font-medium'"
                     >
                         {{ step.label }}
                         <span
                             v-if="step.optional"
-                            class="rounded-full border border-border px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground no-underline"
+                            class="border-border text-muted-foreground rounded-full border px-1.5 py-px text-[10px] font-medium tracking-wide uppercase no-underline"
                         >
                             Optional
                         </span>
                     </span>
-                    <ArrowRight v-if="!step.done" class="size-4 shrink-0 text-muted-foreground" />
+                    <ArrowRight v-if="!step.done" class="text-muted-foreground size-4 shrink-0" />
                 </Link>
             </li>
         </ul>

@@ -89,5 +89,5 @@ const xLabelIdx = computed(() => {
             {{ labels[i] }}
         </text>
     </svg>
-    <div v-else class="flex h-40 items-center justify-center text-sm text-muted-foreground">{{ emptyText }}</div>
+    <div v-else class="text-muted-foreground flex h-40 items-center justify-center text-sm">{{ emptyText }}</div>
 </template>

@@ -58,11 +58,11 @@ watch(
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4">
             <!-- new request -->
-            <form class="space-y-4 rounded-xl border border-border p-4 text-sm" @submit.prevent="submit">
+            <form class="border-border space-y-4 rounded-xl border p-4 text-sm" @submit.prevent="submit">
                 <h2 class="font-medium">Ask your service company</h2>
                 <div class="grid gap-1.5">
                     <Label for="type">What do you need?</Label>
-                    <select id="type" v-model="form.type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                    <select id="type" v-model="form.type" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                         <option value="service">Request a new / extra service</option>
                         <option value="hold">Request a vacation hold</option>
                     </select>
@@ -70,7 +70,7 @@ watch(
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="grid gap-1.5">
                         <Label for="pool">Pool (optional)</Label>
-                        <select id="pool" v-model="form.pool_id" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                        <select id="pool" v-model="form.pool_id" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                             <option value="">Any / all</option>
                             <option v-for="p in props.pools" :key="p.id" :value="p.id">{{ p.name }}</option>
                         </select>
@@ -87,7 +87,7 @@ watch(
                         id="message"
                         v-model="form.message"
                         rows="3"
-                        class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                         placeholder="Tell us what you need…"
                     ></textarea>
                     <p v-if="form.errors.message" class="text-xs text-red-600">{{ form.errors.message }}</p>
@@ -96,15 +96,15 @@ watch(
             </form>
 
             <!-- history -->
-            <div class="overflow-hidden rounded-xl border border-border">
-                <h2 class="border-b border-border px-4 py-2 font-medium">Your requests</h2>
-                <ul class="divide-y divide-border text-sm">
+            <div class="border-border overflow-hidden rounded-xl border">
+                <h2 class="border-border border-b px-4 py-2 font-medium">Your requests</h2>
+                <ul class="divide-border divide-y text-sm">
                     <li v-for="r in props.requests" :key="r.id" class="flex items-start justify-between gap-3 px-4 py-2.5">
                         <div>
                             <span class="font-medium capitalize">{{ r.type === 'hold' ? 'Vacation hold' : 'New service' }}</span>
                             <span v-if="r.pool" class="text-muted-foreground"> · {{ r.pool }}</span>
                             <p class="text-muted-foreground">{{ r.message }}</p>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-muted-foreground text-xs">
                                 {{ r.on }}<span v-if="r.preferred_date"> · prefers {{ r.preferred_date }}</span>
                             </p>
                         </div>
@@ -119,7 +119,7 @@ watch(
                             {{ r.status }}
                         </span>
                     </li>
-                    <li v-if="props.requests.length === 0" class="px-4 py-8 text-center text-muted-foreground">
+                    <li v-if="props.requests.length === 0" class="text-muted-foreground px-4 py-8 text-center">
                         <Inbox class="mx-auto mb-2 size-6 opacity-50" />
                         No requests yet.
                     </li>

@@ -23,7 +23,7 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
     <!-- Wraps to multiple rows on a phone (page actions get their own full-width row);
          a single fixed-height row on md+ where there's room. -->
     <header
-        class="flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b border-sidebar-border/70 px-4 py-2.5 transition-[width,height] ease-linear md:h-16 md:flex-nowrap md:py-0 group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12"
+        class="border-sidebar-border/70 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b px-4 py-2.5 transition-[width,height] ease-linear md:h-16 md:flex-nowrap md:py-0 group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12"
     >
         <div class="flex min-w-0 flex-1 items-center gap-2 md:flex-none">
             <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->
@@ -47,7 +47,7 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
                     </BreadcrumbList>
                 </Breadcrumb>
             </template>
-            <span v-if="meta" class="truncate text-sm text-muted-foreground">{{ meta }}</span>
+            <span v-if="meta" class="text-muted-foreground truncate text-sm">{{ meta }}</span>
         </div>
 
         <!-- Mobile quick actions stay pinned to the top row's right. -->
@@ -55,7 +55,7 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
             <button
                 v-if="isStaff"
                 type="button"
-                class="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                class="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-2 transition-colors"
                 aria-label="Search"
                 @click="openCommand()"
             >
@@ -63,13 +63,13 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
             </button>
             <Link
                 href="/notifications"
-                class="relative rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                class="text-muted-foreground hover:bg-muted hover:text-foreground relative rounded-md p-2 transition-colors"
                 aria-label="Notifications"
             >
                 <Bell class="size-5" />
                 <span
                     v-if="unread > 0"
-                    class="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    class="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
                     >{{ unread > 9 ? '9+' : unread }}</span
                 >
             </Link>
@@ -77,7 +77,7 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
 
         <!-- Filters (list tabs): their own scrollable row on mobile, inline after the title on desktop. -->
         <div v-if="$slots.filters" class="flex w-full items-center gap-1 overflow-x-auto md:w-auto">
-            <div class="hidden h-5 w-px shrink-0 bg-sidebar-border/70 md:block"></div>
+            <div class="bg-sidebar-border/70 hidden h-5 w-px shrink-0 md:block"></div>
             <slot name="filters" />
         </div>
 

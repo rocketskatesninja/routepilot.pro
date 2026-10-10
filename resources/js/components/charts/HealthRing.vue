@@ -39,7 +39,7 @@ const dash = computed(() => `${Math.max(0, Math.min(1, props.value)) * C} ${C}`)
         </svg>
         <div class="absolute px-2 text-center leading-tight">
             <div class="text-sm font-semibold" :style="{ color }">{{ label }}</div>
-            <div v-if="sublabel" class="text-[10px] text-muted-foreground">{{ sublabel }}</div>
+            <div v-if="sublabel" class="text-muted-foreground text-[10px]">{{ sublabel }}</div>
         </div>
     </div>
 </template>

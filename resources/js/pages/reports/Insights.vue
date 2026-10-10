@@ -92,27 +92,27 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                 <!-- metrics + charts -->
                 <div class="flex flex-col gap-4 xl:col-span-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                        <div v-for="c in cards" :key="c.label" class="flex flex-col rounded-xl border border-border p-4">
+                        <div v-for="c in cards" :key="c.label" class="border-border flex flex-col rounded-xl border p-4">
                             <div class="text-2xl font-semibold tabular-nums" :class="c.accent">{{ c.value }}</div>
-                            <div class="text-sm text-muted-foreground">{{ c.label }}</div>
+                            <div class="text-muted-foreground text-sm">{{ c.label }}</div>
                             <Sparkline v-if="c.series && c.series.length > 1" :values="c.series" :color="c.spark" class="mt-2" />
                         </div>
                     </div>
 
                     <div class="grid gap-4 lg:grid-cols-2">
-                        <div class="rounded-xl border border-border p-4">
+                        <div class="border-border rounded-xl border p-4">
                             <h2 class="mb-3 text-sm font-medium">Revenue · last 12 months</h2>
                             <LineChart :values="revenueValues" :labels="revenueLabels" :format="compactMoney" color="hsl(var(--chart-1))" />
                         </div>
-                        <div class="rounded-xl border border-border p-4">
+                        <div class="border-border rounded-xl border p-4">
                             <h2 class="mb-3 text-sm font-medium">Completed visits · last 12 weeks</h2>
                             <LineChart :values="visitValues" :labels="visitLabels" :format="(v) => String(v)" color="hsl(var(--chart-2))" />
                         </div>
-                        <div class="rounded-xl border border-border p-4">
+                        <div class="border-border rounded-xl border p-4">
                             <h2 class="mb-3 text-sm font-medium">Accounts receivable · aging</h2>
                             <BarChart :bars="arBars" :format="money" empty-text="Nothing outstanding." />
                         </div>
-                        <div class="rounded-xl border border-border p-4">
+                        <div class="border-border rounded-xl border p-4">
                             <h2 class="mb-3 text-sm font-medium">Top techs · this month</h2>
                             <BarChart
                                 :bars="techBars"
@@ -125,8 +125,8 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                 </div>
 
                 <!-- leads inbox -->
-                <div class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border xl:col-span-2">
-                    <h2 class="flex items-center justify-between border-b border-border px-4 py-2 font-medium">
+                <div class="border-border flex min-h-0 flex-col overflow-hidden rounded-xl border xl:col-span-2">
+                    <h2 class="border-border flex items-center justify-between border-b px-4 py-2 font-medium">
                         <span>Leads</span>
                         <span
                             v-if="props.new_leads"
@@ -134,26 +134,26 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                             >{{ props.new_leads }} new</span
                         >
                     </h2>
-                    <ul class="min-h-0 flex-1 divide-y divide-border overflow-y-auto text-sm">
+                    <ul class="divide-border min-h-0 flex-1 divide-y overflow-y-auto text-sm">
                         <li v-for="lead in props.leads" :key="lead.id" class="flex items-start justify-between gap-3 px-4 py-3">
                             <div class="min-w-0">
                                 <div class="font-medium">{{ lead.name }}</div>
-                                <div class="truncate text-xs text-muted-foreground">
+                                <div class="text-muted-foreground truncate text-xs">
                                     {{ lead.email ?? lead.phone ?? '—' }} · <span class="capitalize">{{ lead.source }}</span>
                                     <span v-if="lead.on"> · {{ lead.on }}</span>
                                 </div>
-                                <div v-if="lead.message" class="mt-0.5 truncate text-xs text-muted-foreground">{{ lead.message }}</div>
+                                <div v-if="lead.message" class="text-muted-foreground mt-0.5 truncate text-xs">{{ lead.message }}</div>
                             </div>
                             <select
                                 :value="lead.status"
-                                class="h-8 shrink-0 rounded-md border border-input bg-background px-2 text-xs font-medium capitalize"
+                                class="border-input bg-background h-8 shrink-0 rounded-md border px-2 text-xs font-medium capitalize"
                                 :class="statusClass(lead.status)"
                                 @change="setStatus(lead, ($event.target as HTMLSelectElement).value)"
                             >
                                 <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
                             </select>
                         </li>
-                        <li v-if="props.leads.length === 0" class="px-4 py-10 text-center text-muted-foreground">
+                        <li v-if="props.leads.length === 0" class="text-muted-foreground px-4 py-10 text-center">
                             <UserPlus class="mx-auto mb-2 size-6 opacity-50" />
                             No leads yet — they arrive from your public site.
                         </li>

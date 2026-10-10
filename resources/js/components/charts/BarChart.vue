@@ -27,12 +27,12 @@ const width = (v: number) => `${Math.max(v > 0 ? 2 : 0, (v / max.value) * 100)}%
 <template>
     <ul v-if="bars.length" class="space-y-2.5">
         <li v-for="(b, i) in bars" :key="i" class="grid grid-cols-[minmax(0,8rem)_1fr_auto] items-center gap-3 text-sm">
-            <span class="truncate text-muted-foreground" :title="b.label">{{ b.label }}</span>
-            <span class="relative h-2.5 overflow-hidden rounded-full bg-muted">
+            <span class="text-muted-foreground truncate" :title="b.label">{{ b.label }}</span>
+            <span class="bg-muted relative h-2.5 overflow-hidden rounded-full">
                 <span class="absolute inset-y-0 left-0 rounded-full" :style="{ width: width(b.value), backgroundColor: b.color ?? color }"></span>
             </span>
             <span class="font-medium tabular-nums">{{ format(b.value) }}</span>
         </li>
     </ul>
-    <p v-else class="py-6 text-center text-sm text-muted-foreground">{{ emptyText }}</p>
+    <p v-else class="text-muted-foreground py-6 text-center text-sm">{{ emptyText }}</p>
 </template>

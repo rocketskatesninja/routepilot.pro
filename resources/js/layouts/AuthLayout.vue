@@ -56,7 +56,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
             <!-- Product showcase: the real app, desktop + mobile, light/dark aware -->
             <div class="relative z-10 my-8 flex flex-1 items-center justify-center">
                 <div class="relative mx-auto w-full max-w-2xl">
-                    <div class="overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40 [rotate:-1.5deg]">
+                    <div class="[rotate:-1.5deg] overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40">
                         <div class="flex items-center gap-2 bg-slate-800 px-3 py-2 text-slate-400">
                             <ArrowLeft class="size-3.5" />
                             <ArrowRight class="size-3.5 opacity-40" />
@@ -73,14 +73,14 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                                     :src="light(name)"
                                     alt="RoutePilot app"
                                     loading="lazy"
-                                    class="duration-[1200ms] absolute inset-0 size-full object-cover object-top transition-opacity ease-in-out dark:hidden"
+                                    class="absolute inset-0 size-full object-cover object-top transition-opacity duration-[1200ms] ease-in-out dark:hidden"
                                     :class="i === current ? 'opacity-100' : 'opacity-0'"
                                 />
                                 <img
                                     :src="dark(name)"
                                     alt="RoutePilot app"
                                     loading="lazy"
-                                    class="duration-[1200ms] absolute inset-0 hidden size-full object-cover object-top transition-opacity ease-in-out dark:block"
+                                    class="absolute inset-0 hidden size-full object-cover object-top transition-opacity duration-[1200ms] ease-in-out dark:block"
                                     :class="i === current ? 'opacity-100' : 'opacity-0'"
                                 />
                             </template>
@@ -89,7 +89,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 
                     <!-- phone carousel -->
                     <div
-                        class="absolute -bottom-6 right-2 w-24 overflow-hidden rounded-[1.4rem] border-4 border-slate-800 shadow-2xl [rotate:4deg] sm:w-28"
+                        class="absolute right-2 -bottom-6 w-24 [rotate:4deg] overflow-hidden rounded-[1.4rem] border-4 border-slate-800 shadow-2xl sm:w-28"
                     >
                         <div class="relative aspect-[390/640] bg-white dark:bg-slate-900">
                             <template v-for="(name, i) in phones" :key="name">
@@ -97,14 +97,14 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                                     :src="light(name)"
                                     alt="RoutePilot mobile"
                                     loading="lazy"
-                                    class="duration-[1200ms] absolute inset-0 size-full object-cover object-top transition-opacity ease-in-out dark:hidden"
+                                    class="absolute inset-0 size-full object-cover object-top transition-opacity duration-[1200ms] ease-in-out dark:hidden"
                                     :class="i === phoneCurrent ? 'opacity-100' : 'opacity-0'"
                                 />
                                 <img
                                     :src="dark(name)"
                                     alt="RoutePilot mobile"
                                     loading="lazy"
-                                    class="duration-[1200ms] absolute inset-0 hidden size-full object-cover object-top transition-opacity ease-in-out dark:block"
+                                    class="absolute inset-0 hidden size-full object-cover object-top transition-opacity duration-[1200ms] ease-in-out dark:block"
                                     :class="i === phoneCurrent ? 'opacity-100' : 'opacity-0'"
                                 />
                             </template>
@@ -114,7 +114,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
             </div>
 
             <div class="relative z-10 max-w-md">
-                <p class="text-2xl font-bold leading-snug">Route smarter. Dose precisely. Get paid faster.</p>
+                <p class="text-2xl leading-snug font-bold">Route smarter. Dose precisely. Get paid faster.</p>
                 <p class="mt-3 text-sm text-sky-100/70">
                     The complete pool service platform — routing, chemistry, billing, and a customer portal in one place.
                 </p>
@@ -122,7 +122,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
         </div>
 
         <!-- Form panel -->
-        <div class="flex flex-col items-center justify-center bg-background p-6 sm:p-10">
+        <div class="bg-background flex flex-col items-center justify-center p-6 sm:p-10">
             <div class="w-full max-w-sm">
                 <!-- Mobile logo -->
                 <Link href="/" class="mb-8 flex items-center justify-center gap-2 text-2xl font-bold lg:hidden">
@@ -134,7 +134,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 
                 <div class="mb-6 flex flex-col gap-2">
                     <h1 v-if="title" class="text-2xl font-bold tracking-tight">{{ title }}</h1>
-                    <p v-if="description" class="text-sm text-muted-foreground">{{ description }}</p>
+                    <p v-if="description" class="text-muted-foreground text-sm">{{ description }}</p>
                 </div>
 
                 <slot />

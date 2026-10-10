@@ -20,11 +20,11 @@ const widths: Record<'default' | 'sm' | 'xs', string> = {
 </script>
 
 <template>
-    <section :id="id" class="px-4 py-20 sm:px-6" :class="tinted ? 'border-y border-border bg-muted/40' : ''">
+    <section :id="id" class="px-4 py-20 sm:px-6" :class="tinted ? 'border-border bg-muted/40 border-y' : ''">
         <div class="mx-auto" :class="widths[width ?? 'default']">
             <div v-if="heading" class="mb-12 text-center">
-                <h2 class="section-heading reveal text-2xl font-bold text-foreground sm:text-3xl">{{ heading }}</h2>
-                <p v-if="subheading" class="reveal mt-3 text-muted-foreground">{{ subheading }}</p>
+                <h2 class="section-heading reveal text-foreground text-2xl font-bold sm:text-3xl">{{ heading }}</h2>
+                <p v-if="subheading" class="reveal text-muted-foreground mt-3">{{ subheading }}</p>
             </div>
             <slot />
         </div>

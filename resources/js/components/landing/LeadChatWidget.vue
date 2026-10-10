@@ -54,38 +54,38 @@ async function send() {
 </script>
 
 <template>
-    <div class="fixed bottom-5 right-5 z-50 print:hidden">
+    <div class="fixed right-5 bottom-5 z-50 print:hidden">
         <!-- panel -->
         <transition name="chat-pop">
             <div
                 v-if="open"
-                class="mb-3 flex h-[28rem] w-[20rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+                class="border-border bg-background mb-3 flex h-[28rem] w-[20rem] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border shadow-2xl"
             >
-                <header class="flex items-center justify-between gap-2 bg-primary px-4 py-3 text-primary-foreground">
+                <header class="bg-primary text-primary-foreground flex items-center justify-between gap-2 px-4 py-3">
                     <span class="font-semibold">{{ company }}</span>
                     <button class="rounded p-1 hover:bg-white/15" aria-label="Close chat" @click="toggle"><X class="size-4" /></button>
                 </header>
                 <div ref="scroller" class="flex-1 space-y-3 overflow-y-auto p-3">
                     <div v-for="(m, i) in messages" :key="i" class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
                         <div
-                            class="max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm"
+                            class="max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap"
                             :class="m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'"
                         >
                             {{ m.content }}
                         </div>
                     </div>
-                    <div v-if="sending" class="text-xs text-muted-foreground">Typing…</div>
+                    <div v-if="sending" class="text-muted-foreground text-xs">Typing…</div>
                 </div>
-                <form class="flex items-center gap-2 border-t border-border p-2" @submit.prevent="send">
+                <form class="border-border flex items-center gap-2 border-t p-2" @submit.prevent="send">
                     <input
                         v-model="input"
                         placeholder="Type a message…"
-                        class="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                        class="border-input bg-background focus:ring-primary min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm focus:ring-1 focus:outline-none"
                     />
                     <button
                         type="submit"
                         :disabled="sending"
-                        class="rounded-lg bg-primary p-2 text-primary-foreground disabled:opacity-60"
+                        class="bg-primary text-primary-foreground rounded-lg p-2 disabled:opacity-60"
                         aria-label="Send"
                     >
                         <Send class="size-4" />
@@ -96,7 +96,7 @@ async function send() {
 
         <!-- launcher -->
         <button
-            class="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl transition hover:scale-105"
+            class="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-full shadow-xl transition hover:scale-105"
             :aria-label="open ? 'Close chat' : 'Open chat'"
             @click="toggle"
         >

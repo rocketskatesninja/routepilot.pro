@@ -485,17 +485,17 @@ function submitTargets() {
                                     <span class="font-medium">{{ item.name }}</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-2.5 text-muted-foreground">
+                            <td class="text-muted-foreground px-4 py-2.5">
                                 <div class="flex items-center gap-2">
                                     <EntityAvatar :src="item.customer_photo" type="person" :name="item.customer" size="sm" shape="circle" />
                                     <span>{{ item.customer }}</span>
                                 </div>
                             </td>
-                            <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 capitalize md:table-cell">
                                 {{ item.type.replace('_', ' ') }}
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ item.cadence ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ item.cadence ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">
                                 <div v-if="item.agent" class="flex items-center gap-2">
                                     <EntityAvatar :src="item.agent_photo" type="person" :name="item.agent" size="sm" shape="circle" />
                                     <span>{{ item.agent }}</span>
@@ -515,7 +515,7 @@ function submitTargets() {
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New pool' : 'Edit pool' }}</h2>
-                            <p class="text-sm text-muted-foreground">Specs, equipment, and the service location.</p>
+                            <p class="text-muted-foreground text-sm">Specs, equipment, and the service location.</p>
                         </div>
                         <ImageUpload
                             :model-value="photoFile"
@@ -541,7 +541,7 @@ function submitTargets() {
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="type">Type</Label>
-                                <select id="type" v-model="form.type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select id="type" v-model="form.type" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option value="inground">In-ground</option>
                                     <option value="above_ground">Above ground</option>
                                     <option value="spa">Spa</option>
@@ -561,7 +561,7 @@ function submitTargets() {
                                 <select
                                     id="sanitizer"
                                     v-model="form.sanitizer_type"
-                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                                 >
                                     <option value="chlorine">Chlorine</option>
                                     <option value="salt">Salt</option>
@@ -574,7 +574,7 @@ function submitTargets() {
                             </div>
                             <div class="grid gap-1.5">
                                 <Label for="filter">Filter</Label>
-                                <select id="filter" v-model="form.filter_type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select id="filter" v-model="form.filter_type" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option value="">—</option>
                                     <option value="cartridge">Cartridge</option>
                                     <option value="sand">Sand</option>
@@ -584,7 +584,7 @@ function submitTargets() {
                         </div>
 
                         <div>
-                            <span class="text-xs font-medium text-muted-foreground">Equipment</span>
+                            <span class="text-muted-foreground text-xs font-medium">Equipment</span>
                             <div class="mt-1 grid grid-cols-2 gap-1">
                                 <label v-for="e in equipmentToggles" :key="e.key" class="flex items-center gap-2"
                                     ><input v-model="form[e.key]" type="checkbox" /> {{ e.label }}</label
@@ -610,7 +610,7 @@ function submitTargets() {
                                 id="access"
                                 v-model="form.access_notes"
                                 rows="2"
-                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             ></textarea>
                         </div>
 
@@ -624,14 +624,14 @@ function submitTargets() {
                     <form v-else-if="subFormOpen" class="space-y-4 text-sm" @submit.prevent="submitSub">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ subFormMode === 'create' ? 'New service plan' : 'Edit service plan' }}</h2>
-                            <p class="text-sm text-muted-foreground">The cadence + agent the materializer schedules.</p>
+                            <p class="text-muted-foreground text-sm">The cadence + agent the materializer schedules.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="sub_service">Service type</Label>
                             <select
                                 id="sub_service"
                                 v-model="subForm.service_type_id"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
                                 <option value="">Select…</option>
                                 <option v-for="t in props.serviceTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
@@ -643,7 +643,7 @@ function submitTargets() {
                             <select
                                 id="sub_agent"
                                 v-model="subForm.assigned_agent_id"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                             >
                                 <option value="">Unassigned</option>
                                 <option v-for="a in props.agents" :key="a.id" :value="a.id">{{ a.name }}</option>
@@ -655,7 +655,7 @@ function submitTargets() {
                                 <select
                                     id="sub_freq"
                                     v-model="subForm.frequency"
-                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                                 >
                                     <option value="weekly">Weekly</option>
                                     <option value="biweekly">Biweekly</option>
@@ -669,7 +669,7 @@ function submitTargets() {
                                 <select
                                     id="sub_day"
                                     v-model="subForm.preferred_day"
-                                    class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
+                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm capitalize"
                                 >
                                     <option value="">Any</option>
                                     <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
@@ -678,7 +678,7 @@ function submitTargets() {
                         </div>
                         <div v-if="subFormMode === 'edit'" class="grid gap-1.5">
                             <Label for="sub_status">Status</Label>
-                            <select id="sub_status" v-model="subForm.status" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select id="sub_status" v-model="subForm.status" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                 <option value="active">Active</option>
                                 <option value="paused">Paused</option>
                                 <option value="cancelled">Cancelled</option>
@@ -705,14 +705,14 @@ function submitTargets() {
                     <form v-else-if="equipOpen" class="space-y-4 text-sm" @submit.prevent="submitEquip">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Add equipment</h2>
-                            <p class="text-sm text-muted-foreground">Track a pump, filter, heater, salt cell, etc.</p>
+                            <p class="text-muted-foreground text-sm">Track a pump, filter, heater, salt cell, etc.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="eq_type">Type</Label>
                             <select
                                 id="eq_type"
                                 v-model="equipForm.type"
-                                class="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize"
+                                class="border-input bg-background h-9 rounded-md border px-2 text-sm capitalize"
                             >
                                 <option v-for="t in equipmentTypes" :key="t" :value="t">{{ labelize(t) }}</option>
                             </select>
@@ -741,7 +741,7 @@ function submitTargets() {
                     <form v-else-if="serviceOpen" class="space-y-4 text-sm" @submit.prevent="submitService">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Log service</h2>
-                            <p class="text-sm text-muted-foreground">Record a repair or maintenance — optionally bill it.</p>
+                            <p class="text-muted-foreground text-sm">Record a repair or maintenance — optionally bill it.</p>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
@@ -770,7 +770,7 @@ function submitTargets() {
                     <form v-else-if="targetsOpen" class="space-y-3 text-sm" @submit.prevent="submitTargets">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Chemistry targets</h2>
-                            <p class="text-sm text-muted-foreground">Override the default target ranges for this pool. Blank = use defaults.</p>
+                            <p class="text-muted-foreground text-sm">Override the default target ranges for this pool. Blank = use defaults.</p>
                         </div>
                         <div v-for="p in chemParams" :key="p.key" class="grid grid-cols-3 items-center gap-3">
                             <Label class="text-muted-foreground">{{ p.label }}</Label>
@@ -788,7 +788,7 @@ function submitTargets() {
                             <EntityAvatar :src="props.selected.photo_url" type="pool" :name="props.selected.name" size="lg" />
                             <div>
                                 <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-sm text-muted-foreground">
+                                <p class="text-muted-foreground text-sm">
                                     <Link
                                         v-if="props.selected.customer.id"
                                         :href="customerLink(props.selected.customer.id)"
@@ -809,7 +809,7 @@ function submitTargets() {
                                 >
                             </div>
 
-                            <section v-if="props.selected.latest_reading?.health" class="rounded-lg border border-border p-3">
+                            <section v-if="props.selected.latest_reading?.health" class="border-border rounded-lg border p-3">
                                 <div class="flex items-center justify-between gap-2">
                                     <span
                                         class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
@@ -820,12 +820,12 @@ function submitTargets() {
                                     <Link
                                         v-if="props.selected.latest_reading.last_report_id"
                                         :href="reportLink(props.selected.latest_reading.last_report_id)"
-                                        class="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                                        class="text-primary inline-flex items-center gap-1 text-xs hover:underline"
                                     >
                                         <FileText class="size-3.5" /> Last report
                                     </Link>
                                 </div>
-                                <dl class="mt-2 grid grid-cols-3 gap-2 text-muted-foreground">
+                                <dl class="text-muted-foreground mt-2 grid grid-cols-3 gap-2">
                                     <div>
                                         <dt class="text-xs">Free Cl</dt>
                                         <dd>{{ props.selected.latest_reading.free_chlorine ?? '—' }}</dd>
@@ -843,7 +843,7 @@ function submitTargets() {
 
                             <section>
                                 <h3 class="mb-1 font-medium">Specs</h3>
-                                <dl class="space-y-1 text-muted-foreground">
+                                <dl class="text-muted-foreground space-y-1">
                                     <div class="flex justify-between">
                                         <dt>Type</dt>
                                         <dd class="capitalize">{{ props.selected.type.replace('_', ' ') }}</dd>
@@ -865,7 +865,7 @@ function submitTargets() {
 
                             <section v-if="props.selected.location">
                                 <h3 class="mb-1 font-medium">Location</h3>
-                                <dl class="space-y-1 text-muted-foreground">
+                                <dl class="text-muted-foreground space-y-1">
                                     <div class="flex justify-between">
                                         <dt>City</dt>
                                         <dd>{{ props.selected.location.city ?? '—' }}</dd>
@@ -891,10 +891,10 @@ function submitTargets() {
                                     <li
                                         v-for="sub in props.selected.subscriptions"
                                         :key="sub.id"
-                                        class="rounded-md border border-border p-2 text-muted-foreground"
+                                        class="border-border text-muted-foreground rounded-md border p-2"
                                     >
                                         <div class="flex items-center justify-between">
-                                            <span class="font-medium text-foreground">{{ sub.service }}</span>
+                                            <span class="text-foreground font-medium">{{ sub.service }}</span>
                                             <span
                                                 class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
                                                 :class="
@@ -920,7 +920,7 @@ function submitTargets() {
                                             <button class="text-red-600 hover:text-red-700" @click="removeSub(sub)">Remove</button>
                                         </div>
                                     </li>
-                                    <li v-if="props.selected.subscriptions.length === 0" class="text-sm text-muted-foreground">
+                                    <li v-if="props.selected.subscriptions.length === 0" class="text-muted-foreground text-sm">
                                         No service plans yet.
                                     </li>
                                 </ul>
@@ -937,10 +937,10 @@ function submitTargets() {
                                     <li
                                         v-for="item in props.selected.equipment_items"
                                         :key="item.id"
-                                        class="rounded-md border border-border p-2 text-muted-foreground"
+                                        class="border-border text-muted-foreground rounded-md border p-2"
                                     >
                                         <div class="flex items-center justify-between">
-                                            <span class="font-medium capitalize text-foreground">{{ labelize(item.type) }}</span>
+                                            <span class="text-foreground font-medium capitalize">{{ labelize(item.type) }}</span>
                                             <span v-if="item.make || item.model" class="text-xs">{{
                                                 [item.make, item.model].filter(Boolean).join(' ')
                                             }}</span>
@@ -956,7 +956,7 @@ function submitTargets() {
                                             <button class="text-red-600 hover:text-red-700" @click="removeEquip(item)">Remove</button>
                                         </div>
                                     </li>
-                                    <li v-if="props.selected.equipment_items.length === 0" class="text-sm text-muted-foreground">
+                                    <li v-if="props.selected.equipment_items.length === 0" class="text-muted-foreground text-sm">
                                         No equipment tracked yet.
                                     </li>
                                 </ul>

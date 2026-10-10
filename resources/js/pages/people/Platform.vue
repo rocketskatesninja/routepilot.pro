@@ -286,9 +286,9 @@ function closePane() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="overflow-hidden rounded-xl border border-border">
+                    <div class="border-border overflow-hidden rounded-xl border">
                         <table class="w-full text-sm">
-                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                            <thead class="bg-muted/50 text-muted-foreground text-left">
                                 <tr>
                                     <th v-if="emailOpen" class="w-10 px-4 py-2">
                                         <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
@@ -304,7 +304,7 @@ function closePane() {
                                 <tr
                                     v-for="row in props.people.data"
                                     :key="row.key"
-                                    class="cursor-pointer border-t border-border transition-colors"
+                                    class="border-border cursor-pointer border-t transition-colors"
                                     :class="
                                         (emailOpen && isPicked(row)) ||
                                         (!emailOpen && props.selected?.type === row.type && props.selected?.id === row.id)
@@ -333,11 +333,11 @@ function closePane() {
                                             <span class="font-medium">{{ row.name }}</span>
                                         </div>
                                     </td>
-                                    <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ row.sub ?? '—' }}</td>
-                                    <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ row.meta ?? '—' }}</td>
+                                    <td class="text-muted-foreground hidden px-4 py-2.5 capitalize md:table-cell">{{ row.sub ?? '—' }}</td>
+                                    <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">{{ row.meta ?? '—' }}</td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
-                                    <td :colspan="emailOpen ? 4 : 3" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td :colspan="emailOpen ? 4 : 3" class="text-muted-foreground px-4 py-10 text-center">
                                         <Users class="mx-auto mb-2 size-6 opacity-50" />
                                         Nobody here.
                                     </td>
@@ -345,7 +345,7 @@ function closePane() {
                             </tbody>
                         </table>
                     </div>
-                    <p class="mt-2 text-xs text-muted-foreground">Showing {{ props.people.data.length }} of {{ props.people.total }}.</p>
+                    <p class="text-muted-foreground mt-2 text-xs">Showing {{ props.people.data.length }} of {{ props.people.total }}.</p>
                 </template>
 
                 <template #detail>
@@ -353,7 +353,7 @@ function closePane() {
                     <form v-if="createOpen" class="space-y-4 text-sm" @submit.prevent="submitCreate">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">New tenant</h2>
-                            <p class="text-sm text-muted-foreground">Creates the company + its first admin (pre-verified).</p>
+                            <p class="text-muted-foreground text-sm">Creates the company + its first admin (pre-verified).</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="company">Company name</Label>
@@ -384,7 +384,7 @@ function closePane() {
                     <form v-else-if="editOpen" class="space-y-4 text-sm" @submit.prevent="submitEdit">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Edit tenant</h2>
-                            <p class="text-sm text-muted-foreground">Suspending locks the company's staff out (you keep impersonation access).</p>
+                            <p class="text-muted-foreground text-sm">Suspending locks the company's staff out (you keep impersonation access).</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="tn">Company name</Label>
@@ -394,7 +394,7 @@ function closePane() {
                         <div class="grid gap-1.5">
                             <Label for="sl">Public slug</Label>
                             <div class="flex items-center gap-1.5">
-                                <span class="shrink-0 text-xs text-muted-foreground">routepilot.pro/t/</span>
+                                <span class="text-muted-foreground shrink-0 text-xs">routepilot.pro/t/</span>
                                 <Input id="sl" v-model="editForm.slug" class="font-mono" />
                             </div>
                             <p v-if="editForm.errors.slug" class="text-xs text-red-600">{{ editForm.errors.slug }}</p>
@@ -404,7 +404,7 @@ function closePane() {
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="st">Status</Label>
-                            <select id="st" v-model="editForm.status" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select id="st" v-model="editForm.status" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                 <option value="active">Active</option>
                                 <option value="suspended">Suspended</option>
                                 <option value="cancelled">Cancelled</option>
@@ -420,14 +420,14 @@ function closePane() {
                     <form v-else-if="emailOpen" class="space-y-4 text-sm" @submit.prevent="submitEmail">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Email people</h2>
-                            <p class="text-sm text-muted-foreground">Tick people in the list, or send to a whole audience.</p>
+                            <p class="text-muted-foreground text-sm">Tick people in the list, or send to a whole audience.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
-                            <select id="aud" v-model="emailForm.audience" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select id="aud" v-model="emailForm.audience" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                 <option v-for="a in audienceOptions" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
                             </select>
-                            <p class="text-xs text-muted-foreground">{{ emailCount }} recipient(s). Tenant picks reach that company's admins.</p>
+                            <p class="text-muted-foreground text-xs">{{ emailCount }} recipient(s). Tenant picks reach that company's admins.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="esub">Subject</Label>
@@ -440,13 +440,13 @@ function closePane() {
                                 id="ebody"
                                 v-model="emailForm.body"
                                 rows="7"
-                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             ></textarea>
                             <p v-if="emailForm.errors.body" class="text-xs text-red-600">{{ emailForm.errors.body }}</p>
                         </div>
-                        <div v-if="props.recent.length" class="border-t border-border pt-2">
-                            <p class="mb-1 text-xs font-medium text-muted-foreground">Recent broadcasts</p>
-                            <ul class="space-y-0.5 text-xs text-muted-foreground">
+                        <div v-if="props.recent.length" class="border-border border-t pt-2">
+                            <p class="text-muted-foreground mb-1 text-xs font-medium">Recent broadcasts</p>
+                            <ul class="text-muted-foreground space-y-0.5 text-xs">
                                 <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
                                     <span class="truncate">{{ c.subject }}</span
                                     ><span class="shrink-0"
@@ -471,7 +471,7 @@ function closePane() {
                                 <EntityAvatar :src="tenant.logo_url" type="tenant" :name="tenant.name" size="md" />
                                 <div>
                                     <h2 class="text-lg font-semibold">{{ tenant.name }}</h2>
-                                    <p class="text-xs text-muted-foreground">routepilot.pro/t/{{ tenant.slug }}</p>
+                                    <p class="text-muted-foreground text-xs">routepilot.pro/t/{{ tenant.slug }}</p>
                                 </div>
                             </div>
                             <div class="flex gap-1.5">
@@ -482,7 +482,7 @@ function closePane() {
 
                         <dl class="grid grid-cols-2 gap-x-4 gap-y-3">
                             <div>
-                                <dt class="text-xs text-muted-foreground">Status</dt>
+                                <dt class="text-muted-foreground text-xs">Status</dt>
                                 <dd>
                                     <span
                                         class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
@@ -492,20 +492,20 @@ function closePane() {
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-xs text-muted-foreground">Created</dt>
+                                <dt class="text-muted-foreground text-xs">Created</dt>
                                 <dd>{{ tenant.created ?? '—' }}</dd>
                             </div>
                             <div>
-                                <dt class="text-xs text-muted-foreground">Pools</dt>
+                                <dt class="text-muted-foreground text-xs">Pools</dt>
                                 <dd>{{ tenant.pools }}</dd>
                             </div>
                             <div>
-                                <dt class="text-xs text-muted-foreground">Users</dt>
+                                <dt class="text-muted-foreground text-xs">Users</dt>
                                 <dd>{{ tenant.users }}</dd>
                             </div>
                         </dl>
 
-                        <div class="rounded-lg border border-border p-4">
+                        <div class="border-border rounded-lg border p-4">
                             <div class="mb-3 flex items-center gap-2 font-medium"><Bot class="size-4" /> AI assistant</div>
                             <div class="space-y-3">
                                 <label class="flex items-center justify-between gap-2">
@@ -515,7 +515,7 @@ function closePane() {
                                 <div class="flex items-center justify-between gap-2">
                                     <div>
                                         <Label for="t_quota">Monthly quota</Label>
-                                        <p class="text-xs text-muted-foreground">Blank = platform default ({{ props.aiDefaultQuota }}).</p>
+                                        <p class="text-muted-foreground text-xs">Blank = platform default ({{ props.aiDefaultQuota }}).</p>
                                     </div>
                                     <Input
                                         id="t_quota"
@@ -527,11 +527,11 @@ function closePane() {
                                         @change="saveTenantAi"
                                     />
                                 </div>
-                                <div class="text-xs text-muted-foreground">Used this month: {{ tenant.ai.used }} / {{ aiLimit }}</div>
-                                <label class="flex items-center justify-between gap-2 border-t border-border pt-3">
+                                <div class="text-muted-foreground text-xs">Used this month: {{ tenant.ai.used }} / {{ aiLimit }}</div>
+                                <label class="border-border flex items-center justify-between gap-2 border-t pt-3">
                                     <span>
                                         May override
-                                        <span class="block text-xs text-muted-foreground">Let this tenant supply their own provider/model/key.</span>
+                                        <span class="text-muted-foreground block text-xs">Let this tenant supply their own provider/model/key.</span>
                                     </span>
                                     <input v-model="aiForm.allow_override" type="checkbox" @change="saveTenantAi" />
                                 </label>
@@ -545,22 +545,22 @@ function closePane() {
                             <EntityAvatar :src="person.photo_url" type="person" :name="person.name" size="md" shape="circle" />
                             <div>
                                 <h2 class="text-lg font-semibold">{{ person.name }}</h2>
-                                <p class="text-xs capitalize text-muted-foreground">
+                                <p class="text-muted-foreground text-xs capitalize">
                                     {{ person.type }}<span v-if="person.tenant"> · {{ person.tenant }}</span>
                                 </p>
                             </div>
                         </div>
                         <dl class="grid grid-cols-1 gap-y-3">
                             <div>
-                                <dt class="text-xs text-muted-foreground">Email</dt>
+                                <dt class="text-muted-foreground text-xs">Email</dt>
                                 <dd>{{ person.email ?? '—' }}</dd>
                             </div>
                             <div>
-                                <dt class="text-xs text-muted-foreground">Phone</dt>
+                                <dt class="text-muted-foreground text-xs">Phone</dt>
                                 <dd>{{ person.phone ?? '—' }}</dd>
                             </div>
                             <div v-if="person.type === 'agent'">
-                                <dt class="text-xs text-muted-foreground">Active</dt>
+                                <dt class="text-muted-foreground text-xs">Active</dt>
                                 <dd>{{ person.is_active ? 'Yes' : 'No' }}</dd>
                             </div>
                         </dl>

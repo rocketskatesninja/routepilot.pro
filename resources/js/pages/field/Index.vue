@@ -118,16 +118,16 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
 <template>
     <Head title="Field" />
 
-    <div class="min-h-svh bg-background text-foreground">
+    <div class="bg-background text-foreground min-h-svh">
         <!-- top bar -->
-        <header class="sticky top-0 z-10 border-b border-border bg-background">
+        <header class="border-border bg-background sticky top-0 z-10 border-b">
             <div class="flex items-center gap-3 px-4 py-3">
                 <Link href="/dashboard" class="flex size-9 items-center justify-center rounded-lg bg-orange-500 text-white">
                     <AppLogoIcon class="size-5" />
                 </Link>
                 <div class="flex-1">
-                    <h1 class="font-bold leading-tight">My route</h1>
-                    <p class="text-xs text-muted-foreground">{{ bundle?.date ?? 'Today' }} · {{ done }}/{{ stops.length }} done</p>
+                    <h1 class="leading-tight font-bold">My route</h1>
+                    <p class="text-muted-foreground text-xs">{{ bundle?.date ?? 'Today' }} · {{ done }}/{{ stops.length }} done</p>
                 </div>
                 <span
                     class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
@@ -148,7 +148,7 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                 >
                     <MapPin class="size-4" :class="sharingLocation ? 'animate-pulse' : ''" />
                 </button>
-                <button class="rounded-lg p-2 hover:bg-muted" :disabled="loading" @click="refresh">
+                <button class="hover:bg-muted rounded-lg p-2" :disabled="loading" @click="refresh">
                     <RefreshCw class="size-4" :class="loading ? 'animate-spin' : ''" />
                 </button>
             </div>
@@ -184,9 +184,9 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
 
         <!-- body -->
         <main class="mx-auto max-w-2xl p-4">
-            <div v-if="loading" class="flex justify-center py-20 text-muted-foreground"><LoaderCircle class="size-8 animate-spin" /></div>
+            <div v-if="loading" class="text-muted-foreground flex justify-center py-20"><LoaderCircle class="size-8 animate-spin" /></div>
 
-            <div v-else-if="!stops.length" class="py-20 text-center text-muted-foreground">
+            <div v-else-if="!stops.length" class="text-muted-foreground py-20 text-center">
                 <p class="font-medium">No stops on your route{{ source === 'none' ? ' — connect to load it' : '' }}.</p>
             </div>
 
@@ -194,7 +194,7 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                 <li
                     v-for="stop in stops"
                     :key="stop.id"
-                    class="flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-sm transition active:scale-[0.99]"
+                    class="bg-card flex items-center gap-3 rounded-xl border p-3.5 shadow-sm transition active:scale-[0.99]"
                     :class="
                         stop.completed || stop.status === 'completed' ? 'border-emerald-200 opacity-70 dark:border-emerald-500/30' : 'border-border'
                     "
@@ -209,7 +209,7 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="truncate font-semibold">{{ stop.pool?.name ?? 'Pool' }}</p>
-                        <p class="truncate text-sm text-muted-foreground">
+                        <p class="text-muted-foreground truncate text-sm">
                             {{ stop.pool?.customer }}
                             <span
                                 v-if="stop.eta && !(stop.completed || stop.status === 'completed')"
@@ -228,12 +228,12 @@ const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ?
                     >
                         <Navigation class="size-4" />
                     </a>
-                    <span class="text-xs font-medium text-muted-foreground">{{ statusLabel(stop) }}</span>
-                    <ChevronRight v-if="!(stop.completed || stop.status === 'completed')" class="size-5 shrink-0 text-muted-foreground/50" />
+                    <span class="text-muted-foreground text-xs font-medium">{{ statusLabel(stop) }}</span>
+                    <ChevronRight v-if="!(stop.completed || stop.status === 'completed')" class="text-muted-foreground/50 size-5 shrink-0" />
                 </li>
             </ul>
 
-            <p v-if="!loading && stops.length" class="mt-4 text-center text-sm text-muted-foreground">
+            <p v-if="!loading && stops.length" class="text-muted-foreground mt-4 text-center text-sm">
                 {{ remaining }} stop{{ remaining === 1 ? '' : 's' }} left today
             </p>
         </main>

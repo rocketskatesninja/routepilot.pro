@@ -201,9 +201,9 @@ function destroyService() {
                         </template>
                         <template #row="{ item: service }">
                             <td class="px-4 py-2.5 font-medium">{{ service.name }}</td>
-                            <td class="hidden px-4 py-2.5 capitalize text-muted-foreground md:table-cell">{{ service.category ?? '—' }}</td>
-                            <td class="px-4 py-2.5 text-muted-foreground">{{ money(service.price) }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ service.pools }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 capitalize md:table-cell">{{ service.category ?? '—' }}</td>
+                            <td class="text-muted-foreground px-4 py-2.5">{{ money(service.price) }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ service.pools }}</td>
                             <td class="px-4 py-2.5">
                                 <span
                                     class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
@@ -229,7 +229,7 @@ function destroyService() {
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New service type' : 'Edit service type' }}</h2>
-                            <p class="text-sm text-muted-foreground">A reusable visit template pools subscribe to.</p>
+                            <p class="text-muted-foreground text-sm">A reusable visit template pools subscribe to.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="name">Name</Label>
@@ -243,7 +243,7 @@ function destroyService() {
                             </div>
                             <div class="grid gap-1.5">
                                 <Label for="frequency">Frequency</Label>
-                                <select id="frequency" v-model="form.frequency" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select id="frequency" v-model="form.frequency" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option value="weekly">Weekly</option>
                                     <option value="biweekly">Biweekly</option>
                                     <option value="monthly">Monthly</option>
@@ -269,7 +269,7 @@ function destroyService() {
                         >
 
                         <div>
-                            <span class="text-xs font-medium text-muted-foreground">At-pool field steps</span>
+                            <span class="text-muted-foreground text-xs font-medium">At-pool field steps</span>
                             <div class="mt-1 grid grid-cols-2 gap-1">
                                 <label v-for="(label, key) in moduleLabels" :key="key" class="flex items-center gap-2"
                                     ><input v-model="form.field_modules[key]" type="checkbox" /> {{ label }}</label
@@ -279,7 +279,7 @@ function destroyService() {
 
                         <div>
                             <div class="mb-1 flex items-center justify-between">
-                                <span class="text-xs font-medium text-muted-foreground">Task checklist</span>
+                                <span class="text-muted-foreground text-xs font-medium">Task checklist</span>
                                 <Button type="button" size="sm" variant="outline" @click="form.tasks.push('')"
                                     ><Plus class="mr-1 size-3.5" /> Task</Button
                                 >
@@ -298,7 +298,7 @@ function destroyService() {
                                 id="desc"
                                 v-model="form.description"
                                 rows="2"
-                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             ></textarea>
                         </div>
 
@@ -315,7 +315,7 @@ function destroyService() {
                     <div v-else-if="props.selected">
                         <div class="mb-4">
                             <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-sm capitalize text-muted-foreground">
+                            <p class="text-muted-foreground text-sm capitalize">
                                 {{ props.selected.category ?? 'Service' }} · {{ props.selected.frequency }}
                             </p>
                         </div>
@@ -329,7 +329,7 @@ function destroyService() {
                             </div>
 
                             <section>
-                                <dl class="space-y-1 text-muted-foreground">
+                                <dl class="text-muted-foreground space-y-1">
                                     <div class="flex justify-between">
                                         <dt>Price</dt>
                                         <dd>{{ money(props.selected.price) }}</dd>
@@ -347,19 +347,19 @@ function destroyService() {
                                         <dd>{{ props.selected.pools }}</dd>
                                     </div>
                                 </dl>
-                                <p v-if="props.selected.description" class="mt-2 text-muted-foreground">{{ props.selected.description }}</p>
+                                <p v-if="props.selected.description" class="text-muted-foreground mt-2">{{ props.selected.description }}</p>
                             </section>
 
                             <section>
                                 <h3 class="mb-1 font-medium">Field steps</h3>
                                 <div class="flex flex-wrap gap-1.5">
-                                    <span v-for="m in props.selected.modules" :key="m" class="rounded-md bg-muted px-2 py-0.5 text-xs">{{ m }}</span>
+                                    <span v-for="m in props.selected.modules" :key="m" class="bg-muted rounded-md px-2 py-0.5 text-xs">{{ m }}</span>
                                 </div>
                             </section>
 
                             <section v-if="props.selected.tasks.length">
                                 <h3 class="mb-1 font-medium">Task checklist</h3>
-                                <ul class="list-inside list-disc space-y-0.5 text-muted-foreground">
+                                <ul class="text-muted-foreground list-inside list-disc space-y-0.5">
                                     <li v-for="(task, i) in props.selected.tasks" :key="i">{{ task }}</li>
                                 </ul>
                             </section>

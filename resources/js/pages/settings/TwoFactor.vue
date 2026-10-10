@@ -42,13 +42,13 @@ const regenerate = () => router.post(route('two-factor.recovery-codes'), {}, { p
 
                 <!-- Disabled -->
                 <div v-if="!enabled && !pending" class="space-y-4">
-                    <p class="text-sm text-muted-foreground">Two-factor authentication is currently <strong>off</strong>.</p>
+                    <p class="text-muted-foreground text-sm">Two-factor authentication is currently <strong>off</strong>.</p>
                     <Button @click="enable">Enable two-factor</Button>
                 </div>
 
                 <!-- Pending: scan + confirm -->
                 <div v-else-if="pending" class="space-y-6">
-                    <p class="text-sm text-muted-foreground">
+                    <p class="text-muted-foreground text-sm">
                         Scan this QR code with your authenticator app (Google Authenticator, 1Password, Authy…), then enter the 6-digit code to
                         finish.
                     </p>
@@ -57,14 +57,14 @@ const regenerate = () => router.post(route('two-factor.recovery-codes'), {}, { p
                         <div class="inline-block rounded-lg border bg-white p-3" v-html="qrSvg" />
                         <div class="space-y-2">
                             <Label>Or enter this key manually</Label>
-                            <code class="block break-all rounded bg-muted px-3 py-2 font-mono text-sm">{{ setupKey }}</code>
+                            <code class="bg-muted block rounded px-3 py-2 font-mono text-sm break-all">{{ setupKey }}</code>
                         </div>
                     </div>
 
                     <div v-if="recoveryCodes" class="space-y-2">
                         <Label>Recovery codes</Label>
-                        <p class="text-xs text-muted-foreground">Store these somewhere safe. Each can be used once if you lose your device.</p>
-                        <div class="grid grid-cols-2 gap-1 rounded bg-muted p-3 font-mono text-sm">
+                        <p class="text-muted-foreground text-xs">Store these somewhere safe. Each can be used once if you lose your device.</p>
+                        <div class="bg-muted grid grid-cols-2 gap-1 rounded p-3 font-mono text-sm">
                             <span v-for="c in recoveryCodes" :key="c">{{ c }}</span>
                         </div>
                     </div>
@@ -89,12 +89,12 @@ const regenerate = () => router.post(route('two-factor.recovery-codes'), {}, { p
 
                 <!-- Enabled -->
                 <div v-else class="space-y-4">
-                    <p class="text-sm text-muted-foreground">Two-factor authentication is <strong>on</strong>.</p>
+                    <p class="text-muted-foreground text-sm">Two-factor authentication is <strong>on</strong>.</p>
 
                     <div v-if="recoveryCodes" class="space-y-2">
                         <Label>New recovery codes</Label>
-                        <p class="text-xs text-muted-foreground">Your old codes no longer work. Store these somewhere safe.</p>
-                        <div class="grid grid-cols-2 gap-1 rounded bg-muted p-3 font-mono text-sm">
+                        <p class="text-muted-foreground text-xs">Your old codes no longer work. Store these somewhere safe.</p>
+                        <div class="bg-muted grid grid-cols-2 gap-1 rounded p-3 font-mono text-sm">
                             <span v-for="c in recoveryCodes" :key="c">{{ c }}</span>
                         </div>
                     </div>

@@ -79,7 +79,7 @@ async function submit() {
     <SectionShell id="quote" width="sm" :heading="c.heading || 'Get an instant estimate'" :subheading="c.blurb || undefined">
         <div
             v-if="!services.length"
-            class="reveal mx-auto max-w-md rounded-xl border border-input bg-background p-6 text-center text-sm text-muted-foreground"
+            class="reveal border-input bg-background text-muted-foreground mx-auto max-w-md rounded-xl border p-6 text-center text-sm"
         >
             Pricing is tailored to each pool — use the contact form below and we’ll send a quote.
         </div>
@@ -95,7 +95,7 @@ async function submit() {
             <div class="grid gap-4 sm:grid-cols-2">
                 <label class="block">
                     <span class="mb-1 block text-sm font-medium">Pool type</span>
-                    <select v-model="form.poolType" class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm">
+                    <select v-model="form.poolType" class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm">
                         <option v-for="t in poolTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
                     </select>
                 </label>
@@ -106,29 +106,29 @@ async function submit() {
                         type="number"
                         inputmode="numeric"
                         placeholder="e.g. 20000"
-                        class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                        class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                     />
                 </label>
             </div>
 
             <label class="block">
                 <span class="mb-1 block text-sm font-medium">Service</span>
-                <select v-model="form.serviceId" required class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm">
+                <select v-model="form.serviceId" required class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm">
                     <option value="" disabled>Choose a service…</option>
                     <option v-for="s in services" :key="s.id" :value="String(s.id)">{{ s.name }}</option>
                 </select>
             </label>
 
             <!-- live estimate -->
-            <div v-if="selected" class="rounded-xl border border-primary/30 bg-primary/5 p-4 text-center">
+            <div v-if="selected" class="border-primary/30 bg-primary/5 rounded-xl border p-4 text-center">
                 <template v-if="estimate">
-                    <p class="text-sm text-muted-foreground">Estimated price</p>
-                    <p class="text-3xl font-extrabold text-primary">
-                        {{ money(estimate) }}<span class="text-base font-medium text-muted-foreground">{{ freqLabel(selected.frequency) }}</span>
+                    <p class="text-muted-foreground text-sm">Estimated price</p>
+                    <p class="text-primary text-3xl font-extrabold">
+                        {{ money(estimate) }}<span class="text-muted-foreground text-base font-medium">{{ freqLabel(selected.frequency) }}</span>
                     </p>
-                    <p class="mt-1 text-xs text-muted-foreground">Ballpark only — we’ll confirm after a quick look at your pool.</p>
+                    <p class="text-muted-foreground mt-1 text-xs">Ballpark only — we’ll confirm after a quick look at your pool.</p>
                 </template>
-                <p v-else class="text-sm text-muted-foreground">We’ll prepare a custom quote for this service.</p>
+                <p v-else class="text-muted-foreground text-sm">We’ll prepare a custom quote for this service.</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-3">
@@ -136,19 +136,19 @@ async function submit() {
                     v-model="form.name"
                     required
                     placeholder="Your name"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm sm:col-span-3"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm sm:col-span-3"
                 />
                 <input
                     v-model="form.email"
                     type="email"
                     placeholder="Email"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                 />
                 <input
                     v-model="form.phone"
                     type="tel"
                     placeholder="Phone"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm sm:col-span-2"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm sm:col-span-2"
                 />
             </div>
 
@@ -156,7 +156,7 @@ async function submit() {
             <button
                 type="submit"
                 :disabled="sending || !selected"
-                class="btn-cta w-full rounded-xl bg-primary px-6 py-3 font-bold text-primary-foreground shadow-lg disabled:opacity-60"
+                class="btn-cta bg-primary text-primary-foreground w-full rounded-xl px-6 py-3 font-bold shadow-lg disabled:opacity-60"
             >
                 {{ sending ? 'Sending…' : 'Get my quote' }}
             </button>

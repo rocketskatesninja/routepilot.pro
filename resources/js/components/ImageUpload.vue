@@ -58,16 +58,16 @@ function discard() {
 
 <template>
     <div class="flex items-center gap-3">
-        <div :class="[shapeClass, 'relative flex size-16 shrink-0 items-center justify-center overflow-hidden border border-border bg-muted/40']">
+        <div :class="[shapeClass, 'border-border bg-muted/40 relative flex size-16 shrink-0 items-center justify-center overflow-hidden border']">
             <img v-if="shown" :src="shown" class="h-full w-full object-cover" alt="" />
-            <ImagePlus v-else class="size-5 text-muted-foreground" />
+            <ImagePlus v-else class="text-muted-foreground size-5" />
         </div>
         <div class="flex flex-col items-start gap-1">
             <div class="flex gap-2">
                 <Button type="button" size="sm" variant="outline" @click="pick">{{ shown ? 'Change photo' : 'Upload photo' }}</Button>
                 <Button v-if="staged" type="button" size="sm" variant="ghost" @click="discard">Discard</Button>
             </div>
-            <p v-if="staged" class="text-xs text-muted-foreground">New photo — applies when you save.</p>
+            <p v-if="staged" class="text-muted-foreground text-xs">New photo — applies when you save.</p>
         </div>
         <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFile" />
     </div>

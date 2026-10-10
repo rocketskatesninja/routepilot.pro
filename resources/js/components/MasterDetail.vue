@@ -46,14 +46,14 @@ const overlayOpen = computed(() => !isDocked.value && props.hasSelection && (pro
         <aside
             v-if="isDocked"
             aria-label="Detail"
-            class="hidden shrink-0 basis-1/3 flex-col overflow-hidden rounded-xl border border-border bg-card xl:flex xl:min-w-[340px] xl:max-w-[460px]"
+            class="border-border bg-card hidden shrink-0 basis-1/3 flex-col overflow-hidden rounded-xl border xl:flex xl:max-w-[460px] xl:min-w-[340px]"
         >
             <div class="min-h-0 flex-1 overflow-y-auto p-4" aria-live="polite">
                 <Transition name="swap" mode="out-in">
                     <div :key="props.selectionKey ?? '__empty__'">
                         <slot v-if="props.hasSelection" name="detail" />
                         <slot v-else name="empty">
-                            <div class="flex min-h-[60vh] items-center justify-center text-center text-sm text-muted-foreground">
+                            <div class="text-muted-foreground flex min-h-[60vh] items-center justify-center text-center text-sm">
                                 {{ props.emptyText }}
                             </div>
                         </slot>

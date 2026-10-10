@@ -25,7 +25,7 @@ jobs:
       - name: Install Dependencies
         run: |
           composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
-          npm install
+          npm ci
 
       # Check-only — CI fails on unformatted/lint-dirty code rather than
       # auto-fixing, so style is enforced at the PR boundary.

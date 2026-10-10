@@ -39,7 +39,7 @@ const numbers = computed(() => {
         <span class="text-muted-foreground">{{ meta.from ?? 0 }}–{{ meta.to ?? 0 }} of {{ meta.total }}</span>
         <div class="flex items-center gap-1">
             <button
-                class="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40 disabled:hover:bg-transparent"
+                class="border-border text-muted-foreground hover:bg-muted inline-flex size-8 items-center justify-center rounded-md border transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
                 :disabled="meta.current_page <= 1"
                 aria-label="Previous page"
                 @click="go(meta.current_page - 1)"
@@ -49,12 +49,12 @@ const numbers = computed(() => {
 
             <button
                 v-if="numbers[0] > 1"
-                class="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border px-2 transition-colors hover:bg-muted"
+                class="border-border hover:bg-muted inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition-colors"
                 @click="go(1)"
             >
                 1
             </button>
-            <span v-if="numbers[0] > 2" class="px-0.5 text-muted-foreground">…</span>
+            <span v-if="numbers[0] > 2" class="text-muted-foreground px-0.5">…</span>
 
             <button
                 v-for="n in numbers"
@@ -66,17 +66,17 @@ const numbers = computed(() => {
                 {{ n }}
             </button>
 
-            <span v-if="numbers[numbers.length - 1] < meta.last_page - 1" class="px-0.5 text-muted-foreground">…</span>
+            <span v-if="numbers[numbers.length - 1] < meta.last_page - 1" class="text-muted-foreground px-0.5">…</span>
             <button
                 v-if="numbers[numbers.length - 1] < meta.last_page"
-                class="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border px-2 transition-colors hover:bg-muted"
+                class="border-border hover:bg-muted inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 transition-colors"
                 @click="go(meta.last_page)"
             >
                 {{ meta.last_page }}
             </button>
 
             <button
-                class="inline-flex size-8 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-muted disabled:opacity-40 disabled:hover:bg-transparent"
+                class="border-border text-muted-foreground hover:bg-muted inline-flex size-8 items-center justify-center rounded-md border transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
                 :disabled="meta.current_page >= meta.last_page"
                 aria-label="Next page"
                 @click="go(meta.current_page + 1)"

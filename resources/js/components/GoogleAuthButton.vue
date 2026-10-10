@@ -5,7 +5,7 @@
 <template>
     <a
         :href="route('auth.google.redirect')"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted"
+        class="border-input bg-background hover:bg-muted inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium shadow-sm transition-colors"
     >
         <svg class="size-4" viewBox="0 0 24 24" aria-hidden="true">
             <path

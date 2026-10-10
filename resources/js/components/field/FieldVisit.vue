@@ -118,13 +118,13 @@ async function complete() {
 </script>
 
 <template>
-    <div class="fixed inset-0 z-50 flex flex-col bg-background text-foreground">
+    <div class="bg-background text-foreground fixed inset-0 z-50 flex flex-col">
         <!-- header -->
-        <header class="flex items-center gap-3 border-b border-border bg-background px-4 py-3">
-            <button class="rounded-lg p-1.5 hover:bg-muted" @click="emit('close')"><ChevronLeft class="size-5" /></button>
+        <header class="border-border bg-background flex items-center gap-3 border-b px-4 py-3">
+            <button class="hover:bg-muted rounded-lg p-1.5" @click="emit('close')"><ChevronLeft class="size-5" /></button>
             <div class="min-w-0 flex-1">
                 <h1 class="truncate text-lg font-bold">{{ pool?.name }}</h1>
-                <p class="truncate text-sm text-muted-foreground">{{ pool?.customer }}</p>
+                <p class="text-muted-foreground truncate text-sm">{{ pool?.customer }}</p>
             </div>
             <a
                 v-if="navUrl"
@@ -144,32 +144,32 @@ async function complete() {
 
         <div class="flex-1 space-y-4 overflow-y-auto p-4 pb-28">
             <!-- access info -->
-            <div v-if="pool?.gate_code || pool?.access_notes || pool?.phone" class="rounded-xl border border-border bg-card p-3 text-sm">
+            <div v-if="pool?.gate_code || pool?.access_notes || pool?.phone" class="border-border bg-card rounded-xl border p-3 text-sm">
                 <p v-if="pool?.gate_code"><span class="font-semibold">Gate:</span> {{ pool.gate_code }}</p>
                 <p v-if="pool?.phone"><span class="font-semibold">Phone:</span> {{ pool.phone }}</p>
                 <p v-if="pool?.access_notes" class="text-muted-foreground">{{ pool.access_notes }}</p>
             </div>
 
             <!-- checklist: the physical checklist comes first -->
-            <section v-if="tasks.length" class="rounded-xl border border-border bg-card p-4">
+            <section v-if="tasks.length" class="border-border bg-card rounded-xl border p-4">
                 <div class="mb-3">
-                    <h2 class="flex items-center gap-2 font-semibold leading-tight">
+                    <h2 class="flex items-center gap-2 leading-tight font-semibold">
                         <ListChecks class="size-4 shrink-0 text-sky-500 dark:text-sky-400" /> Checklist
                     </h2>
-                    <p class="mt-0.5 text-xs text-muted-foreground">{{ stop.service.name || 'Service' }}</p>
+                    <p class="text-muted-foreground mt-0.5 text-xs">{{ stop.service.name || 'Service' }}</p>
                 </div>
                 <label v-for="(t, i) in tasks" :key="i" class="flex items-center gap-3 py-1.5">
-                    <input v-model="t.done" type="checkbox" class="size-5 rounded border-input text-sky-600" />
+                    <input v-model="t.done" type="checkbox" class="border-input size-5 rounded text-sky-600" />
                     <span :class="t.done ? 'text-muted-foreground line-through' : ''">{{ t.name }}</span>
                 </label>
             </section>
 
             <!-- readings: the water test + dosing is the last thing before completing -->
-            <section class="rounded-xl border border-border bg-card p-4">
+            <section class="border-border bg-card rounded-xl border p-4">
                 <h2 class="mb-3 flex items-center gap-2 font-semibold"><FlaskConical class="size-4 text-sky-500 dark:text-sky-400" /> Water test</h2>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <label v-for="f in readingFields" :key="f.key" class="block">
-                        <span class="mb-1 block text-xs font-medium text-muted-foreground"
+                        <span class="text-muted-foreground mb-1 block text-xs font-medium"
                             >{{ f.label }} <span v-if="f.unit" class="text-muted-foreground/70">{{ f.unit }}</span></span
                         >
                         <input
@@ -177,7 +177,7 @@ async function complete() {
                             type="number"
                             inputmode="decimal"
                             step="any"
-                            class="w-full rounded-lg border border-input bg-background px-2 py-2 text-base text-foreground focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                            class="border-input bg-background text-foreground w-full rounded-lg border px-2 py-2 text-base focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
                         />
                     </label>
                 </div>
@@ -185,24 +185,24 @@ async function complete() {
             </section>
 
             <!-- analysis -->
-            <section v-if="analysis" class="rounded-xl border border-border bg-card p-4">
+            <section v-if="analysis" class="border-border bg-card rounded-xl border p-4">
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="flex items-center gap-2 font-semibold"><Sparkles class="size-4 text-sky-500 dark:text-sky-400" /> Analysis</h2>
                     <span class="text-sm font-semibold" :class="lsiTone">LSI {{ analysis.lsi.value }} · {{ analysis.lsi.label }}</span>
                 </div>
-                <p v-if="!analysis.recommendations.length" class="text-sm text-muted-foreground">No dosing needed — chemistry is in range.</p>
+                <p v-if="!analysis.recommendations.length" class="text-muted-foreground text-sm">No dosing needed — chemistry is in range.</p>
                 <ul v-else class="space-y-2">
                     <li v-for="(rec, i) in analysis.recommendations" :key="i" class="rounded-lg border p-3" :class="urgencyTone(rec.urgency)">
                         <div class="flex items-start justify-between gap-2">
                             <div>
                                 <p class="font-semibold">{{ rec.chemical }}</p>
-                                <p class="text-sm text-muted-foreground">
+                                <p class="text-muted-foreground text-sm">
                                     {{ rec.parameter }}<span v-if="rec.amount"> · {{ rec.amount }} {{ rec.unit }}</span>
                                 </p>
                             </div>
                             <Button size="sm" variant="outline" @click="applyRec(rec.chemical, rec.amount, rec.unit)"><Plus class="size-4" /></Button>
                         </div>
-                        <ul v-if="rec.notes?.length" class="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+                        <ul v-if="rec.notes?.length" class="text-muted-foreground mt-1 list-disc pl-5 text-xs">
                             <li v-for="(n, j) in rec.notes" :key="j">{{ n }}</li>
                         </ul>
                     </li>
@@ -210,19 +210,19 @@ async function complete() {
             </section>
 
             <!-- treatments -->
-            <section class="rounded-xl border border-border bg-card p-4">
+            <section class="border-border bg-card rounded-xl border p-4">
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="flex items-center gap-2 font-semibold">
                         <Droplets class="size-4 text-sky-500 dark:text-sky-400" /> Treatments applied
                     </h2>
                     <Button size="sm" variant="outline" @click="addTreatment"><Plus class="mr-1 size-4" /> Add</Button>
                 </div>
-                <p v-if="!treatments.length" class="text-sm text-muted-foreground">None yet — apply a recommendation or add one.</p>
+                <p v-if="!treatments.length" class="text-muted-foreground text-sm">None yet — apply a recommendation or add one.</p>
                 <div v-for="(t, i) in treatments" :key="i" class="mb-2 flex items-center gap-2">
                     <input
                         v-model="t.name"
                         placeholder="Chemical"
-                        class="min-w-0 flex-1 rounded-lg border border-input bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                        class="border-input bg-background text-foreground placeholder:text-muted-foreground min-w-0 flex-1 rounded-lg border px-2 py-2 text-sm"
                     />
                     <input
                         v-model="t.amount"
@@ -230,33 +230,33 @@ async function complete() {
                         inputmode="decimal"
                         step="any"
                         placeholder="Amt"
-                        class="w-20 rounded-lg border border-input bg-background px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                        class="border-input bg-background text-foreground placeholder:text-muted-foreground w-20 rounded-lg border px-2 py-2 text-sm"
                     />
-                    <input v-model="t.unit" class="w-16 rounded-lg border border-input bg-background px-2 py-2 text-sm text-foreground" />
-                    <button class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted" @click="removeTreatment(i)"><X class="size-4" /></button>
+                    <input v-model="t.unit" class="border-input bg-background text-foreground w-16 rounded-lg border px-2 py-2 text-sm" />
+                    <button class="text-muted-foreground hover:bg-muted rounded-lg p-1.5" @click="removeTreatment(i)"><X class="size-4" /></button>
                 </div>
             </section>
 
             <!-- photos -->
-            <section class="rounded-xl border border-border bg-card p-4">
+            <section class="border-border bg-card rounded-xl border p-4">
                 <h2 class="mb-3 flex items-center gap-2 font-semibold"><Camera class="size-4 text-sky-500 dark:text-sky-400" /> Photos</h2>
                 <MultiImageUpload :model-value="photos" capture="environment" @update:model-value="(f) => (photos = f)" />
             </section>
 
             <!-- notes: final flag for the office / homeowner, just before completing -->
-            <section class="rounded-xl border border-border bg-card p-4">
+            <section class="border-border bg-card rounded-xl border p-4">
                 <h2 class="mb-2 flex items-center gap-2 font-semibold"><StickyNote class="size-4 text-sky-500 dark:text-sky-400" /> Notes</h2>
                 <textarea
                     v-model="notes"
                     rows="3"
-                    class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-lg border px-3 py-2 text-sm"
                     placeholder="Anything to flag for the office or the homeowner…"
                 ></textarea>
             </section>
         </div>
 
         <!-- complete -->
-        <footer class="absolute inset-x-0 bottom-0 border-t border-border bg-background p-4">
+        <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4">
             <Button class="h-12 w-full text-base" :disabled="submitting" @click="complete">
                 {{ online ? 'Complete visit' : 'Complete (will sync when online)' }}
             </Button>

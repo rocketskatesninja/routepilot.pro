@@ -58,10 +58,10 @@ const save = () =>
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-4">
             <!-- Platform defaults -->
-            <form class="rounded-xl border border-border p-5" @submit.prevent="save">
+            <form class="border-border rounded-xl border p-5" @submit.prevent="save">
                 <div class="mb-4">
                     <h2 class="text-lg font-semibold">Platform AI</h2>
-                    <p class="text-sm text-muted-foreground">
+                    <p class="text-muted-foreground text-sm">
                         AI is bundled and platform-managed. The provider, model, and keys below power every tenant's assistant; tenants only get a
                         monthly allowance.
                     </p>
@@ -70,7 +70,7 @@ const save = () =>
                 <div class="grid gap-4 sm:grid-cols-3">
                     <div class="grid gap-1.5">
                         <Label for="provider">Provider</Label>
-                        <select id="provider" v-model="form.provider" class="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                        <select id="provider" v-model="form.provider" class="border-input bg-background h-9 rounded-md border px-3 text-sm">
                             <option v-for="p in providers" :key="p.key" :value="p.key">{{ p.label }}</option>
                         </select>
                     </div>
@@ -90,7 +90,7 @@ const save = () =>
                     <div v-for="p in providers" :key="p.key" class="grid items-center gap-2 sm:grid-cols-[10rem_1fr]">
                         <div class="flex items-center gap-1.5 text-sm">
                             <CheckCircle2 v-if="props.keys[p.key]?.configured" class="size-4 text-emerald-500" />
-                            <XCircle v-else class="size-4 text-muted-foreground" />
+                            <XCircle v-else class="text-muted-foreground size-4" />
                             <span>{{ p.label }}</span>
                         </div>
                         <div class="flex items-center gap-2">
@@ -105,7 +105,7 @@ const save = () =>
                             />
                         </div>
                     </div>
-                    <p class="text-xs text-muted-foreground">
+                    <p class="text-muted-foreground text-xs">
                         Keys are encrypted at rest and never shown in full. Leave a field blank to keep the current key.
                     </p>
                 </div>
@@ -117,7 +117,7 @@ const save = () =>
             </form>
 
             <!-- Per-tenant -->
-            <p class="text-sm text-muted-foreground">
+            <p class="text-muted-foreground text-sm">
                 Per-tenant AI — usage, quota, on/off, and the override policy — lives on each company's detail panel under
                 <Link href="/people" class="text-primary hover:underline">People → Tenants</Link>.
             </p>

@@ -74,14 +74,14 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
         <div v-if="forecast" class="flex h-full flex-col gap-2">
             <!-- Current conditions (always shown) -->
             <div class="flex shrink-0 items-center gap-3">
-                <component :is="weatherDescribe(forecast.current.code).icon" class="size-10 shrink-0 text-primary" />
+                <component :is="weatherDescribe(forecast.current.code).icon" class="text-primary size-10 shrink-0" />
                 <div class="min-w-0">
                     <div class="text-2xl font-semibold tabular-nums">{{ forecast.current.temp }}°</div>
-                    <div class="truncate text-xs text-muted-foreground">
+                    <div class="text-muted-foreground truncate text-xs">
                         {{ weatherDescribe(forecast.current.code).label }} · feels {{ forecast.current.feels }}°
                     </div>
                 </div>
-                <div class="ml-auto space-y-0.5 text-right text-xs text-muted-foreground">
+                <div class="text-muted-foreground ml-auto space-y-0.5 text-right text-xs">
                     <div class="flex items-center justify-end gap-1"><Droplets class="size-3" /> {{ forecast.current.humidity }}%</div>
                     <div class="flex items-center justify-end gap-1"><Wind class="size-3" /> {{ forecast.current.wind }} mph</div>
                 </div>
@@ -96,7 +96,7 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
                         :key="h.hour"
                         class="flex min-w-0 flex-1 flex-col items-center justify-evenly text-center leading-none"
                     >
-                        <div class="truncate text-muted-foreground" :style="{ fontSize: hourLabel + 'px' }">{{ h.hour }}</div>
+                        <div class="text-muted-foreground truncate" :style="{ fontSize: hourLabel + 'px' }">{{ h.hour }}</div>
                         <component :is="weatherDescribe(h.code).icon" :size="hourIcon" class="text-muted-foreground" />
                         <div class="font-medium tabular-nums" :style="{ fontSize: hourTemp + 'px' }">{{ h.temp }}°</div>
                         <div
@@ -119,8 +119,8 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
                         :key="d.date"
                         class="flex flex-col items-center gap-0.5 rounded-md py-1 text-center"
                     >
-                        <div class="text-xs text-muted-foreground">{{ d.dow }}</div>
-                        <component :is="weatherDescribe(d.code).icon" class="size-5 text-muted-foreground" />
+                        <div class="text-muted-foreground text-xs">{{ d.dow }}</div>
+                        <component :is="weatherDescribe(d.code).icon" class="text-muted-foreground size-5" />
                         <div class="text-xs tabular-nums">
                             <span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span>
                         </div>

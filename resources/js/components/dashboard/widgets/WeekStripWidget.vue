@@ -41,10 +41,10 @@ const showWeather = computed(() => availH.value >= 115);
             class="flex flex-1 flex-col items-center justify-center gap-1 rounded-lg border p-2 text-center"
             :class="d.is_today ? 'border-primary/50 bg-primary/5' : 'border-border'"
         >
-            <div class="text-xs font-medium uppercase text-muted-foreground">{{ d.dow }}</div>
+            <div class="text-muted-foreground text-xs font-medium uppercase">{{ d.dow }}</div>
             <div class="text-lg font-semibold tabular-nums">{{ d.day }}</div>
-            <component :is="weatherDescribe(d.code).icon" v-if="showWeather && d.code !== null" class="size-4 text-muted-foreground" />
-            <div v-if="showWeather && d.high !== null" class="text-[11px] tabular-nums leading-none">
+            <component :is="weatherDescribe(d.code).icon" v-if="showWeather && d.code !== null" class="text-muted-foreground size-4" />
+            <div v-if="showWeather && d.high !== null" class="text-[11px] leading-none tabular-nums">
                 <span class="font-medium">{{ d.high }}°</span> <span class="text-muted-foreground">{{ d.low }}°</span>
             </div>
             <div
@@ -54,7 +54,7 @@ const showWeather = computed(() => availH.value >= 115);
             >
                 {{ d.completed }}/{{ d.total }}
             </div>
-            <div v-else class="text-xs text-muted-foreground/40">—</div>
+            <div v-else class="text-muted-foreground/40 text-xs">—</div>
         </div>
     </div>
 </template>

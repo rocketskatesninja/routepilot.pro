@@ -22,7 +22,7 @@ const healthClass = (color: string): string =>
 
 <template>
     <div class="h-full overflow-y-auto">
-        <ul v-if="data.pools.length" class="divide-y divide-border text-sm">
+        <ul v-if="data.pools.length" class="divide-border divide-y text-sm">
             <li v-for="p in data.pools" :key="p.id" class="flex items-center justify-between gap-2 px-1 py-2">
                 <span class="flex min-w-0 items-center gap-2">
                     <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="sm" />
@@ -31,7 +31,7 @@ const healthClass = (color: string): string =>
                 <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClass(p.health.color)">{{
                     p.health.label
                 }}</span>
-                <span v-else class="shrink-0 text-xs text-muted-foreground">—</span>
+                <span v-else class="text-muted-foreground shrink-0 text-xs">—</span>
             </li>
         </ul>
         <EmptyState v-else class="p-0">No pools on your account yet.</EmptyState>

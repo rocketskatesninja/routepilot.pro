@@ -45,9 +45,9 @@ async function onPick(e: Event) {
 
 <template>
     <div class="flex items-center gap-3">
-        <div class="size-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted/40">
+        <div class="border-border bg-muted/40 size-16 shrink-0 overflow-hidden rounded-md border">
             <img v-if="url" :src="url" alt="" class="h-full w-full object-cover" />
-            <div v-else class="flex h-full w-full items-center justify-center"><ImagePlus class="size-5 text-muted-foreground" /></div>
+            <div v-else class="flex h-full w-full items-center justify-center"><ImagePlus class="text-muted-foreground size-5" /></div>
         </div>
         <div>
             <Button type="button" variant="outline" size="sm" :disabled="uploading" @click="input?.click()">

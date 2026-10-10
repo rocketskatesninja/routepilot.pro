@@ -119,9 +119,9 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                 @close="closeDrawer"
             >
                 <template #list>
-                    <div class="overflow-hidden rounded-xl border border-border">
+                    <div class="border-border overflow-hidden rounded-xl border">
                         <table class="w-full text-sm">
-                            <thead class="bg-muted/50 text-left text-muted-foreground">
+                            <thead class="bg-muted/50 text-muted-foreground text-left">
                                 <tr>
                                     <th class="px-4 py-2 font-medium">Date</th>
                                     <th class="px-4 py-2 font-medium">Pool</th>
@@ -131,12 +131,12 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                 <tr
                                     v-for="v in props.visits.data"
                                     :key="v.id"
-                                    class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                                    class="border-border hover:bg-muted/40 cursor-pointer border-t transition-colors"
                                     :class="{ 'bg-muted/60': props.selected?.id === v.id }"
                                     @click="open(v.id)"
                                 >
                                     <td class="px-4 py-2.5 font-medium">{{ v.on }}</td>
-                                    <td class="px-4 py-2.5 text-muted-foreground">
+                                    <td class="text-muted-foreground px-4 py-2.5">
                                         <div class="flex items-center gap-2">
                                             <EntityAvatar :src="v.pool_photo" type="pool" :name="v.pool" size="sm" />
                                             <span>{{ v.pool }}</span>
@@ -144,7 +144,7 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                     </td>
                                 </tr>
                                 <tr v-if="props.visits.data.length === 0">
-                                    <td colspan="2" class="px-4 py-10 text-center text-muted-foreground">
+                                    <td colspan="2" class="text-muted-foreground px-4 py-10 text-center">
                                         <Droplets class="mx-auto mb-2 size-6 opacity-50" />
                                         No visits yet.
                                     </td>
@@ -158,13 +158,13 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                     <div v-if="props.selected">
                         <div class="mb-4">
                             <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
-                            <p class="text-sm text-muted-foreground">
+                            <p class="text-muted-foreground text-sm">
                                 {{ props.selected.on }}<template v-if="props.selected.agent"> · {{ props.selected.agent }}</template>
                             </p>
                             <Link
                                 v-if="props.selected.pool_id"
                                 :href="requestForPoolLink(props.selected.pool_id)"
-                                class="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                                class="text-primary mt-2 inline-flex items-center gap-1 text-sm hover:underline"
                             >
                                 <CalendarPlus class="size-3.5" /> Request service for this pool
                             </Link>
@@ -175,29 +175,29 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                 <h3 class="mb-2 font-medium">Chemistry trend</h3>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div v-if="props.selected.trend.chlorine.length > 1">
-                                        <p class="text-[11px] text-muted-foreground">Free chlorine</p>
+                                        <p class="text-muted-foreground text-[11px]">Free chlorine</p>
                                         <Sparkline :values="props.selected.trend.chlorine" :band="[1, 3]" color="hsl(var(--chart-1))" class="mt-1" />
                                     </div>
                                     <div v-if="props.selected.trend.ph.length > 1">
-                                        <p class="text-[11px] text-muted-foreground">pH</p>
+                                        <p class="text-muted-foreground text-[11px]">pH</p>
                                         <Sparkline :values="props.selected.trend.ph" :band="[7.2, 7.8]" color="hsl(var(--chart-2))" class="mt-1" />
                                     </div>
                                 </div>
-                                <p v-if="props.selected.trend.dates.length > 1" class="mt-1.5 text-[10px] text-muted-foreground">
+                                <p v-if="props.selected.trend.dates.length > 1" class="text-muted-foreground mt-1.5 text-[10px]">
                                     {{ props.selected.trend.dates[0] }} – {{ props.selected.trend.dates[props.selected.trend.dates.length - 1] }}
                                 </p>
                             </section>
 
                             <section v-if="props.selected.reading">
                                 <h3 class="mb-2 font-medium">Water chemistry</h3>
-                                <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+                                <dl class="text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
                                     <div v-for="row in readingRows(props.selected.reading)" :key="row.label" class="flex justify-between">
                                         <dt>{{ row.label }}</dt>
                                         <dd>{{ row.value !== null ? row.value + row.suffix : '—' }}</dd>
                                     </div>
                                     <div
                                         v-if="props.selected.reading.lsi_score !== null"
-                                        class="col-span-2 mt-1 flex justify-between border-t border-border pt-1 font-medium text-foreground"
+                                        class="border-border text-foreground col-span-2 mt-1 flex justify-between border-t pt-1 font-medium"
                                     >
                                         <dt>Water balance (LSI)</dt>
                                         <dd>{{ props.selected.reading.lsi_score }}</dd>
@@ -207,7 +207,7 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
 
                             <section v-if="props.selected.treatments.length">
                                 <h3 class="mb-1 font-medium">Treatments</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="(t, i) in props.selected.treatments" :key="i" class="flex justify-between">
                                         <span>{{ t.name }}</span
                                         ><span>{{ t.amount }} {{ t.unit }}</span>
@@ -217,7 +217,7 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
 
                             <section v-if="props.selected.tasks.length">
                                 <h3 class="mb-1 font-medium">Service checklist</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="(t, i) in props.selected.tasks" :key="i" class="flex items-center gap-2">
                                         <span :class="t.done ? 'text-emerald-600 dark:text-emerald-400' : ''">{{ t.done ? '✓' : '○' }}</span>
                                         {{ t.name }}
@@ -237,7 +237,7 @@ const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
                                         <img
                                             :src="photo"
                                             alt="Service photo"
-                                            class="aspect-square w-full rounded-md border border-border object-cover"
+                                            class="border-border aspect-square w-full rounded-md border object-cover"
                                         />
                                     </a>
                                 </div>

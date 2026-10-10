@@ -113,27 +113,27 @@ function save() {
         <div class="flex h-full min-h-0 w-full flex-1 flex-col gap-6 p-4">
             <!-- headline metrics -->
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">MRR</p>
+                <div class="border-border bg-card rounded-xl border p-4">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">MRR</p>
                     <p class="mt-1 font-mono text-2xl font-bold tabular-nums">{{ formatMoney(metrics.mrr) }}</p>
-                    <p class="mt-0.5 text-xs text-muted-foreground">{{ formatMoney(arr) }}/yr run-rate</p>
+                    <p class="text-muted-foreground mt-0.5 text-xs">{{ formatMoney(arr) }}/yr run-rate</p>
                 </div>
-                <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trial pipeline</p>
+                <div class="border-border bg-card rounded-xl border p-4">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Trial pipeline</p>
                     <p class="mt-1 font-mono text-2xl font-bold tabular-nums">{{ formatMoney(metrics.trial_pipeline) }}</p>
-                    <p class="mt-0.5 text-xs text-muted-foreground">{{ metrics.trialing }} on trial</p>
+                    <p class="text-muted-foreground mt-0.5 text-xs">{{ metrics.trialing }} on trial</p>
                 </div>
-                <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">At risk</p>
+                <div class="border-border bg-card rounded-xl border p-4">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">At risk</p>
                     <p class="mt-1 font-mono text-2xl font-bold tabular-nums" :class="metrics.at_risk > 0 ? 'text-red-600 dark:text-red-400' : ''">
                         {{ formatMoney(metrics.at_risk) }}
                     </p>
-                    <p class="mt-0.5 text-xs text-muted-foreground">{{ metrics.past_due }} past due</p>
+                    <p class="text-muted-foreground mt-0.5 text-xs">{{ metrics.past_due }} past due</p>
                 </div>
-                <div class="rounded-xl border border-border bg-card p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tenants</p>
+                <div class="border-border bg-card rounded-xl border p-4">
+                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Tenants</p>
                     <p class="mt-1 font-mono text-2xl font-bold tabular-nums">{{ metrics.tenants }}</p>
-                    <p class="mt-0.5 text-xs text-muted-foreground">
+                    <p class="text-muted-foreground mt-0.5 text-xs">
                         {{ metrics.active }} paying<span v-if="metrics.free"> · {{ metrics.free }} free</span> · {{ metrics.expired }} expired
                     </p>
                 </div>
@@ -147,18 +147,18 @@ function save() {
             >
                 <!-- accounts list -->
                 <template #list>
-                    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
-                        <div class="flex items-center justify-between gap-4 border-b border-border px-4 py-3">
+                    <div class="border-border flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border">
+                        <div class="border-border flex items-center justify-between gap-4 border-b px-4 py-3">
                             <h2 class="text-sm font-semibold">Accounts</h2>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-muted-foreground text-xs">
                                 Plan: {{ formatMoney(plan.base_price) }}/mo · {{ plan.included_pools }} pools · {{ plan.included_agents }} agents
                                 incl.
                             </p>
                         </div>
                         <div class="min-h-0 flex-1 overflow-auto">
                             <table class="w-full text-sm">
-                                <thead class="sticky top-0 z-10 bg-card">
-                                    <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
+                                <thead class="bg-card sticky top-0 z-10">
+                                    <tr class="border-border text-muted-foreground border-b text-left text-xs tracking-wide uppercase">
                                         <th class="px-4 py-2 font-medium">Company</th>
                                         <th class="px-4 py-2 font-medium">Status</th>
                                         <th class="px-4 py-2 text-right font-medium">Pools</th>
@@ -170,19 +170,19 @@ function save() {
                                     <tr
                                         v-for="t in tenants"
                                         :key="t.id"
-                                        class="cursor-pointer border-b border-border last:border-0 hover:bg-muted/40"
+                                        class="border-border hover:bg-muted/40 cursor-pointer border-b last:border-0"
                                         :class="{ 'bg-muted/60': props.selected?.id === t.id }"
                                         @click="openTenant(t)"
                                     >
                                         <td class="px-4 py-2.5">
                                             <div class="font-medium">{{ t.name }}</div>
-                                            <div class="text-xs text-muted-foreground">/{{ t.slug }}</div>
+                                            <div class="text-muted-foreground text-xs">/{{ t.slug }}</div>
                                         </td>
                                         <td class="px-4 py-2.5">
                                             <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="meta(t.status).class">
                                                 {{ meta(t.status).label }}
                                             </span>
-                                            <span v-if="t.status === 'trialing' && t.trial_ends_at" class="ml-2 text-xs text-muted-foreground">
+                                            <span v-if="t.status === 'trialing' && t.trial_ends_at" class="text-muted-foreground ml-2 text-xs">
                                                 ends {{ t.trial_ends_at }}
                                             </span>
                                         </td>
@@ -191,7 +191,7 @@ function save() {
                                         <td class="px-4 py-2.5 text-right font-mono font-medium tabular-nums">{{ formatMoney(t.estimated) }}</td>
                                     </tr>
                                     <tr v-if="!tenants.length">
-                                        <td colspan="5" class="px-4 py-8 text-center text-sm text-muted-foreground">No tenants yet.</td>
+                                        <td colspan="5" class="text-muted-foreground px-4 py-8 text-center text-sm">No tenants yet.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -209,28 +209,28 @@ function save() {
                                     {{ meta(props.selected.status).label }}
                                 </span>
                             </div>
-                            <p class="text-xs text-muted-foreground">/{{ props.selected.slug }}</p>
+                            <p class="text-muted-foreground text-xs">/{{ props.selected.slug }}</p>
                         </div>
 
                         <!-- usage at a glance -->
                         <dl class="grid grid-cols-3 gap-2">
-                            <div class="rounded-lg border border-border p-2.5 text-center">
-                                <dt class="text-[10px] uppercase tracking-wide text-muted-foreground">Pools</dt>
+                            <div class="border-border rounded-lg border p-2.5 text-center">
+                                <dt class="text-muted-foreground text-[10px] tracking-wide uppercase">Pools</dt>
                                 <dd class="font-mono text-lg font-semibold tabular-nums">{{ props.selected.pools }}</dd>
                             </div>
-                            <div class="rounded-lg border border-border p-2.5 text-center">
-                                <dt class="text-[10px] uppercase tracking-wide text-muted-foreground">Agents</dt>
+                            <div class="border-border rounded-lg border p-2.5 text-center">
+                                <dt class="text-muted-foreground text-[10px] tracking-wide uppercase">Agents</dt>
                                 <dd class="font-mono text-lg font-semibold tabular-nums">{{ props.selected.agents }}</dd>
                             </div>
-                            <div class="rounded-lg border border-border p-2.5 text-center">
-                                <dt class="text-[10px] uppercase tracking-wide text-muted-foreground">Est./mo</dt>
+                            <div class="border-border rounded-lg border p-2.5 text-center">
+                                <dt class="text-muted-foreground text-[10px] tracking-wide uppercase">Est./mo</dt>
                                 <dd class="font-mono text-lg font-semibold tabular-nums">{{ formatMoney(props.selected.estimated) }}</dd>
                             </div>
                         </dl>
 
                         <p
                             v-if="props.selected.subscribed"
-                            class="rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+                            class="border-border bg-muted/40 text-muted-foreground rounded-lg border px-3 py-2 text-xs"
                         >
                             This account has an active Stripe subscription — comping it won't stop Stripe from billing them.
                         </p>
@@ -238,7 +238,7 @@ function save() {
                         <form class="space-y-5" @submit.prevent="save">
                             <!-- free access — the headline lever -->
                             <div
-                                class="rounded-xl border border-border p-3.5"
+                                class="border-border rounded-xl border p-3.5"
                                 :class="form.billing_free ? 'border-violet-500/40 bg-violet-500/5' : ''"
                             >
                                 <button
@@ -262,7 +262,7 @@ function save() {
                                         />
                                     </span>
                                 </button>
-                                <p class="mt-1.5 text-xs text-muted-foreground">
+                                <p class="text-muted-foreground mt-1.5 text-xs">
                                     Comps this account indefinitely — never billed, never locked. Overrides trial &amp; subscription state.
                                 </p>
                                 <div class="mt-3">
@@ -288,7 +288,7 @@ function save() {
                                     <Button type="button" size="sm" variant="ghost" @click="form.trial_ends_at = null">Clear</Button>
                                 </div>
                                 <p v-if="form.errors.trial_ends_at" class="mt-1 text-xs text-red-500">{{ form.errors.trial_ends_at }}</p>
-                                <p class="mt-1 text-xs text-muted-foreground">
+                                <p class="text-muted-foreground mt-1 text-xs">
                                     Leave empty for no trial. Extending gives the account back-office access until that date.
                                 </p>
                             </div>

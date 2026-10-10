@@ -13,7 +13,7 @@ defineProps<Props>();
         <AppLogoIcon class="size-5" />
     </div>
     <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate font-semibold leading-none"
+        <span class="mb-0.5 truncate leading-none font-semibold"
             ><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span
         >
     </div>

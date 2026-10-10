@@ -66,13 +66,13 @@ function animate() {
 </script>
 
 <template>
-    <section v-if="items.length || editing" id="stats" class="border-y border-border bg-muted/40 px-4 py-16 sm:px-6">
+    <section v-if="items.length || editing" id="stats" class="border-border bg-muted/40 border-y px-4 py-16 sm:px-6">
         <div ref="root" class="mx-auto max-w-4xl text-center" :class="contentRow">
             <div v-for="(it, i) in items" :key="it.key" :class="contentItem(items.length)">
-                <p class="stat-value text-4xl font-extrabold text-primary sm:text-5xl">
+                <p class="stat-value text-primary text-4xl font-extrabold sm:text-5xl">
                     {{ show(i, it.value).toLocaleString() }}<span v-if="it.key !== 'years_active'">+</span>
                 </p>
-                <p class="mt-1 text-sm font-medium text-muted-foreground">{{ it.label }}</p>
+                <p class="text-muted-foreground mt-1 text-sm font-medium">{{ it.label }}</p>
             </div>
         </div>
     </section>

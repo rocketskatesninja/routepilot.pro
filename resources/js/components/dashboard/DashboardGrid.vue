@@ -86,7 +86,7 @@ const commit = () =>
                 :min-w="meta(item.i).minW"
                 :min-h="meta(item.i).minH"
                 drag-allow-from=".widget-drag-handle"
-                :class="editing ? 'rounded-xl ring-1 ring-primary/40' : ''"
+                :class="editing ? 'ring-primary/40 rounded-xl ring-1' : ''"
                 @moved="commit"
                 @resized="commit"
             >

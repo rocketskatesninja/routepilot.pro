@@ -174,30 +174,30 @@ onBeforeUnmount(() => {
             <!-- Dim only matters for the centered desktop card; the mobile sheet covers the screen. -->
             <div class="fixed inset-0 hidden bg-black/40 sm:block" @click="close"></div>
             <div
-                class="relative z-10 flex h-full w-full flex-col overflow-hidden bg-popover text-popover-foreground shadow-2xl sm:mx-auto sm:h-auto sm:max-w-lg sm:rounded-xl sm:border sm:border-border"
+                class="bg-popover text-popover-foreground sm:border-border relative z-10 flex h-full w-full flex-col overflow-hidden shadow-2xl sm:mx-auto sm:h-auto sm:max-w-lg sm:rounded-xl sm:border"
             >
-                <div class="flex items-center gap-2 border-b border-border px-3">
-                    <Search class="size-4 shrink-0 text-muted-foreground" />
+                <div class="border-border flex items-center gap-2 border-b px-3">
+                    <Search class="text-muted-foreground size-4 shrink-0" />
                     <input
                         ref="inputEl"
                         v-model="q"
                         type="text"
                         placeholder="Search customers, pools, agents…"
-                        class="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground sm:h-12 sm:text-sm"
+                        class="placeholder:text-muted-foreground h-14 w-full bg-transparent text-base outline-none sm:h-12 sm:text-sm"
                         aria-label="Search"
                     />
-                    <kbd class="hidden shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block"
+                    <kbd class="border-border text-muted-foreground hidden shrink-0 rounded border px-1.5 py-0.5 text-[10px] sm:inline-block"
                         >Esc</kbd
                     >
-                    <button type="button" class="shrink-0 px-1 text-sm font-medium text-primary sm:hidden" @click="close">Cancel</button>
+                    <button type="button" class="text-primary shrink-0 px-1 text-sm font-medium sm:hidden" @click="close">Cancel</button>
                 </div>
                 <div class="min-h-0 flex-1 overflow-y-auto p-2 sm:max-h-[60vh] sm:flex-none">
-                    <p v-if="!q.trim()" class="px-3 py-10 text-center text-sm text-muted-foreground">
+                    <p v-if="!q.trim()" class="text-muted-foreground px-3 py-10 text-center text-sm">
                         Search customers, pools, and agents — or type a page name to jump there.
                     </p>
-                    <p v-else-if="loading && !remote.length" class="px-2 py-3 text-sm text-muted-foreground">Searching…</p>
+                    <p v-else-if="loading && !remote.length" class="text-muted-foreground px-2 py-3 text-sm">Searching…</p>
                     <template v-for="(g, gi) in groups" :key="g.label">
-                        <p class="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ g.label }}</p>
+                        <p class="text-muted-foreground px-2 pt-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">{{ g.label }}</p>
                         <button
                             v-for="(it, ii) in g.items"
                             :key="it.type + it.url"
@@ -209,12 +209,12 @@ onBeforeUnmount(() => {
                         >
                             <span class="flex min-w-0 items-baseline gap-2">
                                 <span class="truncate text-sm font-medium">{{ it.label }}</span>
-                                <span v-if="it.sublabel" class="truncate text-xs text-muted-foreground">{{ it.sublabel }}</span>
+                                <span v-if="it.sublabel" class="text-muted-foreground truncate text-xs">{{ it.sublabel }}</span>
                             </span>
-                            <span class="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">{{ it.type }}</span>
+                            <span class="text-muted-foreground shrink-0 text-[10px] tracking-wide uppercase">{{ it.type }}</span>
                         </button>
                     </template>
-                    <p v-if="q.trim() && !loading && !flat.length" class="px-2 py-6 text-center text-sm text-muted-foreground">No matches.</p>
+                    <p v-if="q.trim() && !loading && !flat.length" class="text-muted-foreground px-2 py-6 text-center text-sm">No matches.</p>
                 </div>
             </div>
         </div>

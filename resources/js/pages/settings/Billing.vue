@@ -77,11 +77,11 @@ const toneClass = (tone: string) =>
             </div>
 
             <!-- plan + usage -->
-            <div class="rounded-xl border border-border p-5">
+            <div class="border-border rounded-xl border p-5">
                 <div class="mb-4 flex items-start justify-between gap-4">
                     <div>
                         <h2 class="text-lg font-semibold">Your plan</h2>
-                        <p class="text-sm text-muted-foreground">
+                        <p class="text-muted-foreground text-sm">
                             {{ formatMoney(plan.base_price) }}/mo base — includes {{ plan.included_pools }} pools and
                             {{ plan.included_agents }} agents. Extra pools are {{ formatMoney(plan.price_per_pool) }} each; extra agents
                             {{ formatMoney(plan.price_per_agent) }} each.
@@ -89,28 +89,28 @@ const toneClass = (tone: string) =>
                     </div>
                 </div>
 
-                <div v-if="billing" class="overflow-hidden rounded-lg border border-border">
+                <div v-if="billing" class="border-border overflow-hidden rounded-lg border">
                     <table class="w-full text-sm">
                         <tbody>
-                            <tr class="border-b border-border">
+                            <tr class="border-border border-b">
                                 <td class="px-4 py-2.5 font-medium">Base plan</td>
-                                <td class="px-4 py-2.5 text-right text-muted-foreground">
+                                <td class="text-muted-foreground px-4 py-2.5 text-right">
                                     includes {{ plan.included_pools }} pools · {{ plan.included_agents }} agents
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.base) }}</td>
                             </tr>
-                            <tr class="border-b border-border">
+                            <tr class="border-border border-b">
                                 <td class="px-4 py-2.5 font-medium">Pools</td>
-                                <td class="px-4 py-2.5 text-right text-muted-foreground">
+                                <td class="text-muted-foreground px-4 py-2.5 text-right">
                                     {{ billing.usage.pools.used }} used<span v-if="billing.usage.pools.over">
                                         · {{ billing.usage.pools.over }} over</span
                                     >
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.pools.overage) }}</td>
                             </tr>
-                            <tr class="border-b border-border">
+                            <tr class="border-border border-b">
                                 <td class="px-4 py-2.5 font-medium">Agents</td>
-                                <td class="px-4 py-2.5 text-right text-muted-foreground">
+                                <td class="text-muted-foreground px-4 py-2.5 text-right">
                                     {{ billing.usage.agents.used }} used<span v-if="billing.usage.agents.over">
                                         · {{ billing.usage.agents.over }} over</span
                                     >
@@ -127,10 +127,10 @@ const toneClass = (tone: string) =>
             </div>
 
             <!-- actions (hidden for complimentary accounts — nothing to pay) -->
-            <div v-if="!billing?.free" class="flex items-center justify-between gap-4 rounded-xl border border-border p-5">
+            <div v-if="!billing?.free" class="border-border flex items-center justify-between gap-4 rounded-xl border p-5">
                 <div>
                     <h3 class="font-semibold">{{ billing?.subscribed ? 'Manage subscription' : 'Subscribe' }}</h3>
-                    <p class="text-sm text-muted-foreground">
+                    <p class="text-muted-foreground text-sm">
                         {{
                             billing?.subscribed
                                 ? 'Update your card, view invoices, or cancel in the Stripe portal.'
@@ -151,7 +151,7 @@ const toneClass = (tone: string) =>
                 </form>
             </div>
 
-            <p class="px-1 text-xs text-muted-foreground">Billing is handled securely by Stripe. We never store your card details.</p>
+            <p class="text-muted-foreground px-1 text-xs">Billing is handled securely by Stripe. We never store your card details.</p>
         </div>
     </AppLayout>
 </template>

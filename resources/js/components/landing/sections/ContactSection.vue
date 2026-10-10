@@ -51,33 +51,33 @@ async function submit() {
                 v-model="form.name"
                 required
                 placeholder="Your name"
-                class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
             />
             <div class="grid gap-4 sm:grid-cols-2">
                 <input
                     v-model="form.email"
                     type="email"
                     placeholder="Email"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                 />
                 <input
                     v-model="form.phone"
                     type="tel"
                     placeholder="Phone"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                 />
             </div>
             <textarea
                 v-model="form.message"
                 rows="4"
                 placeholder="Tell us about your pool and what you need…"
-                class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
             ></textarea>
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
             <button
                 type="submit"
                 :disabled="sending"
-                class="btn-cta w-full rounded-xl bg-primary px-6 py-3 font-bold text-primary-foreground shadow-lg disabled:opacity-60"
+                class="btn-cta bg-primary text-primary-foreground w-full rounded-xl px-6 py-3 font-bold shadow-lg disabled:opacity-60"
             >
                 {{ sending ? 'Sending…' : 'Send message' }}
             </button>

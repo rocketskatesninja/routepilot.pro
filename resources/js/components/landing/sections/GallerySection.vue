@@ -24,7 +24,7 @@ const lightbox = ref<number | null>(null);
                 v-for="(p, i) in photos"
                 :key="i"
                 type="button"
-                class="group relative aspect-square overflow-hidden rounded-xl border border-border"
+                class="group border-border relative aspect-square overflow-hidden rounded-xl border"
                 :class="galleryItem(photos.length)"
                 @click="lightbox = i"
             >
@@ -41,14 +41,14 @@ const lightbox = ref<number | null>(null);
                 >
             </button>
         </div>
-        <p v-else class="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <p v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
             Feature photos from completed visits to fill this gallery.
         </p>
     </SectionShell>
 
     <!-- Lightbox — client-only (lightbox is null during SSR). -->
     <div v-if="lightbox !== null" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4" @click="lightbox = null">
-        <button type="button" class="absolute right-4 top-4 text-white/80 hover:text-white" aria-label="Close" @click="lightbox = null">
+        <button type="button" class="absolute top-4 right-4 text-white/80 hover:text-white" aria-label="Close" @click="lightbox = null">
             <X class="size-7" />
         </button>
         <img

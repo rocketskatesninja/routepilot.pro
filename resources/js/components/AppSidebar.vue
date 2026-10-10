@@ -143,7 +143,7 @@ const { isMobile, toggleSidebar } = useSidebar();
                     <SidebarMenuButton tooltip="Search (⌘K)" @click="openCommand()">
                         <Search />
                         <span>Search</span>
-                        <kbd class="ml-auto rounded border border-sidebar-border px-1 text-[10px] text-muted-foreground">⌘K</kbd>
+                        <kbd class="border-sidebar-border text-muted-foreground ml-auto rounded border px-1 text-[10px]">⌘K</kbd>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>

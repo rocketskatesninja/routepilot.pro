@@ -15,12 +15,12 @@ defineProps<{ data: { tiles: Tile[] } }>();
         <div
             v-for="t in data.tiles"
             :key="t.label"
-            class="flex h-full flex-col items-center rounded-lg border border-border bg-background/40 px-2 py-2 text-center"
+            class="border-border bg-background/40 flex h-full flex-col items-center rounded-lg border px-2 py-2 text-center"
             style="container-type: size"
         >
-            <div class="text-xs leading-tight text-muted-foreground">{{ t.label }}</div>
+            <div class="text-muted-foreground text-xs leading-tight">{{ t.label }}</div>
             <div
-                class="flex flex-1 items-center font-semibold tabular-nums leading-none"
+                class="flex flex-1 items-center leading-none font-semibold tabular-nums"
                 :class="t.accent"
                 style="font-size: clamp(1.25rem, min(26cqh, 24cqw), 3.25rem)"
             >

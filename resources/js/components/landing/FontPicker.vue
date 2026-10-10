@@ -18,10 +18,10 @@ const currentStack = computed(() => TITLE_FONTS.find((f) => f.name === props.mod
         <DropdownMenuTrigger as-child>
             <button
                 type="button"
-                class="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-2 text-sm transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                class="border-input bg-background hover:bg-accent focus-visible:ring-ring flex h-9 w-full items-center justify-between gap-2 rounded-md border px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2"
             >
                 <span class="truncate" :style="{ fontFamily: currentStack }">{{ modelValue }}</span>
-                <ChevronDown class="size-4 shrink-0 text-muted-foreground" />
+                <ChevronDown class="text-muted-foreground size-4 shrink-0" />
             </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" class="max-h-72 w-56 overflow-y-auto">
@@ -32,7 +32,7 @@ const currentStack = computed(() => TITLE_FONTS.find((f) => f.name === props.mod
                 @select="emit('update:modelValue', f.name)"
             >
                 <span class="text-base" :style="{ fontFamily: f.stack }">{{ f.name }}</span>
-                <Check v-if="f.name === modelValue" class="size-4 shrink-0 text-primary" />
+                <Check v-if="f.name === modelValue" class="text-primary size-4 shrink-0" />
             </DropdownMenuItem>
         </DropdownMenuContent>
     </DropdownMenu>

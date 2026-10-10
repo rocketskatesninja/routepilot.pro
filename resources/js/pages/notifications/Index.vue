@@ -90,19 +90,19 @@ const clearAll = () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
-            <div class="inline-flex items-center gap-0.5 rounded-md border border-border p-0.5 text-sm">
+            <div class="border-border inline-flex items-center gap-0.5 rounded-md border p-0.5 text-sm">
                 <button
                     type="button"
                     class="rounded px-2 py-1 transition-colors"
-                    :class="tab === 'all' ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                    :class="tab === 'all' ? 'bg-muted text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'"
                     @click="tab = 'all'"
                 >
-                    All <span class="text-xs text-muted-foreground">{{ props.notifications.length }}</span>
+                    All <span class="text-muted-foreground text-xs">{{ props.notifications.length }}</span>
                 </button>
                 <button
                     type="button"
                     class="rounded px-2 py-1 transition-colors"
-                    :class="tab === 'unread' ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                    :class="tab === 'unread' ? 'bg-muted text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'"
                     @click="tab = 'unread'"
                 >
                     Unread <span class="text-xs" :class="unreadCount ? 'text-sky-500' : 'text-muted-foreground'">{{ unreadCount }}</span>
@@ -113,12 +113,12 @@ const clearAll = () => {
         </template>
 
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-            <div class="overflow-hidden rounded-xl border border-border">
-                <ul class="divide-y divide-border text-sm">
+            <div class="border-border overflow-hidden rounded-xl border">
+                <ul class="divide-border divide-y text-sm">
                     <li
                         v-for="n in shown"
                         :key="n.id"
-                        class="group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                        class="group hover:bg-muted/40 flex items-start gap-3 px-4 py-3 transition-colors"
                         :class="{ 'bg-muted/30': !n.read }"
                     >
                         <span
@@ -134,13 +134,13 @@ const clearAll = () => {
                                 <span v-if="!n.read" class="size-2 shrink-0 rounded-full bg-sky-500" aria-label="Unread" />
                             </div>
                             <p class="text-muted-foreground">{{ n.body }}</p>
-                            <p class="text-xs text-muted-foreground">{{ n.on }}</p>
+                            <p class="text-muted-foreground text-xs">{{ n.on }}</p>
                         </button>
 
                         <div class="flex shrink-0 items-center gap-1">
                             <button
                                 type="button"
-                                class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1.5 transition-colors"
                                 :title="n.read ? 'Mark as unread' : 'Mark as read'"
                                 @click.stop="toggleRead(n)"
                             >
@@ -148,7 +148,7 @@ const clearAll = () => {
                             </button>
                             <button
                                 type="button"
-                                class="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1.5 transition-colors"
                                 title="Dismiss"
                                 @click.stop="dismiss(n)"
                             >
@@ -157,7 +157,7 @@ const clearAll = () => {
                         </div>
                     </li>
 
-                    <li v-if="shown.length === 0" class="px-4 py-10 text-center text-muted-foreground">
+                    <li v-if="shown.length === 0" class="text-muted-foreground px-4 py-10 text-center">
                         <Bell class="mx-auto mb-2 size-6 opacity-50" />
                         {{ tab === 'unread' ? 'No unread notifications.' : "You're all caught up." }}
                     </li>

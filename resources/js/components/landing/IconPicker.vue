@@ -29,7 +29,7 @@ const currentIcon = computed(() => ICONS.find((i) => i.key === props.modelValue)
                 type="button"
                 title="Choose an icon"
                 aria-label="Choose an icon"
-                class="flex size-9 shrink-0 items-center justify-center rounded-md border border-input bg-background text-primary transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                class="border-input bg-background text-primary hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors focus:outline-none focus-visible:ring-2"
             >
                 <component :is="currentIcon" class="size-4" />
             </button>
@@ -40,7 +40,7 @@ const currentIcon = computed(() => ICONS.find((i) => i.key === props.modelValue)
                 :key="ic.key"
                 :title="ic.label"
                 class="flex size-9 items-center justify-center rounded-md p-0"
-                :class="ic.key === (modelValue || 'droplet') ? 'bg-accent text-primary ring-1 ring-primary' : 'text-foreground'"
+                :class="ic.key === (modelValue || 'droplet') ? 'bg-accent text-primary ring-primary ring-1' : 'text-foreground'"
                 @select="emit('update:modelValue', ic.key)"
             >
                 <component :is="ic.icon" class="size-4" />

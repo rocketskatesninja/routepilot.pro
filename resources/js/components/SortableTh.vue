@@ -33,7 +33,7 @@ function toggle() {
     <th class="px-4 py-2 font-medium">
         <button
             type="button"
-            class="inline-flex items-center gap-1 transition-colors hover:text-foreground"
+            class="hover:text-foreground inline-flex items-center gap-1 transition-colors"
             :class="align === 'right' ? 'flex-row-reverse' : ''"
             @click="toggle"
         >

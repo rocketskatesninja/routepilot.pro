@@ -24,14 +24,14 @@ const toggle = (i: number) => (open.value = open.value === i ? null : i);
         subheading="Everything you need to know"
     >
         <div v-if="items.length" class="space-y-3">
-            <div v-for="(item, i) in items" :key="i" class="reveal overflow-hidden rounded-xl border border-border bg-background shadow-sm">
+            <div v-for="(item, i) in items" :key="i" class="reveal border-border bg-background overflow-hidden rounded-xl border shadow-sm">
                 <button type="button" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left" @click="toggle(i)">
-                    <span class="text-sm font-semibold text-foreground">{{ item.q }}</span>
-                    <ChevronDown class="size-4 shrink-0 text-muted-foreground transition-transform" :class="open === i ? 'rotate-180' : ''" />
+                    <span class="text-foreground text-sm font-semibold">{{ item.q }}</span>
+                    <ChevronDown class="text-muted-foreground size-4 shrink-0 transition-transform" :class="open === i ? 'rotate-180' : ''" />
                 </button>
-                <p v-show="open === i" class="px-5 pb-4 text-sm leading-relaxed text-muted-foreground">{{ item.a }}</p>
+                <p v-show="open === i" class="text-muted-foreground px-5 pb-4 text-sm leading-relaxed">{{ item.a }}</p>
             </div>
         </div>
-        <p v-else class="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">Add questions in the editor.</p>
+        <p v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">Add questions in the editor.</p>
     </SectionShell>
 </template>

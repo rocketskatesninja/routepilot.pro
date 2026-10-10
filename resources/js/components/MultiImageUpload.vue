@@ -48,11 +48,11 @@ function removeAt(i: number) {
 <template>
     <div>
         <div class="flex flex-wrap gap-2">
-            <div v-for="(p, i) in previews" :key="i" class="relative size-20 overflow-hidden rounded-md border border-border">
+            <div v-for="(p, i) in previews" :key="i" class="border-border relative size-20 overflow-hidden rounded-md border">
                 <img :src="p.url" class="h-full w-full object-cover" alt="" />
                 <button
                     type="button"
-                    class="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                    class="absolute top-0.5 right-0.5 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
                     aria-label="Remove photo"
                     @click="removeAt(i)"
                 >
@@ -61,7 +61,7 @@ function removeAt(i: number) {
             </div>
             <button
                 type="button"
-                class="flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border text-muted-foreground hover:bg-muted/40"
+                class="border-border text-muted-foreground hover:bg-muted/40 flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed"
                 @click="pick"
             >
                 <ImagePlus class="size-5" />

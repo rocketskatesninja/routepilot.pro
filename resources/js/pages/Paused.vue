@@ -14,8 +14,8 @@ const company = computed(() => page.props.tenant?.name ?? 'This account');
 <template>
     <Head title="Account paused" />
 
-    <div class="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-6 text-center">
-        <div class="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+    <div class="bg-background flex min-h-screen flex-col items-center justify-center gap-6 p-6 text-center">
+        <div class="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-2xl">
             <PauseCircle class="size-8" />
         </div>
 
@@ -36,7 +36,7 @@ const company = computed(() => page.props.tenant?.name ?? 'This account');
             </Link>
         </div>
 
-        <div class="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <div class="text-muted-foreground mt-4 flex items-center gap-2 text-sm">
             <AppLogoIcon class="size-5 fill-current" />
             <span>RoutePilot</span>
         </div>

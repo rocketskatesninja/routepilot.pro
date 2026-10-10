@@ -16,9 +16,9 @@ const money = formatMoney;
     <div class="flex h-full flex-col gap-2">
         <div class="shrink-0">
             <div class="text-2xl font-semibold tabular-nums">{{ money(data.outstanding_total) }}</div>
-            <div class="text-xs text-muted-foreground">outstanding · {{ data.customer_count }} customer(s)</div>
+            <div class="text-muted-foreground text-xs">outstanding · {{ data.customer_count }} customer(s)</div>
         </div>
-        <ul v-if="data.top.length" class="flex-1 divide-y divide-border overflow-y-auto text-sm">
+        <ul v-if="data.top.length" class="divide-border flex-1 divide-y overflow-y-auto text-sm">
             <li v-for="(r, i) in data.top" :key="i" class="flex items-center justify-between gap-2 px-1 py-2">
                 <span class="truncate">{{ r.customer }}</span>
                 <span class="shrink-0 font-medium tabular-nums">{{ money(r.balance) }}</span>

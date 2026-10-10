@@ -180,11 +180,11 @@ const included = [
         <meta v-if="ogImage" name="twitter:image" :content="ogImage" />
     </Head>
 
-    <div class="flex min-h-svh flex-col bg-background text-foreground">
+    <div class="bg-background text-foreground flex min-h-svh flex-col">
         <!-- Header -->
         <header
             class="fixed inset-x-0 top-0 z-30 transition-all duration-300"
-            :class="scrolled ? 'border-b border-border bg-background/90 shadow-sm backdrop-blur-md' : 'border-b border-transparent'"
+            :class="scrolled ? 'border-border bg-background/90 border-b shadow-sm backdrop-blur-md' : 'border-b border-transparent'"
         >
             <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6" aria-label="Primary">
                 <Link href="/" class="flex items-center gap-2 text-2xl font-bold" aria-label="RoutePilot home">
@@ -195,10 +195,10 @@ const included = [
                 </Link>
 
                 <div class="hidden items-center gap-7 text-sm font-medium sm:flex" :class="scrolled ? 'text-muted-foreground' : 'text-sky-100/90'">
-                    <a href="#how" class="transition-colors hover:text-foreground">How it works</a>
-                    <a href="#features" class="transition-colors hover:text-foreground">Features</a>
-                    <a :href="demoUrl" target="_blank" class="transition-colors hover:text-foreground">Demo</a>
-                    <a href="#pricing" class="transition-colors hover:text-foreground">Pricing</a>
+                    <a href="#how" class="hover:text-foreground transition-colors">How it works</a>
+                    <a href="#features" class="hover:text-foreground transition-colors">Features</a>
+                    <a :href="demoUrl" target="_blank" class="hover:text-foreground transition-colors">Demo</a>
+                    <a href="#pricing" class="hover:text-foreground transition-colors">Pricing</a>
                 </div>
 
                 <div class="flex items-center gap-3 sm:gap-5">
@@ -231,7 +231,7 @@ const included = [
         <main class="flex-1">
             <!-- Hero -->
             <section
-                class="relative flex min-h-svh items-center overflow-hidden px-4 pb-24 pt-28 sm:px-6"
+                class="relative flex min-h-svh items-center overflow-hidden px-4 pt-28 pb-24 sm:px-6"
                 style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0369a1 75%, #0ea5e9 100%)"
             >
                 <div class="hero-dots pointer-events-none absolute inset-0"></div>
@@ -259,7 +259,7 @@ const included = [
                             <span class="size-1.5 rounded-full bg-orange-400"></span>
                             A Punchlist Labs Product
                         </span>
-                        <h1 class="hero-animate hero-d2 font-bold leading-tight text-white" style="font-size: clamp(2.3rem, 5vw, 3.7rem)">
+                        <h1 class="hero-animate hero-d2 leading-tight font-bold text-white" style="font-size: clamp(2.3rem, 5vw, 3.7rem)">
                             Run your whole pool business&nbsp;—<br />
                             <span class="bg-gradient-to-br from-orange-300 to-orange-500 bg-clip-text text-transparent">plus your own website.</span>
                         </h1>
@@ -298,13 +298,13 @@ const included = [
             </section>
 
             <!-- Proof band: honest capability facts framed as outcomes -->
-            <section class="border-b border-border bg-muted/40">
+            <section class="border-border bg-muted/40 border-b">
                 <div class="mx-auto grid max-w-6xl grid-cols-1 gap-x-6 gap-y-4 px-4 py-6 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
                     <div v-for="p in proof" :key="p.label" class="flex items-center gap-3">
-                        <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <span class="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
                             <component :is="p.icon" class="size-5" />
                         </span>
-                        <span class="text-sm font-medium leading-snug">{{ p.label }}</span>
+                        <span class="text-sm leading-snug font-medium">{{ p.label }}</span>
                     </div>
                 </div>
             </section>
@@ -320,14 +320,14 @@ const included = [
                                 :href="demoUrl"
                                 target="_blank"
                                 rel="noopener"
-                                class="block overflow-hidden rounded-xl border border-border shadow-2xl ring-1 ring-black/5 transition-transform duration-300 hover:-translate-y-1"
+                                class="border-border block overflow-hidden rounded-xl border shadow-2xl ring-1 ring-black/5 transition-transform duration-300 hover:-translate-y-1"
                                 aria-label="Open the live demo pool service website"
                             >
-                                <div class="flex items-center gap-2 border-b border-border bg-muted px-3 py-2.5 text-muted-foreground">
+                                <div class="border-border bg-muted text-muted-foreground flex items-center gap-2 border-b px-3 py-2.5">
                                     <ArrowLeft class="size-3.5" />
                                     <ArrowRight class="size-3.5 opacity-40" />
                                     <RotateCw class="size-3.5" />
-                                    <span class="ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full bg-background px-3 py-1 text-xs">
+                                    <span class="bg-background ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full px-3 py-1 text-xs">
                                         <Lock class="size-3 text-emerald-500" /> routepilot.pro/t/demo
                                     </span>
                                 </div>
@@ -350,15 +350,15 @@ const included = [
 
                         <!-- Right: the pitch + what's inside the demo -->
                         <div class="reveal" style="transition-delay: 0.1s">
-                            <p class="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">Live preview</p>
+                            <p class="text-primary mb-3 text-sm font-semibold tracking-widest uppercase">Live preview</p>
                             <h2 class="text-2xl font-bold sm:text-3xl">See a real customer site in action</h2>
-                            <p class="mt-4 leading-relaxed text-muted-foreground">
+                            <p class="text-muted-foreground mt-4 leading-relaxed">
                                 Every RoutePilot account includes a branded website and customer portal — not a template you wrestle with, but a
                                 complete, ready-to-go site that's live the day you sign up. Explore the demo to see exactly what your clients get.
                             </p>
                             <ul class="mt-6 space-y-3 text-sm">
                                 <li v-for="item in demoFeatures" :key="item" class="flex items-start gap-3">
-                                    <Check class="mt-0.5 size-5 shrink-0 text-primary" />
+                                    <Check class="text-primary mt-0.5 size-5 shrink-0" />
                                     <span>{{ item }}</span>
                                 </li>
                             </ul>
@@ -366,7 +366,7 @@ const included = [
                                 :href="demoUrl"
                                 target="_blank"
                                 rel="noopener"
-                                class="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-md transition-colors hover:bg-primary/90"
+                                class="bg-primary text-primary-foreground hover:bg-primary/90 mt-8 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold shadow-md transition-colors"
                             >
                                 Open the live demo <ArrowRight class="size-4" />
                             </a>
@@ -376,11 +376,11 @@ const included = [
             </section>
 
             <!-- How it works: the scheduling → service → invoicing story -->
-            <section id="how" class="border-y border-border bg-muted/30 py-20">
+            <section id="how" class="border-border bg-muted/30 border-y py-20">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
                     <div class="reveal mx-auto mb-14 max-w-2xl text-center">
                         <h2 class="text-2xl font-bold sm:text-3xl">From schedule to invoice,<br />without the busywork</h2>
-                        <p class="mt-3 text-muted-foreground">
+                        <p class="text-muted-foreground mt-3">
                             Pool route software that carries a job from planning to payment — so your team spends less time on admin and more time on
                             pools.
                         </p>
@@ -389,17 +389,17 @@ const included = [
                         <div
                             v-for="(s, i) in steps"
                             :key="s.title"
-                            class="reveal relative rounded-2xl border border-border bg-card/40 p-6"
+                            class="reveal border-border bg-card/40 relative rounded-2xl border p-6"
                             :style="{ transitionDelay: `${i * 0.1}s` }"
                         >
-                            <span class="absolute right-5 top-5 text-4xl font-black text-muted-foreground/15">{{ i + 1 }}</span>
+                            <span class="text-muted-foreground/15 absolute top-5 right-5 text-4xl font-black">{{ i + 1 }}</span>
                             <div class="mb-2 flex items-center gap-3">
-                                <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <span class="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
                                     <component :is="s.icon" class="size-6" />
                                 </span>
                                 <h3 class="text-lg font-bold">{{ s.title }}</h3>
                             </div>
-                            <p class="text-sm leading-relaxed text-muted-foreground">{{ s.desc }}</p>
+                            <p class="text-muted-foreground text-sm leading-relaxed">{{ s.desc }}</p>
                         </div>
                     </div>
                 </div>
@@ -411,30 +411,30 @@ const included = [
                     <h2 class="reveal mx-auto mb-4 max-w-2xl text-center text-2xl font-bold sm:text-3xl">
                         The all-in-one pool service app — and the only one that hands you a website
                     </h2>
-                    <p class="reveal mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
+                    <p class="reveal text-muted-foreground mx-auto mb-12 max-w-2xl text-center">
                         Matching feature checklists isn't enough. These are the things RoutePilot does that make owners switch.
                     </p>
                     <div class="grid gap-6 lg:grid-cols-3">
                         <div
                             v-for="(s, i) in signature"
                             :key="s.title"
-                            class="reveal flex flex-col rounded-2xl border border-border bg-background p-7 shadow-sm"
-                            :class="i === 0 ? 'lg:row-span-1 lg:ring-1 lg:ring-primary/20' : ''"
+                            class="reveal border-border bg-background flex flex-col rounded-2xl border p-7 shadow-sm"
+                            :class="i === 0 ? 'lg:ring-primary/20 lg:row-span-1 lg:ring-1' : ''"
                             :style="{ transitionDelay: `${i * 0.08}s` }"
                         >
                             <div class="mb-3 flex items-center gap-3">
-                                <span class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <span class="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
                                     <component :is="s.icon" class="size-6" />
                                 </span>
                                 <h3 class="text-lg font-bold">{{ s.title }}</h3>
                             </div>
-                            <p class="flex-1 text-sm leading-relaxed text-muted-foreground">{{ s.desc }}</p>
+                            <p class="text-muted-foreground flex-1 text-sm leading-relaxed">{{ s.desc }}</p>
                             <a
                                 v-if="s.cta"
                                 :href="demoUrl"
                                 target="_blank"
                                 rel="noopener"
-                                class="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+                                class="text-primary mt-4 inline-flex items-center gap-1 text-sm font-semibold hover:underline"
                             >
                                 See a real site built on RoutePilot <ArrowRight class="size-4" />
                             </a>
@@ -444,23 +444,23 @@ const included = [
             </section>
 
             <!-- Everything else -->
-            <section id="features" class="border-y border-border bg-muted/30 py-20">
+            <section id="features" class="border-border bg-muted/30 border-y py-20">
                 <div class="mx-auto max-w-6xl px-4 sm:px-6">
                     <h2 class="reveal mx-auto mb-3 max-w-2xl text-center text-2xl font-bold sm:text-3xl">
                         Everything a pool service business needs, in one place
                     </h2>
-                    <p class="reveal mx-auto mb-12 max-w-2xl text-center text-muted-foreground">
+                    <p class="reveal text-muted-foreground mx-auto mb-12 max-w-2xl text-center">
                         A pool company CRM, billing, inventory, and pool technician software — no more stitching together five disconnected tools.
                     </p>
                     <div class="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
                         <div v-for="(f, i) in features" :key="f.title" class="reveal" :style="{ transitionDelay: `${(i % 4) * 0.08}s` }">
                             <div class="mb-2 flex items-center gap-3">
-                                <div class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <div class="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
                                     <component :is="f.icon" class="size-6" />
                                 </div>
                                 <h3 class="font-bold">{{ f.title }}</h3>
                             </div>
-                            <p class="text-sm leading-relaxed text-muted-foreground">{{ f.desc }}</p>
+                            <p class="text-muted-foreground text-sm leading-relaxed">{{ f.desc }}</p>
                         </div>
                     </div>
                 </div>
@@ -482,18 +482,18 @@ const included = [
                 <div class="mx-auto max-w-5xl px-4 sm:px-6">
                     <div class="reveal mx-auto mb-10 max-w-2xl text-center">
                         <h2 class="text-2xl font-bold sm:text-3xl">Simple, transparent pricing</h2>
-                        <p class="mt-3 text-muted-foreground">One plan. Everything included. You only pay more as you grow.</p>
+                        <p class="text-muted-foreground mt-3">One plan. Everything included. You only pay more as you grow.</p>
                     </div>
 
                     <div class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
                         <!-- Plan card -->
-                        <div class="reveal rounded-2xl border border-border bg-muted/30 p-8 text-center shadow-xl">
+                        <div class="reveal border-border bg-muted/30 rounded-2xl border p-8 text-center shadow-xl">
                             <p class="font-bold">
                                 <span class="text-5xl">${{ dollars }}</span
                                 ><span class="text-2xl">.{{ cents }}</span
-                                ><span class="text-base font-medium text-muted-foreground">/mo</span>
+                                ><span class="text-muted-foreground text-base font-medium">/mo</span>
                             </p>
-                            <p class="mt-2 text-muted-foreground">
+                            <p class="text-muted-foreground mt-2">
                                 Includes {{ pricing.included_pools }} pools and {{ pricing.included_agents }} agents
                             </p>
                             <ul class="mx-auto mt-6 max-w-xs space-y-2.5 text-left text-sm">
@@ -508,12 +508,12 @@ const included = [
                             >
                                 Get Started
                             </Link>
-                            <p class="mt-3 text-xs text-muted-foreground">No credit card required · Cancel anytime</p>
+                            <p class="text-muted-foreground mt-3 text-xs">No credit card required · Cancel anytime</p>
                         </div>
 
                         <!-- What's included + FAQ -->
                         <div class="reveal" style="transition-delay: 0.12s">
-                            <h3 class="mb-3 flex items-center gap-2 font-bold"><Sparkles class="size-4 text-primary" /> What's included</h3>
+                            <h3 class="mb-3 flex items-center gap-2 font-bold"><Sparkles class="text-primary size-4" /> What's included</h3>
                             <ul class="mb-8 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                                 <li v-for="inc in included" :key="inc" class="flex items-center gap-2">
                                     <Check class="size-4 shrink-0 text-green-500" /> <span>{{ inc }}</span>
@@ -524,7 +524,7 @@ const included = [
                             <dl class="space-y-4">
                                 <div v-for="f in faq" :key="f.q">
                                     <dt class="text-sm font-semibold">{{ f.q }}</dt>
-                                    <dd class="mt-1 text-sm leading-relaxed text-muted-foreground">{{ f.a }}</dd>
+                                    <dd class="text-muted-foreground mt-1 text-sm leading-relaxed">{{ f.a }}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -534,7 +534,7 @@ const included = [
         </main>
 
         <!-- Footer -->
-        <footer class="border-t border-border bg-muted/40">
+        <footer class="border-border bg-muted/40 border-t">
             <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
                 <div class="grid gap-8 md:grid-cols-4">
                     <div class="md:col-span-2">
@@ -544,44 +544,44 @@ const included = [
                             /></span>
                             <span><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span>
                         </span>
-                        <p class="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+                        <p class="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">
                             The all-in-one pool service management platform — software for pool cleaning businesses that want to run leaner and look
                             more professional. Built by Punchlist Labs.
                         </p>
                     </div>
                     <div>
-                        <h3 class="mb-3 text-sm font-semibold text-foreground">Product</h3>
+                        <h3 class="text-foreground mb-3 text-sm font-semibold">Product</h3>
                         <ul class="space-y-2 text-sm">
-                            <li><a href="#how" class="text-muted-foreground transition-colors hover:text-foreground">How it works</a></li>
-                            <li><a href="#features" class="text-muted-foreground transition-colors hover:text-foreground">Features</a></li>
-                            <li><a href="#pricing" class="text-muted-foreground transition-colors hover:text-foreground">Pricing</a></li>
+                            <li><a href="#how" class="text-muted-foreground hover:text-foreground transition-colors">How it works</a></li>
+                            <li><a href="#features" class="text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
+                            <li><a href="#pricing" class="text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
                             <li>
-                                <Link :href="route('register')" class="text-muted-foreground transition-colors hover:text-foreground"
+                                <Link :href="route('register')" class="text-muted-foreground hover:text-foreground transition-colors"
                                     >Start Free Trial</Link
                                 >
                             </li>
                         </ul>
                     </div>
                     <div>
-                        <h3 class="mb-3 text-sm font-semibold text-foreground">Account</h3>
+                        <h3 class="text-foreground mb-3 text-sm font-semibold">Account</h3>
                         <ul class="space-y-2 text-sm">
-                            <li><Link :href="route('login')" class="text-muted-foreground transition-colors hover:text-foreground">Sign In</Link></li>
+                            <li><Link :href="route('login')" class="text-muted-foreground hover:text-foreground transition-colors">Sign In</Link></li>
                             <li>
-                                <Link :href="route('register')" class="text-muted-foreground transition-colors hover:text-foreground"
+                                <Link :href="route('register')" class="text-muted-foreground hover:text-foreground transition-colors"
                                     >Create account</Link
                                 >
                             </li>
                             <li>
-                                <a :href="demoUrl" target="_blank" class="text-muted-foreground transition-colors hover:text-foreground">Live demo</a>
+                                <a :href="demoUrl" target="_blank" class="text-muted-foreground hover:text-foreground transition-colors">Live demo</a>
                             </li>
                         </ul>
                     </div>
                 </div>
-                <div class="mt-8 flex flex-col items-center gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between">
-                    <p class="text-sm text-muted-foreground">© {{ new Date().getFullYear() }} RoutePilot. All rights reserved.</p>
-                    <div class="flex items-center gap-4 text-sm text-muted-foreground">
-                        <Link href="/privacy" class="transition-colors hover:text-foreground">Privacy</Link>
-                        <Link href="/terms" class="transition-colors hover:text-foreground">Terms</Link>
+                <div class="border-border mt-8 flex flex-col items-center gap-3 border-t pt-6 sm:flex-row sm:justify-between">
+                    <p class="text-muted-foreground text-sm">© {{ new Date().getFullYear() }} RoutePilot. All rights reserved.</p>
+                    <div class="text-muted-foreground flex items-center gap-4 text-sm">
+                        <Link href="/privacy" class="hover:text-foreground transition-colors">Privacy</Link>
+                        <Link href="/terms" class="hover:text-foreground transition-colors">Terms</Link>
                     </div>
                 </div>
             </div>

@@ -105,7 +105,7 @@ const submit = () => {
                             placeholder="Email address"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
-                        <p v-if="isCustomer" class="mt-1 text-xs text-muted-foreground">
+                        <p v-if="isCustomer" class="text-muted-foreground mt-1 text-xs">
                             This is also your sign-in email. Changing it sends a confirmation link to the new address — the change takes effect only
                             after you confirm it there.
                         </p>
@@ -125,7 +125,7 @@ const submit = () => {
                                 :href="route('verification.send')"
                                 method="post"
                                 as="button"
-                                class="focus:outline-hidden rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2"
+                                class="rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                             >
                                 Click here to re-send the verification email.
                             </Link>

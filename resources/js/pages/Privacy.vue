@@ -27,7 +27,7 @@ const toc = [
         updated="Last updated: April 17, 2026 · Effective: April 17, 2026"
         :toc="toc"
     >
-        <div class="rounded-xl border border-primary/25 bg-primary/10 p-4 text-sm text-foreground">
+        <div class="border-primary/25 bg-primary/10 text-foreground rounded-xl border p-4 text-sm">
             This Privacy Policy describes how <strong>Punchlist Labs</strong> ("we," "our," or "us") collects, uses, and shares information when you
             use the <strong>RoutePilot</strong> platform and related services (collectively, the "Service"). By accessing or using the Service, you
             agree to the practices described in this policy.

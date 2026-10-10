@@ -29,7 +29,7 @@ const toc = [
         updated="Last updated: April 17, 2026 · Effective: April 17, 2026"
         :toc="toc"
     >
-        <div class="rounded-xl border border-primary/25 bg-primary/10 p-4 text-sm text-foreground">
+        <div class="border-primary/25 bg-primary/10 text-foreground rounded-xl border p-4 text-sm">
             These Terms of Service ("Terms") govern your access to and use of the <strong>RoutePilot</strong> platform operated by
             <strong>Punchlist Labs</strong>
             ("we," "our," or "us"). By creating an account or using the Service, you agree to be bound by these Terms.

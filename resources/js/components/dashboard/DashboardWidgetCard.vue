@@ -42,23 +42,23 @@ const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>
 
 <template>
-    <div class="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-        <div class="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+    <div class="border-border bg-card text-card-foreground flex h-full flex-col overflow-hidden rounded-xl border shadow-sm">
+        <div class="border-border flex items-center justify-between gap-2 border-b px-3 py-2">
             <div class="flex min-w-0 items-center gap-2">
-                <component :is="iconComponent" class="size-4 shrink-0 text-muted-foreground" />
+                <component :is="iconComponent" class="text-muted-foreground size-4 shrink-0" />
                 <h2 class="truncate text-sm font-medium">{{ title }}</h2>
             </div>
             <div v-if="editing" class="flex shrink-0 items-center gap-1">
                 <button
                     type="button"
-                    class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1"
                     title="Remove widget"
                     @click="$emit('remove')"
                 >
                     <X class="size-4" />
                 </button>
                 <span
-                    class="widget-drag-handle cursor-move rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    class="widget-drag-handle text-muted-foreground hover:bg-muted hover:text-foreground cursor-move rounded p-1"
                     title="Drag to move"
                 >
                     <GripVertical class="size-4" />

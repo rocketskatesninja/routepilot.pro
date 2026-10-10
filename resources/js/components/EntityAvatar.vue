@@ -21,7 +21,7 @@ const shapeClass = computed(() => (props.shape === 'circle' ? 'rounded-full' : '
 </script>
 
 <template>
-    <div :class="[sizeClass, shapeClass, 'flex shrink-0 items-center justify-center overflow-hidden border border-border bg-muted/40']">
+    <div :class="[sizeClass, shapeClass, 'border-border bg-muted/40 flex shrink-0 items-center justify-center overflow-hidden border']">
         <img v-if="src" :src="src" :alt="name ?? ''" class="h-full w-full object-cover" />
         <component :is="icon" v-else :class="[iconClass, 'text-muted-foreground']" />
     </div>

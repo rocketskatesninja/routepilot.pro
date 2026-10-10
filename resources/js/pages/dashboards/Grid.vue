@@ -148,12 +148,12 @@ onBeforeUnmount(() => {
     <Head title="Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
-            <p v-if="editing" class="mr-1 hidden text-sm text-muted-foreground lg:block">
+            <p v-if="editing" class="text-muted-foreground mr-1 hidden text-sm lg:block">
                 Editing the {{ deviceMode }} layout · drag to move, corner to resize
             </p>
 
             <!-- Choose which layout to edit (desktop only; on a phone you edit the mobile layout directly) -->
-            <div v-if="editing" class="hidden items-center gap-0.5 rounded-md border border-border p-0.5 sm:flex">
+            <div v-if="editing" class="border-border hidden items-center gap-0.5 rounded-md border p-0.5 sm:flex">
                 <button
                     type="button"
                     class="rounded p-1.5 transition-colors"
@@ -180,13 +180,13 @@ onBeforeUnmount(() => {
                 </Button>
                 <div
                     v-if="pickerOpen && addable.length"
-                    class="fixed left-1/2 top-16 z-30 w-[calc(100vw-2rem)] max-w-xs -translate-x-1/2 overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-1 sm:w-56 sm:translate-x-0"
+                    class="border-border bg-popover text-popover-foreground fixed top-16 left-1/2 z-30 w-[calc(100vw-2rem)] max-w-xs -translate-x-1/2 overflow-hidden rounded-lg border p-1 shadow-md sm:absolute sm:top-auto sm:right-0 sm:left-auto sm:mt-1 sm:w-56 sm:translate-x-0"
                 >
                     <button
                         v-for="w in addable"
                         :key="w.key"
                         type="button"
-                        class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-muted"
+                        class="hover:bg-muted flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm"
                         @click="addWidget(w)"
                     >
                         {{ w.label }}
@@ -207,14 +207,14 @@ onBeforeUnmount(() => {
             <div :class="mobileView && actualMode === 'desktop' ? 'mx-auto w-full max-w-[26rem]' : 'w-full'">
                 <div
                     v-if="mobileView && editing"
-                    class="mb-2 rounded-md border border-dashed border-border px-3 py-1.5 text-center text-xs text-muted-foreground"
+                    class="border-border text-muted-foreground mb-2 rounded-md border border-dashed px-3 py-1.5 text-center text-xs"
                 >
                     Mobile layout
                 </div>
 
                 <div
                     v-if="!activeLayout.length && !editing"
-                    class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border py-16 text-center text-muted-foreground"
+                    class="border-border text-muted-foreground flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center"
                 >
                     <LayoutGrid class="size-8 opacity-50" />
                     <p class="text-sm">Your dashboard is empty.</p>

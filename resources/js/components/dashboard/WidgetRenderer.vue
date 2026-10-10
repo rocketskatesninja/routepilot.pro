@@ -51,6 +51,6 @@ const component = computed(() => registry[props.widgetKey] ?? null);
     <!-- A freshly-added widget has no data until the layout save round-trips; render a
          placeholder rather than handing `undefined` to a widget that reads data.length. -->
     <component :is="component" v-if="component && data !== undefined" :data="data" />
-    <div v-else-if="component" class="flex h-full items-center justify-center text-sm text-muted-foreground">Loading…</div>
-    <div v-else class="flex h-full items-center justify-center text-sm text-muted-foreground">Unknown widget</div>
+    <div v-else-if="component" class="text-muted-foreground flex h-full items-center justify-center text-sm">Loading…</div>
+    <div v-else class="text-muted-foreground flex h-full items-center justify-center text-sm">Unknown widget</div>
 </template>

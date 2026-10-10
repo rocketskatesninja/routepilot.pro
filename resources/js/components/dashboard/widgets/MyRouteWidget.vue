@@ -18,12 +18,12 @@ defineProps<{ data: { label: string | null; stops: Stop[] } }>();
 <template>
     <div class="h-full overflow-y-auto">
         <template v-if="data.stops.length">
-            <div class="mb-1 px-1 text-xs text-muted-foreground">{{ data.label }} · {{ data.stops.length }} stop(s)</div>
-            <ul class="divide-y divide-border text-sm">
+            <div class="text-muted-foreground mb-1 px-1 text-xs">{{ data.label }} · {{ data.stops.length }} stop(s)</div>
+            <ul class="divide-border divide-y text-sm">
                 <li v-for="(stop, i) in data.stops" :key="stop.id">
                     <Link
                         :href="`/field?stop=${stop.id}`"
-                        class="flex items-center justify-between gap-2 rounded px-1 py-2.5 transition-colors hover:bg-muted/40"
+                        class="hover:bg-muted/40 flex items-center justify-between gap-2 rounded px-1 py-2.5 transition-colors"
                     >
                         <span class="flex min-w-0 items-center gap-2">
                             <span class="text-muted-foreground">{{ i + 1 }}.</span>
@@ -34,7 +34,7 @@ defineProps<{ data: { label: string | null; stops: Stop[] } }>();
                             <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
                                 stop.status.replace('_', ' ')
                             }}</span>
-                            <ChevronRight class="size-4 text-muted-foreground" />
+                            <ChevronRight class="text-muted-foreground size-4" />
                         </span>
                     </Link>
                 </li>

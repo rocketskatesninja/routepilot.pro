@@ -203,7 +203,7 @@ function closePane() {
             >
                 {{ t.label }} <span class="opacity-70">{{ props.counts[t.key] }}</span>
             </button>
-            <div v-if="props.view === 'invoices'" class="ml-2 flex items-center gap-0.5 border-l border-border pl-2">
+            <div v-if="props.view === 'invoices'" class="border-border ml-2 flex items-center gap-0.5 border-l pl-2">
                 <button
                     v-for="s in statusFilters"
                     :key="s.key"
@@ -217,7 +217,7 @@ function closePane() {
         </template>
 
         <template #actions>
-            <span class="mr-1 whitespace-nowrap text-sm"
+            <span class="mr-1 text-sm whitespace-nowrap"
                 ><span class="font-semibold">{{ money(props.total) }}</span> <span class="text-muted-foreground">outstanding</span></span
             >
             <Button v-if="props.canManage" size="sm" variant="outline" title="Add charge" @click="openCharge">
@@ -254,8 +254,8 @@ function closePane() {
                         </template>
                         <template #row="{ item: inv }">
                             <td class="px-4 py-2.5 font-medium">{{ inv.number }}</td>
-                            <td class="px-4 py-2.5 text-muted-foreground">{{ inv.customer ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ inv.issued_on ?? '—' }}</td>
+                            <td class="text-muted-foreground px-4 py-2.5">{{ inv.customer ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ inv.issued_on ?? '—' }}</td>
                             <td class="px-4 py-2.5">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(inv.status)">{{
                                     inv.status
@@ -296,18 +296,18 @@ function closePane() {
                                     <span class="font-medium">{{ row.name }}</span>
                                 </div>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ row.pools }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ row.pools }}</td>
                             <td class="hidden px-4 py-2.5 sm:table-cell">
                                 <span v-if="row.autopay" class="inline-flex items-center gap-2">
                                     <span
                                         class="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
                                         >On</span
                                     >
-                                    <span v-if="row.card" class="text-xs text-muted-foreground">{{ row.card }}</span>
+                                    <span v-if="row.card" class="text-muted-foreground text-xs">{{ row.card }}</span>
                                 </span>
                                 <span
                                     v-else
-                                    class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                                    class="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
                                     >Off</span
                                 >
                             </td>
@@ -325,7 +325,7 @@ function closePane() {
                     <form v-if="chargeOpen" class="space-y-4 text-sm" @submit.prevent="submitCharge">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Add a charge</h2>
-                            <p class="text-sm text-muted-foreground">An ad-hoc charge raises the customer's balance.</p>
+                            <p class="text-muted-foreground text-sm">An ad-hoc charge raises the customer's balance.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="ch_cust">Customer</Label>
@@ -360,7 +360,7 @@ function closePane() {
                                     >{{ props.selected.status }}</span
                                 >
                             </div>
-                            <p class="text-sm text-muted-foreground">
+                            <p class="text-muted-foreground text-sm">
                                 <Link
                                     v-if="props.selected.customer_id"
                                     :href="customerLink(props.selected.customer_id)"
@@ -372,7 +372,7 @@ function closePane() {
                         </div>
 
                         <div class="space-y-5 text-sm">
-                            <dl class="space-y-1 text-muted-foreground">
+                            <dl class="text-muted-foreground space-y-1">
                                 <div class="flex justify-between">
                                     <dt>Issued</dt>
                                     <dd>{{ props.selected.issued_on ?? '—' }}</dd>
@@ -389,7 +389,7 @@ function closePane() {
 
                             <section v-if="props.selected.line_items.length">
                                 <h3 class="mb-1 font-medium">Line items</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="(li, i) in props.selected.line_items" :key="i" class="flex justify-between gap-2">
                                         <span>{{ li.description }}</span
                                         ><span>{{ money(li.amount) }}</span>
@@ -397,12 +397,12 @@ function closePane() {
                                 </ul>
                             </section>
 
-                            <dl class="space-y-1 border-t border-border pt-2">
-                                <div class="flex justify-between text-muted-foreground">
+                            <dl class="border-border space-y-1 border-t pt-2">
+                                <div class="text-muted-foreground flex justify-between">
                                     <dt>Subtotal</dt>
                                     <dd>{{ money(props.selected.subtotal) }}</dd>
                                 </div>
-                                <div class="flex justify-between text-muted-foreground">
+                                <div class="text-muted-foreground flex justify-between">
                                     <dt>Tax</dt>
                                     <dd>{{ money(props.selected.tax) }}</dd>
                                 </div>
@@ -420,7 +420,7 @@ function closePane() {
                                 </div>
                             </dl>
 
-                            <div class="flex flex-wrap gap-2 border-t border-border pt-3">
+                            <div class="border-border flex flex-wrap gap-2 border-t pt-3">
                                 <a :href="`/invoices/${props.selected.id}/pdf`" target="_blank">
                                     <Button size="sm" variant="outline"><Download class="mr-1 size-3.5" /> PDF</Button>
                                 </a>
@@ -439,9 +439,9 @@ function closePane() {
 
                             <div
                                 v-if="props.canManage && props.selected.status !== 'paid' && props.selected.status !== 'void'"
-                                class="flex items-center gap-2 border-t border-border pt-3"
+                                class="border-border flex items-center gap-2 border-t pt-3"
                             >
-                                <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                <select v-model="payMethod" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option value="cash">Cash</option>
                                     <option value="check">Check</option>
                                     <option value="card">Card</option>
@@ -461,14 +461,14 @@ function closePane() {
                                 <h2 class="text-lg font-semibold">
                                     <Link :href="customerLink(props.selected.id)" class="hover:underline">{{ props.selected.name }}</Link>
                                 </h2>
-                                <p class="text-sm text-muted-foreground">{{ money(props.selected.total) }} outstanding</p>
+                                <p class="text-muted-foreground text-sm">{{ money(props.selected.total) }} outstanding</p>
                             </div>
                         </div>
 
                         <div class="space-y-5 text-sm">
                             <section v-if="props.selected.visits.length">
                                 <h3 class="mb-1 font-medium">Unpaid visits</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="(v, i) in props.selected.visits" :key="i" class="flex justify-between">
                                         <span
                                             >{{ v.pool }} <span class="text-xs">· {{ v.date }}</span></span
@@ -480,7 +480,7 @@ function closePane() {
 
                             <section v-if="props.selected.charges.length">
                                 <h3 class="mb-1 font-medium">Manual charges</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="(c, i) in props.selected.charges" :key="i" class="flex justify-between">
                                         <span>{{ c.description }}</span
                                         ><span>{{ money(c.amount) }}</span>
@@ -488,17 +488,17 @@ function closePane() {
                                 </ul>
                             </section>
 
-                            <div class="flex justify-between border-t border-border pt-2 font-medium">
+                            <div class="border-border flex justify-between border-t pt-2 font-medium">
                                 <span>Total</span><span>{{ money(props.selected.total) }}</span>
                             </div>
 
                             <section v-if="props.selected.invoices.length">
                                 <h3 class="mb-1 font-medium">Invoices</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="inv in props.selected.invoices" :key="inv.id" class="flex items-center justify-between">
                                         <span class="flex items-center gap-2">
                                             <a :href="`/invoices/${inv.id}/pdf`" target="_blank" class="text-foreground hover:underline"
-                                                >{{ inv.number }} <span class="text-xs capitalize text-muted-foreground">· {{ inv.status }}</span></a
+                                                >{{ inv.number }} <span class="text-muted-foreground text-xs capitalize">· {{ inv.status }}</span></a
                                             >
                                             <button
                                                 v-if="props.canManage"
@@ -518,9 +518,9 @@ function closePane() {
                                 </ul>
                             </section>
 
-                            <div v-if="props.canManage" class="space-y-2 border-t border-border pt-3">
+                            <div v-if="props.canManage" class="border-border space-y-2 border-t pt-3">
                                 <div class="flex items-center gap-2">
-                                    <select v-model="payMethod" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <select v-model="payMethod" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                         <option value="cash">Cash</option>
                                         <option value="check">Check</option>
                                         <option value="card">Card</option>
@@ -533,7 +533,7 @@ function closePane() {
                                     ><FileText class="mr-1 size-3.5" /> Generate invoice</Button
                                 >
                             </div>
-                            <p v-else class="text-xs text-muted-foreground">Card payments + autopay arrive with the Stripe flow.</p>
+                            <p v-else class="text-muted-foreground text-xs">Card payments + autopay arrive with the Stripe flow.</p>
                         </div>
                     </div>
                 </template>

@@ -26,9 +26,9 @@ const { listRef } = useFitRows(
 
 <template>
     <div class="flex min-h-0 flex-col gap-3">
-        <div ref="listRef" class="overflow-hidden rounded-xl border border-border">
+        <div ref="listRef" class="border-border overflow-hidden rounded-xl border">
             <table class="w-full text-sm">
-                <thead class="bg-muted/50 text-left text-muted-foreground">
+                <thead class="bg-muted/50 text-muted-foreground text-left">
                     <tr>
                         <slot name="head" />
                     </tr>
@@ -37,14 +37,14 @@ const { listRef } = useFitRows(
                     <tr
                         v-for="item in meta.data"
                         :key="rowKey(item)"
-                        class="cursor-pointer border-t border-border transition-colors hover:bg-muted/40"
+                        class="border-border hover:bg-muted/40 cursor-pointer border-t transition-colors"
                         :class="{ 'bg-muted/60': selectedKey != null && rowKey(item) === selectedKey }"
                         @click="$emit('select', item)"
                     >
                         <slot name="row" :item="item" />
                     </tr>
                     <tr v-if="meta.data.length === 0">
-                        <td :colspan="columns" class="px-4 py-10 text-center text-muted-foreground">
+                        <td :colspan="columns" class="text-muted-foreground px-4 py-10 text-center">
                             <slot name="empty" />
                         </td>
                     </tr>

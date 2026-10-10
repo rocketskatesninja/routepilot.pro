@@ -60,7 +60,7 @@ const trust = ['Licensed & Insured', '5-Star Rated', 'CPO Certified', 'Same-Day 
 </script>
 
 <template>
-    <section id="hero" class="relative flex min-h-[100svh] items-center overflow-hidden bg-slate-900 px-4 pb-24 pt-20 sm:px-6">
+    <section id="hero" class="relative flex min-h-[100svh] items-center overflow-hidden bg-slate-900 px-4 pt-20 pb-24 sm:px-6">
         <!-- Background: preset / uploaded image (Ken Burns optional) or a gradient -->
         <img v-if="bgImage" :src="bgImage" alt="" class="absolute inset-0 h-full w-full object-cover" :class="fx.ken_burns ? 'ken-burns' : ''" />
         <div v-else class="absolute inset-0" :style="gradientStyle"></div>
@@ -86,7 +86,7 @@ const trust = ['Licensed & Insured', '5-Star Rated', 'CPO Certified', 'Same-Day 
 
         <!-- Content -->
         <div class="relative z-10 mx-auto text-center" :style="widthStyle">
-            <h1 class="hero-animate hero-d1 font-bold leading-tight text-white" :style="headlineStyle">{{ c.headline || brand.name }}</h1>
+            <h1 class="hero-animate hero-d1 leading-tight font-bold text-white" :style="headlineStyle">{{ c.headline || brand.name }}</h1>
             <p v-if="c.subhead" class="hero-animate hero-d2 mx-auto mt-4 max-w-2xl text-lg text-white/80">{{ c.subhead }}</p>
 
             <div class="hero-animate hero-d3 mt-6 flex flex-wrap justify-center gap-2">
@@ -108,7 +108,7 @@ const trust = ['Licensed & Insured', '5-Star Rated', 'CPO Certified', 'Same-Day 
 
             <a
                 :href="anchor"
-                class="btn-cta hero-animate hero-d4 mt-10 inline-flex items-center rounded-xl bg-primary px-8 py-4 text-lg font-bold text-primary-foreground shadow-lg"
+                class="btn-cta hero-animate hero-d4 bg-primary text-primary-foreground mt-10 inline-flex items-center rounded-xl px-8 py-4 text-lg font-bold shadow-lg"
                 :class="fx.cta_glow ? 'btn-glow' : ''"
             >
                 {{ c.cta_label || 'Get a free quote' }}

@@ -69,16 +69,16 @@ useReveal();
         <link v-if="titleFont" rel="stylesheet" :href="titleFont" />
     </Head>
 
-    <div class="landing-scale min-h-screen bg-background text-foreground">
-        <header class="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+    <div class="landing-scale bg-background text-foreground min-h-screen">
+        <header class="border-border bg-background/90 sticky top-0 z-40 border-b backdrop-blur">
             <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
                 <a href="#hero" class="flex items-center gap-2">
                     <img v-if="brand.logoUrl" :src="brand.logoUrl" alt="" class="size-9 rounded object-contain" />
                     <span class="whitespace-nowrap" :style="titleStyleStr">{{ titleText }}</span>
                 </a>
                 <div class="flex items-center gap-3">
-                    <a href="/login" class="hidden text-sm font-medium text-muted-foreground hover:text-foreground sm:inline">Customer login</a>
-                    <a href="#contact" class="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">Contact us</a>
+                    <a href="/login" class="text-muted-foreground hover:text-foreground hidden text-sm font-medium sm:inline">Customer login</a>
+                    <a href="#contact" class="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-semibold">Contact us</a>
                 </div>
             </div>
         </header>

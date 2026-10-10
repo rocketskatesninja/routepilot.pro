@@ -70,17 +70,17 @@ onMounted(async () => {
                         class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl"
                         style="background: color-mix(in srgb, hsl(var(--brand, 199 89% 48%)) 14%, transparent)"
                     >
-                        <MapPin class="size-6 text-primary" />
+                        <MapPin class="text-primary size-6" />
                     </div>
-                    <p v-if="area?.formattedAddress" class="text-lg font-medium text-foreground">{{ area.formattedAddress }}</p>
+                    <p v-if="area?.formattedAddress" class="text-foreground text-lg font-medium">{{ area.formattedAddress }}</p>
                 </div>
-                <p class="mt-3 text-muted-foreground">{{ subheading }}</p>
+                <p class="text-muted-foreground mt-3">{{ subheading }}</p>
             </div>
             <div class="reveal">
-                <div v-if="canMap" ref="mapEl" class="h-72 w-full overflow-hidden rounded-xl border border-border shadow-sm"></div>
+                <div v-if="canMap" ref="mapEl" class="border-border h-72 w-full overflow-hidden rounded-xl border shadow-sm"></div>
                 <div
                     v-else
-                    class="flex h-72 w-full items-center justify-center rounded-xl border border-dashed border-border bg-muted/40 px-6 text-center text-sm text-muted-foreground"
+                    class="border-border bg-muted/40 text-muted-foreground flex h-72 w-full items-center justify-center rounded-xl border border-dashed px-6 text-center text-sm"
                 >
                     Set a business address in Company settings to show an interactive service-area map here.
                 </div>

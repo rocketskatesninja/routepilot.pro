@@ -10,9 +10,9 @@ defineProps<{ data: { balance: number; autopay: boolean } }>();
         <div class="text-3xl font-semibold tabular-nums" :class="data.balance > 0 ? '' : 'text-emerald-600 dark:text-emerald-400'">
             {{ formatMoney(data.balance) }}
         </div>
-        <div class="text-xs text-muted-foreground">
+        <div class="text-muted-foreground text-xs">
             {{ data.balance > 0 ? 'balance due' : 'all paid up' }}<span v-if="data.autopay"> · autopay on</span>
         </div>
-        <Link v-if="data.balance > 0" href="/balance" class="mt-1 text-xs font-medium text-primary hover:underline">Pay now →</Link>
+        <Link v-if="data.balance > 0" href="/balance" class="text-primary mt-1 text-xs font-medium hover:underline">Pay now →</Link>
     </div>
 </template>

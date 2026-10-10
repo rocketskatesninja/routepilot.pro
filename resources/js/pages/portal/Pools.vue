@@ -44,10 +44,10 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.pools.length} ${props.pools.length === 1 ? 'pool' : 'pools'}`">
         <div class="mx-auto w-full max-w-4xl space-y-4 p-4">
             <!-- Next visit -->
-            <div v-if="nextVisit" class="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/10 p-4">
-                <CalendarClock class="size-5 shrink-0 text-primary" />
+            <div v-if="nextVisit" class="border-primary/25 bg-primary/10 flex items-center gap-3 rounded-xl border p-4">
+                <CalendarClock class="text-primary size-5 shrink-0" />
                 <div class="text-sm">
-                    <p class="font-medium text-foreground">Next visit{{ nextVisit.pool ? ` — ${nextVisit.pool}` : '' }}</p>
+                    <p class="text-foreground font-medium">Next visit{{ nextVisit.pool ? ` — ${nextVisit.pool}` : '' }}</p>
                     <p class="text-muted-foreground">
                         {{ nextVisit.date }}<template v-if="nextVisit.window"> · arriving {{ nextVisit.window }}</template>
                     </p>
@@ -56,12 +56,12 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
 
             <!-- Pool cards -->
             <div v-if="pools.length" class="grid gap-4 sm:grid-cols-2">
-                <div v-for="p in pools" :key="p.id" class="overflow-hidden rounded-xl border border-border bg-background shadow-sm">
-                    <div class="flex items-center gap-3 border-b border-border p-4">
+                <div v-for="p in pools" :key="p.id" class="border-border bg-background overflow-hidden rounded-xl border shadow-sm">
+                    <div class="border-border flex items-center gap-3 border-b p-4">
                         <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="md" />
                         <div class="min-w-0 flex-1">
                             <p class="truncate font-semibold">{{ p.name }}</p>
-                            <p class="truncate text-xs capitalize text-muted-foreground">
+                            <p class="text-muted-foreground truncate text-xs capitalize">
                                 {{ p.sanitizer }}<template v-if="p.volume"> · {{ p.volume.toLocaleString() }} gal</template>
                             </p>
                         </div>
@@ -79,9 +79,9 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
                                         <p class="text-sm font-semibold">
-                                            {{ p.reading.free_chlorine ?? '—' }}<span class="text-xs font-normal text-muted-foreground"> ppm</span>
+                                            {{ p.reading.free_chlorine ?? '—' }}<span class="text-muted-foreground text-xs font-normal"> ppm</span>
                                         </p>
-                                        <p class="text-[11px] leading-tight text-muted-foreground">Free chlorine</p>
+                                        <p class="text-muted-foreground text-[11px] leading-tight">Free chlorine</p>
                                         <Sparkline
                                             v-if="p.trend.chlorine.length > 1"
                                             :values="p.trend.chlorine"
@@ -92,7 +92,7 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                                     </div>
                                     <div>
                                         <p class="text-sm font-semibold">{{ p.reading.ph ?? '—' }}</p>
-                                        <p class="text-[11px] leading-tight text-muted-foreground">pH</p>
+                                        <p class="text-muted-foreground text-[11px] leading-tight">pH</p>
                                         <Sparkline
                                             v-if="p.trend.ph.length > 1"
                                             :values="p.trend.ph"
@@ -102,10 +102,10 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                                         />
                                     </div>
                                 </div>
-                                <p v-if="p.trend.dates.length > 1" class="text-[10px] text-muted-foreground">
+                                <p v-if="p.trend.dates.length > 1" class="text-muted-foreground text-[10px]">
                                     {{ p.trend.dates[0] }} – {{ p.trend.dates[p.trend.dates.length - 1] }}
                                 </p>
-                                <dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <dl class="text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                                     <div class="flex justify-between gap-2">
                                         <dt>Alkalinity</dt>
                                         <dd>{{ ppm(p.reading.alkalinity) }}</dd>
@@ -125,8 +125,8 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                                 </dl>
                             </div>
                         </div>
-                        <p v-else class="text-sm text-muted-foreground">No water chemistry recorded yet.</p>
-                        <div class="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <p v-else class="text-muted-foreground text-sm">No water chemistry recorded yet.</p>
+                        <div class="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs">
                             <template v-if="p.last_serviced"><Waves class="size-3.5" /> Last serviced {{ p.last_serviced }}</template>
                             <span v-if="p.has_heater" class="ml-auto inline-flex items-center gap-1"
                                 ><Flame class="size-3.5 text-orange-500" /> Heated</span
@@ -135,7 +135,7 @@ const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
                     </div>
                 </div>
             </div>
-            <div v-else class="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+            <div v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
                 No pools on your account yet.
             </div>
         </div>

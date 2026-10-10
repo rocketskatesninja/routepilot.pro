@@ -279,10 +279,10 @@ watch(
 
 <template>
     <div class="min-h-0 flex-1">
-        <div v-if="canMap" ref="mapEl" class="h-full min-h-[260px] w-full overflow-hidden rounded-xl border border-border"></div>
+        <div v-if="canMap" ref="mapEl" class="border-border h-full min-h-[260px] w-full overflow-hidden rounded-xl border"></div>
         <div
             v-else
-            class="flex h-full min-h-[260px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/20 px-6 text-center text-sm text-muted-foreground"
+            class="border-border bg-muted/20 text-muted-foreground flex h-full min-h-[260px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 text-center text-sm"
         >
             <MapPin class="size-7 opacity-40" />
             <p v-if="!mapsKey" class="font-medium">Maps aren't configured yet</p>

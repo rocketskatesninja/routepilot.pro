@@ -21,7 +21,7 @@ const items = computed(() => c.value.items ?? []);
             <div
                 v-for="(t, i) in items"
                 :key="i"
-                class="testimonial-card card-hover relative rounded-xl border border-border bg-background p-6 shadow-sm"
+                class="testimonial-card card-hover border-border bg-background relative rounded-xl border p-6 shadow-sm"
                 :class="contentItem(items.length)"
             >
                 <div class="mb-2 flex gap-1">
@@ -31,13 +31,13 @@ const items = computed(() => c.value.items ?? []);
                         />
                     </svg>
                 </div>
-                <p class="relative text-sm leading-relaxed text-foreground">{{ t.quote }}</p>
-                <p class="mt-3 text-sm font-semibold text-foreground">
-                    {{ t.author }}<span v-if="t.location" class="font-normal text-muted-foreground"> · {{ t.location }}</span>
+                <p class="text-foreground relative text-sm leading-relaxed">{{ t.quote }}</p>
+                <p class="text-foreground mt-3 text-sm font-semibold">
+                    {{ t.author }}<span v-if="t.location" class="text-muted-foreground font-normal"> · {{ t.location }}</span>
                 </p>
             </div>
         </div>
-        <p v-else class="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <p v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
             Add testimonials in the editor.
         </p>
     </SectionShell>

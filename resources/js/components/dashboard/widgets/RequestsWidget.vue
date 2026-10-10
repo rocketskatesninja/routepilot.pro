@@ -22,7 +22,7 @@ const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}
 
 <template>
     <div class="h-full overflow-y-auto">
-        <ul v-if="data.length" class="divide-y divide-border text-sm">
+        <ul v-if="data.length" class="divide-border divide-y text-sm">
             <li v-for="r in data" :key="r.id" class="flex items-start justify-between gap-3 px-1 py-2.5">
                 <div class="min-w-0">
                     <span
@@ -39,8 +39,8 @@ const resolveRequest = (id: number) => router.post(`/requests/${id}/resolve`, {}
                         ><EntityAvatar :src="r.customer_photo" type="person" :name="r.customer" size="sm" shape="circle" />{{ r.customer }}</span
                     >
                     <span v-if="r.pool" class="text-muted-foreground"> · {{ r.pool }}</span>
-                    <p v-if="r.message" class="mt-0.5 text-muted-foreground">{{ r.message }}</p>
-                    <p class="text-xs text-muted-foreground">
+                    <p v-if="r.message" class="text-muted-foreground mt-0.5">{{ r.message }}</p>
+                    <p class="text-muted-foreground text-xs">
                         {{ r.on }}<span v-if="r.preferred_date"> · prefers {{ r.preferred_date }}</span>
                     </p>
                 </div>

@@ -5,7 +5,7 @@ const props = defineProps<{ class?: string }>();
 </script>
 
 <template>
-    <div :class="cn('flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-sm text-muted-foreground', props.class)">
+    <div :class="cn('text-muted-foreground flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-sm', props.class)">
         <slot name="icon" />
         <slot />
     </div>

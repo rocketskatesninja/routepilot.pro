@@ -39,28 +39,28 @@ const disableAutopay = () => disableForm.post('/autopay/disable', { preserveScro
                 <CheckCircle2 class="size-5" /> Payment received — thank you!
             </div>
 
-            <div class="rounded-xl border border-border p-5">
-                <div class="text-sm text-muted-foreground">Current balance</div>
+            <div class="border-border rounded-xl border p-5">
+                <div class="text-muted-foreground text-sm">Current balance</div>
                 <div class="mt-1 text-3xl font-semibold" :class="props.total > 0 ? '' : 'text-emerald-600 dark:text-emerald-400'">
                     {{ money(props.total) }}
                 </div>
                 <Button v-if="props.total > 0 && props.can_pay" class="mt-4" :disabled="payForm.processing" @click="pay">
                     <CreditCard class="mr-1 size-4" /> Pay with card
                 </Button>
-                <p v-else-if="props.total > 0 && !props.can_pay" class="mt-3 text-sm text-muted-foreground">
+                <p v-else-if="props.total > 0 && !props.can_pay" class="text-muted-foreground mt-3 text-sm">
                     Online payment isn't set up yet — please contact your service company.
                 </p>
-                <p v-else class="mt-3 text-sm text-muted-foreground">You're all paid up. Thank you!</p>
+                <p v-else class="text-muted-foreground mt-3 text-sm">You're all paid up. Thank you!</p>
             </div>
 
-            <div v-if="props.can_pay" class="rounded-xl border border-border p-5">
+            <div v-if="props.can_pay" class="border-border rounded-xl border p-5">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <div class="font-medium">Autopay</div>
-                        <p v-if="props.autopay && props.card" class="text-sm text-muted-foreground">
+                        <p v-if="props.autopay && props.card" class="text-muted-foreground text-sm">
                             On · <span class="capitalize">{{ props.card.brand }}</span> ending {{ props.card.last4 }}
                         </p>
-                        <p v-else class="text-sm text-muted-foreground">Save a card and we'll automatically pay your balance each cycle.</p>
+                        <p v-else class="text-muted-foreground text-sm">Save a card and we'll automatically pay your balance each cycle.</p>
                     </div>
                     <Button v-if="!props.autopay" size="sm" variant="outline" :disabled="setupForm.processing" @click="setupAutopay"
                         >Set up autopay</Button
@@ -69,9 +69,9 @@ const disableAutopay = () => disableForm.post('/autopay/disable', { preserveScro
                 </div>
             </div>
 
-            <div v-if="props.visits.length" class="overflow-hidden rounded-xl border border-border">
-                <h2 class="border-b border-border px-4 py-2 font-medium">Recent service</h2>
-                <ul class="divide-y divide-border text-sm">
+            <div v-if="props.visits.length" class="border-border overflow-hidden rounded-xl border">
+                <h2 class="border-border border-b px-4 py-2 font-medium">Recent service</h2>
+                <ul class="divide-border divide-y text-sm">
                     <li v-for="(v, i) in props.visits" :key="i" class="flex justify-between px-4 py-2.5">
                         <span class="text-muted-foreground">{{ v.pool }} · {{ v.date }}</span>
                         <span>{{ money(v.price) }}</span>
@@ -79,9 +79,9 @@ const disableAutopay = () => disableForm.post('/autopay/disable', { preserveScro
                 </ul>
             </div>
 
-            <div v-if="props.charges.length" class="overflow-hidden rounded-xl border border-border">
-                <h2 class="border-b border-border px-4 py-2 font-medium">Other charges</h2>
-                <ul class="divide-y divide-border text-sm">
+            <div v-if="props.charges.length" class="border-border overflow-hidden rounded-xl border">
+                <h2 class="border-border border-b px-4 py-2 font-medium">Other charges</h2>
+                <ul class="divide-border divide-y text-sm">
                     <li v-for="(c, i) in props.charges" :key="i" class="flex justify-between px-4 py-2.5">
                         <span class="text-muted-foreground">{{ c.description }}</span>
                         <span>{{ money(c.amount) }}</span>

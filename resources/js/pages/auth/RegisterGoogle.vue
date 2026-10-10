@@ -30,7 +30,7 @@ const submit = () => form.post(route('auth.google.register.store'));
             <div class="grid gap-6">
                 <div class="grid gap-2">
                     <Label>Signing in with Google as</Label>
-                    <div class="flex items-center gap-2 rounded-md border border-input bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                    <div class="border-input bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
                         <svg class="size-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                             <path
                                 fill="#4285F4"
@@ -83,7 +83,7 @@ const submit = () => form.post(route('auth.google.register.store'));
                 <SubmitButton :processing="form.processing" class="mt-2 w-full"> Create company </SubmitButton>
             </div>
 
-            <div class="text-center text-sm text-muted-foreground">
+            <div class="text-muted-foreground text-center text-sm">
                 Wrong account?
                 <TextLink :href="route('register')">Start over</TextLink>
             </div>

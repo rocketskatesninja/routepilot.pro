@@ -403,7 +403,7 @@ function destroyAgent() {
             <button
                 v-for="t in tabs"
                 :key="t.key"
-                class="shrink-0 whitespace-nowrap rounded-md px-2.5 py-1 text-sm font-medium transition-colors"
+                class="shrink-0 rounded-md px-2.5 py-1 text-sm font-medium whitespace-nowrap transition-colors"
                 :class="props.filters.type === t.key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
                 @click="setType(t.key)"
             >
@@ -479,8 +479,8 @@ function destroyAgent() {
                                     {{ person.person_type }}
                                 </span>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">{{ person.email ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.phone ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ person.email ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">{{ person.phone ?? '—' }}</td>
                             <td class="hidden px-4 py-2.5 md:table-cell">
                                 <template v-if="person.person_type === 'customer'">
                                     <span
@@ -493,11 +493,11 @@ function destroyAgent() {
                                         class="inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
                                         >Revoked</span
                                     >
-                                    <span v-else class="text-xs text-muted-foreground">No</span>
+                                    <span v-else class="text-muted-foreground text-xs">No</span>
                                 </template>
                                 <span v-else class="text-muted-foreground">—</span>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground lg:table-cell">{{ person.last_visit ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">{{ person.last_visit ?? '—' }}</td>
                             <td
                                 class="px-4 py-2.5 text-right font-medium"
                                 :class="person.balance && person.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'"
@@ -517,7 +517,7 @@ function destroyAgent() {
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New customer' : 'Edit customer' }}</h2>
-                            <p class="text-sm text-muted-foreground">
+                            <p class="text-muted-foreground text-sm">
                                 {{ formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.' }}
                             </p>
                         </div>
@@ -576,12 +576,12 @@ function destroyAgent() {
                                 id="notes"
                                 v-model="form.notes"
                                 rows="2"
-                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             ></textarea>
                         </div>
 
-                        <fieldset v-if="formMode === 'create'" class="space-y-3 rounded-lg border border-border p-3">
-                            <legend class="px-1 text-xs font-medium text-muted-foreground">First pool (optional)</legend>
+                        <fieldset v-if="formMode === 'create'" class="border-border space-y-3 rounded-lg border p-3">
+                            <legend class="text-muted-foreground px-1 text-xs font-medium">First pool (optional)</legend>
                             <div class="grid gap-1.5">
                                 <Label for="pool_name">Pool name</Label>
                                 <Input id="pool_name" v-model="form.pool_name" placeholder="e.g. Backyard Pool" />
@@ -592,7 +592,7 @@ function destroyAgent() {
                                     <select
                                         id="pool_type"
                                         v-model="form.pool_type"
-                                        class="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                                        class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                                     >
                                         <option value="inground">In-ground</option>
                                         <option value="above_ground">Above ground</option>
@@ -619,7 +619,7 @@ function destroyAgent() {
                     <form v-else-if="agentFormOpen" class="space-y-4 text-sm" @submit.prevent="submitAgent">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ agentFormMode === 'create' ? 'New agent' : 'Edit agent' }}</h2>
-                            <p class="text-sm text-muted-foreground">
+                            <p class="text-muted-foreground text-sm">
                                 {{ agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.' }}
                             </p>
                         </div>
@@ -646,7 +646,7 @@ function destroyAgent() {
                             <div class="grid gap-1.5"><Label for="a_phone">Phone</Label><Input id="a_phone" v-model="agentForm.phone" /></div>
                             <div class="grid gap-1.5">
                                 <Label for="a_color">Map color</Label
-                                ><input id="a_color" v-model="agentForm.map_color" type="color" class="h-9 w-full rounded-md border border-input" />
+                                ><input id="a_color" v-model="agentForm.map_color" type="color" class="border-input h-9 w-full rounded-md border" />
                             </div>
                         </div>
                         <div class="grid gap-1.5">
@@ -670,14 +670,14 @@ function destroyAgent() {
                     <form v-else-if="emailOpen" class="space-y-4 text-sm" @submit.prevent="submitEmail">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">Email people</h2>
-                            <p class="text-sm text-muted-foreground">Send to a whole audience. Customers who opted out are excluded.</p>
+                            <p class="text-muted-foreground text-sm">Send to a whole audience. Customers who opted out are excluded.</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
-                            <select id="aud" v-model="emailForm.audience" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                            <select id="aud" v-model="emailForm.audience" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                 <option v-for="a in audienceOptions" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
                             </select>
-                            <p class="text-xs text-muted-foreground">{{ emailCount }} recipient(s).</p>
+                            <p class="text-muted-foreground text-xs">{{ emailCount }} recipient(s).</p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="esub">Subject</Label>
@@ -690,13 +690,13 @@ function destroyAgent() {
                                 id="ebody"
                                 v-model="emailForm.body"
                                 rows="7"
-                                class="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             ></textarea>
                             <p v-if="emailForm.errors.body" class="text-xs text-red-600">{{ emailForm.errors.body }}</p>
                         </div>
-                        <div v-if="props.recent.length" class="border-t border-border pt-2">
-                            <p class="mb-1 text-xs font-medium text-muted-foreground">Recent</p>
-                            <ul class="space-y-0.5 text-xs text-muted-foreground">
+                        <div v-if="props.recent.length" class="border-border border-t pt-2">
+                            <p class="text-muted-foreground mb-1 text-xs font-medium">Recent</p>
+                            <ul class="text-muted-foreground space-y-0.5 text-xs">
                                 <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
                                     <span class="truncate">{{ c.subject }}</span
                                     ><span class="shrink-0"
@@ -721,7 +721,7 @@ function destroyAgent() {
                             <EntityAvatar :src="props.selected.photo_url" type="person" :name="props.selected.name" size="lg" shape="circle" />
                             <div>
                                 <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-sm capitalize text-muted-foreground">{{ props.selected.type }}</p>
+                                <p class="text-muted-foreground text-sm capitalize">{{ props.selected.type }}</p>
                             </div>
                         </div>
 
@@ -732,7 +732,7 @@ function destroyAgent() {
                                     <p class="text-sm font-medium">
                                         Archived{{ props.selected.archived_on ? ` on ${props.selected.archived_on}` : '' }}
                                     </p>
-                                    <p v-if="props.selected.summary" class="mt-0.5 text-xs text-muted-foreground">
+                                    <p v-if="props.selected.summary" class="text-muted-foreground mt-0.5 text-xs">
                                         Still holds {{ props.selected.summary.pools }} pool(s), {{ props.selected.summary.visits }} visit(s),
                                         {{ props.selected.summary.invoices }} invoice(s), {{ props.selected.summary.charges }} charge(s).
                                     </p>
@@ -763,7 +763,7 @@ function destroyAgent() {
 
                             <section>
                                 <h3 class="mb-1 font-medium">Contact</h3>
-                                <dl class="space-y-1 text-muted-foreground">
+                                <dl class="text-muted-foreground space-y-1">
                                     <div class="flex justify-between gap-2">
                                         <dt>Email</dt>
                                         <dd v-if="props.selected.email" class="truncate">
@@ -788,7 +788,7 @@ function destroyAgent() {
                             <template v-if="props.selected.type === 'customer'">
                                 <section>
                                     <h3 class="mb-1 font-medium">Pools ({{ props.selected.pools.length }})</h3>
-                                    <ul class="space-y-1 text-muted-foreground">
+                                    <ul class="text-muted-foreground space-y-1">
                                         <li v-for="pool in props.selected.pools" :key="pool.id" class="flex justify-between">
                                             <Link :href="poolLink(pool.id)" class="text-primary hover:underline">{{ pool.name }}</Link
                                             ><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
@@ -798,11 +798,11 @@ function destroyAgent() {
                                 </section>
                                 <section v-if="props.selected.recent_visits.length">
                                     <h3 class="mb-1 font-medium">Recent visits</h3>
-                                    <ul class="space-y-1 text-muted-foreground">
+                                    <ul class="text-muted-foreground space-y-1">
                                         <li v-for="visit in props.selected.recent_visits" :key="visit.id">
                                             <Link
                                                 :href="reportLink(visit.id)"
-                                                class="-mx-1 flex justify-between rounded px-1 py-0.5 hover:bg-muted hover:text-foreground"
+                                                class="hover:bg-muted hover:text-foreground -mx-1 flex justify-between rounded px-1 py-0.5"
                                                 title="Open report"
                                             >
                                                 <span>{{ visit.pool }}</span
@@ -822,7 +822,7 @@ function destroyAgent() {
                                 </div>
                                 <section>
                                     <h3 class="mb-1 font-medium">Activity</h3>
-                                    <dl class="space-y-1 text-muted-foreground">
+                                    <dl class="text-muted-foreground space-y-1">
                                         <div class="flex justify-between">
                                             <dt>Status</dt>
                                             <dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd>

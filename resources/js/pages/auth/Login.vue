@@ -47,10 +47,10 @@ const submit = () => {
 
         <div v-if="googleEnabled" class="mb-6">
             <GoogleAuthButton />
-            <div class="my-6 flex items-center gap-3 text-xs text-muted-foreground">
-                <span class="h-px flex-1 bg-border"></span>
+            <div class="text-muted-foreground my-6 flex items-center gap-3 text-xs">
+                <span class="bg-border h-px flex-1"></span>
                 or continue with email
-                <span class="h-px flex-1 bg-border"></span>
+                <span class="bg-border h-px flex-1"></span>
             </div>
         </div>
 
@@ -97,7 +97,7 @@ const submit = () => {
                 <SubmitButton :processing="form.processing" class="mt-4 w-full" tabindex="4"> Log in </SubmitButton>
             </div>
 
-            <div class="text-center text-sm text-muted-foreground">
+            <div class="text-muted-foreground text-center text-sm">
                 Don't have an account?
                 <TextLink :href="route('register')" :tabindex="5">Sign up</TextLink>
             </div>

@@ -22,12 +22,12 @@ const team = computed(() => props.live.team ?? []);
                 <div class="mb-3 flex justify-center">
                     <EntityAvatar :src="m.avatar" type="person" :name="m.name" size="lg" shape="circle" />
                 </div>
-                <p class="font-semibold text-foreground">{{ m.name }}</p>
-                <p v-if="m.title" class="text-sm text-primary">{{ m.title }}</p>
-                <p v-if="m.bio" class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ m.bio }}</p>
+                <p class="text-foreground font-semibold">{{ m.name }}</p>
+                <p v-if="m.title" class="text-primary text-sm">{{ m.title }}</p>
+                <p v-if="m.bio" class="text-muted-foreground mt-2 text-sm leading-relaxed">{{ m.bio }}</p>
             </div>
         </div>
-        <p v-else class="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <p v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
             Add team members in the editor.
         </p>
     </SectionShell>

@@ -280,18 +280,18 @@ const prettyDate = computed(() =>
             >
             <Button v-if="!isToday" size="sm" variant="ghost" @click="go()">Today</Button>
             <div class="flex items-center gap-1">
-                <button class="rounded-md border border-border p-1.5 hover:bg-muted" aria-label="Previous day" @click="shift(-1)">
+                <button class="border-border hover:bg-muted rounded-md border p-1.5" aria-label="Previous day" @click="shift(-1)">
                     <ChevronLeft class="size-4" />
                 </button>
                 <button
-                    class="flex min-w-44 items-center justify-center gap-1.5 rounded-md border border-border px-2 py-1.5 text-sm font-medium hover:bg-muted"
+                    class="border-border hover:bg-muted flex min-w-44 items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-sm font-medium"
                     @click="openCalendar"
                 >
                     {{ prettyDate }}
-                    <CalendarDays class="size-3.5 text-muted-foreground" />
+                    <CalendarDays class="text-muted-foreground size-3.5" />
                 </button>
                 <input ref="dateInput" type="date" :value="props.date" tabindex="-1" class="sr-only" @change="onPickDate" />
-                <button class="rounded-md border border-border p-1.5 hover:bg-muted" aria-label="Next day" @click="shift(1)">
+                <button class="border-border hover:bg-muted rounded-md border p-1.5" aria-label="Next day" @click="shift(1)">
                     <ChevronRight class="size-4" />
                 </button>
             </div>
@@ -302,7 +302,7 @@ const prettyDate = computed(() =>
             <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[26rem] lg:shrink-0">
                 <div
                     v-if="localRoutes.length === 0 && !localUnassigned"
-                    class="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground"
+                    class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center"
                 >
                     <CalendarDays class="size-8 opacity-50" />
                     <p>No routes scheduled for this day.</p>
@@ -313,15 +313,15 @@ const prettyDate = computed(() =>
 
                 <!-- Unassigned bucket: the day's stops on no agent. A persistent
                      drop target — dragging a stop here un-assigns it. -->
-                <div v-if="localUnassigned" class="rounded-xl border border-dashed border-border bg-muted/20">
-                    <div class="flex items-center justify-between border-b border-border px-4 py-2">
+                <div v-if="localUnassigned" class="border-border bg-muted/20 rounded-xl border border-dashed">
+                    <div class="border-border flex items-center justify-between border-b px-4 py-2">
                         <div class="flex items-center gap-2">
-                            <span class="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                            <span class="bg-muted text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full">
                                 <Inbox class="size-4" />
                             </span>
                             <span class="font-medium">Unassigned stops</span>
                         </div>
-                        <span class="text-xs text-muted-foreground">{{ localUnassigned.stops.length }}</span>
+                        <span class="text-muted-foreground text-xs">{{ localUnassigned.stops.length }}</span>
                     </div>
 
                     <draggable
@@ -333,29 +333,29 @@ const prettyDate = computed(() =>
                         :disabled="!props.canManage"
                         handle=".drag-handle"
                         ghost-class="bg-muted/60"
-                        class="min-h-[2.75rem] divide-y divide-border text-sm"
+                        class="divide-border min-h-[2.75rem] divide-y text-sm"
                         @change="persist"
                     >
                         <template #item="{ element: stop, index }">
                             <li
                                 class="flex cursor-pointer items-center justify-between gap-2 px-4 py-2 transition-colors"
-                                :class="focusId === stop.id ? 'bg-primary/10 ring-1 ring-inset ring-primary/40' : 'hover:bg-muted/40'"
+                                :class="focusId === stop.id ? 'bg-primary/10 ring-primary/40 ring-1 ring-inset' : 'hover:bg-muted/40'"
                                 @click="focusStop(stop)"
                             >
                                 <span class="flex min-w-0 items-center gap-2 truncate">
                                     <GripVertical
                                         v-if="props.canManage && stop.status === 'pending'"
-                                        class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                                        class="drag-handle text-muted-foreground size-4 shrink-0 cursor-grab active:cursor-grabbing"
                                     />
                                     <span v-else class="size-4 shrink-0" aria-hidden="true" />
                                     <span class="text-muted-foreground">{{ index + 1 }}.</span>
                                     <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
                                     <span class="truncate"
-                                        >{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
+                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span></span
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
-                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-xs tabular-nums text-muted-foreground">{{
+                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-muted-foreground text-xs tabular-nums">{{
                                         stop.eta
                                     }}</span>
                                     <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
@@ -365,7 +365,7 @@ const prettyDate = computed(() =>
                             </li>
                         </template>
                     </draggable>
-                    <p v-if="localUnassigned.stops.length === 0" class="px-4 py-3 text-center text-xs text-muted-foreground">
+                    <p v-if="localUnassigned.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">
                         No unassigned stops for this day.
                     </p>
                 </div>
@@ -373,10 +373,10 @@ const prettyDate = computed(() =>
                 <div
                     v-for="route in localRoutes"
                     :key="route.id"
-                    class="overflow-hidden rounded-xl border border-l-[3px] border-border"
+                    class="border-border overflow-hidden rounded-xl border border-l-[3px]"
                     :style="{ borderLeftColor: route.color }"
                 >
-                    <div class="flex items-center justify-between border-b border-border px-4 py-2" :style="{ backgroundColor: route.color + '14' }">
+                    <div class="border-border flex items-center justify-between border-b px-4 py-2" :style="{ backgroundColor: route.color + '14' }">
                         <div class="flex min-w-0 items-center gap-2">
                             <EntityAvatar :src="route.agent_photo" type="person" :name="route.agent" size="sm" shape="circle" />
                             <span class="truncate font-medium">{{ route.agent }}</span>
@@ -391,14 +391,14 @@ const prettyDate = computed(() =>
                                     class="absolute inset-0 cursor-pointer opacity-0"
                                     @change="setColor(route, $event)"
                                 />
-                                <span class="size-3.5 rounded-full border border-border shadow-sm" :style="{ backgroundColor: route.color }" />
+                                <span class="border-border size-3.5 rounded-full border shadow-sm" :style="{ backgroundColor: route.color }" />
                             </label>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="text-xs text-muted-foreground">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
+                            <span class="text-muted-foreground text-xs">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
                             <button
                                 v-if="canManageRoute(route) && route.stops.length > 1"
-                                class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                                class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1"
                                 title="Optimize order"
                                 @click="optimize(route.id)"
                             >
@@ -416,29 +416,29 @@ const prettyDate = computed(() =>
                         :disabled="!canManageRoute(route)"
                         handle=".drag-handle"
                         ghost-class="bg-muted/60"
-                        class="min-h-[2.75rem] divide-y divide-border text-sm"
+                        class="divide-border min-h-[2.75rem] divide-y text-sm"
                         @change="persist"
                     >
                         <template #item="{ element: stop, index }">
                             <li
                                 class="flex cursor-pointer items-center justify-between gap-2 px-4 py-2 transition-colors"
-                                :class="focusId === stop.id ? 'bg-primary/10 ring-1 ring-inset ring-primary/40' : 'hover:bg-muted/40'"
+                                :class="focusId === stop.id ? 'bg-primary/10 ring-primary/40 ring-1 ring-inset' : 'hover:bg-muted/40'"
                                 @click="focusStop(stop)"
                             >
                                 <span class="flex min-w-0 items-center gap-2 truncate">
                                     <GripVertical
                                         v-if="canManageRoute(route) && stop.status === 'pending'"
-                                        class="drag-handle size-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                                        class="drag-handle text-muted-foreground size-4 shrink-0 cursor-grab active:cursor-grabbing"
                                     />
                                     <span v-else class="size-4 shrink-0" aria-hidden="true" />
                                     <span class="text-muted-foreground">{{ index + 1 }}.</span>
                                     <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
                                     <span class="truncate"
-                                        >{{ stop.pool }} <span class="text-xs text-muted-foreground">· {{ stop.customer }}</span></span
+                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span></span
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
-                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-xs tabular-nums text-muted-foreground">{{
+                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-muted-foreground text-xs tabular-nums">{{
                                         stop.eta
                                     }}</span>
                                     <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
@@ -446,7 +446,7 @@ const prettyDate = computed(() =>
                                     }}</span>
                                     <button
                                         v-if="canManageRoute(route) && stop.status === 'pending'"
-                                        class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-amber-600"
+                                        class="text-muted-foreground hover:bg-muted rounded p-1 hover:text-amber-600"
                                         title="Skip stop"
                                         @click.stop="skipStop(stop.id)"
                                     >
@@ -454,7 +454,7 @@ const prettyDate = computed(() =>
                                     </button>
                                     <button
                                         v-if="canManageRoute(route) && stop.status === 'skipped'"
-                                        class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-emerald-600"
+                                        class="text-muted-foreground hover:bg-muted rounded p-1 hover:text-emerald-600"
                                         title="Unskip stop"
                                         @click.stop="unskipStop(stop.id)"
                                     >
@@ -464,24 +464,24 @@ const prettyDate = computed(() =>
                             </li>
                         </template>
                     </draggable>
-                    <p v-if="route.stops.length === 0" class="px-4 py-3 text-center text-xs text-muted-foreground">No stops — drag one here.</p>
+                    <p v-if="route.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">No stops — drag one here.</p>
                 </div>
             </div>
 
             <!-- Right: route map + day details (reserved space) -->
             <aside class="hidden min-h-0 flex-1 flex-col gap-4 lg:flex">
                 <div class="grid grid-cols-3 gap-3">
-                    <div class="rounded-xl border border-border p-3 text-center">
+                    <div class="border-border rounded-xl border p-3 text-center">
                         <div class="text-xl font-semibold">{{ localRoutes.length }}</div>
-                        <div class="text-xs text-muted-foreground">Routes</div>
+                        <div class="text-muted-foreground text-xs">Routes</div>
                     </div>
-                    <div class="rounded-xl border border-border p-3 text-center">
+                    <div class="border-border rounded-xl border p-3 text-center">
                         <div class="text-xl font-semibold">{{ totalStops }}</div>
-                        <div class="text-xs text-muted-foreground">Stops</div>
+                        <div class="text-muted-foreground text-xs">Stops</div>
                     </div>
-                    <div class="rounded-xl border border-border p-3 text-center">
+                    <div class="border-border rounded-xl border p-3 text-center">
                         <div class="text-xl font-semibold text-emerald-600 dark:text-emerald-400">{{ completedStops }}</div>
-                        <div class="text-xs text-muted-foreground">Completed</div>
+                        <div class="text-muted-foreground text-xs">Completed</div>
                     </div>
                 </div>
                 <!-- Map legend / agent toggles: click a chip to hide that route. -->
@@ -490,7 +490,7 @@ const prettyDate = computed(() =>
                         v-for="a in mapAgents"
                         :key="a.id ?? 'unassigned'"
                         type="button"
-                        class="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5 text-xs font-medium transition-colors"
+                        class="border-border inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors"
                         :class="isAgentHidden(a.id) ? 'text-muted-foreground line-through opacity-50' : 'hover:bg-muted'"
                         :title="isAgentHidden(a.id) ? `Show ${a.label}` : `Hide ${a.label}`"
                         @click="toggleAgent(a.id)"

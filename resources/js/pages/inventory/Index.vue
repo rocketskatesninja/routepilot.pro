@@ -203,7 +203,7 @@ function submitAdjust() {
                                     <span class="font-medium">{{ item.name }}</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-2.5 text-muted-foreground">{{ item.stock }} {{ item.unit }}</td>
+                            <td class="text-muted-foreground px-4 py-2.5">{{ item.stock }} {{ item.unit }}</td>
                             <td class="px-4 py-2.5">
                                 <span
                                     class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
@@ -216,7 +216,7 @@ function submitAdjust() {
                                     {{ item.low ? 'Low' : 'OK' }}
                                 </span>
                             </td>
-                            <td class="hidden px-4 py-2.5 text-muted-foreground md:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
                                 {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
                             </td>
                         </template>
@@ -232,7 +232,7 @@ function submitAdjust() {
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New chemical' : 'Edit chemical' }}</h2>
-                            <p class="text-sm text-muted-foreground">Stock changes are logged via Adjust stock.</p>
+                            <p class="text-muted-foreground text-sm">Stock changes are logged via Adjust stock.</p>
                         </div>
                         <ImageUpload
                             :model-value="form.photo"
@@ -288,7 +288,7 @@ function submitAdjust() {
                             <EntityAvatar :src="props.selected.photo_url" type="inventory" :name="props.selected.name" size="lg" />
                             <div>
                                 <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-sm text-muted-foreground">{{ props.selected.stock }} {{ props.selected.unit }} in stock</p>
+                                <p class="text-muted-foreground text-sm">{{ props.selected.stock }} {{ props.selected.unit }} in stock</p>
                             </div>
                         </div>
 
@@ -300,7 +300,7 @@ function submitAdjust() {
                                 >
                             </div>
 
-                            <dl class="space-y-1 text-muted-foreground">
+                            <dl class="text-muted-foreground space-y-1">
                                 <div class="flex justify-between">
                                     <dt>Reorder at</dt>
                                     <dd>{{ props.selected.reorder_threshold ?? '—' }} {{ props.selected.unit }}</dd>
@@ -323,10 +323,10 @@ function submitAdjust() {
                                 </div>
                             </dl>
 
-                            <section v-if="props.canManage" class="rounded-lg border border-border p-3">
+                            <section v-if="props.canManage" class="border-border rounded-lg border p-3">
                                 <h3 class="mb-2 font-medium">Adjust stock</h3>
                                 <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitAdjust">
-                                    <select v-model="adjustForm.type" class="h-9 rounded-md border border-input bg-background px-2 text-sm">
+                                    <select v-model="adjustForm.type" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                         <option value="restock">Restock (+)</option>
                                         <option value="usage">Usage (−)</option>
                                         <option value="adjustment">Set to…</option>
@@ -338,7 +338,7 @@ function submitAdjust() {
 
                             <section v-if="props.selected.transactions.length">
                                 <h3 class="mb-1 font-medium">Recent movement</h3>
-                                <ul class="space-y-1 text-muted-foreground">
+                                <ul class="text-muted-foreground space-y-1">
                                     <li v-for="t in props.selected.transactions" :key="t.id" class="flex justify-between">
                                         <span class="capitalize">{{ t.type }} · {{ t.quantity }} {{ props.selected.unit }}</span>
                                         <span>

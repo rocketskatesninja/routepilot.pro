@@ -1,0 +1,24 @@
+# Weekly security + version update PRs, grouped so the volume stays low.
+# This is the long-term prevention for the silent advisory drift that put CI red:
+# advisories publish over time, so audits can go red with zero code change —
+# Dependabot surfaces them as PRs instead of letting them accrue unnoticed.
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      php:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      js:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

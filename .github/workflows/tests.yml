@@ -87,6 +87,11 @@ jobs:
       - name: Composer Security Audit
         run: composer audit --no-interaction
 
-      # Fail only on high/critical advisories in npm dependencies.
+      # Install so the audit sees the resolved tree (incl. overrides).
+      - name: Install Node Dependencies
+        run: npm ci
+
+      # Fail on high/critical npm advisories, except a documented allowlist of
+      # dev-only transitives with no upstream fix (see scripts/check-npm-audit.mjs).
       - name: NPM Security Audit
-        run: npm audit --audit-level=high
+        run: npm run audit:js

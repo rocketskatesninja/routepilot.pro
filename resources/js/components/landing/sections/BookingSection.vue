@@ -73,7 +73,7 @@ async function submit() {
         <form v-else class="reveal mx-auto max-w-lg space-y-4" @submit.prevent="submit">
             <label v-if="services.length" class="block">
                 <span class="mb-1 block text-sm font-medium">Service</span>
-                <select v-model="form.serviceId" class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm">
+                <select v-model="form.serviceId" class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm">
                     <option value="">Not sure yet — recommend one</option>
                     <option v-for="s in services" :key="s.id" :value="String(s.id)">{{ s.name }}</option>
                 </select>
@@ -87,12 +87,12 @@ async function submit() {
                         type="date"
                         :min="minDate"
                         required
-                        class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                        class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                     />
                 </label>
                 <label class="block">
                     <span class="mb-1 block text-sm font-medium">Time window</span>
-                    <select v-model="form.window" class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm">
+                    <select v-model="form.window" class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm">
                         <option v-for="w in windows" :key="w.value" :value="w.value">{{ w.label }}</option>
                     </select>
                 </label>
@@ -102,37 +102,37 @@ async function submit() {
                 v-model="form.name"
                 required
                 placeholder="Your name"
-                class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
             />
             <div class="grid gap-4 sm:grid-cols-2">
                 <input
                     v-model="form.email"
                     type="email"
                     placeholder="Email"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                 />
                 <input
                     v-model="form.phone"
                     type="tel"
                     placeholder="Phone"
-                    class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                    class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
                 />
             </div>
             <textarea
                 v-model="form.notes"
                 rows="2"
                 placeholder="Anything we should know? (gate code, pool size…)"
-                class="w-full rounded-lg border border-input bg-background px-4 py-3 text-sm"
+                class="border-input bg-background w-full rounded-lg border px-4 py-3 text-sm"
             ></textarea>
 
-            <p class="text-center text-xs text-muted-foreground">
+            <p class="text-muted-foreground text-center text-xs">
                 Pick a date and we’ll confirm the exact time — we don’t hold the slot until confirmed.
             </p>
             <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
             <button
                 type="submit"
                 :disabled="sending || !canSubmit"
-                class="btn-cta w-full rounded-xl bg-primary px-6 py-3 font-bold text-primary-foreground shadow-lg disabled:opacity-60"
+                class="btn-cta bg-primary text-primary-foreground w-full rounded-xl px-6 py-3 font-bold shadow-lg disabled:opacity-60"
             >
                 {{ sending ? 'Sending…' : 'Request appointment' }}
             </button>

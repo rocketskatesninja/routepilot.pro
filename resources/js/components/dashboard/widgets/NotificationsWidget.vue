@@ -16,15 +16,15 @@ defineProps<{ data: Note[] }>();
 
 <template>
     <div class="h-full overflow-y-auto">
-        <ul v-if="data.length" class="divide-y divide-border text-sm">
+        <ul v-if="data.length" class="divide-border divide-y text-sm">
             <li v-for="n in data" :key="n.id" class="px-1 py-2">
                 <component :is="n.url ? Link : 'div'" :href="n.url ?? undefined" class="block">
                     <div class="flex items-center gap-2">
-                        <span v-if="!n.read" class="size-1.5 shrink-0 rounded-full bg-primary"></span>
+                        <span v-if="!n.read" class="bg-primary size-1.5 shrink-0 rounded-full"></span>
                         <span class="truncate font-medium" :class="n.read ? 'text-muted-foreground' : ''">{{ n.title }}</span>
-                        <span class="ml-auto shrink-0 text-xs text-muted-foreground">{{ n.on }}</span>
+                        <span class="text-muted-foreground ml-auto shrink-0 text-xs">{{ n.on }}</span>
                     </div>
-                    <p v-if="n.body" class="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{{ n.body }}</p>
+                    <p v-if="n.body" class="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{{ n.body }}</p>
                 </component>
             </li>
         </ul>
