@@ -142,8 +142,11 @@ const { isMobile, toggleSidebar } = useSidebar();
                 <SidebarMenuItem v-if="isStaff && !isMobile">
                     <SidebarMenuButton tooltip="Search (⌘K)" @click="openCommand()">
                         <Search />
-                        <span>Search</span>
-                        <kbd class="border-sidebar-border text-muted-foreground ml-auto rounded border px-1 text-[10px]">⌘K</kbd>
+                        <span class="group-data-[collapsible=icon]:hidden">Search</span>
+                        <kbd
+                            class="border-sidebar-border text-muted-foreground ml-auto rounded border px-1 text-[10px] group-data-[collapsible=icon]:hidden"
+                            >⌘K</kbd
+                        >
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
