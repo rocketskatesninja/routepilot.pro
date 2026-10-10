@@ -12,6 +12,10 @@ const emit = defineEmits<{ (e: 'done', stopId: number): void; (e: 'close'): void
 
 const pool = computed(() => props.stop.pool);
 
+// Which sections this visit shows — the service type's checkboxes on the Services page.
+const has = (m: string): boolean => props.stop.service.modules?.[m] ?? true;
+const show = { tasks: has('tasks'), chemistry: has('chemistry'), treatments: has('treatments'), photos: has('photos') };
+
 // Reading inputs (strings, as form fields). Keys match the API; `water_temperature`
 // is remapped to `temperature` for the chemistry engine.
 const readingFields = [
@@ -97,21 +101,24 @@ const urgencyTone = (u: string) =>
 async function complete() {
     submitting.value = true;
     const payload: Record<string, unknown> = {
-        tasks: tasks.map((t) => ({ name: t.name, done: t.done })),
-        treatments: treatments
-            .filter((t) => t.name !== '')
-            .map((t) => ({ name: t.name, amount: t.amount === '' ? null : Number(t.amount), unit: t.unit })),
+        // Hidden sections send nothing, so the report only carries what this service covers.
+        tasks: show.tasks ? tasks.map((t) => ({ name: t.name, done: t.done })) : [],
+        treatments: show.treatments
+            ? treatments.filter((t) => t.name !== '').map((t) => ({ name: t.name, amount: t.amount === '' ? null : Number(t.amount), unit: t.unit }))
+            : [],
         notes: notes.value || null,
     };
-    for (const f of readingFields) {
-        if (reading[f.key] !== '') payload[f.key] = Number(reading[f.key]);
+    if (show.chemistry) {
+        for (const f of readingFields) {
+            if (reading[f.key] !== '') payload[f.key] = Number(reading[f.key]);
+        }
     }
     const loc = await captureLocation();
     if (loc) {
         payload.completed_lat = loc.lat;
         payload.completed_lng = loc.lng;
     }
-    await queueCompletion(props.stop.id, pool.value?.name ?? 'Pool', payload, photos.value);
+    await queueCompletion(props.stop.id, pool.value?.name ?? 'Pool', payload, show.photos ? photos.value : []);
     submitting.value = false;
     emit('done', props.stop.id);
 }
@@ -151,7 +158,7 @@ async function complete() {
             </div>
 
             <!-- checklist: the physical checklist comes first -->
-            <section v-if="tasks.length" class="border-border bg-card rounded-xl border p-4">
+            <section v-if="show.tasks && tasks.length" class="border-border bg-card rounded-xl border p-4">
                 <div class="mb-3">
                     <h2 class="flex items-center gap-2 leading-tight font-semibold">
                         <ListChecks class="size-4 shrink-0 text-sky-500 dark:text-sky-400" /> Checklist
@@ -165,7 +172,7 @@ async function complete() {
             </section>
 
             <!-- readings: the water test + dosing is the last thing before completing -->
-            <section class="border-border bg-card rounded-xl border p-4">
+            <section v-if="show.chemistry" class="border-border bg-card rounded-xl border p-4">
                 <h2 class="mb-3 flex items-center gap-2 font-semibold"><FlaskConical class="size-4 text-sky-500 dark:text-sky-400" /> Water test</h2>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <label v-for="f in readingFields" :key="f.key" class="block">
@@ -185,7 +192,7 @@ async function complete() {
             </section>
 
             <!-- analysis -->
-            <section v-if="analysis" class="border-border bg-card rounded-xl border p-4">
+            <section v-if="show.chemistry && analysis" class="border-border bg-card rounded-xl border p-4">
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="flex items-center gap-2 font-semibold"><Sparkles class="size-4 text-sky-500 dark:text-sky-400" /> Analysis</h2>
                     <span class="text-sm font-semibold" :class="lsiTone">LSI {{ analysis.lsi.value }} · {{ analysis.lsi.label }}</span>
@@ -200,7 +207,9 @@ async function complete() {
                                     {{ rec.parameter }}<span v-if="rec.amount"> · {{ rec.amount }} {{ rec.unit }}</span>
                                 </p>
                             </div>
-                            <Button size="sm" variant="outline" @click="applyRec(rec.chemical, rec.amount, rec.unit)"><Plus class="size-4" /></Button>
+                            <Button v-if="show.treatments" size="sm" variant="outline" @click="applyRec(rec.chemical, rec.amount, rec.unit)"
+                                ><Plus class="size-4"
+                            /></Button>
                         </div>
                         <ul v-if="rec.notes?.length" class="text-muted-foreground mt-1 list-disc pl-5 text-xs">
                             <li v-for="(n, j) in rec.notes" :key="j">{{ n }}</li>
@@ -210,7 +219,7 @@ async function complete() {
             </section>
 
             <!-- treatments -->
-            <section class="border-border bg-card rounded-xl border p-4">
+            <section v-if="show.treatments" class="border-border bg-card rounded-xl border p-4">
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="flex items-center gap-2 font-semibold">
                         <Droplets class="size-4 text-sky-500 dark:text-sky-400" /> Treatments applied
@@ -238,7 +247,7 @@ async function complete() {
             </section>
 
             <!-- photos -->
-            <section class="border-border bg-card rounded-xl border p-4">
+            <section v-if="show.photos" class="border-border bg-card rounded-xl border p-4">
                 <h2 class="mb-3 flex items-center gap-2 font-semibold"><Camera class="size-4 text-sky-500 dark:text-sky-400" /> Photos</h2>
                 <MultiImageUpload :model-value="photos" capture="environment" @update:model-value="(f) => (photos = f)" />
             </section>

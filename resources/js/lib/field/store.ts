@@ -25,7 +25,8 @@ export interface FieldStop {
         lat: number | null;
         lng: number | null;
     } | null;
-    service: { name: string | null; tasks: string[] };
+    // `modules` = which visit sections to show (absent on bundles cached before it existed → all on).
+    service: { name: string | null; tasks: string[]; modules?: Record<string, boolean> };
     last_reading: Record<string, number | null> | null;
 }
 

@@ -48,6 +48,26 @@ class ServiceType extends Model
         ];
     }
 
+    /** The at-pool sections a visit of this type can show, in field-flow order. */
+    public const MODULES = ['tasks' => 'Tasks', 'chemistry' => 'Chemistry', 'treatments' => 'Treatments', 'photos' => 'Photos'];
+
+    /**
+     * On/off flag per visit section. Anything never set counts as on, so older
+     * service types keep showing everything.
+     *
+     * @return array<string, bool>
+     */
+    public function modules(): array
+    {
+        $flags = $this->field_modules ?? [];
+        $out = [];
+        foreach (array_keys(self::MODULES) as $key) {
+            $out[$key] = ! array_key_exists($key, $flags) || (bool) $flags[$key];
+        }
+
+        return $out;
+    }
+
     /** @return HasMany<ServiceSubscription, $this> */
     public function subscriptions(): HasMany
     {

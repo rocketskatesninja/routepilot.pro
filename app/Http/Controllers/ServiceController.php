@@ -22,8 +22,6 @@ use Inertia\Response;
 class ServiceController extends Controller
 {
     /** Field-flow modules a service type can switch on, in display order. */
-    private const MODULES = ['tasks' => 'Tasks', 'chemistry' => 'Chemistry', 'treatments' => 'Treatments', 'photos' => 'Photos'];
-
     public function index(Request $request): Response
     {
         $this->authorizeStaff($request);
@@ -106,11 +104,11 @@ class ServiceController extends Controller
     /** @return array<string, mixed> */
     private function toDetail(ServiceType $type): array
     {
-        // Which at-pool modules this service shows (default: all enabled).
-        $flags = $type->field_modules ?? [];
+        // Which at-pool sections this service shows (unset = on).
+        $flags = $type->modules();
         $modules = [];
-        foreach (self::MODULES as $key => $label) {
-            if (! array_key_exists($key, $flags) || $flags[$key]) {
+        foreach (ServiceType::MODULES as $key => $label) {
+            if ($flags[$key]) {
                 $modules[] = $label;
             }
         }
@@ -138,25 +136,9 @@ class ServiceController extends Controller
                 'chemicals_included' => $type->chemicals_included,
                 'description' => $type->description,
                 'tasks' => array_values($type->tasks ?? []),
-                'field_modules' => $this->moduleFlags($type),
+                'field_modules' => $type->modules(),
                 'is_active' => $type->is_active,
             ],
         ];
-    }
-
-    /**
-     * Current module on/off flags (default all on), keyed for the form.
-     *
-     * @return array<string, bool>
-     */
-    private function moduleFlags(ServiceType $type): array
-    {
-        $flags = $type->field_modules ?? [];
-        $out = [];
-        foreach (array_keys(self::MODULES) as $key) {
-            $out[$key] = ! array_key_exists($key, $flags) || (bool) $flags[$key];
-        }
-
-        return $out;
     }
 }

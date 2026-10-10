@@ -16,6 +16,7 @@ use App\Models\ChemicalReading;
 use App\Models\FieldSyncKey;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -48,7 +49,8 @@ class FieldController extends Controller
                     'pool:id,name,type,sanitizer_type,volume_gallons,customer_id,custom_target_ranges',
                     'pool.customer:id,first_name,last_name,phone',
                     'pool.serviceLocation',
-                    'pool.subscriptions' => fn ($s) => $s->where('status', 'active')->with('serviceType:id,name,tasks'),
+                    'pool.subscriptions' => fn ($s) => $s->where('status', 'active')->with('serviceType:id,name,tasks,field_modules'),
+                    'serviceSubscription.serviceType:id,name,tasks,field_modules',
                     'serviceVisit',
                 ]),
             ])
@@ -130,7 +132,10 @@ class FieldController extends Controller
     private function stop(RouteStop $stop): array
     {
         $pool = $stop->pool;
-        $serviceType = $pool?->subscriptions->isNotEmpty() === true ? $pool->subscriptions->first()->serviceType : null;
+        // The stop's own plan decides what this visit is — a pool can carry two plans
+        // (e.g. a clean + a chemistry check). Stops without one fall back to the pool's.
+        $serviceType = $stop->serviceSubscription->serviceType
+            ?? $pool?->subscriptions->first()?->serviceType;
         $location = $pool?->serviceLocation;
         $coords = $pool?->coordinates();
 
@@ -162,6 +167,8 @@ class FieldController extends Controller
             'service' => [
                 'name' => $serviceType?->name,
                 'tasks' => $serviceType !== null ? array_values($serviceType->tasks ?? []) : [],
+                // Which visit sections the field app shows (the Services-page checkboxes).
+                'modules' => $serviceType?->modules() ?? array_fill_keys(array_keys(ServiceType::MODULES), true),
             ],
             'last_reading' => $last !== null ? [
                 'on' => $last->created_at?->toDateString(),

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -101,4 +102,22 @@ test('a customer cannot reach the field API', function () {
     $this->actingAs(User::factory()->customer()->for($this->tenant)->create())
         ->postJson("/api/field/visits/{$this->stop->id}/complete", ['ph' => 7.4])
         ->assertForbidden();
+});
+
+test('each stop sends its own service type\'s visit sections to the field app', function () {
+    app()->instance('tenant_id', $this->tenant->id);
+    $clean = ServiceType::factory()->for($this->tenant)->create(['name' => 'Weekly Clean', 'field_modules' => ['chemistry' => false, 'treatments' => false]]);
+    $chem = ServiceType::factory()->for($this->tenant)->create(['name' => 'Chemistry Check', 'field_modules' => null]);
+    $cleanPlan = $this->pool->subscriptions()->create(['service_type_id' => $clean->id, 'assigned_agent_id' => $this->agent->id, 'frequency' => 'weekly', 'status' => 'active']);
+    $chemPlan = $this->pool->subscriptions()->create(['service_type_id' => $chem->id, 'assigned_agent_id' => $this->agent->id, 'frequency' => 'weekly', 'status' => 'active']);
+    $this->stop->update(['service_subscription_id' => $cleanPlan->id]);
+    RouteStop::factory()->for($this->route)->for($this->pool)->create(['stop_order' => 2, 'status' => 'pending', 'service_subscription_id' => $chemPlan->id]);
+
+    $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()
+        // Same pool, two plans: each stop is its own service, not the pool's first plan.
+        ->assertJsonPath('stops.0.service.name', 'Weekly Clean')
+        ->assertJsonPath('stops.0.service.modules', ['tasks' => true, 'chemistry' => false, 'treatments' => false, 'photos' => true])
+        ->assertJsonPath('stops.1.service.name', 'Chemistry Check')
+        // Never-configured service types keep every section.
+        ->assertJsonPath('stops.1.service.modules', ['tasks' => true, 'chemistry' => true, 'treatments' => true, 'photos' => true]);
 });
