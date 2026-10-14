@@ -25,10 +25,11 @@ class EstimateArrivals extends Command
         $count = 0;
 
         Tenant::query()->where('status', 'active')->each(function (Tenant $tenant) use ($estimator, &$count): void {
+            app()->instance('tenant', $tenant);
             app()->instance('tenant_id', $tenant->id);
 
             Route::query()
-                ->whereDate('scheduled_date', '>=', today())
+                ->whereDate('scheduled_date', '>=', $tenant->today()->toDateString())
                 ->whereIn('status', ['draft', 'scheduled', 'in_progress'])
                 ->each(function (Route $route) use ($estimator, &$count): void {
                     $estimator->handle($route);

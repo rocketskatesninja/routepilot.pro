@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\ServiceSubscription;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreServiceTypeRequest extends FormRequest
 {
@@ -19,7 +21,7 @@ class StoreServiceTypeRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:120'],
-            'frequency' => ['required', 'in:weekly,biweekly,monthly,one_time,seasonal'],
+            'frequency' => ['required', Rule::in(array_keys(ServiceSubscription::FREQUENCIES))],
             'estimated_duration_minutes' => ['required', 'integer', 'min:5', 'max:600'],
             'price' => ['required', 'numeric', 'min:0', 'max:100000'],
             'chemicals_included' => ['boolean'],

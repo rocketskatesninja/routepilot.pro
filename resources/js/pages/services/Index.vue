@@ -245,10 +245,9 @@ function destroyService() {
                                 <Label for="frequency">Frequency</Label>
                                 <select id="frequency" v-model="form.frequency" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                     <option value="weekly">Weekly</option>
-                                    <option value="biweekly">Biweekly</option>
+                                    <option value="biweekly">Every 2 weeks</option>
                                     <option value="monthly">Monthly</option>
-                                    <option value="one_time">One-time</option>
-                                    <option value="seasonal">Seasonal</option>
+                                    <option value="one_time">One-time job</option>
                                 </select>
                             </div>
                         </div>

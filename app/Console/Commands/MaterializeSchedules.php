@@ -9,25 +9,27 @@ use App\Services\SubscriptionMaterializer;
 use Illuminate\Console\Command;
 
 /**
- * Nightly: materialize route stops from active subscriptions for every active
- * tenant (idempotent — the on-page generate is the fallback).
+ * Nightly: roll every active company's schedule forward — each by its own local
+ * date, over the shared window (idempotent; the Schedule page button is the
+ * manual fallback).
  */
 class MaterializeSchedules extends Command
 {
-    protected $signature = 'app:materialize-schedules {--through= : Materialize through this date (default +2 weeks)}';
+    protected $signature = 'app:materialize-schedules {--through= : Schedule through this date (default: the standard window)}';
 
     protected $description = 'Materialize route stops from active subscriptions for every tenant.';
 
     public function handle(SubscriptionMaterializer $materializer): int
     {
-        $through = (string) ($this->option('through') ?: now()->addWeeks(2)->toDateString());
+        $through = $this->option('through') ?: null;
 
         Tenant::query()->where('status', 'active')->get()->each(function (Tenant $tenant) use ($materializer, $through): void {
+            app()->instance('tenant', $tenant);
             app()->instance('tenant_id', $tenant->id);
-            $materializer->run($tenant->id, $through);
+            $materializer->run($tenant->id, is_string($through) ? $through : null);
         });
 
-        $this->info('Schedules materialized through '.$through.'.');
+        $this->info('Schedules updated'.(is_string($through) ? ' through '.$through : '').'.');
 
         return self::SUCCESS;
     }

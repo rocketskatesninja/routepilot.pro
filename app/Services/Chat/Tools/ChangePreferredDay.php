@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
+use App\Actions\UpdateSubscription;
 use App\Models\ServiceSubscription;
 use App\Services\Chat\AiTool;
-use App\Services\SubscriptionMaterializer;
 
 /**
  * Change the preferred service day for a customer's pool subscription.
@@ -66,10 +66,7 @@ class ChangePreferredDay extends AiTool
 
         $sub = $subs->first();
         $oldDay = $sub->preferred_day;
-        $sub->update(['preferred_day' => $newDay]);
-        if ($sub->wasChanged('preferred_day')) {
-            app(SubscriptionMaterializer::class)->resync($sub); // move the upcoming stops too
-        }
+        app(UpdateSubscription::class)->handle($sub, ['preferred_day' => $newDay]); // also moves its upcoming visits
 
         return "Done! Moved {$sub->pool?->customer?->displayName()}'s \"{$sub->pool?->name}\" from "
             .ucfirst($oldDay ?? 'unset').' to '.ucfirst($newDay).'.';

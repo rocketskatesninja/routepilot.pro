@@ -41,7 +41,7 @@ const estimate = computed(() => {
 
 const money = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const freqLabel = (f: string) =>
-    ({ weekly: '/visit (weekly)', biweekly: '/visit (every 2 wks)', monthly: '/month', one_time: ' one-time', seasonal: ' seasonal' })[f] ?? '';
+    ({ weekly: '/visit (weekly)', biweekly: '/visit (every 2 wks)', monthly: '/visit (monthly)', one_time: ' one-time' })[f] ?? '';
 
 async function submit() {
     if (sending.value || form.value.name.trim() === '' || !selected.value) return;

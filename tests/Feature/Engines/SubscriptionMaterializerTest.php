@@ -62,9 +62,8 @@ test('re-running is idempotent', function () {
     expect(RouteStop::count())->toBe(8);
 });
 
-test('biweekly subscriptions follow the week_type parity', function () {
-    // 2026-06-09 falls in ISO week 24 (even).
-    makeSub(['frequency' => 'biweekly', 'preferred_day' => 'tuesday', 'frequency_details' => ['week_type' => 'even']]);
+test('every-2-weeks subscriptions count fortnights from their start date', function () {
+    makeSub(['frequency' => 'biweekly', 'preferred_day' => 'tuesday', 'starts_on' => '2026-06-09']);
 
     $this->materializer->run($this->tenant->id);
 
@@ -73,7 +72,7 @@ test('biweekly subscriptions follow the week_type parity', function () {
 });
 
 test('monthly subscriptions clamp day_of_month to the month length', function () {
-    makeSub(['frequency' => 'monthly', 'frequency_details' => ['day_of_month' => 31]]);
+    makeSub(['frequency' => 'monthly', 'day_of_month' => 31]);
 
     $this->materializer->run($this->tenant->id);
 

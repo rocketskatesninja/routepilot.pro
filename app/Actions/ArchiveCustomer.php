@@ -25,6 +25,8 @@ use Illuminate\Support\Facades\DB;
  */
 class ArchiveCustomer
 {
+    public function __construct(private readonly UpdateSubscription $plans) {}
+
     public function handle(Customer $customer): void
     {
         DB::transaction(function () use ($customer): void {
@@ -32,8 +34,9 @@ class ArchiveCustomer
             $poolIds = $customer->pools()->pluck('id'); // active (non-trashed) pools only
 
             if ($poolIds->isNotEmpty()) {
-                ServiceSubscription::query()->whereIn('pool_id', $poolIds)
-                    ->where('status', 'active')->update(['status' => 'cancelled']);
+                // End each active plan the normal way, so its upcoming visits leave the routes.
+                ServiceSubscription::query()->whereIn('pool_id', $poolIds)->where('status', 'active')->get()
+                    ->each(fn (ServiceSubscription $plan) => $this->plans->handle($plan, ['status' => 'cancelled']));
 
                 Pool::query()->whereIn('id', $poolIds)->update(['deleted_at' => $ts]);
             }

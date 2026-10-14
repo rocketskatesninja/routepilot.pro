@@ -28,6 +28,7 @@ test('a one-person operation can assign a service plan to the tenant_admin thems
         'service_type_id' => $this->serviceType->id,
         'assigned_agent_id' => $this->admin->id, // the admin IS the tech
         'frequency' => 'weekly',
+        'preferred_day' => 'tuesday',
     ])->assertRedirect()->assertSessionHasNoErrors();
 
     expect(ServiceSubscription::query()->where('pool_id', $this->pool->id)->first()?->assigned_agent_id)

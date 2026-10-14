@@ -247,8 +247,10 @@ class ScheduleController extends Controller
                         continue;
                     }
                     $stop->setAttribute('stop_order', $i + 1);
-                    // Only an admin may move a still-pending stop between routes.
-                    if ($isAdmin && $stop->getAttribute('status') === 'pending') {
+                    // Only an admin may move a still-pending stop between routes — and only
+                    // between techs on the same day; the plan decides the date.
+                    $sameDay = $stop->route?->scheduled_date?->toDateString() === $route->scheduled_date->toDateString();
+                    if ($isAdmin && $sameDay && $stop->getAttribute('status') === 'pending') {
                         $stop->setAttribute('route_id', $route->id);
                     }
                     $stop->save();

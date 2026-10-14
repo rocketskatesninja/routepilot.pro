@@ -82,6 +82,9 @@ interface PoolDetail {
         agent_id: number | null;
         frequency: string;
         preferred_day: string | null;
+        starts_on: string | null;
+        ends_on: string | null;
+        day_of_month: number | null;
         hold_starts_at: string | null;
         hold_ends_at: string | null;
     }[];
@@ -270,6 +273,8 @@ const subFormOpen = ref(false);
 const subFormMode = ref<'create' | 'edit'>('create');
 const subFormId = ref<number | null>(null);
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const schedules: Record<string, string> = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', one_time: 'One-time' };
+const localToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the office's time zone
 
 const subForm = useForm<{
     pool_id: number | null;
@@ -277,6 +282,9 @@ const subForm = useForm<{
     assigned_agent_id: number | string;
     frequency: string;
     preferred_day: string;
+    day_of_month: number | string;
+    starts_on: string;
+    ends_on: string;
     status: string;
     hold_starts_at: string;
     hold_ends_at: string;
@@ -286,6 +294,9 @@ const subForm = useForm<{
     assigned_agent_id: '',
     frequency: 'weekly',
     preferred_day: '',
+    day_of_month: '',
+    starts_on: '',
+    ends_on: '',
     status: 'active',
     hold_starts_at: '',
     hold_ends_at: '',
@@ -295,6 +306,7 @@ function openSubCreate() {
     if (!props.selected) return;
     subForm.reset();
     subForm.pool_id = props.selected.id;
+    subForm.starts_on = localToday();
     subForm.clearErrors();
     subFormMode.value = 'create';
     subFormId.value = null;
@@ -306,6 +318,9 @@ function openSubEdit(sub: Subscription) {
     subForm.assigned_agent_id = sub.agent_id ?? '';
     subForm.frequency = sub.frequency;
     subForm.preferred_day = sub.preferred_day ?? '';
+    subForm.day_of_month = sub.day_of_month ?? '';
+    subForm.starts_on = sub.starts_on ?? '';
+    subForm.ends_on = sub.ends_on ?? '';
     subForm.status = sub.status;
     subForm.hold_starts_at = sub.hold_starts_at ?? '';
     subForm.hold_ends_at = sub.hold_ends_at ?? '';
@@ -342,6 +357,9 @@ function toggleSub(sub: Subscription) {
             assigned_agent_id: sub.agent_id,
             frequency: sub.frequency,
             preferred_day: sub.preferred_day,
+            day_of_month: sub.day_of_month,
+            starts_on: sub.starts_on,
+            ends_on: sub.ends_on,
             status: sub.status === 'active' ? 'paused' : 'active',
         },
         { preserveScroll: true },
@@ -349,7 +367,7 @@ function toggleSub(sub: Subscription) {
 }
 
 function removeSub(sub: Subscription) {
-    if (!confirm('Remove this service plan?')) return;
+    if (!confirm('Remove this service plan? (Only for plans added by mistake — a plan with completed visits must be ended instead.)')) return;
     router.delete(`/subscriptions/${sub.id}`, { preserveScroll: true });
 }
 
@@ -624,7 +642,9 @@ function submitTargets() {
                     <form v-else-if="subFormOpen" class="space-y-4 text-sm" @submit.prevent="submitSub">
                         <div class="mb-1">
                             <h2 class="text-lg font-semibold">{{ subFormMode === 'create' ? 'New service plan' : 'Edit service plan' }}</h2>
-                            <p class="text-muted-foreground text-sm">The cadence + agent the materializer schedules.</p>
+                            <p class="text-muted-foreground text-sm">
+                                Which service, how often, and who does it. Its visits go on the routes as soon as you save.
+                            </p>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="sub_service">Service type</Label>
@@ -651,29 +671,44 @@ function submitTargets() {
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
-                                <Label for="sub_freq">Frequency</Label>
+                                <Label for="sub_freq">Schedule</Label>
                                 <select
                                     id="sub_freq"
                                     v-model="subForm.frequency"
                                     class="border-input bg-background h-9 rounded-md border px-2 text-sm"
                                 >
-                                    <option value="weekly">Weekly</option>
-                                    <option value="biweekly">Biweekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="one_time">One-time</option>
-                                    <option value="seasonal">Seasonal</option>
+                                    <option v-for="(label, key) in schedules" :key="key" :value="key">{{ label }}</option>
                                 </select>
                             </div>
-                            <div class="grid gap-1.5">
-                                <Label for="sub_day">Preferred day</Label>
+                            <div v-if="subForm.frequency === 'weekly' || subForm.frequency === 'biweekly'" class="grid gap-1.5">
+                                <Label for="sub_day">Day</Label>
                                 <select
                                     id="sub_day"
                                     v-model="subForm.preferred_day"
                                     class="border-input bg-background h-9 rounded-md border px-2 text-sm capitalize"
                                 >
-                                    <option value="">Any</option>
+                                    <option value="" disabled>Pick a day…</option>
                                     <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
                                 </select>
+                                <p v-if="subForm.errors.preferred_day" class="text-xs text-red-600">{{ subForm.errors.preferred_day }}</p>
+                            </div>
+                            <div v-else-if="subForm.frequency === 'monthly'" class="grid gap-1.5">
+                                <Label for="sub_dom">Day of month</Label>
+                                <Input id="sub_dom" v-model="subForm.day_of_month" type="number" min="1" max="31" class="w-20" />
+                                <p class="text-muted-foreground text-xs">31 = last day of short months</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="grid gap-1.5">
+                                <Label for="sub_start">{{ subForm.frequency === 'one_time' ? 'Date' : 'Starts' }}</Label>
+                                <Input id="sub_start" v-model="subForm.starts_on" type="date" />
+                                <p v-if="subForm.errors.starts_on" class="text-xs text-red-600">{{ subForm.errors.starts_on }}</p>
+                            </div>
+                            <div v-if="subForm.frequency !== 'one_time'" class="grid gap-1.5">
+                                <Label for="sub_end">Ends <span class="text-muted-foreground font-normal">(optional)</span></Label>
+                                <Input id="sub_end" v-model="subForm.ends_on" type="date" />
+                                <p v-if="subForm.errors.ends_on" class="text-xs text-red-600">{{ subForm.errors.ends_on }}</p>
+                                <p v-else class="text-muted-foreground text-xs">For seasonal service</p>
                             </div>
                         </div>
                         <div v-if="subFormMode === 'edit'" class="grid gap-1.5">
@@ -681,7 +716,7 @@ function submitTargets() {
                             <select id="sub_status" v-model="subForm.status" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
                                 <option value="active">Active</option>
                                 <option value="paused">Paused</option>
-                                <option value="cancelled">Cancelled</option>
+                                <option value="cancelled">Ended</option>
                             </select>
                         </div>
                         <div v-if="subFormMode === 'edit'" class="grid grid-cols-2 gap-3">

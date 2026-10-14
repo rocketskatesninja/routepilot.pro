@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Chat;
 
 use App\Services\Chat\Tools\ChangePreferredDay;
-use App\Services\Chat\Tools\DeleteStops;
 use App\Services\Chat\Tools\LookupBalance;
 use App\Services\Chat\Tools\LookupChemistry;
 use App\Services\Chat\Tools\LookupCustomer;
@@ -29,7 +28,6 @@ class ToolRegistry
     protected static array $toolClasses = [
         // Action tools — mutate the schedule / assignments.
         ChangePreferredDay::class,
-        DeleteStops::class,
         ReassignAgent::class,
         SkipStop::class,
         // Lookup tools — read-only queries.

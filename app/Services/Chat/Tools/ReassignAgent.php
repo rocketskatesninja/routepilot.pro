@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
+use App\Actions\UpdateSubscription;
 use App\Models\ServiceSubscription;
 use App\Models\User;
 use App\Services\Chat\AiTool;
@@ -48,6 +49,7 @@ class ReassignAgent extends AiTool
         $agent = User::query()
             ->where('tenant_id', $tenantId)
             ->where('is_active', true)
+            ->whereIn('role', ['agent', 'tenant_admin']) // staff only — never a customer account
             ->where(fn ($q) => $this->whereNameLike($q, $agentName))
             ->first();
         if ($agent === null) {
@@ -72,7 +74,7 @@ class ReassignAgent extends AiTool
 
         $sub = $subs->first();
         $oldAgent = $sub->agent?->displayName() ?? 'unassigned';
-        $sub->update(['assigned_agent_id' => $agent->id]);
+        app(UpdateSubscription::class)->handle($sub, ['assigned_agent_id' => $agent->id]); // also moves its upcoming visits
 
         return "Done! Reassigned {$sub->pool?->customer?->displayName()}'s \"{$sub->pool?->name}\" from {$oldAgent} to {$agent->displayName()}.";
     }

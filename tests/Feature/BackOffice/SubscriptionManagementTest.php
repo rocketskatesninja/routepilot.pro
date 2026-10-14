@@ -36,7 +36,7 @@ test('an admin can pause a subscription', function () {
     $sub = ServiceSubscription::factory()->for($this->tenant)->for($this->pool)->for($this->type)->create(['status' => 'active']);
 
     $this->actingAs($this->admin)
-        ->patch("/subscriptions/{$sub->id}", ['service_type_id' => $this->type->id, 'frequency' => 'weekly', 'status' => 'paused'])
+        ->patch("/subscriptions/{$sub->id}", ['service_type_id' => $this->type->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'paused'])
         ->assertRedirect();
 
     expect($sub->fresh()?->status)->toBe('paused');

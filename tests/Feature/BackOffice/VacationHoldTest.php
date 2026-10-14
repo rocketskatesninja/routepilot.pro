@@ -44,6 +44,7 @@ test('an admin sets a dated hold via the subscription form', function () {
             'service_type_id' => $this->type->id,
             'assigned_agent_id' => $this->agent->id,
             'frequency' => 'weekly',
+            'preferred_day' => 'tuesday',
             'status' => 'active',
             'hold_starts_at' => today()->toDateString(),
             'hold_ends_at' => today()->addWeeks(2)->toDateString(),
