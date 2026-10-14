@@ -8,7 +8,6 @@ use App\Models\Payment;
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
@@ -23,8 +22,7 @@ beforeEach(function () {
     $this->customer = Customer::factory()->for($this->tenant)->create(['email' => 'r@x.test']);
     $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
     $type = ServiceType::factory()->for($this->tenant)->create(['price' => 60]);
-    ServiceSubscription::factory()->for($this->tenant)->for($pool)->for($type)->create(['status' => 'active', 'assigned_agent_id' => $agent->id]);
-    ServiceVisit::factory()->for($this->tenant)->for($pool)->create(['status' => 'completed', 'paid_at' => null, 'completed_at' => now(), 'agent_id' => $agent->id]);
+    chargedVisit(ServiceSubscription::factory()->for($this->tenant)->for($pool)->for($type)->create(['status' => 'active', 'assigned_agent_id' => $agent->id]));
     // outstanding balance = $60
 });
 

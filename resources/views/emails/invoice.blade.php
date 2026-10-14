@@ -7,7 +7,7 @@
         <p style="margin: 0 0 12px;">Here is your invoice from {{ $company }}.</p>
 
         <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-            @foreach ($invoice->lineItems as $line)
+            @foreach ($invoice->charges as $line)
                 <tr>
                     <td style="padding: 6px 0; color: #6b7280;">{{ $line->description }}</td>
                     <td style="padding: 6px 0; text-align: right;">${{ number_format((float) $line->amount, 2) }}</td>

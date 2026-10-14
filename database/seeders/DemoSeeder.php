@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Models\ChemicalInventory;
 use App\Models\Customer;
-use App\Models\ManualCharge;
 use App\Models\Pool;
 use App\Models\ServiceLocation;
 use App\Models\ServiceSubscription;
@@ -15,6 +14,7 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
 use App\Models\User;
+use App\Services\BillingService;
 use App\Services\SubscriptionMaterializer;
 use App\Support\LandingConfig;
 use Illuminate\Database\Seeder;
@@ -138,7 +138,7 @@ class DemoSeeder extends Seeder
 
             // Concentrate the week so a couple of days are genuinely busy across
             // both agents — Monday gets 6 stops (3 each), Tuesday the rest.
-            ServiceSubscription::factory()->for($tenant)->for($pool)->for($weekly)->create([
+            $plan = ServiceSubscription::factory()->for($tenant)->for($pool)->for($weekly)->create([
                 'assigned_agent_id' => $agents[$i % 2]->id,
                 'frequency' => 'weekly', 'preferred_day' => $i < 6 ? 'monday' : 'tuesday', 'status' => 'active',
             ]);
@@ -146,6 +146,7 @@ class DemoSeeder extends Seeder
             // A couple of recent completed visits with readings for history/health.
             foreach ([7, 14] as $daysAgo) {
                 $visit = ServiceVisit::factory()->for($tenant)->for($pool)->create([
+                    'service_subscription_id' => $plan->id,
                     'agent_id' => $agents[$i % 2]->id, 'status' => 'completed',
                     'visited_at' => now()->subDays($daysAgo), 'completed_at' => now()->subDays($daysAgo),
                 ]);
@@ -154,15 +155,13 @@ class DemoSeeder extends Seeder
                     'free_chlorine' => 1.5 + ($i % 3) * 0.6, 'ph' => 7.3 + ($i % 4) * 0.15,
                     'alkalinity' => 90 + $i * 3, 'calcium_hardness' => 250, 'water_temperature' => 82,
                 ]);
+                app(BillingService::class)->chargeVisit($visit);
             }
         }
 
         // A manual charge so the first customer carries a richer balance.
         if ($firstCustomer !== null) {
-            ManualCharge::create([
-                'customer_id' => $firstCustomer->id, 'description' => 'Filter cartridge replacement',
-                'amount' => 89.00, 'taxable' => true, 'occurred_on' => Carbon::now()->subWeek(), 'created_by' => $admin->id,
-            ]);
+            app(BillingService::class)->addCharge($firstCustomer, 'manual', 'Filter cartridge replacement', 89.00, true, Carbon::now()->subWeek()->toDateString(), $admin->id);
         }
 
         // Materialize the upcoming schedule from the subscriptions.

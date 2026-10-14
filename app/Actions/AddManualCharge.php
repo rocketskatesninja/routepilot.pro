@@ -4,26 +4,30 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
-use App\Models\ManualCharge;
-use App\Models\Tenant;
+use App\Models\Charge;
+use App\Models\Customer;
+use App\Services\BillingService;
 
 /**
- * Add an ad-hoc charge to a customer's account (raises their balance).
+ * Add a one-off charge to a customer's account (raises their balance).
  */
 class AddManualCharge
 {
+    public function __construct(private BillingService $billing) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, int $userId): ManualCharge
+    public function handle(array $data, int $userId): Charge
     {
-        return ManualCharge::create([
-            'customer_id' => $data['customer_id'],
-            'description' => $data['description'],
-            'amount' => $data['amount'],
-            'taxable' => (bool) ($data['taxable'] ?? true),
-            'occurred_on' => $data['occurred_on'] ?? Tenant::localToday()->toDateString(),
-            'created_by' => $userId,
-        ]);
+        return $this->billing->addCharge(
+            Customer::query()->findOrFail($data['customer_id']),
+            'manual',
+            (string) $data['description'],
+            (float) $data['amount'],
+            (bool) ($data['taxable'] ?? true),
+            $data['occurred_on'] ?? null,
+            $userId,
+        );
     }
 }

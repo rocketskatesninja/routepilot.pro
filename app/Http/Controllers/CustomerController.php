@@ -15,9 +15,9 @@ use App\Http\Requests\GrantPortalRequest;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\AuditLog;
+use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\ManualCharge;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\User;
@@ -99,7 +99,7 @@ class CustomerController extends Controller
                     'treatments' => $v->treatments->map(fn ($t): array => ['chemical' => $t->getAttribute('chemical_name'), 'amount' => (float) $t->amount, 'unit' => $t->getAttribute('unit')])->all(),
                 ])->all(),
             ])->all(),
-            'charges' => ManualCharge::query()->where('customer_id', $customer->id)->get()->map(fn (ManualCharge $c): array => ['description' => $c->description, 'amount' => (float) $c->amount, 'on' => $c->getAttribute('occurred_on')?->toDateString()])->all(),
+            'charges' => Charge::query()->where('customer_id', $customer->id)->get()->map(fn (Charge $c): array => ['kind' => $c->kind, 'description' => $c->description, 'amount' => (float) $c->amount, 'tax' => (float) $c->tax, 'on' => $c->occurred_on->toDateString(), 'voided' => $c->voided_at !== null])->all(),
             'invoices' => Invoice::query()->where('customer_id', $customer->id)->get()->map(fn (Invoice $i): array => ['number' => $i->number, 'total' => (float) $i->total, 'status' => $i->status])->all(),
         ];
 

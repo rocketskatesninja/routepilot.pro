@@ -7,7 +7,6 @@ use App\Models\PaymentMethod;
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -25,10 +24,7 @@ function owingCustomer(Tenant $tenant, User $agent): Customer
     $customer = Customer::factory()->for($tenant)->create(['first_name' => 'Owes', 'last_name' => 'Money']);
     $pool = Pool::factory()->for($tenant)->for($customer)->create();
     $type = ServiceType::factory()->for($tenant)->create(['price' => 50]);
-    ServiceSubscription::factory()->for($tenant)->for($pool)->for($type)->create(['assigned_agent_id' => $agent->id, 'status' => 'active']);
-    ServiceVisit::factory()->for($tenant)->for($pool)->create([
-        'agent_id' => $agent->id, 'status' => 'completed', 'completed_at' => now(), 'paid_at' => null,
-    ]);
+    chargedVisit(ServiceSubscription::factory()->for($tenant)->for($pool)->for($type)->create(['assigned_agent_id' => $agent->id, 'status' => 'active']));
 
     return $customer;
 }

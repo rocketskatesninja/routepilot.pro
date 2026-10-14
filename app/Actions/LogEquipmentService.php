@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\Customer;
 use App\Models\EquipmentServiceLog;
-use App\Models\ManualCharge;
 use App\Models\PoolEquipment;
 use App\Models\Tenant;
+use App\Services\BillingService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,14 +35,16 @@ class LogEquipmentService
 
             $customerId = $equipment->pool?->getAttribute('customer_id');
             if (! empty($data['bill']) && $cost > 0 && $customerId !== null) {
-                ManualCharge::create([
-                    'customer_id' => $customerId,
-                    'description' => 'Repair: '.ucfirst((string) $equipment->type).' — '.$data['description'],
-                    'amount' => $cost,
-                    'taxable' => true,
-                    'occurred_on' => $servicedOn,
-                    'created_by' => $userId,
-                ]);
+                app(BillingService::class)->addCharge(
+                    Customer::query()->findOrFail($customerId),
+                    'manual',
+                    'Repair: '.ucfirst((string) $equipment->type).' — '.$data['description'],
+                    $cost,
+                    true,
+                    $servicedOn,
+                    $userId,
+                    $equipment->pool->id,
+                );
             }
 
             return $log;

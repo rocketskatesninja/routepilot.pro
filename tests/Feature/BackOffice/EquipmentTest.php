@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\EquipmentServiceLog;
-use App\Models\ManualCharge;
 use App\Models\Pool;
 use App\Models\PoolEquipment;
 use App\Models\Tenant;
@@ -34,7 +34,7 @@ test('logging a billable repair creates a manual charge', function () {
         ->assertRedirect();
 
     expect(EquipmentServiceLog::query()->where('pool_equipment_id', $equipment->id)->exists())->toBeTrue();
-    expect((float) ManualCharge::query()->where('customer_id', $this->customer->id)->value('amount'))->toBe(150.0);
+    expect((float) Charge::query()->where('customer_id', $this->customer->id)->where('kind', 'manual')->value('amount'))->toBe(150.0);
 });
 
 test('an unbilled repair does not charge the customer', function () {
@@ -44,7 +44,7 @@ test('an unbilled repair does not charge the customer', function () {
         ->post("/equipment/{$equipment->id}/service", ['description' => 'Cleaned cartridge', 'cost' => 0, 'bill' => false])
         ->assertRedirect();
 
-    expect(ManualCharge::query()->where('customer_id', $this->customer->id)->exists())->toBeFalse();
+    expect(Charge::query()->where('customer_id', $this->customer->id)->exists())->toBeFalse();
 });
 
 test('an admin removes equipment', function () {

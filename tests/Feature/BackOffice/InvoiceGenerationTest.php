@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\ManualCharge;
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
@@ -23,21 +21,20 @@ beforeEach(function () {
     $this->customer = Customer::factory()->for($this->tenant)->create();
     $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create(['name' => 'Pool A']);
     $type = ServiceType::factory()->for($this->tenant)->create(['price' => 50]);
-    ServiceSubscription::factory()->for($this->tenant)->for($pool)->for($type)->create(['assigned_agent_id' => $this->agent->id, 'status' => 'active']);
-    ServiceVisit::factory()->for($this->tenant)->for($pool)->create(['agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(), 'paid_at' => null]);
-    ManualCharge::create(['customer_id' => $this->customer->id, 'description' => 'Filter', 'amount' => 100, 'taxable' => true, 'occurred_on' => now(), 'created_by' => $this->admin->id]);
+    chargedVisit(ServiceSubscription::factory()->for($this->tenant)->for($pool)->for($type)->create(['assigned_agent_id' => $this->agent->id, 'status' => 'active']));
+    // A 10% rate, in place before the charge — tax is fixed when a charge is created.
+    $this->tenant->forceFill(['tax_rate' => 0.10])->save();
+    manualCharge($this->customer->fresh(), 100, 'Filter', true);
 });
 
-test('an admin generates an invoice with line items + tax', function () {
-    $this->tenant->forceFill(['tax_rate' => 0.10])->save();
-
+test('an admin generates an invoice with its charges + tax', function () {
     $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/invoice")->assertRedirect();
 
     $invoice = Invoice::query()->where('customer_id', $this->customer->id)->first();
     expect((float) $invoice?->subtotal)->toBe(150.0);
     expect((float) $invoice?->tax)->toBe(10.0);   // 10% of the taxable $100 charge only
     expect((float) $invoice?->total)->toBe(160.0);
-    expect($invoice?->lineItems()->count())->toBe(2);
+    expect($invoice?->charges()->count())->toBe(2);
 });
 
 test('generating twice does not double-bill the same items', function () {

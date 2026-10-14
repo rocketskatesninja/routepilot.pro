@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Customer;
+use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use Closure;
+use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -133,14 +135,7 @@ class LegacyImporter
             'chemical_inventory_id' => fn () => null, // inventory not ported
         ]);
 
-        $charges = $this->copy('manual_charges', $byTenant, $reTenant + [
-            'customer_id' => fn ($v) => $customers[$v] ?? null,
-            'created_by' => fn ($v) => $v ? ($users[$v] ?? null) : null,
-            // The current schema requires occurred_on; the old row predates it.
-            'occurred_on' => fn ($v, $row) => $v ?? (isset($row['created_at'])
-                ? date('Y-m-d', (int) strtotime((string) $row['created_at']))
-                : now()->toDateString()),
-        ]);
+        $charges = $this->importUnpaid($oldId, $customers, $users, $visits);
 
         return [
             'tenant_id' => $tenantId,
@@ -152,8 +147,48 @@ class LegacyImporter
             'visits' => count($visits),
             'readings' => count($readings),
             'treatments' => count($treatments),
-            'charges' => count($charges),
+            'charges' => $charges,
         ];
+    }
+
+    /**
+     * Bring the old system's unpaid money onto the new ledger: unpaid one-off
+     * charges become charges, and unpaid completed visits are charged at their
+     * plan's price. Anything already paid or invoiced there was settled there.
+     *
+     * @param  array<int, int>  $customers  old → new customer ids
+     * @param  array<int, int>  $users  old → new user ids
+     * @param  array<int, int>  $visits  old → new visit ids
+     */
+    private function importUnpaid(int $oldTenantId, array $customers, array $users, array $visits): int
+    {
+        $count = 0;
+        $billing = app(BillingService::class);
+        $old = $this->old instanceof Connection ? $this->old->getSchemaBuilder() : null;
+
+        if ($old?->hasTable('manual_charges') === true) {
+            foreach ($this->old->table('manual_charges')->where('tenant_id', $oldTenantId)->whereNull('paid_at')->whereNull('invoice_id')->get() as $c) {
+                $customer = Customer::query()->withoutGlobalScopes()->find($customers[$c->customer_id] ?? 0);
+                if ($customer !== null) {
+                    $billing->addCharge($customer, 'manual', (string) $c->description, (float) $c->amount, (bool) $c->taxable,
+                        $c->occurred_on ?? date('Y-m-d', (int) strtotime((string) $c->created_at)), $users[$c->created_by] ?? null);
+                    $count++;
+                }
+            }
+        }
+
+        if ($old?->hasColumn('service_visits', 'paid_at') === true) {
+            $unpaid = $this->old->table('service_visits')->where('tenant_id', $oldTenantId)->where('status', 'completed')
+                ->whereNull('paid_at')->pluck('id');
+            foreach ($unpaid as $oldId) {
+                $visit = ServiceVisit::query()->withoutGlobalScopes()->find($visits[$oldId] ?? 0);
+                if ($visit !== null && $billing->chargeVisit($visit) !== null) {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
     }
 
     /**

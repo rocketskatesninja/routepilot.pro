@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Chat;
 
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 
 /**
  * System prompt + live business data for the tenant-admin assistant. The
@@ -63,7 +62,7 @@ class TenantContext
             : $todayStops->map(fn (RouteStop $s): string => '- '.($s->pool?->customer?->displayName() ?? '?')." / {$s->pool?->name} → ".($s->route?->agent?->displayName() ?? '?')." ({$s->status})")->join("\n");
 
         $unassigned = ServiceSubscription::query()->where('status', 'active')->whereNull('assigned_agent_id')->count();
-        $overdue = ServiceVisit::query()->where('status', 'completed')->whereNull('paid_at')->where('visited_at', '<', Carbon::now()->subDays(30))->count();
+        $overdue = Invoice::query()->where('status', 'overdue')->count();
         $warnings = '';
         if ($unassigned > 0) {
             $warnings .= "⚠ {$unassigned} active subscriptions have no assigned agent\n";

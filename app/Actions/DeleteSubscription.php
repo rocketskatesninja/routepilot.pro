@@ -7,6 +7,7 @@ namespace App\Actions;
 use App\Models\AuditLog;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
+use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Services\SubscriptionMaterializer;
 use Illuminate\Support\Facades\DB;
@@ -22,10 +23,8 @@ class DeleteSubscription
     /** False when the plan has completed visits and must be ended instead. */
     public function handle(ServiceSubscription $subscription, User $by): bool
     {
-        $hasHistory = RouteStop::query()
-            ->where('service_subscription_id', $subscription->id)
-            ->where('status', 'completed')
-            ->exists();
+        $hasHistory = ServiceVisit::query()->where('service_subscription_id', $subscription->id)->where('status', 'completed')->exists()
+            || RouteStop::query()->where('service_subscription_id', $subscription->id)->where('status', 'completed')->exists();
         if ($hasHistory) {
             return false;
         }

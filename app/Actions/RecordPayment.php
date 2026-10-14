@@ -6,59 +6,30 @@ namespace App\Actions;
 
 use App\Mail\PaymentReceiptMail;
 use App\Models\Customer;
-use App\Models\Invoice;
-use App\Models\ManualCharge;
 use App\Models\Payment;
-use App\Models\ServiceVisit;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Record a full-balance payment: settle the customer's unpaid completed
- * visits + uninvoiced manual charges, and write a Payment for the total.
- * (Partial payments + Stripe settlement are the Phase-6 path.)
+ * Record a payment on a customer's account — any amount (partial payments are
+ * fine); with no amount given, the full balance. It pays the oldest charges
+ * first, and their invoices update to match. Card payments pass the amount the
+ * card was actually charged, never a re-computed balance.
  */
 class RecordPayment
 {
     public function __construct(private BillingService $billing) {}
 
-    public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null): ?Payment
+    public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null, ?float $amount = null): ?Payment
     {
-        // Fast path: nothing owed → nothing to record (skip opening a transaction).
-        if ($this->billing->outstandingForCustomer($customer) <= 0) {
-            return null;
-        }
-
-        $payment = DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId): ?Payment {
-            // Recompute inside the transaction so the recorded amount is exactly
-            // what we settle here — a visit/charge landing between the check above
-            // and this write can't leave the Payment total disagreeing with the
-            // rows we mark paid.
-            $amount = $this->billing->outstandingForCustomer($customer);
+        $payment = DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId, $amount): ?Payment {
+            $amount = round($amount ?? $this->billing->outstandingForCustomer($customer), 2);
             if ($amount <= 0) {
                 return null;
             }
 
-            ServiceVisit::query()
-                ->whereIn('pool_id', $customer->pools()->pluck('id'))
-                ->where('status', 'completed')
-                ->whereNull('paid_at')
-                ->update(['paid_at' => now()]);
-
-            ManualCharge::query()
-                ->where('customer_id', $customer->id)
-                ->whereNull('paid_at')
-                ->update(['paid_at' => now()]);
-
-            // A full-balance payment clears any open invoices too.
-            Invoice::query()
-                ->where('customer_id', $customer->id)
-                ->whereIn('status', ['draft', 'sent', 'overdue'])
-                ->get()
-                ->each(fn (Invoice $invoice) => $invoice->update(['amount_paid' => $invoice->total, 'status' => 'paid']));
-
-            return Payment::create([
+            $payment = Payment::create([
                 'customer_id' => $customer->id,
                 'amount' => $amount,
                 'status' => 'succeeded',
@@ -67,15 +38,14 @@ class RecordPayment
                 'paid_at' => now(),
                 'recorded_by' => $userId,
             ]);
-        });
+            $this->billing->refreshInvoices($customer);
 
-        if ($payment === null) {
-            return null;
-        }
+            return $payment;
+        });
 
         // Transactional receipt (always sent — not a marketing message).
         $email = $customer->email;
-        if (is_string($email) && $email !== '') {
+        if ($payment !== null && is_string($email) && $email !== '') {
             Mail::to($email)->queue(new PaymentReceiptMail(
                 $customer->displayName(),
                 (float) $payment->amount,

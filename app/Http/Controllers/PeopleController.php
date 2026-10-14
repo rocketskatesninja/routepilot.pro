@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\SendCampaign;
+use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\MailCampaign;
-use App\Models\ManualCharge;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -352,7 +352,7 @@ class PeopleController extends Controller
                 'pools' => $poolIds->count(),
                 'visits' => ServiceVisit::query()->whereIn('pool_id', $poolIds)->count(),
                 'invoices' => Invoice::query()->where('customer_id', $customer->id)->count(),
-                'charges' => ManualCharge::query()->where('customer_id', $customer->id)->count(),
+                'charges' => Charge::query()->where('customer_id', $customer->id)->count(),
             ] : null,
             'pools' => $customer->pools->map(fn ($pool) => [
                 'id' => $pool->id,

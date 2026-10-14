@@ -53,10 +53,14 @@ class Invoice extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    /** @return HasMany<InvoiceLineItem, $this> */
-    public function lineItems(): HasMany
+    /**
+     * The charges billed on this invoice (its lines).
+     *
+     * @return HasMany<Charge, $this>
+     */
+    public function charges(): HasMany
     {
-        return $this->hasMany(InvoiceLineItem::class);
+        return $this->hasMany(Charge::class)->orderBy('occurred_on')->orderBy('id');
     }
 
     /** @return HasMany<Payment, $this> */

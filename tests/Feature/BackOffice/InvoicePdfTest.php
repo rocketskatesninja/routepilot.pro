@@ -21,7 +21,7 @@ function makeInvoice(Customer $customer): Invoice
         'subtotal' => 50, 'tax' => 0, 'total' => 50, 'amount_paid' => 0,
         'issued_at' => now(), 'due_at' => now()->addDays(30),
     ]);
-    $invoice->lineItems()->create(['type' => 'service', 'description' => 'Pool service', 'quantity' => 1, 'unit_price' => 50, 'amount' => 50, 'taxable' => false]);
+    manualCharge($customer, 50, 'Pool service')->update(['invoice_id' => $invoice->id]);
 
     return $invoice;
 }

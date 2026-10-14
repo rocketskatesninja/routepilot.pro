@@ -23,7 +23,6 @@ use Illuminate\Support\Collection;
  * @property string|null $notes
  * @property Carbon|null $visited_at
  * @property Carbon|null $completed_at
- * @property Carbon|null $paid_at
  */
 class ServiceVisit extends Model
 {
@@ -32,8 +31,8 @@ class ServiceVisit extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'route_stop_id', 'pool_id', 'agent_id', 'visited_at',
-        'completed_at', 'paid_at', 'status', 'signature_path', 'notes',
+        'route_stop_id', 'pool_id', 'service_subscription_id', 'agent_id', 'visited_at',
+        'completed_at', 'status', 'signature_path', 'notes',
         'completed_lat', 'completed_lng',
     ];
 
@@ -43,10 +42,21 @@ class ServiceVisit extends Model
         return [
             'visited_at' => 'datetime',
             'completed_at' => 'datetime',
-            'paid_at' => 'datetime',
             'completed_lat' => 'float',
             'completed_lng' => 'float',
         ];
+    }
+
+    /** @return BelongsTo<ServiceSubscription, $this> */
+    public function serviceSubscription(): BelongsTo
+    {
+        return $this->belongsTo(ServiceSubscription::class);
+    }
+
+    /** @return HasOne<Charge, $this> */
+    public function charge(): HasOne
+    {
+        return $this->hasOne(Charge::class);
     }
 
     /** @return BelongsTo<RouteStop, $this> */

@@ -60,7 +60,7 @@ class LookupServiceHistory extends AiTool
 
         $visits = ServiceVisit::query()
             ->whereIn('pool_id', $pools->pluck('id'))
-            ->with('pool', 'agent', 'chemicalReading', 'treatments')
+            ->with('pool', 'agent', 'chemicalReading', 'treatments', 'charge')
             ->latest('visited_at')
             ->limit($limit)
             ->get();
@@ -76,7 +76,7 @@ class LookupServiceHistory extends AiTool
             $extras = collect([
                 $v->chemicalReading !== null ? 'Readings recorded' : null,
                 $v->treatments->isNotEmpty() ? $v->treatments->count().' treatment(s)' : null,
-                $v->paid_at !== null ? 'Paid' : ($v->status === 'completed' ? 'Unpaid' : null),
+                $v->charge !== null ? 'Billed $'.number_format((float) $v->charge->amount, 2).($v->charge->voided_at !== null ? ' (voided)' : '') : null,
             ])->filter()->join(' | ');
 
             $line = "- **{$when}** — {$v->pool?->name} — {$agent} — ".ucfirst($v->status);

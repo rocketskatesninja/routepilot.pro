@@ -8,7 +8,6 @@ use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 
@@ -46,8 +45,7 @@ test('the monthly command invoices owing customers', function () {
     $customer = Customer::factory()->for($this->tenant)->create();
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
     $type = ServiceType::factory()->for($this->tenant)->create(['price' => 60]);
-    ServiceSubscription::factory()->for($this->tenant)->for($pool)->for($type)->create(['assigned_agent_id' => $this->agent->id, 'status' => 'active']);
-    ServiceVisit::factory()->for($this->tenant)->for($pool)->create(['agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(), 'paid_at' => null]);
+    chargedVisit(ServiceSubscription::factory()->for($this->tenant)->for($pool)->for($type)->create(['assigned_agent_id' => $this->agent->id, 'status' => 'active']));
 
     $this->artisan('app:generate-invoices')->assertSuccessful();
 

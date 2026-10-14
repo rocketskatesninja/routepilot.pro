@@ -37,7 +37,7 @@ class InvoiceController extends Controller
             abort_unless(in_array($user->role, ['tenant_admin', 'agent'], true), 403);
         }
 
-        $invoice->load(['customer', 'lineItems']);
+        $invoice->load(['customer', 'charges']);
         $tenant = app()->has('tenant') ? app('tenant') : null;
 
         $pdf = Pdf::loadView('invoices.pdf', [
@@ -85,12 +85,12 @@ class InvoiceController extends Controller
         return back()->with('success', "Invoice {$invoice->number} marked paid.");
     }
 
-    /** Void (write off) an invoice — releases its charges from the customer's balance. */
+    /** Cancel a bill — the invoice and its charges are voided, so they're no longer owed. */
     public function void(Request $request, Invoice $invoice, VoidInvoice $action): RedirectResponse
     {
         $this->authorizeAdmin($request);
 
-        $action->handle($invoice);
+        $action->handle($invoice, $request->user());
         AuditLog::record($request->user(), 'invoice.voided', $invoice, ['total' => (float) $invoice->total]);
 
         return back()->with('success', "Invoice {$invoice->number} voided.");

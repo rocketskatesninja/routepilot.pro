@@ -5,12 +5,13 @@ declare(strict_types=1);
 use App\Actions\GenerateInvoice;
 use App\Mail\InvoiceMail;
 use App\Models\Customer;
+use App\Models\Payment;
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\BillingService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -25,8 +26,7 @@ beforeEach(function () {
     $agent = User::factory()->agent()->for($this->tenant)->create();
     $this->pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
     $type = ServiceType::factory()->for($this->tenant)->create(['price' => 50]);
-    ServiceSubscription::factory()->for($this->tenant)->for($this->pool)->for($type)->create(['status' => 'active', 'assigned_agent_id' => $agent->id]);
-    ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create(['status' => 'completed', 'paid_at' => null, 'completed_at' => now(), 'agent_id' => $agent->id]);
+    chargedVisit(ServiceSubscription::factory()->for($this->tenant)->for($this->pool)->for($type)->create(['status' => 'active', 'assigned_agent_id' => $agent->id]));
 });
 
 test('an admin emails an invoice with a pay link', function () {
@@ -51,7 +51,7 @@ test('an unsigned pay link is rejected', function () {
 });
 
 test('paying an already-clear balance lands on the thank-you page', function () {
-    ServiceVisit::query()->whereIn('pool_id', $this->customer->pools()->pluck('id'))->update(['paid_at' => now()]);
+    Payment::create(['customer_id' => $this->customer->id, 'amount' => app(BillingService::class)->outstandingForCustomer($this->customer), 'status' => 'succeeded', 'method' => 'cash', 'paid_at' => now()]);
 
     $url = URL::signedRoute('pay.link', ['customer' => $this->customer->id]);
     $this->get($url)->assertRedirect('/pay/thanks');

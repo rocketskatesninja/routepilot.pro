@@ -32,7 +32,7 @@ class InvoiceMail extends Mailable
     public function content(): Content
     {
         return new Content(view: 'emails.invoice', with: [
-            'invoice' => $this->invoice->load('lineItems'),
+            'invoice' => $this->invoice->load('charges'),
             'company' => $this->invoice->customer->tenant->name,
             'payUrl' => $this->payUrl,
         ]);
@@ -41,7 +41,7 @@ class InvoiceMail extends Mailable
     /** @return array<int, Attachment> */
     public function attachments(): array
     {
-        $invoice = $this->invoice->load(['customer', 'lineItems']);
+        $invoice = $this->invoice->load(['customer', 'charges']);
         $tenant = $invoice->customer->tenant;
         $pdf = Pdf::loadView('invoices.pdf', [
             'invoice' => $invoice,

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\GenerateInvoice;
 use App\Mail\ServiceReminderMail;
 use App\Models\ChemicalReading;
 use App\Models\Customer;
@@ -88,11 +89,10 @@ test('a recently tested pool does not raise stale chemistry', function () {
     expect(alertKinds($this->admin))->not->toContain('stale_chemistry');
 });
 
-test('a long-unpaid completed visit raises an overdue-balances alert', function () {
+test('a bill past its due date raises an overdue-balances alert', function () {
     $customer = Customer::factory()->for($this->tenant)->create();
-    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
-    $agent = User::factory()->agent()->for($this->tenant)->create();
-    ServiceVisit::factory()->for($pool)->create(['status' => 'completed', 'paid_at' => null, 'visited_at' => now()->subDays(40), 'agent_id' => $agent->id]);
+    $invoice = app(GenerateInvoice::class)->handle(tap($customer, fn ($c) => manualCharge($c, 50, 'Weekly service')));
+    $invoice?->update(['status' => 'overdue', 'due_at' => now()->subDays(10)]);
     Notification::fake();
 
     expect(alertKinds($this->admin))->toContain('overdue_balances');
@@ -176,12 +176,11 @@ test('the service reminder email is skipped for opt-out customers (in-app still 
     Mail::assertNotQueued(ServiceReminderMail::class);
 });
 
-test('a portal customer with a long-unpaid visit gets a balance reminder', function () {
+test('a portal customer with a bill past due gets a balance reminder', function () {
     $portal = User::factory()->customer()->for($this->tenant)->create();
     $customer = Customer::factory()->for($this->tenant)->create(['user_id' => $portal->id]);
-    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
-    $agent = User::factory()->agent()->for($this->tenant)->create();
-    ServiceVisit::factory()->for($pool)->create(['status' => 'completed', 'paid_at' => null, 'visited_at' => now()->subDays(40), 'agent_id' => $agent->id]);
+    $invoice = app(GenerateInvoice::class)->handle(tap($customer, fn ($c) => manualCharge($c, 50, 'Weekly service')));
+    $invoice?->update(['status' => 'overdue', 'due_at' => now()->subDays(10)]);
     Notification::fake();
 
     app(DailyOpsChecks::class)->run($this->tenant->id);

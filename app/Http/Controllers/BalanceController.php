@@ -10,6 +10,7 @@ use App\Actions\RecordPayment;
 use App\Http\Requests\RecordPaymentRequest;
 use App\Http\Requests\StoreManualChargeRequest;
 use App\Models\AuditLog;
+use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\PaymentMethod;
@@ -129,7 +130,7 @@ class BalanceController extends Controller
         $selected = null;
         $selectedId = $request->integer('selected');
         if ($selectedId > 0 && $view === 'invoices') {
-            $invoice = Invoice::query()->with(['customer:id,first_name,last_name', 'lineItems'])->find($selectedId);
+            $invoice = Invoice::query()->with(['customer:id,first_name,last_name', 'charges'])->find($selectedId);
             if ($invoice !== null) {
                 $selected = [
                     'kind' => 'invoice',
@@ -147,9 +148,9 @@ class BalanceController extends Controller
                     'total' => (float) $invoice->total,
                     'amount_paid' => (float) $invoice->amount_paid,
                     'balance' => $invoice->balance(),
-                    'line_items' => $invoice->lineItems->map(fn ($li): array => [
-                        'description' => $li->getAttribute('description'),
-                        'amount' => (float) $li->getAttribute('amount'),
+                    'line_items' => $invoice->charges->map(fn (Charge $c): array => [
+                        'description' => $c->description,
+                        'amount' => (float) $c->amount,
                     ])->all(),
                 ];
             }

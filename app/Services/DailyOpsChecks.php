@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Mail\ServiceReminderMail;
 use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
@@ -101,26 +102,19 @@ class DailyOpsChecks
     }
 
     /**
-     * Customers carrying completed-but-unpaid visits older than 30 days.
+     * Customers with a bill past its due date.
      *
      * @param  Collection<int, User>  $admins
      */
     private function overdueBalances(Collection $admins): bool
     {
-        $poolIds = ServiceVisit::query()
-            ->where('status', 'completed')
-            ->whereNull('paid_at')
-            ->where('visited_at', '<', now()->subDays(30))
-            ->distinct()
-            ->pluck('pool_id');
-
-        $count = Pool::query()->whereIn('id', $poolIds)->whereNotNull('customer_id')->distinct()->count('customer_id');
+        $count = Invoice::query()->where('status', 'overdue')->distinct()->count('customer_id');
         if ($count === 0) {
             return false;
         }
 
         return $this->alert($admins, 'overdue_balances', 'Overdue balances',
-            $count.' '.($count === 1 ? 'customer has' : 'customers have').' unpaid visits over 30 days old.',
+            $count.' '.($count === 1 ? 'customer has a bill' : 'customers have bills').' past due.',
             '/balances', 'Banknote');
     }
 
@@ -235,22 +229,11 @@ class DailyOpsChecks
         return $sent;
     }
 
-    /** Remind portal customers carrying 30+ day unpaid visits. */
+    /** Remind portal customers who have a bill past its due date. */
     private function overdueCustomerBalances(): int
     {
-        $poolIds = ServiceVisit::query()
-            ->where('status', 'completed')
-            ->whereNull('paid_at')
-            ->where('visited_at', '<', now()->subDays(30))
-            ->distinct()
-            ->pluck('pool_id');
-
-        if ($poolIds->isEmpty()) {
-            return 0;
-        }
-
         $customers = Customer::query()
-            ->whereHas('pools', fn ($q) => $q->whereIn('id', $poolIds))
+            ->whereHas('invoices', fn ($q) => $q->where('status', 'overdue'))
             ->whereNotNull('user_id')
             ->with('user')
             ->get();

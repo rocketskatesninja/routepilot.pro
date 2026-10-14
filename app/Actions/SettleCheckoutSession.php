@@ -48,6 +48,9 @@ class SettleCheckoutSession
             return null;
         }
 
-        return $this->recordPayment->handle($customer, 'card', null, $intent);
+        // Record what Stripe actually collected — the balance may have changed since checkout opened.
+        $collected = is_numeric($session['amount_total'] ?? null) ? ((int) $session['amount_total']) / 100 : null;
+
+        return $this->recordPayment->handle($customer, 'card', null, $intent, $collected);
     }
 }

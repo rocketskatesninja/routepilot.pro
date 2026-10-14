@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\Invoice;
+use App\Models\Tenant;
 use Illuminate\Console\Command;
 
 /**
@@ -19,10 +20,14 @@ class FlagOverdueInvoices extends Command
 
     public function handle(): int
     {
-        $count = Invoice::query()
-            ->where('status', 'sent')
-            ->whereDate('due_at', '<', today())
-            ->update(['status' => 'overdue']);
+        // Each company by its own date — the server runs on UTC.
+        $count = 0;
+        Tenant::query()->where('status', 'active')->each(function (Tenant $tenant) use (&$count): void {
+            $count += Invoice::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)
+                ->where('status', 'sent')
+                ->whereDate('due_at', '<', $tenant->today()->toDateString())
+                ->update(['status' => 'overdue']);
+        });
 
         $this->info("Flagged {$count} invoice(s) overdue.");
 

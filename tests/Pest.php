@@ -1,5 +1,11 @@
 <?php
 
+use App\Models\Charge;
+use App\Models\Customer;
+use App\Models\ServiceSubscription;
+use App\Models\ServiceVisit;
+use App\Models\User;
+use App\Services\BillingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +50,26 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/** A completed visit on a plan, charged on the ledger the way the field app does it. */
+function chargedVisit(ServiceSubscription $plan, array $attrs = []): ServiceVisit
 {
-    // ..
+    $visit = ServiceVisit::factory()->create([
+        'tenant_id' => $plan->getAttribute('tenant_id'),
+        'pool_id' => $plan->pool_id,
+        'service_subscription_id' => $plan->id,
+        'agent_id' => $plan->assigned_agent_id ?? User::factory()->agent()->create(['tenant_id' => $plan->getAttribute('tenant_id')])->id,
+        'status' => 'completed',
+        'visited_at' => now(),
+        'completed_at' => now(),
+        ...$attrs,
+    ]);
+    app(BillingService::class)->chargeVisit($visit);
+
+    return $visit;
+}
+
+/** A one-off charge on a customer's account. */
+function manualCharge(Customer $customer, float $amount, string $description = 'Charge', bool $taxable = false): Charge
+{
+    return app(BillingService::class)->addCharge($customer, 'manual', $description, $amount, $taxable, null, null);
 }

@@ -64,18 +64,16 @@
         <table class="items">
             <thead>
                 <tr>
+                    <th>Date</th>
                     <th>Description</th>
-                    <th class="right">Qty</th>
-                    <th class="right">Unit</th>
                     <th class="right">Amount</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach ($invoice->lineItems as $line)
+                @foreach ($invoice->charges as $line)
                     <tr>
-                        <td>{{ $line->description }}</td>
-                        <td class="right">{{ rtrim(rtrim(number_format((float) $line->quantity, 2), '0'), '.') }}</td>
-                        <td class="right">{{ $money($line->unit_price) }}</td>
+                        <td>{{ $line->occurred_on->format('M j, Y') }}</td>
+                        <td>{{ $line->description }}@if ($line->voided_at) <span class="muted">(voided)</span>@endif</td>
                         <td class="right">{{ $money($line->amount) }}</td>
                     </tr>
                 @endforeach

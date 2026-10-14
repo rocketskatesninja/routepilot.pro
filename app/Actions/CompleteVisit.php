@@ -10,6 +10,7 @@ use App\Models\InventoryTransaction;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\User;
+use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Services\PhotoService;
 use Illuminate\Http\UploadedFile;
@@ -33,7 +34,7 @@ class CompleteVisit
         'cyanuric_acid', 'salt', 'tds', 'phosphates', 'water_temperature',
     ];
 
-    public function __construct(private ChemistryService $chem, private PhotoService $photos) {}
+    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -53,6 +54,7 @@ class CompleteVisit
                 $visit = ServiceVisit::create([
                     'route_stop_id' => $stop->id,
                     'pool_id' => $stop->getAttribute('pool_id'),
+                    'service_subscription_id' => $stop->getAttribute('service_subscription_id'),
                     'agent_id' => $agent->id,
                     'visited_at' => now(),
                     'completed_at' => now(),
@@ -68,6 +70,7 @@ class CompleteVisit
                 $visit->tasks()->delete();
                 $visit->chemicalReading()->delete();
                 $visit->update([
+                    'service_subscription_id' => $visit->getAttribute('service_subscription_id') ?? $stop->getAttribute('service_subscription_id'),
                     'completed_at' => now(),
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
@@ -110,6 +113,7 @@ class CompleteVisit
             }
 
             $stop->update(['status' => 'completed', 'completed_at' => now()]);
+            $this->billing->chargeVisit($visit); // once, at its plan's price right now
 
             return $visit;
         });

@@ -60,7 +60,7 @@ class ChargeAutopayCustomer
         );
 
         if ($result !== null && $result['status'] === 'succeeded') {
-            $this->recordPayment->handle($customer, 'card', null, $result['id']);
+            $this->recordPayment->handle($customer, 'card', null, $result['id'], $amount); // exactly what the card was charged
 
             return 'charged';
         }

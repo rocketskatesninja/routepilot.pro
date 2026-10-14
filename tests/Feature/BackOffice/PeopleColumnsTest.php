@@ -3,11 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Customer;
-use App\Models\ManualCharge;
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
@@ -25,16 +23,11 @@ function owingCustomerWithHistory(Tenant $tenant, User $agent): Customer
     $customer = Customer::factory()->for($tenant)->create();
     $pool = Pool::factory()->for($tenant)->for($customer)->create();
     $type = ServiceType::factory()->for($tenant)->create(['price' => 50]);
-    ServiceSubscription::factory()->for($tenant)->for($pool)->for($type)
+    $plan = ServiceSubscription::factory()->for($tenant)->for($pool)->for($type)
         ->create(['status' => 'active', 'assigned_agent_id' => $agent->id]);
-
-    ServiceVisit::factory()->for($tenant)->for($pool)->count(2)
-        ->create(['status' => 'completed', 'paid_at' => null, 'completed_at' => now(), 'agent_id' => $agent->id]);
-
-    ManualCharge::create([
-        'customer_id' => $customer->id, 'description' => 'Repair', 'amount' => 20,
-        'taxable' => false, 'occurred_on' => today(), 'created_by' => $agent->id,
-    ]);
+    chargedVisit($plan);
+    chargedVisit($plan);
+    manualCharge($customer, 20, 'Repair');
 
     return $customer;
 }
