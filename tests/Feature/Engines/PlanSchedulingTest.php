@@ -217,3 +217,38 @@ test('the schedule board can\'t drag a visit onto a different day', function () 
 
     expect($stop->fresh()->route_id)->toBe($stop->route_id);
 });
+
+// --- what people see --------------------------------------------------------
+
+test('form mistakes are explained in plain words', function () {
+    $this->actingAs($this->admin)->post('/subscriptions', [
+        'pool_id' => $this->pool->id, 'service_type_id' => $this->type->id, 'frequency' => 'weekly',
+    ])->assertSessionHasErrors(['preferred_day' => 'Pick which day of the week.']);
+
+    $this->actingAs($this->admin)->post('/subscriptions', [
+        'pool_id' => $this->pool->id, 'service_type_id' => $this->type->id, 'frequency' => 'one_time', 'starts_on' => '',
+    ])->assertSessionHasErrors(['starts_on' => 'Pick the date for this one-time job.']);
+});
+
+test('the pool page shows a plan\'s vacation hold and keeps ended plans visible', function () {
+    $held = newPlan();
+    app(UpdateSubscription::class)->handle($held, ['hold_starts_at' => '2026-06-20', 'hold_ends_at' => '2026-07-04']);
+    $ended = newPlan(['preferred_day' => 'friday']);
+    app(UpdateSubscription::class)->handle($ended, ['status' => 'cancelled']);
+
+    $plans = collect($this->actingAs($this->admin)->get("/pools?selected={$this->pool->id}")
+        ->assertOk()->viewData('page')['props']['selected']['subscriptions']);
+
+    expect($plans->firstWhere('id', $held->id)['hold_label'])->toBe('On hold Jun 20 – Jul 4')
+        ->and($plans->firstWhere('id', $ended->id)['status'])->toBe('cancelled')
+        ->and($plans->last()['id'])->toBe($ended->id); // ended plans sort last
+});
+
+test('the schedule board says which service each visit is', function () {
+    newPlan();
+
+    $routes = $this->actingAs($this->admin)->get('/schedule?date=2026-06-09')->assertOk()->viewData('page')['props']['routes'];
+    $stop = collect($routes)->flatMap(fn ($r) => $r['stops'])->first();
+
+    expect($stop['service'])->toBe($this->type->name);
+});

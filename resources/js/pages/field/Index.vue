@@ -3,7 +3,7 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import FieldVisit from '@/components/field/FieldVisit.vue';
 import { useAgentTracking } from '@/composables/useAgentTracking';
 import { saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
-import { failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
+import { QUEUE_SYNCED, failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
 import { Head, Link } from '@inertiajs/vue3';
 import { Check, ChevronRight, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -70,6 +70,7 @@ const onOffline = () => {
 onMounted(async () => {
     online.value = navigator.onLine;
     window.addEventListener('online', onOnline);
+    window.addEventListener(QUEUE_SYNCED, refreshCounts);
     window.addEventListener('offline', onOffline);
     await load();
     restoreLocation();
@@ -84,6 +85,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
     window.removeEventListener('online', onOnline);
+    window.removeEventListener(QUEUE_SYNCED, refreshCounts);
     window.removeEventListener('offline', onOffline);
 });
 

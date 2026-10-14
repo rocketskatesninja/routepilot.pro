@@ -15,6 +15,7 @@ use App\Models\Pool;
 use App\Models\PoolEquipment;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceVisit;
+use App\Models\Tenant;
 use App\Services\ChemistryService;
 use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
@@ -62,7 +63,9 @@ class PoolController extends Controller
             $pool = Pool::query()->with([
                 'customer:id,first_name,last_name,email,phone',
                 'serviceLocation',
-                'subscriptions' => fn ($q) => $q->whereIn('status', ['active', 'paused'])->with(['agent:id,first_name,last_name', 'serviceType:id,name']),
+                // Active first, then paused, then ended (kept visible so they can be restarted).
+                'subscriptions' => fn ($q) => $q->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END")->orderBy('id')
+                    ->with(['agent:id,first_name,last_name', 'serviceType:id,name']),
                 'latestReading',
             ])->find($selectedId);
             if ($pool) {
@@ -162,7 +165,7 @@ class PoolController extends Controller
             'customer' => $pool->customer?->displayName() ?? '—',
             'customer_photo' => $this->photoUrl($pool->customer?->getAttribute('photo_path')),
             'city' => $pool->serviceLocation?->getAttribute('city'),
-            'cadence' => $sub?->scheduleLabel(),
+            'cadence' => $sub === null ? null : $sub->scheduleLabel().($pool->subscriptions->count() > 1 ? ' +'.($pool->subscriptions->count() - 1).' more' : ''),
             'agent' => $sub !== null ? ($sub->agent?->displayName() ?? '—') : null,
             'agent_photo' => $sub?->agent !== null ? $this->photoUrl($sub->agent->getAttribute('avatar_path')) : null,
             'health' => $health,
@@ -231,6 +234,9 @@ class PoolController extends Controller
                 'starts_on' => $sub->starts_on?->toDateString(),
                 'ends_on' => $sub->ends_on?->toDateString(),
                 'day_of_month' => $sub->day_of_month,
+                'hold_label' => $sub->hold_starts_at !== null && $sub->hold_ends_at !== null && $sub->hold_ends_at->toDateString() >= Tenant::localToday()->toDateString()
+                    ? 'On hold '.$sub->hold_starts_at->format('M j').' – '.$sub->hold_ends_at->format('M j')
+                    : null,
                 'hold_starts_at' => $sub->hold_starts_at?->toDateString(),
                 'hold_ends_at' => $sub->hold_ends_at?->toDateString(),
             ])->all(),

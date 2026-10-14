@@ -85,6 +85,7 @@ interface PoolDetail {
         starts_on: string | null;
         ends_on: string | null;
         day_of_month: number | null;
+        hold_label: string | null;
         hold_starts_at: string | null;
         hold_ends_at: string | null;
     }[];
@@ -274,6 +275,7 @@ const subFormMode = ref<'create' | 'edit'>('create');
 const subFormId = ref<number | null>(null);
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const schedules: Record<string, string> = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', one_time: 'One-time' };
+const planStatus: Record<string, string> = { active: 'Active', paused: 'Paused', cancelled: 'Ended' };
 const localToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the office's time zone
 
 const subForm = useForm<{
@@ -931,13 +933,15 @@ function submitTargets() {
                                         <div class="flex items-center justify-between">
                                             <span class="text-foreground font-medium">{{ sub.service }}</span>
                                             <span
-                                                class="rounded-full px-2 py-0.5 text-xs font-medium capitalize"
+                                                class="rounded-full px-2 py-0.5 text-xs font-medium"
                                                 :class="
                                                     sub.status === 'active'
                                                         ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                                        : sub.status === 'paused'
+                                                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                                                          : 'bg-muted text-muted-foreground'
                                                 "
-                                                >{{ sub.status }}</span
+                                                >{{ planStatus[sub.status] ?? sub.status }}</span
                                             >
                                         </div>
                                         <div class="text-xs">
@@ -947,10 +951,16 @@ function submitTargets() {
                                             }}</Link>
                                             <template v-else>{{ sub.agent }}</template>
                                         </div>
+                                        <div
+                                            v-if="sub.hold_label && sub.status !== 'cancelled'"
+                                            class="text-xs font-medium text-amber-600 dark:text-amber-400"
+                                        >
+                                            {{ sub.hold_label }}
+                                        </div>
                                         <div v-if="props.canManage" class="mt-1.5 flex gap-3 text-xs">
                                             <button class="hover:text-foreground" @click="openSubEdit(sub)">Edit</button>
                                             <button class="hover:text-foreground" @click="toggleSub(sub)">
-                                                {{ sub.status === 'active' ? 'Pause' : 'Resume' }}
+                                                {{ sub.status === 'active' ? 'Pause' : sub.status === 'paused' ? 'Resume' : 'Restart' }}
                                             </button>
                                             <button class="text-red-600 hover:text-red-700" @click="removeSub(sub)">Remove</button>
                                         </div>

@@ -18,6 +18,7 @@ interface Stop {
     pool: string | null;
     pool_photo: string | null;
     customer: string | null;
+    service: string | null;
     status: string;
     eta: string | null;
 }
@@ -351,7 +352,8 @@ const prettyDate = computed(() =>
                                     <span class="text-muted-foreground">{{ index + 1 }}.</span>
                                     <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
                                     <span class="truncate"
-                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span></span
+                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span
+                                        ><span v-if="stop.service" class="text-muted-foreground block text-xs">{{ stop.service }}</span></span
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">
@@ -434,7 +436,8 @@ const prettyDate = computed(() =>
                                     <span class="text-muted-foreground">{{ index + 1 }}.</span>
                                     <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
                                     <span class="truncate"
-                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span></span
+                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span
+                                        ><span v-if="stop.service" class="text-muted-foreground block text-xs">{{ stop.service }}</span></span
                                     >
                                 </span>
                                 <div class="flex shrink-0 items-center gap-1.5">

@@ -47,6 +47,7 @@ class ScheduleController extends Controller
             'pool:id,name,customer_id,photo_path',
             'pool.customer:id,first_name,last_name,photo_path',
             'pool.serviceLocation:id,pool_id,lat,lng,address_line1,city,state,zip',
+            'serviceSubscription.serviceType:id,name',
         ]);
 
         $routeModels = Route::query()
@@ -294,6 +295,7 @@ class ScheduleController extends Controller
                 'pool' => $s->pool?->name,
                 'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
                 'customer' => $s->pool?->customer?->displayName(),
+                'service' => $s->serviceSubscription?->serviceType?->name,
                 'status' => $s->status,
                 'eta' => $s->estimated_arrival?->format('g:i A'),
             ])->values()->all(),

@@ -70,6 +70,9 @@ function appendField(fd: FormData, key: string, val: unknown): void {
 
 let flushing = false;
 
+/** Fired on window whenever a sync pass finishes, so screens can refresh their counts. */
+export const QUEUE_SYNCED = 'field-queue-synced';
+
 /** Drain the queue. Returns how many remain unsynced afterward. */
 export async function flushQueue(): Promise<number> {
     if (flushing) return (await allQueued()).length;
@@ -80,6 +83,7 @@ export async function flushQueue(): Promise<number> {
         }
     } finally {
         flushing = false;
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event(QUEUE_SYNCED));
     }
     return (await allQueued()).length;
 }

@@ -40,4 +40,21 @@ class SubscriptionRequest extends FormRequest
             'hold_ends_at' => ['nullable', 'date', 'required_with:hold_starts_at', 'after_or_equal:hold_starts_at'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'service_type_id.required' => 'Pick which service this plan is for.',
+            'preferred_day.required_if' => 'Pick which day of the week.',
+            'starts_on.required_if' => 'Pick the date for this one-time job.',
+            'ends_on.after_or_equal' => 'The end date can\'t be before the start date.',
+            'day_of_month.integer' => 'Pick a day of the month from 1 to 31.',
+            'day_of_month.min' => 'Pick a day of the month from 1 to 31.',
+            'day_of_month.max' => 'Pick a day of the month from 1 to 31.',
+            'hold_starts_at.required_with' => 'Give the hold a start date too.',
+            'hold_ends_at.required_with' => 'Give the hold an end date too.',
+            'hold_ends_at.after_or_equal' => 'The hold can\'t end before it starts.',
+        ];
+    }
 }
