@@ -17,11 +17,9 @@ class ServiceTypeFactory extends Factory
     {
         return [
             'name' => fake()->words(2, true).' Service',
-            'category' => 'routine',
             'frequency' => 'weekly',
             'estimated_duration_minutes' => 30,
             'price' => 50,
-            'chemicals_included' => true,
             'is_active' => true,
         ];
     }

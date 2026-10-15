@@ -24,10 +24,11 @@ class PublicLeadContext
 
         $services = ServiceType::query()
             ->where('is_active', true)
+            ->where('requestable', true)
             ->orderBy('price')
             ->get(['name', 'price', 'frequency', 'description'])
             ->map(function (ServiceType $s): string {
-                $price = (float) $s->price > 0 ? ' — $'.number_format((float) $s->price, 2).' ('.$s->frequency.')' : '';
+                $price = (float) $s->price > 0 ? ' — '.$s->offerLabel() : '';
                 $desc = is_string($s->description) && $s->description !== '' ? ': '.$s->description : '';
 
                 return '- '.$s->name.$price.$desc;

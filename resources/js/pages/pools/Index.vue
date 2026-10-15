@@ -15,7 +15,7 @@ import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { FileText, Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 interface PoolRow {
     id: number;
@@ -118,7 +118,7 @@ const props = defineProps<{
     filters: { search: string };
     sort: { key: string; dir: string };
     customers: { id: number; name: string }[];
-    serviceTypes: { id: number; name: string }[];
+    serviceTypes: { id: number; name: string; frequency: string }[];
     agents: { id: number; name: string }[];
     canManage: boolean;
 }>();
@@ -303,6 +303,16 @@ const subForm = useForm<{
     hold_starts_at: '',
     hold_ends_at: '',
 });
+
+// A new plan starts from how its service is sold (e.g. a one-time job → One-time).
+watch(
+    () => subForm.service_type_id,
+    (id) => {
+        if (subFormMode.value !== 'create') return;
+        const service = props.serviceTypes.find((t) => t.id === Number(id));
+        if (service && schedules[service.frequency]) subForm.frequency = service.frequency;
+    },
+);
 
 function openSubCreate() {
     if (!props.selected) return;

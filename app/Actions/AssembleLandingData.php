@@ -151,8 +151,10 @@ class AssembleLandingData
      */
     private function services(): array
     {
+        // Only what the company offers to customers (active + "customers can request this").
         return ServiceType::query()
             ->where('is_active', true)
+            ->where('requestable', true)
             ->orderBy('price')
             ->get(['id', 'name', 'price', 'frequency', 'description'])
             ->map(fn ($s): array => [

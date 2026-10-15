@@ -18,8 +18,8 @@ beforeEach(function () {
 test('an admin can create a service type with tasks + module flags', function () {
     $this->actingAs($this->admin)
         ->post('/services', [
-            'name' => 'Weekly Service', 'category' => 'routine', 'frequency' => 'weekly',
-            'estimated_duration_minutes' => 30, 'price' => 50, 'chemicals_included' => true,
+            'name' => 'Weekly Service', 'frequency' => 'weekly',
+            'estimated_duration_minutes' => 30, 'price' => 50,
             'tasks' => ['Skim', '', 'Brush walls'],
             'field_modules' => ['tasks' => true, 'chemistry' => true, 'treatments' => false, 'photos' => true],
             'is_active' => true,
@@ -67,4 +67,25 @@ test('agents cannot manage service types', function () {
     $agent = User::factory()->agent()->for($this->tenant)->create();
 
     $this->actingAs($agent)->post('/services', ['name' => 'X'])->assertForbidden();
+});
+
+test('a new service opens straight away, saved with exactly the four visit-section switches', function () {
+    $response = $this->actingAs($this->admin)->post('/services', [
+        'name' => 'Filter clean', 'description' => 'We clean your filter.', 'frequency' => 'one_time',
+        'estimated_duration_minutes' => 60, 'price' => 95,
+        'field_modules' => ['chemistry' => false, 'treatments' => false],
+    ]);
+
+    $type = ServiceType::query()->where('name', 'Filter clean')->firstOrFail();
+    $response->assertRedirect("/services?selected={$type->id}");
+    expect($type->field_modules)->toBe(['tasks' => true, 'chemistry' => false, 'treatments' => false, 'photos' => true])
+        ->and($type->requestable)->toBeTrue()
+        ->and($type->offerLabel())->toBe('$95.00 one-time job');
+});
+
+test('unknown visit sections and old ways of selling are refused', function () {
+    $this->actingAs($this->admin)->post('/services', [
+        'name' => 'X', 'frequency' => 'seasonal', 'estimated_duration_minutes' => 30, 'price' => 10,
+        'field_modules' => ['tasks' => true, 'teleport' => true],
+    ])->assertInvalid(['frequency', 'field_modules']);
 });

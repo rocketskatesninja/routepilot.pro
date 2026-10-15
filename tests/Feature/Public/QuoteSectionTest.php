@@ -48,3 +48,14 @@ test('the landing exposes active services for the quote calculator', function ()
                 return $names->contains('Weekly maintenance') && ! $names->contains('Retired plan');
             }));
 });
+
+test('the website only offers services marked "customers can request this"', function () {
+    $tenant = Tenant::factory()->create(['slug' => 'acme']);
+    app()->instance('tenant_id', $tenant->id);
+    ServiceType::factory()->create(['name' => 'Weekly maintenance', 'price' => 99.00, 'requestable' => true]);
+    ServiceType::factory()->create(['name' => 'Internal inspection', 'price' => 20.00, 'requestable' => false]);
+    app()->forgetInstance('tenant_id');
+
+    $this->get('/t/acme')->assertOk()->assertInertia(fn (Assert $page) => $page
+        ->where('live.services', fn ($services) => collect($services)->pluck('name')->all() === ['Weekly maintenance']));
+});

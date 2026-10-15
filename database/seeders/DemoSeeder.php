@@ -76,12 +76,12 @@ class DemoSeeder extends Seeder
         );
 
         $weekly = ServiceType::factory()->for($tenant)->create([
-            'name' => 'Weekly Pool Service', 'category' => 'routine', 'price' => 50, 'estimated_duration_minutes' => 30,
+            'name' => 'Weekly Pool Service', 'price' => 50, 'estimated_duration_minutes' => 30,
             'tasks' => ['Skim surface', 'Brush walls', 'Vacuum', 'Empty baskets', 'Check pump'],
             'field_modules' => ['tasks' => true, 'chemistry' => true, 'treatments' => true, 'photos' => true],
         ]);
         ServiceType::factory()->for($tenant)->create([
-            'name' => 'Chemistry Check', 'category' => 'chemistry', 'price' => 35, 'estimated_duration_minutes' => 15,
+            'name' => 'Chemistry Check', 'price' => 35, 'estimated_duration_minutes' => 15,
             'tasks' => ['Test FC/pH/TA', 'Add chemicals', 'Record reading'],
             'field_modules' => ['tasks' => false, 'chemistry' => true, 'treatments' => true, 'photos' => false],
         ]);

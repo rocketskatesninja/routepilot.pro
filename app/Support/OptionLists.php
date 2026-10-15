@@ -24,12 +24,16 @@ final class OptionLists
             ->all();
     }
 
-    /** @return array<int, array{id: int, name: string}> */
+    /**
+     * Active services for picking on a plan; `frequency` (how it's sold) pre-fills the plan's schedule.
+     *
+     * @return array<int, array{id: int, name: string, frequency: string}>
+     */
     public static function serviceTypes(): array
     {
         return ServiceType::query()
-            ->where('is_active', true)->orderBy('name')->get(['id', 'name'])
-            ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name])
+            ->where('is_active', true)->orderBy('name')->get(['id', 'name', 'frequency'])
+            ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'frequency' => $t->frequency])
             ->all();
     }
 

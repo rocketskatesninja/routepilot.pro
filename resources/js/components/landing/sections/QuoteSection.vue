@@ -24,19 +24,10 @@ const error = ref('');
 
 const selected = computed<LandingService | undefined>(() => services.value.find((s) => String(s.id) === form.value.serviceId));
 
-// Bigger pools take more chemicals + time, so scale the base price by volume.
-const sizeFactor = computed(() => {
-    const g = Number(form.value.gallons);
-    if (!g) return 1;
-    if (g < 15000) return 1;
-    if (g <= 30000) return 1.25;
-    return 1.5;
-});
-
+// The estimate is the service's real price — the same one billing charges.
 const estimate = computed(() => {
     const s = selected.value;
-    if (!s || s.price <= 0) return null;
-    return Math.round(s.price * sizeFactor.value * 100) / 100;
+    return s && s.price > 0 ? s.price : null;
 });
 
 const money = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

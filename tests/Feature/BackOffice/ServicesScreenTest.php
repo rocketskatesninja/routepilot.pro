@@ -59,7 +59,7 @@ test('the drawer carries the template detail and active-pool count', function ()
             ->where('selected.name', 'Weekly Pool Service')
             ->where('selected.duration_minutes', 30)
             ->where('selected.pools', 1)
-            ->where('selected.modules', ['Tasks', 'Chemistry', 'Treatments']) // photos off
+            ->where('selected.modules', ['Checklist', 'Water test', 'Treatments']) // photos off; same names as the field app
             ->has('selected.tasks', 3)
         );
 });
