@@ -494,17 +494,19 @@ class AssembleDashboardData
     private function requests(): array
     {
         return ServiceRequest::query()
-            ->where('status', 'pending')->with(['customer:id,first_name,last_name,photo_path', 'pool:id,name,photo_path'])
-            ->latest()->limit(8)->get()
+            ->where('status', 'pending')->whereHas('customer')
+            ->with(['customer:id,first_name,last_name,photo_path', 'pool:id,name,photo_path', 'serviceType:id,name'])
+            ->latest('id')->limit(8)->get()
             ->map(fn (ServiceRequest $r) => [
                 'id' => $r->id,
                 'type' => $r->type,
+                'title' => $r->title(),
                 'message' => $r->message,
                 'customer' => $r->customer?->displayName(),
                 'customer_photo' => $this->photoUrl($r->customer?->getAttribute('photo_path')),
                 'pool' => $r->pool?->getAttribute('name'),
                 'preferred_date' => $r->preferred_date?->toDateString(),
-                'on' => $r->created_at?->toDateString(),
+                'on' => Tenant::localDate($r->created_at),
             ])->all();
     }
 

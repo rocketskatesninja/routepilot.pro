@@ -35,6 +35,7 @@ let debounce: ReturnType<typeof setTimeout> | null = null;
 const NAV: Item[] = [
     { type: 'page', label: 'Dashboard', url: '/dashboard' },
     { type: 'page', label: 'People', url: '/people' },
+    { type: 'page', label: 'Requests', url: '/inbox' },
     { type: 'page', label: 'Schedule', url: '/schedule' },
     { type: 'page', label: 'Pools', url: '/pools' },
     { type: 'page', label: 'Reports', url: '/reports' },

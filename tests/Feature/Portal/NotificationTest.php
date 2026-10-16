@@ -20,14 +20,14 @@ beforeEach(function () {
 
 test('a customer request notifies the tenant admins', function () {
     $this->actingAs($this->user)
-        ->post('/requests', ['type' => 'service', 'message' => 'Algae bloom', 'preferred_date' => now()->addDay()->toDateString()])
+        ->post('/requests', ['type' => 'other', 'message' => 'Algae bloom', 'preferred_date' => now()->addDay()->toDateString()])
         ->assertRedirect();
 
     expect($this->admin->notifications()->count())->toBe(1);
 });
 
 test('the unread count is shared to the frontend', function () {
-    $this->actingAs($this->user)->post('/requests', ['type' => 'service', 'message' => 'Help'])->assertRedirect();
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Help'])->assertRedirect();
 
     $this->actingAs($this->admin)
         ->get('/dashboard')
@@ -35,7 +35,7 @@ test('the unread count is shared to the frontend', function () {
 });
 
 test('a user reads a notification', function () {
-    $this->actingAs($this->user)->post('/requests', ['type' => 'service', 'message' => 'Help'])->assertRedirect();
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Help'])->assertRedirect();
     $notification = $this->admin->notifications()->first();
 
     $this->actingAs($this->admin)->post("/notifications/{$notification?->id}/read")->assertRedirect();
@@ -44,7 +44,7 @@ test('a user reads a notification', function () {
 });
 
 test('a user marks a notification back to unread', function () {
-    $this->actingAs($this->user)->post('/requests', ['type' => 'service', 'message' => 'Help'])->assertRedirect();
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Help'])->assertRedirect();
     $notification = $this->admin->notifications()->first();
     $this->actingAs($this->admin)->post("/notifications/{$notification?->id}/read")->assertRedirect();
     expect($this->admin->unreadNotifications()->count())->toBe(0);
@@ -76,7 +76,7 @@ test('the index exposes a severity and icon derived from the notification type',
 });
 
 test('a user clears all their notifications', function () {
-    $this->actingAs($this->user)->post('/requests', ['type' => 'service', 'message' => 'Help'])->assertRedirect();
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Help'])->assertRedirect();
     expect($this->admin->notifications()->count())->toBe(1);
 
     $this->actingAs($this->admin)->delete('/notifications')->assertRedirect();

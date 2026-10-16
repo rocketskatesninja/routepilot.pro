@@ -3,9 +3,10 @@ import BarChart from '@/components/charts/BarChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import Sparkline from '@/components/charts/Sparkline.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { inboxLeadLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { UserPlus } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -137,7 +138,7 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                     <ul class="divide-border min-h-0 flex-1 divide-y overflow-y-auto text-sm">
                         <li v-for="lead in props.leads" :key="lead.id" class="flex items-start justify-between gap-3 px-4 py-3">
                             <div class="min-w-0">
-                                <div class="font-medium">{{ lead.name }}</div>
+                                <Link :href="inboxLeadLink(lead.id)" class="font-medium underline-offset-2 hover:underline">{{ lead.name }}</Link>
                                 <div class="text-muted-foreground truncate text-xs">
                                     {{ lead.email ?? lead.phone ?? '—' }} · <span class="capitalize">{{ lead.source }}</span>
                                     <span v-if="lead.on"> · {{ lead.on }}</span>

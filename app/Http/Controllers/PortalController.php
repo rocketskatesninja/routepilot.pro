@@ -10,6 +10,7 @@ use App\Models\PaymentMethod;
 use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Services\BillingService;
@@ -168,26 +169,46 @@ class PortalController extends Controller
 
         $requests = ServiceRequest::query()
             ->where('customer_id', $customer->id)
-            ->with('pool:id,name')
-            ->latest()
+            ->with(['pool:id,name', 'serviceType:id,name', 'plan'])
+            ->latest('id')
             ->limit(30)
             ->get()
             ->map(fn (ServiceRequest $r): array => [
                 'id' => $r->id,
                 'type' => $r->type,
+                'title' => $r->title(),
                 'message' => $r->message,
                 'status' => $r->status,
+                'status_label' => $r->statusLabel(),
+                'reply' => $r->reply,
+                'plan' => $r->plan?->scheduleLabel(),
                 'pool' => $r->pool?->getAttribute('name'),
                 'preferred_date' => $r->preferred_date?->toDateString(),
-                'on' => $r->created_at?->toDateString(),
+                'ends_on' => $r->ends_on?->toDateString(),
+                'on' => Tenant::localDate($r->created_at),
             ])->all();
 
-        $pools = $customer->pools()->orderBy('name')->get(['id', 'name'])
-            ->map(fn ($p): array => ['id' => $p->id, 'name' => $p->getAttribute('name')])->all();
+        // What the company offers customers (active + "customers can request this").
+        $services = ServiceType::query()->where('is_active', true)->where('requestable', true)->orderBy('price')->get()
+            ->map(fn (ServiceType $t): array => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'description' => $t->description,
+                'frequency' => $t->frequency,
+                'offer' => $t->offerLabel(),
+            ])->all();
+
+        $pools = $customer->pools()->orderBy('name')
+            ->withExists(['subscriptions as has_service' => fn ($q) => $q->where('status', 'active')])
+            ->get(['id', 'name'])
+            ->map(fn ($p): array => ['id' => $p->id, 'name' => $p->getAttribute('name'), 'has_service' => (bool) $p->getAttribute('has_service')])
+            ->all();
 
         return Inertia::render('portal/Requests', [
             'requests' => $requests,
+            'services' => $services,
             'pools' => $pools,
+            'today' => Tenant::localToday()->toDateString(),
         ]);
     }
 

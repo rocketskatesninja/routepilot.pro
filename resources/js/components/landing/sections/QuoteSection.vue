@@ -46,6 +46,7 @@ async function submit() {
             email: form.value.email,
             phone: form.value.phone,
             source: 'quote',
+            service_type_id: s.id,
             message: `Instant-quote request: ${s.name} for a ${form.value.poolType.replace('_', ' ')} pool${form.value.gallons ? ` (~${form.value.gallons} gal)` : ''}${est ? ` — estimated ${money(est)}${freqLabel(s.frequency)}` : ''}.`,
             details: {
                 pool_type: form.value.poolType,

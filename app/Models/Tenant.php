@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -164,5 +165,18 @@ class Tenant extends Model
         $tenant = app()->has('tenant') ? app('tenant') : null;
 
         return $tenant instanceof self ? $tenant->today() : Carbon::now((string) config('app.timezone'))->startOfDay();
+    }
+
+    /**
+     * The request-bound tenant's calendar date (YYYY-MM-DD) for a stored UTC
+     * timestamp — e.g. "sent on" — so an evening event isn't shown as tomorrow.
+     */
+    public static function localDate(?CarbonInterface $at): ?string
+    {
+        if ($at === null) {
+            return null;
+        }
+
+        return Carbon::instance($at)->setTimezone(self::localToday()->getTimezone())->toDateString();
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\ConvertLead;
+use App\Http\Requests\ConvertLeadRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Models\Lead;
 use App\Models\Tenant;
@@ -16,7 +18,8 @@ use Illuminate\Support\Facades\Notification;
 
 /**
  * Public-site leads — captured unauthenticated (by tenant), worked from the
- * tenant's inbox. Lead status is set via controlled update (not mass-assigned).
+ * company's inbox, where a lead is converted into a customer. Lead status is
+ * set via controlled update (not mass-assigned).
  */
 class LeadController extends Controller
 {
@@ -42,5 +45,18 @@ class LeadController extends Controller
         $lead->forceFill(['status' => $validated['status']])->save();
 
         return back()->with('success', 'Lead updated.');
+    }
+
+    public function convert(ConvertLeadRequest $request, Lead $lead, ConvertLead $action): RedirectResponse
+    {
+        $result = $action->handle($lead, $request->validated());
+        if ($result === null) {
+            return back()->with('error', 'This lead is already a customer.');
+        }
+
+        // Their website pick is now a request to approve; otherwise open the new customer.
+        return $result['request'] !== null
+            ? redirect('/inbox?selected='.$result['request']->id)->with('success', 'Customer added — approve their request to schedule it.')
+            : redirect('/people?selected='.$result['customer']->id.'&selected_type=customer')->with('success', 'Customer added.');
     }
 }

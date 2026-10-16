@@ -41,3 +41,13 @@ export function telLink(phone: string): string {
 export function requestForPoolLink(poolId: number | string): string {
     return `/requests?pool=${poolId}`;
 }
+
+/** Back-office: the Requests inbox with this customer request opened. */
+export function inboxRequestLink(id: number | string): string {
+    return `/inbox?selected=${id}`;
+}
+
+/** Back-office: the Requests inbox on the website-leads tab with this lead opened. */
+export function inboxLeadLink(id: number | string): string {
+    return `/inbox?tab=leads&selected=${id}`;
+}

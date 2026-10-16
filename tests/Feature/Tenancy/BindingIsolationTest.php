@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\ServiceRequest;
 use App\Models\Tenant;
 use App\Models\User;
 
@@ -18,6 +19,7 @@ beforeEach(function () {
     app()->instance('tenant_id', $this->victimTenant->id);
     $this->customer = Customer::factory()->for($this->victimTenant)->create(['first_name' => 'Victim']);
     $this->pool = Pool::factory()->for($this->victimTenant)->for($this->customer)->create(['name' => 'Their pool']);
+    $this->request = ServiceRequest::create(['customer_id' => $this->customer->id, 'type' => 'other', 'message' => 'Hi']);
 
     $this->outsider = User::factory()->for(Tenant::factory())->create(); // another company's admin
 
@@ -37,4 +39,10 @@ test('another company\'s pool can\'t be changed or removed by id', function () {
     $this->actingAs($this->outsider)->delete("/pools/{$this->pool->id}")->assertNotFound();
 
     expect(Pool::query()->withoutGlobalScopes()->find($this->pool->id)?->getAttribute('name'))->toBe('Their pool');
+});
+
+test('another company\'s request can\'t be answered by id', function () {
+    $this->actingAs($this->outsider)->post("/requests/{$this->request->id}/decline", ['reply' => 'x'])->assertNotFound();
+
+    expect(ServiceRequest::query()->withoutGlobalScopes()->find($this->request->id)?->status)->toBe('pending');
 });

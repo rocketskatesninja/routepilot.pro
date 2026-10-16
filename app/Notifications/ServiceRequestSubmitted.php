@@ -10,7 +10,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 /**
- * In-app notification to tenant admins when a homeowner submits a request.
+ * In-app notification to tenant admins when a customer sends a request; it
+ * opens that request in the inbox.
  */
 class ServiceRequestSubmitted extends Notification
 {
@@ -27,10 +28,12 @@ class ServiceRequestSubmitted extends Notification
     /** @return array<string, mixed> */
     public function toArray(object $notifiable): array
     {
+        $request = $this->serviceRequest;
+
         return [
-            'title' => 'New '.($this->serviceRequest->type === 'hold' ? 'vacation hold' : 'service').' request',
-            'body' => $this->serviceRequest->message,
-            'url' => '/dashboard',
+            'title' => 'New request: '.$request->title(),
+            'body' => trim(($request->customer?->displayName() ?? '').($request->message !== null ? ' — '.$request->message : '')),
+            'url' => '/inbox?selected='.$request->id,
         ];
     }
 }

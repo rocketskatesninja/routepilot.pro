@@ -74,6 +74,7 @@ const navByRole: Record<string, NavSection[]> = {
         {
             label: 'Customers',
             items: [
+                { title: 'Requests', href: '/inbox', icon: Inbox },
                 { title: 'People', href: '/people', icon: Users },
                 { title: 'Pools', href: '/pools', icon: Waves },
                 { title: 'Services', href: '/services', icon: ClipboardList },
@@ -109,7 +110,7 @@ const navByRole: Record<string, NavSection[]> = {
                 { title: 'My Pools', href: '/my-pools', icon: Waves },
                 { title: 'Service History', href: '/history', icon: FileText },
                 { title: 'Balance', href: '/balance', icon: Banknote },
-                { title: 'Requests', href: '/requests', icon: Inbox },
+                { title: 'Services', href: '/requests', icon: ClipboardList },
                 { title: 'Assistant', href: '/assistant', icon: Bot },
             ],
         },

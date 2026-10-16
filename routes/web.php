@@ -11,6 +11,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\InboxController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\LandingController;
@@ -159,7 +160,9 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('inventory/{chemical}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
         Route::delete('inventory/{chemical}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
         Route::get('insights', [AnalyticsController::class, 'index'])->name('insights.index');
+        Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
         Route::patch('leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
+        Route::post('leads/{lead}/convert', [LeadController::class, 'convert'])->name('leads.convert');
         Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
         Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
         Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
@@ -167,7 +170,8 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('invoices/{invoice}/email', [InvoiceController::class, 'email'])->name('invoices.email');
         Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.markpaid');
         Route::post('invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void');
-        Route::post('requests/{serviceRequest}/resolve', [RequestController::class, 'resolve'])->name('requests.resolve');
+        Route::post('requests/{serviceRequest}/approve', [RequestController::class, 'approve'])->name('requests.approve');
+        Route::post('requests/{serviceRequest}/decline', [RequestController::class, 'decline'])->name('requests.decline');
 
         // Platform billing for the tenant (trial/subscription + Stripe Checkout/portal).
         Route::get('billing', [BillingController::class, 'show'])->name('billing.show');

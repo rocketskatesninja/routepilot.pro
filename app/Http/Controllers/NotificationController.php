@@ -56,7 +56,7 @@ class NotificationController extends Controller
             'ServiceReminder' => 'CalendarClock',
             'VisitCompleted' => 'CircleCheck',
             'LeadSubmitted' => 'UserPlus',
-            'ServiceRequestSubmitted' => 'Inbox',
+            'ServiceRequestSubmitted', 'ServiceRequestAnswered' => 'Inbox',
             default => 'Bell',
         };
     }

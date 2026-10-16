@@ -43,6 +43,7 @@ async function submit() {
             email: form.value.email,
             phone: form.value.phone,
             source: 'booking',
+            service_type_id: selected.value?.id ?? null,
             message: `Booking request: ${svc} on ${form.value.date} (${windowLabel(form.value.window)}).${form.value.notes ? ` Notes: ${form.value.notes}` : ''}`,
             details: {
                 service_id: selected.value ? String(selected.value.id) : '',

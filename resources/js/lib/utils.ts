@@ -15,3 +15,10 @@ export function formatMoney(value: number | string): string {
 export function clone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T;
 }
+
+/** A plain YYYY-MM-DD date as "Tue, Oct 20" — read as a calendar day, never shifted by time zone. */
+export function formatDay(ymd: string | null | undefined): string {
+    if (!ymd) return '';
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
