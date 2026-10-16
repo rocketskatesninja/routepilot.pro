@@ -8,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // The company must be known BEFORE route-model binding runs: TenantScope
+        // filters a {customer}/{pool}/… lookup by the bound tenant, and with no
+        // tenant bound yet it filters nothing — another company's id would resolve.
+        $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolveTenant::class);
 
         // Route-layer role backstop (mirrors controllers' inline authorize* guards).
         $middleware->alias(['role' => EnsureRole::class]);
