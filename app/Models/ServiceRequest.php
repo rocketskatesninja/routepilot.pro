@@ -35,7 +35,7 @@ class ServiceRequest extends Model
         'service' => 'Request a service',
         'hold' => 'Pause service',
         'cancel' => 'Stop service',
-        'other' => 'Something else',
+        'other' => 'Note',
     ];
 
     /** @var list<string> */

@@ -199,11 +199,23 @@ class PortalController extends Controller
             ->whereIn('status', ['active', 'paused'])
             ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today->toDateString()))
             ->where(fn ($q) => $q->where('frequency', '!=', 'one_time')->orWhere('starts_on', '>=', $today->toDateString()))
-            ->with(['serviceType:id,name', 'agent:id,first_name,last_name', 'pool:id,name'])
+            ->with(['serviceType', 'agent:id,first_name,last_name', 'pool:id,name'])
             ->get()
             ->sortBy(fn (ServiceSubscription $p): string => ($p->pool?->getAttribute('name') ?? '').'|'.($p->serviceType->name ?? ''))
-            ->values()
-            ->map(function (ServiceSubscription $p) use ($pending, $today): array {
+            ->values();
+
+        // Each plan's next visit on the route (holds are already left off the schedule).
+        $nextVisits = RouteStop::query()
+            ->whereIn('route_stops.service_subscription_id', $plans->pluck('id'))
+            ->where('route_stops.status', 'pending')
+            ->join('routes', 'routes.id', '=', 'route_stops.route_id')
+            ->where('routes.scheduled_date', '>=', $today->toDateString())
+            ->groupBy('route_stops.service_subscription_id')
+            ->selectRaw('route_stops.service_subscription_id as plan_id, min(routes.scheduled_date) as next_date')
+            ->pluck('next_date', 'plan_id');
+
+        $plans = $plans
+            ->map(function (ServiceSubscription $p) use ($pending, $today, $nextVisits): array {
                 $onHold = $p->hold_ends_at !== null && $p->hold_ends_at->gte($today);
 
                 return [
@@ -213,7 +225,14 @@ class PortalController extends Controller
                     'service_type_id' => $p->getAttribute('service_type_id'),
                     'service' => $p->serviceType?->name,
                     'schedule' => $p->scheduleLabel(),
+                    'frequency' => $p->frequency,
+                    'preferred_day' => $p->preferred_day,
+                    'day_of_month' => $p->day_of_month,
+                    'starts_on' => $p->starts_on?->toDateString(),
+                    'ends_on' => $p->ends_on?->toDateString(),
                     'one_time' => $p->frequency === 'one_time',
+                    'modules' => $p->serviceType !== null ? array_keys(array_filter($p->serviceType->modules())) : [],
+                    'next_visit' => isset($nextVisits[$p->id]) ? substr((string) $nextVisits[$p->id], 0, 10) : null,
                     'agent' => $p->agent?->firstName(),
                     'status' => $p->status,
                     'hold_from' => $onHold ? $p->hold_starts_at?->toDateString() : null,
@@ -224,13 +243,22 @@ class PortalController extends Controller
 
         // What the company offers customers (active + "customers can request this").
         $services = ServiceType::query()->where('is_active', true)->where('requestable', true)->orderBy('price')->get()
-            ->map(fn (ServiceType $t): array => [
-                'id' => $t->id,
-                'name' => $t->name,
-                'description' => $t->description,
-                'frequency' => $t->frequency,
-                'offer' => $t->offerLabel(),
-            ])->all();
+            ->map(function (ServiceType $t): array {
+                $modules = $t->modules();
+
+                return [
+                    'id' => $t->id,
+                    'name' => $t->name,
+                    'description' => $t->description,
+                    'frequency' => $t->frequency,
+                    'price' => (float) $t->price,
+                    'offer' => $t->offerLabel(),
+                    'minutes' => $t->estimated_duration_minutes,
+                    // The checklist only when the tech actually works through it on the visit.
+                    'tasks' => $modules['tasks'] ? array_values($t->tasks ?? []) : [],
+                    'modules' => array_keys(array_filter($modules)),
+                ];
+            })->all();
 
         $pools = $customer->pools()->orderBy('name')->get(['id', 'name'])
             ->map(fn ($p): array => ['id' => $p->id, 'name' => $p->getAttribute('name')])
@@ -241,6 +269,7 @@ class PortalController extends Controller
             'plans' => $plans,
             'services' => $services,
             'pools' => $pools,
+            'firstName' => $customer->first_name,
             'today' => $today->toDateString(),
         ]);
     }

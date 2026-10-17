@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\CreateSubscription;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceRequest;
@@ -107,6 +108,23 @@ test('the portal lists the customer\'s current services, and what they already h
             ->where('plans.0.service_type_id', $this->service->id)
             ->where('plans.0.schedule', 'Weekly on Wednesday')
             ->where('plans.0.pending', 'cancel'));
+});
+
+test('each current service shows its next visit and what the catalog includes', function () {
+    Carbon::setTestNow('2026-10-15 14:00:00'); // Thursday in New York
+    $this->service->forceFill(['tasks' => ['Skim the surface', 'Brush the walls'], 'field_modules' => ['tasks' => true, 'chemistry' => true, 'treatments' => false, 'photos' => true], 'estimated_duration_minutes' => 40])->save();
+    app(CreateSubscription::class)->handle(['pool_id' => $this->pool->id, 'service_type_id' => $this->service->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday']);
+
+    $this->actingAs($this->user)
+        ->get('/requests')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('firstName', $this->customer->first_name)
+            ->where('plans.0.next_visit', '2026-10-20')
+            ->where('plans.0.frequency', 'weekly')
+            ->where('plans.0.preferred_day', 'tuesday')
+            ->where('services.0.minutes', 40)
+            ->where('services.0.tasks', ['Skim the surface', 'Brush the walls'])
+            ->where('services.0.modules', ['tasks', 'chemistry', 'photos']));
 });
 
 test('pausing is for one of the customer\'s own services, with dates in order', function () {
