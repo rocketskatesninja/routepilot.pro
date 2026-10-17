@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import MultiImageUpload from '@/components/MultiImageUpload.vue';
+import Chip from '@/components/pane/Chip.vue';
+import PaneAction from '@/components/pane/PaneAction.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
+import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
 import { type FieldStop } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
-import { Camera, ChevronLeft, Droplets, FlaskConical, ListChecks, Navigation, Plus, Sparkles, StickyNote, X } from 'lucide-vue-next';
+import { telLink } from '@/lib/links';
+import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
+import { ChevronLeft, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
 import { computed, reactive, ref } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
@@ -83,20 +90,15 @@ function captureLocation(): Promise<{ lat: number; lng: number } | null> {
     });
 }
 
-const lsiTone = computed(() => {
-    const s = analysis.value?.lsi.status;
-    return s === 'balanced'
-        ? 'text-emerald-600 dark:text-emerald-400'
-        : s === 'corrosive'
-          ? 'text-red-600 dark:text-red-400'
-          : 'text-amber-600 dark:text-amber-400';
+// What they've typed so far, checked against this pool's targets — the same
+// good / low / high the homeowner will see in their report.
+const liveChecks = computed(() => {
+    const entered: WaterReading = {};
+    for (const key of ['free_chlorine', 'ph', 'alkalinity', 'calcium_hardness', 'cyanuric_acid', 'salt'] as const) {
+        if (reading[key] !== '') entered[key] = Number(reading[key]);
+    }
+    return checkWater(entered, pool.value?.custom_target_ranges ?? null);
 });
-const urgencyTone = (u: string) =>
-    u === 'high'
-        ? 'border-red-300 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10'
-        : u === 'medium'
-          ? 'border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10'
-          : 'border-border bg-muted/40';
 
 async function complete() {
     submitting.value = true;
@@ -127,111 +129,133 @@ async function complete() {
 <template>
     <div class="bg-background text-foreground fixed inset-0 z-50 flex flex-col">
         <!-- header -->
-        <header class="border-border bg-background flex items-center gap-3 border-b px-4 py-3">
-            <button class="hover:bg-muted rounded-lg p-1.5" @click="emit('close')"><ChevronLeft class="size-5" /></button>
+        <header class="border-border bg-background flex items-center gap-2 border-b px-3 py-2.5">
+            <button class="hover:bg-muted grid size-10 shrink-0 place-items-center rounded-xl" aria-label="Back to the route" @click="emit('close')">
+                <ChevronLeft class="size-6" />
+            </button>
             <div class="min-w-0 flex-1">
-                <h1 class="truncate text-lg font-bold">{{ pool?.name }}</h1>
+                <h1 class="font-display truncate text-xl leading-tight font-semibold tracking-tight">{{ pool?.name }}</h1>
                 <p class="text-muted-foreground truncate text-sm">{{ pool?.customer }}</p>
             </div>
+            <span v-if="!online" class="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"
+                >Offline</span
+            >
             <a
                 v-if="navUrl"
                 :href="navUrl"
                 target="_blank"
                 rel="noopener"
-                class="flex items-center gap-1 rounded-lg bg-sky-50 px-2.5 py-1.5 text-sm font-semibold text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
+                class="text-primary flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[hsl(var(--brand)/0.1)] px-3 text-sm font-semibold"
             >
-                <Navigation class="size-4" /> Navigate
+                <Navigation class="size-4" /> Directions
             </a>
-            <span
-                v-if="!online"
-                class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
-                >Offline</span
-            >
         </header>
 
-        <div class="flex-1 space-y-4 overflow-y-auto p-4 pb-28">
-            <!-- access info -->
-            <div v-if="pool?.gate_code || pool?.access_notes || pool?.phone" class="border-border bg-card rounded-xl border p-3 text-sm">
-                <p v-if="pool?.gate_code"><span class="font-semibold">Gate:</span> {{ pool.gate_code }}</p>
-                <p v-if="pool?.phone"><span class="font-semibold">Phone:</span> {{ pool.phone }}</p>
-                <p v-if="pool?.access_notes" class="text-muted-foreground">{{ pool.access_notes }}</p>
-            </div>
-
-            <!-- checklist: the physical checklist comes first -->
-            <section v-if="show.tasks && tasks.length" class="border-border bg-card rounded-xl border p-4">
-                <div class="mb-3">
-                    <h2 class="flex items-center gap-2 leading-tight font-semibold">
-                        <ListChecks class="size-4 shrink-0 text-sky-500 dark:text-sky-400" /> Checklist
-                    </h2>
-                    <p class="text-muted-foreground mt-0.5 text-xs">{{ stop.service.name || 'Service' }}</p>
-                </div>
-                <label v-for="(t, i) in tasks" :key="i" class="flex items-center gap-3 py-1.5">
-                    <input v-model="t.done" type="checkbox" class="border-input size-5 rounded text-sky-600" />
-                    <span :class="t.done ? 'text-muted-foreground line-through' : ''">{{ t.name }}</span>
-                </label>
+        <div class="flex-1 space-y-7 overflow-y-auto p-4 pb-28">
+            <!-- getting in -->
+            <section class="space-y-2">
+                <PaneFacts
+                    :facts="[
+                        { label: 'Service', value: stop.service.name },
+                        { label: 'Gate code', value: pool?.gate_code },
+                        { label: 'Phone', value: pool?.phone, href: pool?.phone ? telLink(pool.phone) : null },
+                    ]"
+                />
+                <p v-if="pool?.access_notes" class="text-muted-foreground text-sm">{{ pool.access_notes }}</p>
             </section>
 
-            <!-- readings: the water test + dosing is the last thing before completing -->
-            <section v-if="show.chemistry" class="border-border bg-card rounded-xl border p-4">
-                <h2 class="mb-3 flex items-center gap-2 font-semibold"><FlaskConical class="size-4 text-sky-500 dark:text-sky-400" /> Water test</h2>
+            <!-- checklist: the physical work comes first -->
+            <PaneSection v-if="show.tasks && tasks.length" title="Checklist">
+                <template #action>
+                    <span class="text-muted-foreground text-sm">{{ tasks.filter((t) => t.done).length }} of {{ tasks.length }}</span>
+                </template>
+                <ul class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
+                    <li v-for="(t, i) in tasks" :key="i">
+                        <label class="active:bg-muted/60 flex cursor-pointer items-center gap-3 px-4 py-3.5">
+                            <input v-model="t.done" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
+                            <span class="text-[15px]" :class="t.done ? 'text-muted-foreground line-through' : ''">{{ t.name }}</span>
+                        </label>
+                    </li>
+                </ul>
+            </PaneSection>
+
+            <!-- the water test: what they read, checked against this pool's targets as they type -->
+            <PaneSection v-if="show.chemistry" title="Water test">
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <label v-for="f in readingFields" :key="f.key" class="block">
-                        <span class="text-muted-foreground mb-1 block text-xs font-medium"
-                            >{{ f.label }} <span v-if="f.unit" class="text-muted-foreground/70">{{ f.unit }}</span></span
+                        <span class="text-muted-foreground mb-1 block text-sm font-medium"
+                            >{{ f.label }} <span v-if="f.unit" class="text-muted-foreground/70 font-normal">{{ f.unit }}</span></span
                         >
                         <input
                             v-model="reading[f.key]"
                             type="number"
                             inputmode="decimal"
                             step="any"
-                            class="border-input bg-background text-foreground w-full rounded-lg border px-2 py-2 text-base focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+                            class="border-input bg-background text-foreground focus:border-primary focus:ring-primary h-12 w-full rounded-xl border px-3 text-base focus:ring-1 focus:outline-none"
                         />
                     </label>
                 </div>
-                <Button class="mt-3 w-full" variant="outline" @click="analyze"><Sparkles class="mr-1 size-4" /> Analyze (offline)</Button>
-            </section>
+                <template v-if="liveChecks.length">
+                    <p class="text-muted-foreground mt-4 text-sm">{{ waterSummary(liveChecks, false) }}</p>
+                    <div class="border-border mt-2 rounded-2xl border px-4">
+                        <WaterChecks :checks="liveChecks" :explain="false" />
+                    </div>
+                </template>
+                <Button class="mt-3 h-11 w-full rounded-xl" variant="outline" @click="analyze"
+                    ><Sparkles class="mr-1.5 size-4" /> Work out what to add</Button
+                >
+            </PaneSection>
 
-            <!-- analysis -->
-            <section v-if="show.chemistry && analysis" class="border-border bg-card rounded-xl border p-4">
-                <div class="mb-3 flex items-center justify-between">
-                    <h2 class="flex items-center gap-2 font-semibold"><Sparkles class="size-4 text-sky-500 dark:text-sky-400" /> Analysis</h2>
-                    <span class="text-sm font-semibold" :class="lsiTone">LSI {{ analysis.lsi.value }} · {{ analysis.lsi.label }}</span>
-                </div>
-                <p v-if="!analysis.recommendations.length" class="text-muted-foreground text-sm">No dosing needed — chemistry is in range.</p>
-                <ul v-else class="space-y-2">
-                    <li v-for="(rec, i) in analysis.recommendations" :key="i" class="rounded-lg border p-3" :class="urgencyTone(rec.urgency)">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
+            <!-- dosing advice, worked out on the phone -->
+            <PaneSection v-if="show.chemistry && analysis" title="What to add">
+                <template #action>
+                    <Chip :tone="analysis.lsi.status === 'balanced' ? 'good' : analysis.lsi.status === 'corrosive' ? 'bad' : 'warn'"
+                        >LSI {{ analysis.lsi.value }}, {{ analysis.lsi.label.toLowerCase() }}</Chip
+                    >
+                </template>
+                <p v-if="!analysis.recommendations.length" class="text-muted-foreground text-sm">Nothing to add. The water is in range.</p>
+                <ul v-else class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
+                    <li v-for="(rec, i) in analysis.recommendations" :key="i" class="flex items-start gap-3 p-4">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
                                 <p class="font-semibold">{{ rec.chemical }}</p>
-                                <p class="text-muted-foreground text-sm">
-                                    {{ rec.parameter }}<span v-if="rec.amount"> · {{ rec.amount }} {{ rec.unit }}</span>
-                                </p>
+                                <Chip v-if="rec.urgency !== 'low'" :tone="rec.urgency === 'high' ? 'bad' : 'warn'">{{
+                                    rec.urgency === 'high' ? 'Needed now' : 'Soon'
+                                }}</Chip>
                             </div>
-                            <Button v-if="show.treatments" size="sm" variant="outline" @click="applyRec(rec.chemical, rec.amount, rec.unit)"
-                                ><Plus class="size-4"
-                            /></Button>
+                            <p class="text-muted-foreground text-sm">
+                                {{ rec.parameter }}<template v-if="rec.amount">: {{ rec.amount }} {{ rec.unit }}</template>
+                            </p>
+                            <ul v-if="rec.notes?.length" class="text-muted-foreground mt-1 list-disc pl-5 text-sm">
+                                <li v-for="(n, j) in rec.notes" :key="j">{{ n }}</li>
+                            </ul>
                         </div>
-                        <ul v-if="rec.notes?.length" class="text-muted-foreground mt-1 list-disc pl-5 text-xs">
-                            <li v-for="(n, j) in rec.notes" :key="j">{{ n }}</li>
-                        </ul>
+                        <Button
+                            v-if="show.treatments"
+                            size="sm"
+                            variant="outline"
+                            class="h-10 shrink-0 rounded-xl"
+                            :disabled="treatments.some((t) => t.name === rec.chemical)"
+                            @click="applyRec(rec.chemical, rec.amount, rec.unit)"
+                        >
+                            <Plus class="mr-1 size-4" /> {{ treatments.some((t) => t.name === rec.chemical) ? 'Added' : 'Add' }}
+                        </Button>
                     </li>
                 </ul>
-            </section>
+            </PaneSection>
 
-            <!-- treatments -->
-            <section v-if="show.treatments" class="border-border bg-card rounded-xl border p-4">
-                <div class="mb-3 flex items-center justify-between">
-                    <h2 class="flex items-center gap-2 font-semibold">
-                        <Droplets class="size-4 text-sky-500 dark:text-sky-400" /> Treatments applied
-                    </h2>
-                    <Button size="sm" variant="outline" @click="addTreatment"><Plus class="mr-1 size-4" /> Add</Button>
-                </div>
-                <p v-if="!treatments.length" class="text-muted-foreground text-sm">None yet — apply a recommendation or add one.</p>
+            <!-- chemicals added -->
+            <PaneSection v-if="show.treatments" title="Chemicals added">
+                <template #action>
+                    <PaneAction :icon="Plus" @click="addTreatment">Add one</PaneAction>
+                </template>
+                <p v-if="!treatments.length" class="text-muted-foreground text-sm">None yet. Add one from “What to add”, or add your own.</p>
                 <div v-for="(t, i) in treatments" :key="i" class="mb-2 flex items-center gap-2">
                     <input
                         v-model="t.name"
                         placeholder="Chemical"
-                        class="border-input bg-background text-foreground placeholder:text-muted-foreground min-w-0 flex-1 rounded-lg border px-2 py-2 text-sm"
+                        aria-label="Chemical"
+                        class="border-input bg-background text-foreground placeholder:text-muted-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
                     />
                     <input
                         v-model="t.amount"
@@ -239,35 +263,45 @@ async function complete() {
                         inputmode="decimal"
                         step="any"
                         placeholder="Amt"
-                        class="border-input bg-background text-foreground placeholder:text-muted-foreground w-20 rounded-lg border px-2 py-2 text-sm"
+                        aria-label="Amount"
+                        class="border-input bg-background text-foreground placeholder:text-muted-foreground h-11 w-20 rounded-xl border px-3 text-base"
                     />
-                    <input v-model="t.unit" class="border-input bg-background text-foreground w-16 rounded-lg border px-2 py-2 text-sm" />
-                    <button class="text-muted-foreground hover:bg-muted rounded-lg p-1.5" @click="removeTreatment(i)"><X class="size-4" /></button>
+                    <input
+                        v-model="t.unit"
+                        aria-label="Unit"
+                        class="border-input bg-background text-foreground h-11 w-16 rounded-xl border px-3 text-base"
+                    />
+                    <button
+                        class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
+                        aria-label="Remove"
+                        @click="removeTreatment(i)"
+                    >
+                        <X class="size-5" />
+                    </button>
                 </div>
-            </section>
+            </PaneSection>
 
             <!-- photos -->
-            <section v-if="show.photos" class="border-border bg-card rounded-xl border p-4">
-                <h2 class="mb-3 flex items-center gap-2 font-semibold"><Camera class="size-4 text-sky-500 dark:text-sky-400" /> Photos</h2>
+            <PaneSection v-if="show.photos" title="Photos">
                 <MultiImageUpload :model-value="photos" capture="environment" @update:model-value="(f) => (photos = f)" />
-            </section>
+            </PaneSection>
 
-            <!-- notes: final flag for the office / homeowner, just before completing -->
-            <section class="border-border bg-card rounded-xl border p-4">
-                <h2 class="mb-2 flex items-center gap-2 font-semibold"><StickyNote class="size-4 text-sky-500 dark:text-sky-400" /> Notes</h2>
+            <!-- a note for the office and the homeowner, just before finishing -->
+            <PaneSection title="Note">
                 <textarea
                     v-model="notes"
                     rows="3"
-                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-lg border px-3 py-2 text-sm"
-                    placeholder="Anything to flag for the office or the homeowner…"
+                    aria-label="Note"
+                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
+                    placeholder="Anything the office or the homeowner should know. The homeowner sees this in their report."
                 ></textarea>
-            </section>
+            </PaneSection>
         </div>
 
         <!-- complete -->
         <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4">
-            <Button class="h-12 w-full text-base" :disabled="submitting" @click="complete">
-                {{ online ? 'Complete visit' : 'Complete (will sync when online)' }}
+            <Button class="h-12 w-full rounded-xl text-base" :disabled="submitting" @click="complete">
+                {{ online ? 'Finish visit' : 'Finish visit (sends when you’re back online)' }}
             </Button>
         </footer>
     </div>

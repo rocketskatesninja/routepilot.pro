@@ -4,6 +4,7 @@ import FieldVisit from '@/components/field/FieldVisit.vue';
 import { useAgentTracking } from '@/composables/useAgentTracking';
 import { saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
 import { QUEUE_SYNCED, failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
+import { formatDay } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/vue3';
 import { Check, ChevronRight, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -34,8 +35,12 @@ async function retry() {
 }
 
 const stops = computed(() => bundle.value?.stops ?? []);
-const remaining = computed(() => stops.value.filter((s) => !s.completed && s.status !== 'skipped').length);
-const done = computed(() => stops.value.filter((s) => s.completed || s.status === 'completed').length);
+const isDone = (s: FieldStop) => s.completed || s.status === 'completed';
+const toDo = computed(() => stops.value.filter((s) => !isDone(s) && s.status !== 'skipped'));
+const remaining = computed(() => toDo.value.length);
+const done = computed(() => stops.value.filter(isDone).length);
+// The next stop still to do — named in the summary at the top.
+const next = computed(() => toDo.value[0] ?? null);
 
 async function load() {
     loading.value = true;
@@ -113,131 +118,158 @@ async function onCompleted(stopId: number) {
     }
     await refreshCounts();
 }
-
-const statusLabel = (s: FieldStop) => (s.completed || s.status === 'completed' ? 'Done' : s.status === 'skipped' ? 'Skipped' : 'Pending');
 </script>
 
 <template>
-    <Head title="Field" />
+    <Head title="Today’s route" />
 
     <div class="bg-background text-foreground min-h-svh">
         <!-- top bar -->
         <header class="border-border bg-background sticky top-0 z-10 border-b">
-            <div class="flex items-center gap-3 px-4 py-3">
-                <Link href="/dashboard" class="flex size-9 items-center justify-center rounded-lg bg-orange-500 text-white">
+            <div class="flex items-center gap-2 px-4 py-2.5">
+                <Link
+                    href="/dashboard"
+                    class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white"
+                    aria-label="Back to Today"
+                >
                     <AppLogoIcon class="size-5" />
                 </Link>
-                <div class="flex-1">
-                    <h1 class="leading-tight font-bold">My route</h1>
-                    <p class="text-muted-foreground text-xs">{{ bundle?.date ?? 'Today' }} · {{ done }}/{{ stops.length }} done</p>
+                <div class="min-w-0 flex-1 pl-1">
+                    <h1 class="font-display truncate text-lg leading-tight font-semibold tracking-tight">Today’s route</h1>
+                    <p class="text-muted-foreground truncate text-xs">{{ bundle?.date ? formatDay(bundle.date) : 'Today' }}</p>
                 </div>
                 <span
-                    class="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+                    class="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
                     :class="
-                        online
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'
+                        online ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                     "
                 >
                     <Wifi v-if="online" class="size-3.5" /><WifiOff v-else class="size-3.5" />
                     {{ online ? 'Online' : 'Offline' }}
                 </span>
                 <button
-                    class="rounded-lg p-2"
-                    :class="sharingLocation ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300' : 'text-muted-foreground hover:bg-muted'"
-                    :title="sharingLocation ? 'Sharing your location — tap to stop' : 'Share your location with dispatch'"
+                    class="grid size-10 place-items-center rounded-xl"
+                    :class="sharingLocation ? 'text-primary bg-[hsl(var(--brand)/0.12)]' : 'text-muted-foreground hover:bg-muted'"
+                    :title="sharingLocation ? 'Sharing your location. Tap to stop.' : 'Share your location with the office'"
+                    :aria-label="sharingLocation ? 'Stop sharing your location' : 'Share your location with the office'"
                     @click="toggleLocation"
                 >
-                    <MapPin class="size-4" :class="sharingLocation ? 'animate-pulse' : ''" />
+                    <MapPin class="size-5" :class="sharingLocation ? 'animate-pulse' : ''" />
                 </button>
-                <button class="hover:bg-muted rounded-lg p-2" :disabled="loading" @click="refresh">
-                    <RefreshCw class="size-4" :class="loading ? 'animate-spin' : ''" />
+                <button
+                    class="hover:bg-muted grid size-10 place-items-center rounded-xl"
+                    :disabled="loading"
+                    aria-label="Sync and refresh"
+                    @click="refresh"
+                >
+                    <RefreshCw class="size-5" :class="loading ? 'animate-spin' : ''" />
                 </button>
             </div>
-            <div
-                v-if="queued > 0"
-                class="flex items-center gap-1.5 bg-sky-50 px-4 py-1.5 text-xs font-medium text-sky-700 dark:bg-sky-500/10 dark:text-sky-300"
-            >
-                <CloudOff class="size-3.5" /> {{ queued }} visit{{ queued === 1 ? '' : 's' }} waiting to sync{{
-                    online ? '…' : ' — will send when back online'
+            <div v-if="queued > 0" class="flex items-center gap-1.5 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-700 dark:text-sky-300">
+                <CloudOff class="size-4" /> {{ queued }} visit{{ queued === 1 ? '' : 's' }} waiting to sync{{
+                    online ? '…' : '. They’ll send when you’re back online.'
                 }}
             </div>
-            <div
-                v-if="source === 'cache'"
-                class="bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
-            >
-                Showing your last saved route (offline).
+            <div v-if="source === 'cache'" class="bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+                You’re offline, so this is your last saved route.
             </div>
             <div
                 v-if="failed > 0"
-                class="flex items-center justify-between gap-2 bg-red-50 px-4 py-1.5 text-xs font-medium text-red-700 dark:bg-red-500/10 dark:text-red-400"
+                class="flex items-center justify-between gap-2 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400"
             >
                 <span class="flex items-center gap-1.5"
-                    ><TriangleAlert class="size-3.5" /> {{ failed }} visit{{ failed === 1 ? '' : 's' }} failed to sync</span
+                    ><TriangleAlert class="size-4" /> {{ failed }} visit{{ failed === 1 ? '' : 's' }} didn’t sync</span
                 >
-                <button
-                    class="rounded bg-red-100 px-2 py-0.5 font-semibold hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30"
-                    @click="retry"
-                >
-                    Retry
-                </button>
+                <button class="rounded-lg bg-red-500/15 px-3 py-1 font-semibold hover:bg-red-500/25" @click="retry">Try again</button>
             </div>
         </header>
 
         <!-- body -->
-        <main class="mx-auto max-w-2xl p-4">
+        <main class="mx-auto max-w-2xl space-y-5 p-4">
             <div v-if="loading" class="text-muted-foreground flex justify-center py-20"><LoaderCircle class="size-8 animate-spin" /></div>
 
-            <div v-else-if="!stops.length" class="text-muted-foreground py-20 text-center">
-                <p class="font-medium">No stops on your route{{ source === 'none' ? ' — connect to load it' : '' }}.</p>
-            </div>
+            <template v-else>
+                <!-- where the day stands -->
+                <section class="rounded-2xl bg-[hsl(var(--brand)/0.08)] p-5">
+                    <p class="font-display text-2xl leading-tight font-semibold tracking-tight">
+                        <template v-if="!stops.length">No stops on your route{{ source === 'none' ? ' yet' : '' }}.</template>
+                        <template v-else-if="!remaining">All done for today.</template>
+                        <template v-else>{{ remaining }} stop{{ remaining === 1 ? '' : 's' }} to go.</template>
+                    </p>
+                    <p v-if="!stops.length && source === 'none'" class="text-muted-foreground mt-1 text-[15px]">
+                        Connect to the internet to load it.
+                    </p>
+                    <p v-else-if="next" class="text-muted-foreground mt-1 text-[15px]">
+                        Next up: {{ next.pool?.name ?? 'Pool' }}<template v-if="next.eta">, around {{ next.eta }}</template
+                        >.
+                    </p>
+                    <template v-if="stops.length">
+                        <div
+                            class="mt-3 h-2 overflow-hidden rounded-full bg-[hsl(var(--brand)/0.15)]"
+                            role="progressbar"
+                            :aria-valuenow="done"
+                            aria-valuemin="0"
+                            :aria-valuemax="stops.length"
+                            :aria-label="`${done} of ${stops.length} stops done`"
+                        >
+                            <div
+                                class="bg-primary h-full rounded-full transition-[width]"
+                                :style="{ width: `${(done / stops.length) * 100}%` }"
+                            ></div>
+                        </div>
+                        <p class="text-muted-foreground mt-1.5 text-sm">{{ done }} of {{ stops.length }} done</p>
+                    </template>
+                </section>
 
-            <ul v-else class="space-y-2.5">
-                <li
-                    v-for="stop in stops"
-                    :key="stop.id"
-                    class="bg-card flex items-center gap-3 rounded-xl border p-3.5 shadow-sm transition active:scale-[0.99]"
-                    :class="
-                        stop.completed || stop.status === 'completed' ? 'border-emerald-200 opacity-70 dark:border-emerald-500/30' : 'border-border'
-                    "
-                    @click="open(stop)"
-                >
-                    <div
-                        class="flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                        :class="stop.completed || stop.status === 'completed' ? 'bg-emerald-500 text-white' : 'bg-foreground text-background'"
+                <!-- the stops, in order -->
+                <ol v-if="stops.length" class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
+                    <li
+                        v-for="stop in stops"
+                        :key="stop.id"
+                        class="flex items-center gap-3 p-4"
+                        :class="isDone(stop) ? 'text-muted-foreground' : 'active:bg-muted/60 cursor-pointer'"
+                        @click="open(stop)"
                     >
-                        <Check v-if="stop.completed || stop.status === 'completed'" class="size-5" />
-                        <span v-else>{{ stop.order }}</span>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-semibold">{{ stop.pool?.name ?? 'Pool' }}</p>
-                        <p class="text-muted-foreground truncate text-sm">
-                            {{ stop.pool?.customer }}
-                            <span
-                                v-if="stop.eta && !(stop.completed || stop.status === 'completed')"
-                                class="font-medium text-sky-600 dark:text-sky-400"
-                                >· ~{{ stop.eta }}</span
+                        <span
+                            class="grid size-10 shrink-0 place-items-center rounded-full text-base font-semibold"
+                            :class="isDone(stop) ? 'bg-emerald-600 text-white dark:bg-emerald-500' : 'text-primary bg-[hsl(var(--brand)/0.12)]'"
+                        >
+                            <Check v-if="isDone(stop)" class="size-5" />
+                            <template v-else>{{ stop.order }}</template>
+                        </span>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate text-[17px] font-semibold" :class="isDone(stop) ? '' : 'text-foreground'">
+                                {{ stop.pool?.name ?? 'Pool' }}
+                            </p>
+                            <p class="text-muted-foreground truncate text-sm">{{ stop.pool?.customer }}</p>
+                            <p class="text-muted-foreground truncate text-sm">
+                                {{ stop.service.name ?? 'Service visit'
+                                }}<template v-if="!isDone(stop) && (stop.eta || stop.status === 'skipped')"
+                                    >,
+                                    <span class="text-primary font-medium">{{
+                                        stop.status === 'skipped' ? 'skipped' : `around ${stop.eta}`
+                                    }}</span></template
+                                >
+                            </p>
+                        </div>
+                        <span v-if="isDone(stop)" class="text-sm font-medium">Done</span>
+                        <template v-else>
+                            <a
+                                v-if="navUrl(stop)"
+                                :href="navUrl(stop) ?? undefined"
+                                target="_blank"
+                                rel="noopener"
+                                class="text-primary grid size-11 shrink-0 place-items-center rounded-xl bg-[hsl(var(--brand)/0.1)]"
+                                :aria-label="`Directions to ${stop.pool?.name ?? 'the pool'}`"
+                                @click.stop
                             >
-                        </p>
-                    </div>
-                    <a
-                        v-if="navUrl(stop)"
-                        :href="navUrl(stop) ?? undefined"
-                        target="_blank"
-                        rel="noopener"
-                        class="rounded-lg p-2 text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-500/10"
-                        @click.stop
-                    >
-                        <Navigation class="size-4" />
-                    </a>
-                    <span class="text-muted-foreground text-xs font-medium">{{ statusLabel(stop) }}</span>
-                    <ChevronRight v-if="!(stop.completed || stop.status === 'completed')" class="text-muted-foreground/50 size-5 shrink-0" />
-                </li>
-            </ul>
-
-            <p v-if="!loading && stops.length" class="text-muted-foreground mt-4 text-center text-sm">
-                {{ remaining }} stop{{ remaining === 1 ? '' : 's' }} left today
-            </p>
+                                <Navigation class="size-5" />
+                            </a>
+                            <ChevronRight class="text-muted-foreground/60 size-5 shrink-0" />
+                        </template>
+                    </li>
+                </ol>
+            </template>
         </main>
 
         <FieldVisit v-if="selected" :stop="selected" :online="online" @done="onCompleted" @close="selected = null" />
