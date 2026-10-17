@@ -88,6 +88,7 @@ class BillingService
             ->with('pool:id,name')->orderByDesc('occurred_on')->orderByDesc('id')->get();
 
         $visits = $open->where('kind', 'visit')->map(fn (Charge $c): array => [
+            'description' => $c->description, // "Weekly Pool Service — Anderson Pool"
             'pool' => $c->pool?->getAttribute('name') ?? $c->description,
             'date' => $c->occurred_on->toDateString(),
             'price' => $unpaid[$c->id],

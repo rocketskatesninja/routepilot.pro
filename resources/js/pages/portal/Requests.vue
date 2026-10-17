@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { andList, cap, extras, howOften, iconFor, price, soldAs, when } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Clock, FlaskConical, MessageSquare, Waves, Wrench } from 'lucide-vue-next';
+import { Check, Clock, MessageSquare } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface ServiceRequest {
@@ -73,27 +75,6 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Services', href: '/requests' }]
 const page = usePage<SharedData>();
 const company = computed(() => page.props.tenant?.name ?? 'your pool company');
 
-// --- plain-language helpers ---
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const ordinal = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th'}`;
-const longDay = (ymd: string) => {
-    const [y, m, d] = ymd.split('-').map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-};
-const dayAfter = (ymd: string) => {
-    const [y, m, d] = ymd.split('-').map(Number);
-    return new Date(y, m - 1, d + 1).toLocaleDateString('en-CA');
-};
-/** "today" / "tomorrow" / "on Wednesday, October 21". */
-const when = (ymd: string) => (ymd === props.today ? 'today' : ymd === dayAfter(props.today) ? 'tomorrow' : `on ${longDay(ymd)}`);
-
-function howOften(p: Plan): string {
-    const day = p.preferred_day ? cap(p.preferred_day) : null;
-    if (p.frequency === 'weekly') return day ? `Every ${day}` : 'Every week';
-    if (p.frequency === 'biweekly') return day ? `Every other ${day}` : 'Every two weeks';
-    if (p.frequency === 'monthly') return p.day_of_month ? `Once a month, on the ${ordinal(p.day_of_month)}` : 'Once a month';
-    return p.starts_on ? `One visit, ${longDay(p.starts_on)}` : 'One visit';
-}
 /** "Wednesday visits" / "monthly visits" — how a customer thinks of a plan's visits. */
 const visitsWord = (p: Plan) =>
     (p.frequency === 'weekly' || p.frequency === 'biweekly') && p.preferred_day
@@ -101,33 +82,14 @@ const visitsWord = (p: Plan) =>
         : p.frequency === 'monthly'
           ? 'monthly visits'
           : 'visits';
-const soldAs = (f: string) => ({ weekly: 'Every week', biweekly: 'Every two weeks', monthly: 'Once a month', one_time: 'One-time job' })[f] ?? '';
-const price = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 
-/** A simple picture for a service: a one-off job, a water-testing visit, or a regular clean. */
-const iconFor = (modules: string[], frequency: string) =>
-    frequency === 'one_time' ? Wrench : !modules.includes('tasks') && modules.includes('chemistry') ? FlaskConical : Waves;
-
-/** What the tech does on the visit, in a homeowner's words (from the service's visit sections). */
-function extras(modules: string[]): string[] {
-    const out: string[] = [];
-    if (modules.includes('chemistry')) out.push('Water tested and balanced');
-    if (modules.includes('treatments')) out.push('Chemicals added as needed');
-    if (modules.includes('photos')) out.push('Photos of your pool after each visit');
-    return out;
-}
-
-// --- the next visit leads the page ---
+// --- the lead line: what service they have, and when the next visit is ---
 const upcoming = computed(() =>
     props.plans.filter((p) => p.next_visit).sort((a, b) => (a.next_visit as string).localeCompare(b.next_visit as string)),
 );
 const nextDay = computed(() => upcoming.value[0]?.next_visit ?? null);
 const nextUp = computed(() => upcoming.value.filter((p) => p.next_visit === nextDay.value));
-const afterThat = computed(() => upcoming.value.find((p) => p.next_visit !== nextDay.value) ?? null);
-const names = (list: Plan[]) => {
-    const n = list.map((p) => p.service ?? 'service');
-    return n.length > 1 ? `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}` : (n[0] ?? '');
-};
+const serviceNames = computed(() => [...new Set(props.plans.map((p) => p.service ?? 'service'))]);
 
 // Group their services by pool — pool names only show when they have more than one.
 const manyPools = computed(() => props.pools.length > 1);
@@ -239,31 +201,22 @@ const statusClass = (status: string) =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-6">
-            <!-- the next visit: what a homeowner wants to know first -->
-            <section class="overflow-hidden rounded-2xl bg-[hsl(var(--brand)/0.08)]">
-                <div class="px-6 pt-6 pb-7 sm:px-8 sm:pt-7">
-                    <p class="text-muted-foreground text-[15px]">Hi {{ props.firstName }}, here’s your pool service with {{ company }}.</p>
-                    <h1
-                        class="font-display mt-2 max-w-[24ch] text-[1.75rem] leading-[1.15] font-semibold tracking-tight text-balance sm:text-[2.125rem]"
-                    >
-                        <template v-if="nextUp.length">
-                            {{ nextUp[0].agent ?? 'Your technician' }} is coming {{ when(nextDay as string) }} for your {{ names(nextUp) }}.
-                        </template>
-                        <template v-else-if="props.plans.some((p) => p.hold_from || p.status === 'paused')"
-                            >Your service is paused right now.</template
-                        >
-                        <template v-else-if="props.plans.length">Your next visit isn’t on the schedule yet.</template>
-                        <template v-else>You don’t have regular service yet.</template>
-                    </h1>
-                    <p v-if="afterThat" class="text-muted-foreground mt-3 text-[15px]">
-                        Then {{ afterThat.service }} {{ when(afterThat.next_visit as string) }}.
+            <!-- what they have, and when the next visit is -->
+            <PortalHero>
+                <template v-if="!props.plans.length">You don’t have regular service yet.</template>
+                <template v-else-if="manyPools">You have {{ andList(serviceNames) }} with {{ company }}.</template>
+                <template v-else>{{ props.plans[0].pool ?? 'Your pool' }} gets {{ andList(serviceNames) }}.</template>
+
+                <template #sub>
+                    <p v-if="nextUp.length">
+                        Next visit {{ when(nextDay as string, props.today) }}: {{ andList(nextUp.map((p) => p.service ?? 'service'))
+                        }}<template v-if="nextUp[0].agent"> with {{ nextUp[0].agent }}</template
+                        >.
                     </p>
-                    <p v-else-if="!props.plans.length" class="text-muted-foreground mt-3 text-[15px]">
-                        Pick a service below and {{ company }} will set it up.
-                    </p>
-                </div>
-                <div class="waterline h-4" aria-hidden="true"></div>
-            </section>
+                    <p v-else-if="props.plans.some((p) => p.hold_from || p.status === 'paused')">Your service is paused right now.</p>
+                    <p v-else-if="!props.plans.length">Pick a service below and {{ company }} will set it up.</p>
+                </template>
+            </PortalHero>
 
             <!-- what they have now -->
             <section v-if="props.plans.length" aria-labelledby="yours">
@@ -527,14 +480,3 @@ const statusClass = (status: string) =>
         </Dialog>
     </AppLayout>
 </template>
-
-<style scoped>
-/* A strip of pool waterline tile in the company's colour: two rows of small
-   square tiles with light grout, under the next-visit panel. */
-.waterline {
-    background:
-        linear-gradient(90deg, hsl(var(--background) / 0.7) 1px, transparent 1px) 0 0 / 8px 8px,
-        linear-gradient(hsl(var(--background) / 0.7) 1px, transparent 1px) 0 0 / 8px 8px,
-        repeating-conic-gradient(hsl(var(--brand) / 0.55) 0 25%, hsl(var(--brand) / 0.28) 0 50%) 0 0 / 16px 16px;
-}
-</style>

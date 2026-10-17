@@ -1,251 +1,202 @@
 <script setup lang="ts">
-import Sparkline from '@/components/charts/Sparkline.vue';
-import EntityAvatar from '@/components/EntityAvatar.vue';
-import MasterDetail from '@/components/MasterDetail.vue';
-import { subscribeCustomerEta } from '@/echo';
+import PortalPageHeader from '@/components/portal/PortalPageHeader.vue';
+import WaterChecks from '@/components/portal/WaterChecks.vue';
+import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { requestForPoolLink } from '@/lib/links';
+import { checkWater, monthYear, waterSummary, type WaterReading, type WaterTargets } from '@/lib/portal';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { CalendarClock, CalendarPlus, Droplets, Navigation } from 'lucide-vue-next';
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { type Paginated } from '@/types/pagination';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Check, ChevronDown, Minus } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
-interface VisitRow {
+interface Visit {
     id: number;
     pool: string | null;
-    pool_photo: string | null;
-    on: string | null;
-}
-
-interface VisitDetail {
-    id: number;
-    pool: string | null;
-    pool_id: number | null;
+    pool_id: number;
+    service: string | null;
     on: string | null;
     agent: string | null;
     notes: string | null;
-    reading: {
-        free_chlorine: number | null;
-        ph: number | null;
-        alkalinity: number | null;
-        calcium_hardness: number | null;
-        cyanuric_acid: number | null;
-        salt: number | null;
-        lsi_score: number | null;
-    } | null;
+    reading: WaterReading | null;
+    targets: WaterTargets;
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
     photos: string[];
-    trend: { chlorine: number[]; ph: number[]; dates: string[] };
 }
 
-interface NextVisit {
-    pool: string | null;
-    date: string | null;
-    window: string | null;
-}
+const props = defineProps<{ visits: Paginated<Visit> }>();
 
-const props = defineProps<{
-    visits: { data: VisitRow[]; total: number };
-    selected: VisitDetail | null;
-    nextVisit: NextVisit | null;
-    customerId: number;
-}>();
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Service history', href: '/history' }];
+const page = usePage();
+const manyPools = computed(() => new Set(props.visits.data.map((v) => v.pool_id)).size > 1);
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Service History', href: '/history' }];
+// A link from Home (?selected=ID) opens that visit's report.
+const openId = ref<number | null>(Number(new URL(page.url, 'http://localhost').searchParams.get('selected')) || null);
+const toggle = (id: number) => (openId.value = openId.value === id ? null : id);
 
-// Live "on-my-way": the next-visit window updates in place as the agent drives,
-// and an en-route badge appears once a live update arrives.
-const liveNext = ref<NextVisit | null>(props.nextVisit);
-const onTheWay = ref(false);
-watch(
-    () => props.nextVisit,
-    (value) => (liveNext.value = value),
-);
-
-let unsubscribe: (() => void) | null = null;
-onMounted(() => {
-    unsubscribe = subscribeCustomerEta(props.customerId, (e) => {
-        liveNext.value = { pool: e.pool, date: e.date, window: e.window };
-        onTheWay.value = true;
-    });
+// Visits grouped by month, newest first.
+const months = computed(() => {
+    const groups: { label: string; visits: Visit[] }[] = [];
+    for (const v of props.visits.data) {
+        const label = v.on ? monthYear(v.on) : 'Earlier';
+        const g = groups.find((x) => x.label === label);
+        if (g) g.visits.push(v);
+        else groups.push({ label, visits: [v] });
+    }
+    return groups;
 });
-onBeforeUnmount(() => unsubscribe?.());
 
-const open = (id: number) => router.get('/history', { selected: id }, { preserveState: true, preserveScroll: true });
-const closeDrawer = () => router.get('/history', {}, { preserveState: true, preserveScroll: true });
+const dayNum = (ymd: string | null) => (ymd ? Number(ymd.slice(8, 10)) : '');
+const weekday = (ymd: string | null) => {
+    if (!ymd) return '';
+    const [y, m, d] = ymd.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short' });
+};
 
-const readingRows = (r: NonNullable<VisitDetail['reading']>) => [
-    { label: 'Free chlorine', value: r.free_chlorine, suffix: ' ppm' },
-    { label: 'pH', value: r.ph, suffix: '' },
-    { label: 'Alkalinity', value: r.alkalinity, suffix: ' ppm' },
-    { label: 'Calcium', value: r.calcium_hardness, suffix: ' ppm' },
-    { label: 'CYA', value: r.cyanuric_acid, suffix: ' ppm' },
-    { label: 'Salt', value: r.salt, suffix: ' ppm' },
-];
+/** "Checklist done, water tested, 2 chemicals added." */
+function summary(v: Visit): string {
+    const parts: string[] = [];
+    if (v.tasks.length) {
+        const done = v.tasks.filter((t) => t.done).length;
+        parts.push(done === v.tasks.length ? 'checklist done' : `${done} of ${v.tasks.length} checklist steps done`);
+    }
+    if (v.reading) parts.push('water tested');
+    if (v.treatments.length) parts.push(`${v.treatments.length} chemical${v.treatments.length === 1 ? '' : 's'} added`);
+    if (v.photos.length) parts.push(`${v.photos.length} photo${v.photos.length === 1 ? '' : 's'}`);
+    const s = parts.join(', ');
+    return s ? `${s.charAt(0).toUpperCase()}${s.slice(1)}.` : 'Visit completed.';
+}
+
+const amount = (t: Visit['treatments'][number]) => `${Number.isInteger(t.amount) ? t.amount : t.amount.toFixed(2)} ${t.unit}`;
+const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll: false });
 </script>
 
 <template>
-    <Head title="Service History" />
+    <Head title="Service history" />
 
-    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.visits.total} completed visits`">
-        <div class="flex h-full flex-1 flex-col gap-4 p-4">
-            <div
-                v-if="liveNext"
-                class="flex items-center gap-3 rounded-xl border p-4 transition-colors"
-                :class="
-                    onTheWay
-                        ? 'border-emerald-300 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/30'
-                        : 'border-sky-200 bg-sky-50 dark:border-sky-900/50 dark:bg-sky-950/30'
-                "
-            >
-                <Navigation v-if="onTheWay" class="size-5 shrink-0 animate-pulse text-emerald-600" />
-                <CalendarClock v-else class="size-5 shrink-0 text-sky-600" />
-                <div class="text-sm">
-                    <p class="font-medium">
-                        <template v-if="onTheWay">Your tech is on the way{{ liveNext.pool ? ` — ${liveNext.pool}` : '' }}</template>
-                        <template v-else>Next visit: {{ liveNext.pool }}</template>
-                    </p>
-                    <p class="text-muted-foreground">
-                        {{ liveNext.date }}<template v-if="liveNext.window"> · arriving {{ liveNext.window }}</template>
-                    </p>
-                </div>
-            </div>
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-6">
+            <PortalPageHeader
+                title="Service history"
+                summary="Every visit to your pool: what was done, how the water looked, and photos when they were taken."
+            />
 
-            <MasterDetail
-                :has-selection="props.selected !== null"
-                :selection-key="props.selected?.id ?? null"
-                empty-text="Select a visit to see details."
-                @close="closeDrawer"
-            >
-                <template #list>
-                    <div class="border-border overflow-hidden rounded-xl border">
-                        <table class="w-full text-sm">
-                            <thead class="bg-muted/50 text-muted-foreground text-left">
-                                <tr>
-                                    <th class="px-4 py-2 font-medium">Date</th>
-                                    <th class="px-4 py-2 font-medium">Pool</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr
-                                    v-for="v in props.visits.data"
-                                    :key="v.id"
-                                    class="border-border hover:bg-muted/40 cursor-pointer border-t transition-colors"
-                                    :class="{ 'bg-muted/60': props.selected?.id === v.id }"
-                                    @click="open(v.id)"
+            <p v-if="!props.visits.data.length" class="border-border text-muted-foreground rounded-2xl border p-5 text-[15px]">
+                No visits yet. After each one, the report shows up here.
+            </p>
+
+            <section v-for="m in months" :key="m.label" :aria-label="m.label">
+                <h2 class="text-muted-foreground mb-2 text-sm font-medium">{{ m.label }}</h2>
+                <ol class="border-border divide-border divide-y rounded-2xl border">
+                    <li v-for="v in m.visits" :key="v.id">
+                        <button
+                            type="button"
+                            class="focus-visible:ring-ring hover:bg-muted/40 flex w-full items-center gap-4 rounded-2xl p-4 text-left focus-visible:ring-2 focus-visible:outline-none sm:p-5"
+                            :aria-expanded="openId === v.id"
+                            :aria-controls="`visit-${v.id}`"
+                            @click="toggle(v.id)"
+                        >
+                            <span class="w-11 shrink-0 text-center">
+                                <span class="font-display block text-2xl leading-none font-semibold">{{ dayNum(v.on) }}</span>
+                                <span class="text-muted-foreground text-xs">{{ weekday(v.on) }}</span>
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-medium"
+                                    >{{ v.service ?? 'Service visit' }}<template v-if="v.agent"> with {{ v.agent }}</template></span
                                 >
-                                    <td class="px-4 py-2.5 font-medium">{{ v.on }}</td>
-                                    <td class="text-muted-foreground px-4 py-2.5">
-                                        <div class="flex items-center gap-2">
-                                            <EntityAvatar :src="v.pool_photo" type="pool" :name="v.pool" size="sm" />
-                                            <span>{{ v.pool }}</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr v-if="props.visits.data.length === 0">
-                                    <td colspan="2" class="text-muted-foreground px-4 py-10 text-center">
-                                        <Droplets class="mx-auto mb-2 size-6 opacity-50" />
-                                        No visits yet.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </template>
+                                <span class="text-muted-foreground block text-sm"
+                                    ><template v-if="manyPools">{{ v.pool }}. </template>{{ summary(v) }}</span
+                                >
+                            </span>
+                            <span v-if="v.photos.length" class="hidden shrink-0 gap-1.5 sm:flex">
+                                <img
+                                    v-for="src in v.photos.slice(0, 3)"
+                                    :key="src"
+                                    :src="src"
+                                    alt=""
+                                    class="size-10 rounded-lg object-cover"
+                                    loading="lazy"
+                                />
+                            </span>
+                            <ChevronDown
+                                class="text-muted-foreground size-4 shrink-0 transition-transform"
+                                :class="openId === v.id ? 'rotate-180' : ''"
+                            />
+                        </button>
 
-                <template #detail>
-                    <div v-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
-                            <p class="text-muted-foreground text-sm">
-                                {{ props.selected.on }}<template v-if="props.selected.agent"> · {{ props.selected.agent }}</template>
-                            </p>
-                            <Link
-                                v-if="props.selected.pool_id"
-                                :href="requestForPoolLink(props.selected.pool_id)"
-                                class="text-primary mt-2 inline-flex items-center gap-1 text-sm hover:underline"
-                            >
-                                <CalendarPlus class="size-3.5" /> Request service for this pool
-                            </Link>
-                        </div>
+                        <!-- the full report -->
+                        <div v-if="openId === v.id" :id="`visit-${v.id}`" class="space-y-6 px-4 pb-6 sm:px-5 sm:pl-[5.25rem]">
+                            <div v-if="v.tasks.length">
+                                <h3 class="text-sm font-medium">What was done</h3>
+                                <ul class="mt-2 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+                                    <li v-for="t in v.tasks" :key="t.name" class="flex gap-2" :class="t.done ? '' : 'text-muted-foreground'">
+                                        <Check v-if="t.done" class="text-primary mt-0.5 size-4 shrink-0" />
+                                        <Minus v-else class="mt-0.5 size-4 shrink-0" />
+                                        {{ t.name }}<template v-if="!t.done"> (skipped)</template>
+                                    </li>
+                                </ul>
+                            </div>
 
-                        <div class="space-y-5 text-sm">
-                            <section v-if="props.selected.trend && (props.selected.trend.chlorine.length > 1 || props.selected.trend.ph.length > 1)">
-                                <h3 class="mb-2 font-medium">Chemistry trend</h3>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div v-if="props.selected.trend.chlorine.length > 1">
-                                        <p class="text-muted-foreground text-[11px]">Free chlorine</p>
-                                        <Sparkline :values="props.selected.trend.chlorine" :band="[1, 3]" color="hsl(var(--chart-1))" class="mt-1" />
-                                    </div>
-                                    <div v-if="props.selected.trend.ph.length > 1">
-                                        <p class="text-muted-foreground text-[11px]">pH</p>
-                                        <Sparkline :values="props.selected.trend.ph" :band="[7.2, 7.8]" color="hsl(var(--chart-2))" class="mt-1" />
-                                    </div>
-                                </div>
-                                <p v-if="props.selected.trend.dates.length > 1" class="text-muted-foreground mt-1.5 text-[10px]">
-                                    {{ props.selected.trend.dates[0] }} – {{ props.selected.trend.dates[props.selected.trend.dates.length - 1] }}
-                                </p>
-                            </section>
+                            <div v-if="v.reading">
+                                <h3 class="text-sm font-medium">Water test</h3>
+                                <p class="text-muted-foreground text-sm">{{ waterSummary(checkWater(v.reading, v.targets)) }}</p>
+                                <WaterChecks :checks="checkWater(v.reading, v.targets)" :explain="false" class="mt-1" />
+                            </div>
 
-                            <section v-if="props.selected.reading">
-                                <h3 class="mb-2 font-medium">Water chemistry</h3>
-                                <dl class="text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
-                                    <div v-for="row in readingRows(props.selected.reading)" :key="row.label" class="flex justify-between">
-                                        <dt>{{ row.label }}</dt>
-                                        <dd>{{ row.value !== null ? row.value + row.suffix : '—' }}</dd>
-                                    </div>
-                                    <div
-                                        v-if="props.selected.reading.lsi_score !== null"
-                                        class="border-border text-foreground col-span-2 mt-1 flex justify-between border-t pt-1 font-medium"
-                                    >
-                                        <dt>Water balance (LSI)</dt>
-                                        <dd>{{ props.selected.reading.lsi_score }}</dd>
-                                    </div>
-                                </dl>
-                            </section>
-
-                            <section v-if="props.selected.treatments.length">
-                                <h3 class="mb-1 font-medium">Treatments</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="(t, i) in props.selected.treatments" :key="i" class="flex justify-between">
+                            <div v-if="v.treatments.length">
+                                <h3 class="text-sm font-medium">Chemicals added</h3>
+                                <ul class="mt-2 space-y-1 text-sm">
+                                    <li v-for="t in v.treatments" :key="t.name" class="flex justify-between gap-4 sm:max-w-sm">
                                         <span>{{ t.name }}</span
-                                        ><span>{{ t.amount }} {{ t.unit }}</span>
+                                        ><span class="text-muted-foreground tabular-nums">{{ amount(t) }}</span>
                                     </li>
                                 </ul>
-                            </section>
+                            </div>
 
-                            <section v-if="props.selected.tasks.length">
-                                <h3 class="mb-1 font-medium">Service checklist</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="(t, i) in props.selected.tasks" :key="i" class="flex items-center gap-2">
-                                        <span :class="t.done ? 'text-emerald-600 dark:text-emerald-400' : ''">{{ t.done ? '✓' : '○' }}</span>
-                                        {{ t.name }}
-                                    </li>
-                                </ul>
-                            </section>
+                            <div v-if="v.notes" class="bg-muted max-w-prose rounded-2xl rounded-tl-md px-4 py-2.5 text-sm">
+                                <p class="text-muted-foreground text-xs font-medium">{{ v.agent ?? 'Your technician' }} wrote</p>
+                                <p class="whitespace-pre-line">{{ v.notes }}</p>
+                            </div>
 
-                            <section v-if="props.selected.notes">
-                                <h3 class="mb-1 font-medium">Notes</h3>
-                                <p class="text-muted-foreground">{{ props.selected.notes }}</p>
-                            </section>
+                            <div v-if="v.photos.length" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                <a
+                                    v-for="(src, i) in v.photos"
+                                    :key="src"
+                                    :href="src"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="focus-visible:ring-ring overflow-hidden rounded-xl focus-visible:ring-2 focus-visible:outline-none"
+                                >
+                                    <img
+                                        :src="src"
+                                        :alt="`Photo ${i + 1} from this visit`"
+                                        class="aspect-square w-full object-cover"
+                                        loading="lazy"
+                                    />
+                                </a>
+                            </div>
 
-                            <section v-if="props.selected.photos.length">
-                                <h3 class="mb-1 font-medium">Photos</h3>
-                                <div class="grid grid-cols-3 gap-2">
-                                    <a v-for="(photo, i) in props.selected.photos" :key="i" :href="photo" target="_blank">
-                                        <img
-                                            :src="photo"
-                                            alt="Service photo"
-                                            class="border-border aspect-square w-full rounded-md border object-cover"
-                                        />
-                                    </a>
-                                </div>
-                            </section>
+                            <p class="text-muted-foreground text-sm">
+                                Questions about this visit?
+                                <Link :href="`/requests?pool=${v.pool_id}`" class="text-primary font-medium underline-offset-4 hover:underline"
+                                    >Send a note</Link
+                                >
+                            </p>
                         </div>
-                    </div>
-                </template>
-            </MasterDetail>
+                    </li>
+                </ol>
+            </section>
+
+            <nav v-if="props.visits.last_page > 1" class="flex items-center justify-between gap-4" aria-label="More visits">
+                <Button variant="outline" :disabled="props.visits.current_page <= 1" @click="goTo(props.visits.current_page - 1)"
+                    >Newer visits</Button
+                >
+                <span class="text-muted-foreground text-sm">Page {{ props.visits.current_page }} of {{ props.visits.last_page }}</span>
+                <Button variant="outline" :disabled="props.visits.current_page >= props.visits.last_page" @click="goTo(props.visits.current_page + 1)"
+                    >Older visits</Button
+                >
+            </nav>
         </div>
     </AppLayout>
 </template>

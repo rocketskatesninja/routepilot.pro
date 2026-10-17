@@ -1,143 +1,157 @@
 <script setup lang="ts">
-import HealthRing from '@/components/charts/HealthRing.vue';
 import Sparkline from '@/components/charts/Sparkline.vue';
-import EntityAvatar from '@/components/EntityAvatar.vue';
+import PortalPageHeader from '@/components/portal/PortalPageHeader.vue';
+import WaterChecks from '@/components/portal/WaterChecks.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { targetsFor } from '@/lib/chemistry';
+import { andList, checkWater, howOften, longDay, waterSummary, type ScheduleLike, type WaterReading, type WaterTargets } from '@/lib/portal';
+import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
-import { CalendarClock, Flame, Waves } from 'lucide-vue-next';
+import { Head, Link } from '@inertiajs/vue3';
+import { Waves } from 'lucide-vue-next';
 
-interface Reading {
-    free_chlorine: number | null;
-    ph: number | null;
-    alkalinity: number | null;
-    calcium_hardness: number | null;
-    cyanuric_acid: number | null;
-    salt: number | null;
+interface PoolPlan extends ScheduleLike {
+    id: number;
+    service: string | null;
+    agent: string | null;
+    status: string;
 }
-interface PoolCard {
+
+interface PoolInfo {
     id: number;
     name: string;
     photo: string | null;
+    type: string;
     sanitizer: string | null;
     volume: number | null;
-    has_heater: boolean;
+    features: string[];
     last_serviced: string | null;
-    health: { label: string; color: 'green' | 'amber' | 'red'; description: string } | null;
-    reading: Reading | null;
+    tested_on: string | null;
+    reading: WaterReading | null;
+    targets: WaterTargets;
     trend: { chlorine: number[]; ph: number[]; dates: string[] };
+    plans: PoolPlan[];
 }
 
-const props = defineProps<{
-    pools: PoolCard[];
-    nextVisit: { pool: string | null; date: string | null; window: string | null } | null;
-}>();
+const props = defineProps<{ pools: PoolInfo[] }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'My Pools', href: '/my-pools' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: props.pools.length === 1 ? 'Your pool' : 'Your pools', href: '/my-pools' }];
 
-const ppm = (v: number | null) => (v != null ? `${v} ppm` : '—');
+const TYPES: Record<string, string> = {
+    inground: 'in-ground',
+    above_ground: 'above-ground',
+    indoor: 'indoor',
+    spa: 'spa',
+    infinity: 'infinity',
+    other: '',
+};
+const SANITIZERS: Record<string, string> = {
+    salt: 'salt',
+    chlorine: 'chlorine',
+    bromine: 'bromine',
+    biguanide: 'biguanide',
+    ozone: 'ozone',
+    uv: 'UV',
+};
+const FEATURES: Record<string, string> = {
+    heater: 'a heater',
+    cover: 'a cover',
+    automation: 'automation',
+    cleaner: 'a pool cleaner',
+    water_feature: 'a water feature',
+    auto_fill: 'an auto-fill',
+};
+
+/** "A 12,000-gallon in-ground salt pool, with a heater and a cover." */
+function describe(p: PoolInfo): string {
+    const size = p.volume ? `${p.volume.toLocaleString('en-US')}-gallon` : '';
+    const kind = TYPES[p.type] ?? '';
+    const water = p.sanitizer ? (SANITIZERS[p.sanitizer] ?? '') : '';
+    const words = [size, kind, water, p.type === 'spa' ? '' : 'pool'].filter(Boolean).join(' ');
+    const article = /^[aeiou8]/i.test(words) || /^1[18],/.test(words) ? 'An' : 'A';
+    const extras = p.features.map((f) => FEATURES[f]).filter(Boolean);
+    return `${article} ${words || 'pool'}${extras.length ? `, with ${andList(extras)}` : ''}.`;
+}
+
+const band = (p: PoolInfo, key: 'free_chlorine' | 'ph'): [number, number] => {
+    const r = targetsFor({ custom_target_ranges: p.targets })[key];
+    return [r.min, r.max];
+};
 </script>
 
 <template>
-    <Head title="My Pools" />
+    <Head :title="props.pools.length === 1 ? 'Your pool' : 'Your pools'" />
 
-    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.pools.length} ${props.pools.length === 1 ? 'pool' : 'pools'}`">
-        <div class="mx-auto w-full max-w-4xl space-y-4 p-4">
-            <!-- Next visit -->
-            <div v-if="nextVisit" class="border-primary/25 bg-primary/10 flex items-center gap-3 rounded-xl border p-4">
-                <CalendarClock class="text-primary size-5 shrink-0" />
-                <div class="text-sm">
-                    <p class="text-foreground font-medium">Next visit{{ nextVisit.pool ? ` — ${nextVisit.pool}` : '' }}</p>
-                    <p class="text-muted-foreground">
-                        {{ nextVisit.date }}<template v-if="nextVisit.window"> · arriving {{ nextVisit.window }}</template>
-                    </p>
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 py-6">
+            <p v-if="!props.pools.length" class="border-border text-muted-foreground rounded-2xl border p-5 text-[15px]">
+                Your pool isn’t on your account yet. Send your service company a note from the
+                <Link href="/requests" class="text-primary underline-offset-4 hover:underline">Services</Link> page and they’ll add it.
+            </p>
+
+            <article v-for="p in props.pools" :key="p.id" class="flex flex-col gap-8" :aria-labelledby="`pool-${p.id}`">
+                <!-- what it is -->
+                <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    <img v-if="p.photo" :src="p.photo" :alt="p.name" class="aspect-[4/3] w-full rounded-2xl object-cover sm:w-56" />
+                    <span v-else class="text-primary grid size-16 shrink-0 place-items-center rounded-2xl bg-[hsl(var(--brand)/0.1)]">
+                        <Waves class="size-8" />
+                    </span>
+                    <PortalPageHeader :id="`pool-${p.id}`" :title="p.name" :summary="describe(p)">
+                        <p v-if="p.last_serviced" class="text-muted-foreground mt-1 text-sm">Last serviced {{ longDay(p.last_serviced) }}.</p>
+                    </PortalPageHeader>
                 </div>
-            </div>
 
-            <!-- Pool cards -->
-            <div v-if="pools.length" class="grid gap-4 sm:grid-cols-2">
-                <div v-for="p in pools" :key="p.id" class="border-border bg-background overflow-hidden rounded-xl border shadow-sm">
-                    <div class="border-border flex items-center gap-3 border-b p-4">
-                        <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="md" />
-                        <div class="min-w-0 flex-1">
-                            <p class="truncate font-semibold">{{ p.name }}</p>
-                            <p class="text-muted-foreground truncate text-xs capitalize">
-                                {{ p.sanitizer }}<template v-if="p.volume"> · {{ p.volume.toLocaleString() }} gal</template>
-                            </p>
+                <!-- how the water looked -->
+                <section :aria-labelledby="`water-${p.id}`">
+                    <h2 :id="`water-${p.id}`" class="font-display text-xl font-semibold tracking-tight">
+                        {{ p.tested_on ? `Your water on ${formatDay(p.tested_on)}` : 'Your water' }}
+                    </h2>
+                    <template v-if="p.reading">
+                        <p class="text-muted-foreground mt-1 text-sm">{{ waterSummary(checkWater(p.reading, p.targets)) }}</p>
+                        <div class="border-border mt-4 rounded-2xl border px-4 sm:px-5">
+                            <WaterChecks :checks="checkWater(p.reading, p.targets)" />
                         </div>
-                    </div>
-                    <div class="p-4">
-                        <div v-if="p.reading" class="flex items-start gap-4">
-                            <HealthRing
-                                v-if="p.health"
-                                :tone="p.health.color"
-                                :label="p.health.label"
-                                class="shrink-0"
-                                :title="p.health.description"
-                            />
-                            <div class="min-w-0 flex-1 space-y-3">
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <p class="text-sm font-semibold">
-                                            {{ p.reading.free_chlorine ?? '—' }}<span class="text-muted-foreground text-xs font-normal"> ppm</span>
-                                        </p>
-                                        <p class="text-muted-foreground text-[11px] leading-tight">Free chlorine</p>
-                                        <Sparkline
-                                            v-if="p.trend.chlorine.length > 1"
-                                            :values="p.trend.chlorine"
-                                            :band="[1, 3]"
-                                            color="hsl(var(--chart-1))"
-                                            class="mt-1"
-                                        />
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-semibold">{{ p.reading.ph ?? '—' }}</p>
-                                        <p class="text-muted-foreground text-[11px] leading-tight">pH</p>
-                                        <Sparkline
-                                            v-if="p.trend.ph.length > 1"
-                                            :values="p.trend.ph"
-                                            :band="[7.2, 7.8]"
-                                            color="hsl(var(--chart-2))"
-                                            class="mt-1"
-                                        />
-                                    </div>
+
+                        <div v-if="p.trend.chlorine.length > 1 || p.trend.ph.length > 1" class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <figure v-if="p.trend.chlorine.length > 1" class="border-border rounded-2xl border p-4">
+                                <figcaption class="text-sm font-medium">Chlorine, last {{ p.trend.chlorine.length }} visits</figcaption>
+                                <div class="mt-2">
+                                    <Sparkline :values="p.trend.chlorine" :band="band(p, 'free_chlorine')" color="hsl(var(--brand))" />
                                 </div>
-                                <p v-if="p.trend.dates.length > 1" class="text-muted-foreground text-[10px]">
-                                    {{ p.trend.dates[0] }} – {{ p.trend.dates[p.trend.dates.length - 1] }}
-                                </p>
-                                <dl class="text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                                    <div class="flex justify-between gap-2">
-                                        <dt>Alkalinity</dt>
-                                        <dd>{{ ppm(p.reading.alkalinity) }}</dd>
-                                    </div>
-                                    <div class="flex justify-between gap-2">
-                                        <dt>Calcium</dt>
-                                        <dd>{{ ppm(p.reading.calcium_hardness) }}</dd>
-                                    </div>
-                                    <div class="flex justify-between gap-2">
-                                        <dt>Cyanuric</dt>
-                                        <dd>{{ ppm(p.reading.cyanuric_acid) }}</dd>
-                                    </div>
-                                    <div class="flex justify-between gap-2">
-                                        <dt>Salt</dt>
-                                        <dd>{{ ppm(p.reading.salt) }}</dd>
-                                    </div>
-                                </dl>
-                            </div>
+                                <p class="text-muted-foreground mt-1 text-xs">Shaded area is the healthy range.</p>
+                            </figure>
+                            <figure v-if="p.trend.ph.length > 1" class="border-border rounded-2xl border p-4">
+                                <figcaption class="text-sm font-medium">pH, last {{ p.trend.ph.length }} visits</figcaption>
+                                <div class="mt-2"><Sparkline :values="p.trend.ph" :band="band(p, 'ph')" color="hsl(var(--brand))" /></div>
+                                <p class="text-muted-foreground mt-1 text-xs">Shaded area is the healthy range.</p>
+                            </figure>
                         </div>
-                        <p v-else class="text-muted-foreground text-sm">No water chemistry recorded yet.</p>
-                        <div class="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs">
-                            <template v-if="p.last_serviced"><Waves class="size-3.5" /> Last serviced {{ p.last_serviced }}</template>
-                            <span v-if="p.has_heater" class="ml-auto inline-flex items-center gap-1"
-                                ><Flame class="size-3.5 text-orange-500" /> Heated</span
-                            >
-                        </div>
+                    </template>
+                    <p v-else class="text-muted-foreground mt-1 text-sm">Your technician tests the water on each visit. Results show up here.</p>
+                </section>
+
+                <!-- the service it gets -->
+                <section :aria-labelledby="`service-${p.id}`">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 :id="`service-${p.id}`" class="font-display text-xl font-semibold tracking-tight">Service on this pool</h2>
+                        <Link :href="`/requests?pool=${p.id}`" class="text-primary text-sm font-medium underline-offset-4 hover:underline"
+                            >Manage</Link
+                        >
                     </div>
-                </div>
-            </div>
-            <div v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-10 text-center text-sm">
-                No pools on your account yet.
-            </div>
+                    <ul v-if="p.plans.length" class="border-border divide-border mt-4 divide-y rounded-2xl border">
+                        <li v-for="s in p.plans" :key="s.id" class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 p-4 sm:px-5">
+                            <span class="font-medium">{{ s.service }}</span>
+                            <span class="text-muted-foreground text-sm"
+                                >{{ s.status === 'paused' ? 'Paused' : howOften(s) }}<template v-if="s.agent">, with {{ s.agent }}</template></span
+                            >
+                        </li>
+                    </ul>
+                    <p v-else class="text-muted-foreground mt-1 text-sm">
+                        No regular service yet.
+                        <Link :href="`/requests?pool=${p.id}`" class="text-primary underline-offset-4 hover:underline">Pick a service</Link>.
+                    </p>
+                </section>
+            </article>
         </div>
     </AppLayout>
 </template>

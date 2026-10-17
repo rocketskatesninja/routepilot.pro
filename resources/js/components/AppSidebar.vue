@@ -27,6 +27,7 @@ import {
     FileText,
     FlaskConical,
     Globe,
+    Home,
     Inbox,
     LayoutGrid,
     Map,
@@ -106,7 +107,7 @@ const navByRole: Record<string, NavSection[]> = {
     customer: [
         {
             items: [
-                { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+                { title: 'Home', href: '/dashboard', icon: Home },
                 { title: 'My Pools', href: '/my-pools', icon: Waves },
                 { title: 'Service History', href: '/history', icon: FileText },
                 { title: 'Balance', href: '/balance', icon: Banknote },

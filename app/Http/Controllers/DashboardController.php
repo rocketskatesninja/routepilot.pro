@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\AssembleDashboardData;
+use App\Actions\AssemblePortalHome;
 use App\Actions\SaveDashboardLayout;
 use App\Dashboard\DashboardWidgets;
 use App\Http\Requests\UpdateDashboardLayoutRequest;
+use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\OnboardingStatus;
@@ -17,17 +19,25 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The dashboard is a per-user customizable widget grid. Every role lands on the
- * same grid page; the role decides which widgets are available and their default
- * layout (App\Dashboard\DashboardWidgets), and AssembleDashboardData computes
- * only the data the placed widgets need.
+ * Staff land on a per-user customizable widget grid: the role decides which
+ * widgets are available and their default layout (App\Dashboard\DashboardWidgets),
+ * and AssembleDashboardData computes only the data the placed widgets need.
+ * Customers get a fixed Home page instead (AssemblePortalHome) — what a
+ * homeowner checks, laid out for them, nothing to arrange.
  */
 class DashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, AssemblePortalHome $home): Response
     {
         $user = $request->user();
         abort_if($user === null, 403);
+
+        if ($user->role === 'customer') {
+            $customer = Customer::query()->where('user_id', $user->id)->first();
+            abort_if($customer === null, 404);
+
+            return Inertia::render('portal/Home', $home->handle($customer));
+        }
 
         return Inertia::render('dashboards/Grid', $this->gridData($user));
     }

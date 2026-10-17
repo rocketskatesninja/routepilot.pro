@@ -64,7 +64,7 @@ test('an agent lands on the grid with their route + day stats', function () {
         );
 });
 
-test('a customer lands on the grid with their pools', function () {
+test('a customer lands on their Home page, not the grid', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
     $customer = Customer::factory()->for($this->tenant)->create();
     $customer->forceFill(['user_id' => $portalUser->id])->save();
@@ -73,8 +73,7 @@ test('a customer lands on the grid with their pools', function () {
     $this->actingAs($portalUser)
         ->get('/dashboard')
         ->assertInertia(fn (Assert $page) => $page
-            ->component('dashboards/Grid')
-            ->has('widgets.my_pools.pools', 1)
-            ->where('widgets.my_pools.pools.0.name', 'Backyard Pool')
+            ->component('portal/Home')
+            ->where('firstName', $customer->first_name)
         );
 });

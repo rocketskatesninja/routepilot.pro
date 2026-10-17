@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Pool;
 use App\Models\RouteStop;
@@ -15,12 +16,10 @@ use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Services\BillingService;
-use App\Services\ChemistryService;
 use App\Services\StripeService;
-use App\Support\EtaWindow;
+use App\Support\PortalVisit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,133 +34,64 @@ class PortalController extends Controller
     public function history(Request $request): Response
     {
         $customer = $this->resolveCustomer($request);
-        $poolIds = $customer->pools()->pluck('id');
 
         $visits = ServiceVisit::query()
-            ->whereIn('pool_id', $poolIds)
+            ->whereIn('pool_id', $customer->pools()->pluck('id'))
             ->where('status', 'completed')
-            ->with('pool:id,name,photo_path')
+            ->with(PortalVisit::WITH)
             ->latest('completed_at')
             ->paginate(15)
             ->withQueryString()
-            ->through(function (ServiceVisit $v): array {
-                $poolPhoto = $v->pool?->getAttribute('photo_path');
+            ->through(fn (ServiceVisit $v): array => PortalVisit::toArray($v));
 
-                return [
-                    'id' => $v->id,
-                    'pool' => $v->pool?->getAttribute('name'),
-                    'pool_photo' => $this->photoUrl($poolPhoto),
-                    'on' => $v->completed_at?->toDateString(),
-                ];
-            });
-
-        $selected = null;
-        $selectedId = $request->integer('selected');
-        if ($selectedId > 0) {
-            $visit = ServiceVisit::query()
-                ->whereIn('pool_id', $poolIds)
-                ->whereKey($selectedId)
-                ->with(['pool:id,name', 'agent:id,first_name,last_name', 'chemicalReading', 'treatments', 'tasks', 'photos'])
-                ->first();
-            if ($visit !== null) {
-                $selected = $this->toDetail($visit);
-                // Recent chlorine/pH for this pool → the detail's chemistry trend sparklines.
-                $trendVisits = ServiceVisit::query()
-                    ->where('pool_id', $visit->pool_id)
-                    ->where('status', 'completed')
-                    ->latest('completed_at')
-                    ->with('chemicalReading')
-                    ->limit(8)->get()->reverse()->values();
-                $selected['trend'] = ServiceVisit::chemistryTrend($trendVisits);
-            }
-        }
-
-        return Inertia::render('portal/History', [
-            'visits' => $visits,
-            'selected' => $selected,
-            'nextVisit' => $this->nextVisit($poolIds),
-            'customerId' => $customer->id,
-        ]);
+        return Inertia::render('portal/History', ['visits' => $visits]);
     }
 
-    /** The homeowner's pools — details + latest water chemistry + health, plus their next visit. */
-    public function pools(Request $request, ChemistryService $chem): Response
+    /** The homeowner's pools — what each one is, how its water looked, and the service it gets. */
+    public function pools(Request $request): Response
     {
         $customer = $this->resolveCustomer($request);
+        $today = Tenant::localToday()->toDateString();
 
-        $pools = $customer->pools()->orderBy('name')->get()->map(function (Pool $pool) use ($chem): array {
-            // Newest first — drives both the latest reading and the recent-trend sparklines.
+        $pools = $customer->pools()->orderBy('name')->get()->map(function (Pool $pool) use ($today): array {
+            // Newest first — the latest reading, plus the recent trend for chlorine and pH.
             $history = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->limit(8)->get();
-            $visit = $history->first();
-            $reading = $visit?->chemicalReading;
-            $trend = ServiceVisit::chemistryTrend($history->reverse()->values());
-            $health = $reading === null ? null : $chem->getLSIStatus((float) ($reading->lsi_score ?? $chem->calculateLSI([
-                'temperature' => $reading->water_temperature, 'ph' => $reading->ph,
-                'alkalinity' => $reading->alkalinity, 'calcium_hardness' => $reading->calcium_hardness, 'salt' => $reading->salt,
-            ])));
+            $tested = $history->first(fn (ServiceVisit $v): bool => $v->chemicalReading !== null);
+            $plans = $pool->subscriptions()->whereIn('status', ['active', 'paused'])
+                ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today))
+                ->where(fn ($q) => $q->where('frequency', '!=', 'one_time')->orWhere('starts_on', '>=', $today))
+                ->with(['serviceType:id,name', 'agent:id,first_name,last_name'])->get();
 
             return [
                 'id' => $pool->id,
                 'name' => $pool->name,
                 'photo' => $this->photoUrl($pool->getAttribute('photo_path')),
-                'sanitizer' => $pool->getAttribute('sanitizer_type'),
-                'volume' => $pool->getAttribute('volume_gallons'),
-                'has_heater' => (bool) $pool->getAttribute('has_heater'),
-                'last_serviced' => $visit?->completed_at?->toDateString(),
-                'health' => $health === null ? null : ['label' => $health['label'], 'color' => $health['color'], 'description' => $health['description']],
-                'reading' => $reading === null ? null : [
-                    'free_chlorine' => $reading->free_chlorine,
-                    'ph' => $reading->ph,
-                    'alkalinity' => $reading->alkalinity,
-                    'calcium_hardness' => $reading->calcium_hardness,
-                    'cyanuric_acid' => $reading->cyanuric_acid,
-                    'salt' => $reading->salt,
-                ],
-                'trend' => $trend,
+                'type' => $pool->type,
+                'sanitizer' => $pool->sanitizer_type,
+                'volume' => $pool->volume_gallons,
+                'features' => array_keys(array_filter([
+                    'heater' => $pool->has_heater, 'cover' => $pool->has_cover, 'automation' => $pool->has_automation,
+                    'cleaner' => $pool->has_pool_cleaner, 'water_feature' => $pool->has_water_feature, 'auto_fill' => $pool->has_auto_fill,
+                ])),
+                'last_serviced' => Tenant::localDate($history->first()?->completed_at),
+                'tested_on' => Tenant::localDate($tested?->completed_at),
+                'reading' => $tested !== null ? PortalVisit::reading($tested) : null,
+                'targets' => $pool->custom_target_ranges,
+                'trend' => ServiceVisit::chemistryTrend($history->reverse()->values()),
+                'plans' => $plans->map(fn (ServiceSubscription $p): array => [
+                    'id' => $p->id,
+                    'service' => $p->serviceType?->name,
+                    'frequency' => $p->frequency,
+                    'preferred_day' => $p->preferred_day,
+                    'day_of_month' => $p->day_of_month,
+                    'starts_on' => $p->starts_on?->toDateString(),
+                    'agent' => $p->agent?->firstName(),
+                    'status' => $p->status,
+                ])->all(),
             ];
         })->all();
 
-        return Inertia::render('portal/Pools', [
-            'pools' => $pools,
-            'nextVisit' => $this->nextVisit($customer->pools()->pluck('id')),
-        ]);
-    }
-
-    /**
-     * The homeowner's next upcoming visit (soonest pending stop on a route
-     * today or later) with a softened arrival window. Null when none is scheduled.
-     *
-     * @param  Collection<int, int>  $poolIds
-     * @return array<string, mixed>|null
-     */
-    private function nextVisit(Collection $poolIds): ?array
-    {
-        if ($poolIds->isEmpty()) {
-            return null;
-        }
-
-        // route_stops has no tenant scope of its own; the pool-id filter keeps
-        // this to the customer's own pools, and the join stays uncached.
-        $stop = RouteStop::query()
-            ->select('route_stops.*')
-            ->join('routes', 'routes.id', '=', 'route_stops.route_id')
-            ->whereIn('route_stops.pool_id', $poolIds)
-            ->where('route_stops.status', 'pending')
-            ->whereDate('routes.scheduled_date', '>=', Tenant::localToday())
-            ->with(['pool:id,name', 'route:id,scheduled_date'])
-            ->orderBy('routes.scheduled_date')
-            ->orderBy('route_stops.stop_order')
-            ->first();
-
-        if ($stop === null) {
-            return null;
-        }
-
-        return [
-            'pool' => $stop->pool?->getAttribute('name'),
-            'date' => $stop->route?->scheduled_date?->format('l, M j'),
-            'window' => EtaWindow::for($stop->estimated_arrival),
-        ];
+        return Inertia::render('portal/Pools', ['pools' => $pools]);
     }
 
     public function requests(Request $request): Response
@@ -288,8 +218,14 @@ class PortalController extends Controller
             }
         }
 
+        $payments = Payment::query()->where('customer_id', $customer->id)->where('status', 'succeeded')
+            ->latest('paid_at')->limit(6)->get()
+            ->map(fn (Payment $p): array => ['amount' => (float) $p->amount, 'on' => Tenant::localDate($p->paid_at), 'method' => $p->method])
+            ->all();
+
         return Inertia::render('portal/Balance', [
             'total' => $breakdown['total'],
+            'payments' => $payments,
             'visits' => $breakdown['visits'],
             'charges' => $breakdown['charges'],
             'can_pay' => $stripe->configured(),
@@ -382,39 +318,5 @@ class PortalController extends Controller
         abort_if($customer === null, 404);
 
         return $customer;
-    }
-
-    /** @return array<string, mixed> */
-    private function toDetail(ServiceVisit $visit): array
-    {
-        $reading = $visit->chemicalReading;
-
-        return [
-            'id' => $visit->id,
-            'pool' => $visit->pool?->getAttribute('name'),
-            'pool_id' => $visit->pool?->getKey(),
-            'on' => $visit->completed_at?->toDateString(),
-            'agent' => $visit->agent?->firstName(),
-            'notes' => $visit->notes,
-            'reading' => $reading !== null ? [
-                'free_chlorine' => $reading->free_chlorine,
-                'ph' => $reading->ph,
-                'alkalinity' => $reading->alkalinity,
-                'calcium_hardness' => $reading->calcium_hardness,
-                'cyanuric_acid' => $reading->cyanuric_acid,
-                'salt' => $reading->salt,
-                'lsi_score' => $reading->lsi_score,
-            ] : null,
-            'treatments' => $visit->treatments->map(fn ($t): array => [
-                'name' => $t->getAttribute('chemical_name'),
-                'amount' => (float) $t->amount,
-                'unit' => $t->getAttribute('unit'),
-            ])->all(),
-            'tasks' => $visit->tasks->map(fn ($t): array => [
-                'name' => $t->getAttribute('task_name'),
-                'done' => (bool) $t->getAttribute('is_completed'),
-            ])->all(),
-            'photos' => $visit->photos->map(fn ($p): ?string => $this->photoUrl($p->getAttribute('photo_path')))->all(),
-        ];
     }
 }

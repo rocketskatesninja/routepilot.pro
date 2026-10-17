@@ -13,7 +13,6 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
-use App\Services\ChemistryService;
 use App\Services\WeatherService;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Storage;
@@ -24,10 +23,6 @@ use Illuminate\Support\Facades\Storage;
  */
 class AssembleDashboardData
 {
-    private ?Customer $customerMemo = null;
-
-    private bool $customerLoaded = false;
-
     /** @var array<string, mixed>|null */
     private ?array $weatherMemo = null;
 
@@ -56,11 +51,6 @@ class AssembleDashboardData
             'agent_route' => fn () => $this->agentRoute($user),
             'agent_route_map' => fn () => $this->agentRouteMap($user),
             'agent_visits' => fn () => $this->agentVisits($user),
-            // customer
-            'my_pools' => fn () => $this->myPools($user),
-            'next_visit' => fn () => $this->nextVisit($user),
-            'account_balance' => fn () => $this->accountBalance($user),
-            'customer_visits' => fn () => $this->customerVisits($user),
             // super_admin
             'platform_stats' => fn () => $this->platformStats(),
             'recent_tenants' => fn () => $this->recentTenants(),
@@ -262,95 +252,6 @@ class AssembleDashboardData
                 'status' => $s->status,
             ])->values()->all(),
         ];
-    }
-
-    /**
-     * Customer: their pools with a chemistry health status.
-     *
-     * @return array{pools: list<array<string, mixed>>}
-     */
-    private function myPools(User $user): array
-    {
-        $customer = $this->customerFor($user);
-        if ($customer === null) {
-            return ['pools' => []];
-        }
-        $chem = app(ChemistryService::class);
-
-        return ['pools' => $customer->pools->map(function (Pool $pool) use ($chem): array {
-            $reading = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->first()?->chemicalReading;
-            $health = $reading === null ? null : $chem->getLSIStatus((float) ($reading->lsi_score ?? $chem->calculateLSI([
-                'temperature' => $reading->water_temperature, 'ph' => $reading->ph,
-                'alkalinity' => $reading->alkalinity, 'calcium_hardness' => $reading->calcium_hardness, 'salt' => $reading->salt,
-            ])));
-
-            return ['id' => $pool->id, 'name' => $pool->name, 'photo' => $this->photoUrl($pool->getAttribute('photo_path')), 'health' => $health];
-        })->all()];
-    }
-
-    /**
-     * Customer: their next scheduled visit.
-     *
-     * @return array<string, mixed>|null
-     */
-    private function nextVisit(User $user): ?array
-    {
-        $customer = $this->customerFor($user);
-        if ($customer === null) {
-            return null;
-        }
-
-        $next = RouteStop::query()
-            ->whereIn('pool_id', $customer->pools->pluck('id'))->where('status', 'pending')
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
-            ->with(['route:id,scheduled_date', 'pool:id,name'])->get()
-            ->sortBy(fn (RouteStop $s) => $s->route?->scheduled_date)->first();
-
-        return $next !== null ? [
-            'pool' => $next->pool?->getAttribute('name'),
-            'date' => $next->route?->scheduled_date?->toDateString(),
-        ] : null;
-    }
-
-    /**
-     * Customer: outstanding balance + autopay state.
-     *
-     * @return array<string, mixed>
-     */
-    private function accountBalance(User $user): array
-    {
-        $customer = $this->customerFor($user);
-
-        return [
-            'balance' => $customer !== null ? app(BillingService::class)->outstandingForCustomer($customer) : 0.0,
-            'autopay' => $customer !== null && (bool) $customer->getAttribute('autopay_enabled'),
-        ];
-    }
-
-    /**
-     * Customer: recent visits to their pools (rendered by the Recent-visits widget).
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function customerVisits(User $user): array
-    {
-        $customer = $this->customerFor($user);
-        if ($customer === null) {
-            return [];
-        }
-
-        return $this->recentActivity(null, $customer->pools->pluck('id')->all(), '/history');
-    }
-
-    /** The acting customer record (memoized per request). */
-    private function customerFor(User $user): ?Customer
-    {
-        if (! $this->customerLoaded) {
-            $this->customerMemo = Customer::query()->where('user_id', $user->id)->with('pools')->first();
-            $this->customerLoaded = true;
-        }
-
-        return $this->customerMemo;
     }
 
     /**
