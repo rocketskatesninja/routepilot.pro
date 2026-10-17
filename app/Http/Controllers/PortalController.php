@@ -53,7 +53,7 @@ class PortalController extends Controller
         $customer = $this->resolveCustomer($request);
         $today = Tenant::localToday()->toDateString();
 
-        $pools = $customer->pools()->orderBy('name')->get()->map(function (Pool $pool) use ($today): array {
+        $pools = $customer->pools()->with('serviceLocation')->orderBy('name')->get()->map(function (Pool $pool) use ($today): array {
             // Newest first — the latest reading, plus the recent trend for chlorine and pH.
             $history = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->limit(8)->get();
             $tested = $history->first(fn (ServiceVisit $v): bool => $v->chemicalReading !== null);
@@ -65,6 +65,7 @@ class PortalController extends Controller
             return [
                 'id' => $pool->id,
                 'name' => $pool->name,
+                'address' => implode(', ', array_filter([$pool->serviceLocation?->address_line1, $pool->serviceLocation?->city])) ?: null,
                 'photo' => $this->photoUrl($pool->getAttribute('photo_path')),
                 'type' => $pool->type,
                 'sanitizer' => $pool->sanitizer_type,

@@ -15,6 +15,7 @@ interface Upcoming {
     agent: string | null;
     window: string | null;
     services: string[];
+    pools: string[];
 }
 
 interface Visit {
@@ -35,6 +36,7 @@ interface Visit {
 const props = defineProps<{
     firstName: string;
     customerId: number;
+    poolCount: number;
     upcoming: Upcoming[];
     hasService: boolean;
     lastVisit: Visit | null;
@@ -52,6 +54,10 @@ const company = computed(() => page.props.tenant?.name ?? 'your pool company');
 
 const next = computed(() => props.upcoming[0] ?? null);
 const then = computed(() => props.upcoming[1] ?? null);
+
+// With more than one pool, say which pool a visit is for.
+const manyPools = computed(() => props.poolCount > 1);
+const at = (pools: string[]) => (manyPools.value && pools.length ? ` at ${andList(pools)}` : '');
 
 // Live "on the way": the arrival window updates in place as the tech drives.
 const liveWindow = ref<string | null>(null);
@@ -94,14 +100,15 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
             <PortalHero :greeting="`Hi ${props.firstName}, here’s your pool service with ${company}.`">
                 <template v-if="next && liveWindow">{{ next.agent ?? 'Your technician' }} is on the way.</template>
                 <template v-else-if="next">
-                    {{ next.agent ?? 'Your technician' }} is coming {{ when(next.date, props.today) }} for your {{ andList(next.services) }}.
+                    {{ next.agent ?? 'Your technician' }} is coming {{ when(next.date, props.today) }} for your {{ andList(next.services)
+                    }}{{ at(next.pools) }}.
                 </template>
                 <template v-else-if="props.hasService">Your next visit isn’t on the schedule yet.</template>
                 <template v-else>You don’t have regular service yet.</template>
 
                 <template #sub>
                     <p v-if="arriving">Expected between {{ arriving.replace('–', 'and') }}.</p>
-                    <p v-if="then">Then {{ andList(then.services) }} {{ when(then.date, props.today) }}.</p>
+                    <p v-if="then">Then {{ andList(then.services) }}{{ at(then.pools) }} {{ when(then.date, props.today) }}.</p>
                     <p v-if="!next && !props.hasService">Pick a service and {{ company }} will set it up.</p>
                 </template>
                 <template v-if="!next && !props.hasService" #actions>
@@ -125,7 +132,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                     <Link
                         href="/my-pools"
                         class="text-primary col-start-2 text-sm font-medium whitespace-nowrap underline-offset-4 hover:underline sm:col-start-auto"
-                        >See your pool</Link
+                        >{{ manyPools ? 'See your pools' : 'See your pool' }}</Link
                     >
                 </div>
 
@@ -182,7 +189,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                 <article class="border-border mt-4 rounded-2xl border p-5 sm:p-6">
                     <p class="font-medium">{{ props.lastVisit.on ? longDay(props.lastVisit.on) : '' }}</p>
                     <p class="text-muted-foreground text-sm">
-                        {{ props.lastVisit.service ?? 'Service visit'
+                        {{ props.lastVisit.service ?? 'Service visit' }}{{ at(props.lastVisit.pool ? [props.lastVisit.pool] : [])
                         }}<template v-if="props.lastVisit.agent"> with {{ props.lastVisit.agent }}</template>
                     </p>
 

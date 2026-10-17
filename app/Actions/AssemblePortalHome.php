@@ -39,6 +39,8 @@ class AssemblePortalHome
         return [
             'firstName' => $customer->first_name,
             'customerId' => $customer->id,
+            // With more than one pool, the page says which pool each thing is about.
+            'poolCount' => $pools->count(),
             'upcoming' => $this->upcoming($poolIds->all()),
             'hasService' => ServiceSubscription::query()->whereIn('pool_id', $poolIds)->whereIn('status', ['active', 'paused'])->exists(),
             'lastVisit' => $latest !== null ? PortalVisit::toArray($latest) : null,
@@ -83,6 +85,7 @@ class AssemblePortalHome
                     'agent' => $first?->route?->agent?->firstName(),
                     'window' => EtaWindow::for($first?->estimated_arrival),
                     'services' => $day->map(fn (RouteStop $s): string => $s->serviceSubscription->serviceType->name ?? 'a service visit')->unique()->values()->all(),
+                    'pools' => $day->map(fn (RouteStop $s): ?string => $s->pool?->getAttribute('name'))->filter()->unique()->values()->all(),
                 ];
             })->values()->all();
     }

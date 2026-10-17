@@ -79,7 +79,7 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
         <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-6">
             <PortalPageHeader
                 title="Service history"
-                summary="Every visit to your pool: what was done, how the water looked, and photos when they were taken."
+                :summary="`Every visit to your ${manyPools ? 'pools' : 'pool'}: what was done, how the water looked, and photos when they were taken.`"
             />
 
             <p v-if="!props.visits.data.length" class="border-border text-muted-foreground rounded-2xl border p-5 text-[15px]">

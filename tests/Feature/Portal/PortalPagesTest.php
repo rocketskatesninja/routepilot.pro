@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceLocation;
 use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
@@ -127,4 +128,27 @@ test('Balance names the service on each visit charge and lists recent payments',
             ->where('visits.0.description', 'Weekly Pool Service — Backyard pool')
             ->where('payments.0.amount', 25)
             ->where('payments.0.on', '2026-10-12'));
+});
+
+test('with two pools, Home and My Pools say which pool is which', function () {
+    $beach = Pool::factory()->for($this->tenant)->for($this->customer)->create(['name' => 'Beach House Pool']);
+    ServiceLocation::factory()->for($beach)->create(['address_line1' => '27 Marsh Hen Lane', 'city' => 'St. Simons Island']);
+    $beachPlan = $beach->subscriptions()->create([
+        'service_type_id' => $this->service->id, 'assigned_agent_id' => $this->agent->id, 'frequency' => 'biweekly', 'preferred_day' => 'friday', 'status' => 'active',
+    ]);
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => '2026-10-16']);
+    RouteStop::factory()->for($route)->for($beach)->create(['service_subscription_id' => $beachPlan->id]);
+
+    $this->actingAs($this->user)
+        ->get('/dashboard')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('poolCount', 2)
+            ->where('upcoming.0.pools', ['Beach House Pool']));
+
+    $this->actingAs($this->user)
+        ->get('/my-pools')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('pools', 2)
+            ->where('pools.1.name', 'Beach House Pool')
+            ->where('pools.1.address', '27 Marsh Hen Lane, St. Simons Island'));
 });

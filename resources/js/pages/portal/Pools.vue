@@ -9,6 +9,7 @@ import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { Waves } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 interface PoolPlan extends ScheduleLike {
     id: number;
@@ -20,6 +21,7 @@ interface PoolPlan extends ScheduleLike {
 interface PoolInfo {
     id: number;
     name: string;
+    address: string | null;
     photo: string | null;
     type: string;
     sanitizer: string | null;
@@ -36,6 +38,8 @@ interface PoolInfo {
 const props = defineProps<{ pools: PoolInfo[] }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: props.pools.length === 1 ? 'Your pool' : 'Your pools', href: '/my-pools' }];
+// More than one pool: a page title with a link to each, and each pool's address to tell them apart.
+const manyPools = computed(() => props.pools.length > 1);
 
 const TYPES: Record<string, string> = {
     inground: 'in-ground',
@@ -89,14 +93,38 @@ const band = (p: PoolInfo, key: 'free_chlorine' | 'ph'): [number, number] => {
                 <Link href="/requests" class="text-primary underline-offset-4 hover:underline">Services</Link> page and they’ll add it.
             </p>
 
-            <article v-for="p in props.pools" :key="p.id" class="flex flex-col gap-8" :aria-labelledby="`pool-${p.id}`">
+            <PortalPageHeader v-if="manyPools" title="Your pools" summary="How each pool’s water looked on its last visit, and the service it gets.">
+                <nav aria-label="Jump to a pool" class="mt-4 flex flex-wrap gap-2">
+                    <a
+                        v-for="p in props.pools"
+                        :key="p.id"
+                        :href="`#about-pool-${p.id}`"
+                        class="border-border hover:bg-muted focus-visible:ring-ring inline-flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-2 text-sm font-medium focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                        <span class="text-primary grid size-6 place-items-center rounded-full bg-[hsl(var(--brand)/0.1)]"
+                            ><Waves class="size-3.5"
+                        /></span>
+                        {{ p.name }}
+                    </a>
+                </nav>
+            </PortalPageHeader>
+
+            <article
+                v-for="(p, i) in props.pools"
+                :id="`about-pool-${p.id}`"
+                :key="p.id"
+                class="flex scroll-mt-6 flex-col gap-8"
+                :class="manyPools && i > 0 ? 'border-border border-t pt-12' : ''"
+                :aria-labelledby="`pool-${p.id}`"
+            >
                 <!-- what it is -->
                 <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
                     <img v-if="p.photo" :src="p.photo" :alt="p.name" class="aspect-[4/3] w-full rounded-2xl object-cover sm:w-56" />
                     <span v-else class="text-primary grid size-16 shrink-0 place-items-center rounded-2xl bg-[hsl(var(--brand)/0.1)]">
                         <Waves class="size-8" />
                     </span>
-                    <PortalPageHeader :id="`pool-${p.id}`" :title="p.name" :summary="describe(p)">
+                    <PortalPageHeader :id="`pool-${p.id}`" :title="p.name" :summary="describe(p)" :level="manyPools ? 'h2' : 'h1'">
+                        <p v-if="manyPools && p.address" class="text-muted-foreground mt-1 text-sm">{{ p.address }}</p>
                         <p v-if="p.last_serviced" class="text-muted-foreground mt-1 text-sm">Last serviced {{ longDay(p.last_serviced) }}.</p>
                     </PortalPageHeader>
                 </div>

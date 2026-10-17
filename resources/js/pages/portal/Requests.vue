@@ -210,7 +210,8 @@ const statusClass = (status: string) =>
                 <template #sub>
                     <p v-if="nextUp.length">
                         Next visit {{ when(nextDay as string, props.today) }}: {{ andList(nextUp.map((p) => p.service ?? 'service'))
-                        }}<template v-if="nextUp[0].agent"> with {{ nextUp[0].agent }}</template
+                        }}<template v-if="manyPools"> at {{ andList([...new Set(nextUp.map((p) => p.pool ?? 'your pool'))]) }}</template
+                        ><template v-if="nextUp[0].agent"> with {{ nextUp[0].agent }}</template
                         >.
                     </p>
                     <p v-else-if="props.plans.some((p) => p.hold_from || p.status === 'paused')">Your service is paused right now.</p>
@@ -336,7 +337,7 @@ const statusClass = (status: string) =>
                             </div>
                             <div class="sm:mt-1">
                                 <p v-if="poolsWith(s.id).length" class="mb-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                                    {{ manyPools ? `On ${poolsWith(s.id).join(', ')}` : 'You have this' }}
+                                    {{ manyPools ? `On ${andList(poolsWith(s.id))}` : 'You have this' }}
                                 </p>
                                 <Button
                                     :variant="poolsWith(s.id).length ? 'outline' : 'default'"
