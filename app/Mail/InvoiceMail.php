@@ -6,6 +6,7 @@ namespace App\Mail;
 
 use App\Models\Invoice;
 use App\Models\Tenant;
+use App\Support\EmailBrand;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -31,9 +32,13 @@ class InvoiceMail extends Mailable
 
     public function content(): Content
     {
+        $customer = $this->invoice->customer;
+
         return new Content(view: 'emails.invoice', with: [
+            'brand' => EmailBrand::for($customer->tenant),
+            'customerName' => $customer->first_name ?: $customer->displayName(),
             'invoice' => $this->invoice->load('charges'),
-            'company' => $this->invoice->customer->tenant->name,
+            'dueOn' => $this->invoice->due_at?->format('l, F j'),
             'payUrl' => $this->payUrl,
         ]);
     }

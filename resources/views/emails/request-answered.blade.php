@@ -1,17 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; background: #f9fafb; margin: 0; padding: 24px;">
-    <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px;">
-        <h2 style="color: #0ea5e9; margin: 0 0 16px;">{{ $headline }}</h2>
-        <p style="margin: 0 0 12px;">Hi {{ $customerName }},</p>
-        <p style="margin: 0 0 12px;">{{ $summary }}</p>
-        @if ($reply)
-            <p style="margin: 0 0 12px; padding: 12px; background: #f3f4f6; border-radius: 8px;"><strong>{{ $declined ? 'Reason' : 'Note from '.$company }}:</strong> {{ $reply }}</p>
-        @endif
-        @if ($portalUrl)
-            <p style="margin: 0 0 12px;">You can see all your requests anytime in your <a href="{{ $portalUrl }}" style="color: #0ea5e9;">customer portal</a>.</p>
-        @endif
-        <p style="margin: 16px 0 0; color: #6b7280;">Thanks for choosing {{ $company }}.</p>
-    </div>
-</body>
-</html>
+<x-email.layout :brand="$brand" :greeting="'Hi '.$customerName.','" :title="$headline" :sub="$summary" :preheader="$summary">
+    @if ($reply)
+        <x-email.note :author="$declined ? $company.' explained' : $company.' wrote'">{{ $reply }}</x-email.note>
+    @endif
+    @if ($portalUrl)
+        <x-email.button :brand="$brand" :href="$portalUrl">See your requests</x-email.button>
+    @endif
+</x-email.layout>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Models\Tenant;
+use App\Support\EmailBrand;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
@@ -29,6 +31,8 @@ class CampaignMail extends Mailable
         public string $recipientName,
         public ?string $unsubscribeUrl,
         public ?array $fromAddress = null,
+        /** The company sending it (its colours and logo); null for RoutePilot's own broadcasts. */
+        public ?Tenant $tenant = null,
     ) {}
 
     public function envelope(): Envelope
@@ -41,19 +45,6 @@ class CampaignMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(htmlString: $this->buildHtml());
-    }
-
-    private function buildHtml(): string
-    {
-        $unsubscribe = $this->unsubscribeUrl !== null
-            ? '<p style="margin-top:28px;font-size:12px;color:#888;">No longer want these? <a href="'.e($this->unsubscribeUrl).'">Unsubscribe</a>.</p>'
-            : '';
-
-        return '<div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#222;">'
-            .'<p>Hi '.e($this->recipientName).',</p>'
-            .'<div>'.nl2br(e($this->body)).'</div>'
-            .$unsubscribe
-            .'</div>';
+        return new Content(view: 'emails.campaign', with: ['brand' => EmailBrand::for($this->tenant)]);
     }
 }

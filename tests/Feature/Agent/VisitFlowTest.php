@@ -82,7 +82,7 @@ test('the recap email includes the visit photos', function () {
 
     $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->first();
     $mail = new VisitRecapMail($visit, 0.0, null);
-    $mail->assertSeeInHtml('Service photos');
+    $mail->assertSeeInHtml('Photos');
     $mail->assertSeeInHtml('storage/visit-photos/');
 });
 

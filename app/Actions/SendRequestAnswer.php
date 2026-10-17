@@ -35,13 +35,14 @@ class SendRequestAnswer
         $emailAllowed = $user === null || $user->wantsNotification('service', 'email');
         if (is_string($email) && $email !== '' && ! $customer->getAttribute('email_opt_out') && $emailAllowed) {
             Mail::to($email)->queue(new ServiceRequestAnsweredMail(
-                customerName: $customer->displayName(),
+                customerName: $customer->first_name ?: $customer->displayName(),
                 company: $company,
                 headline: $headline,
                 summary: $summary,
                 reply: $request->reply,
                 declined: $request->status === 'declined',
                 portalUrl: $user !== null ? url('/requests') : null, // only customers with a login have a portal
+                tenant: $customer->tenant,
             ));
         }
     }

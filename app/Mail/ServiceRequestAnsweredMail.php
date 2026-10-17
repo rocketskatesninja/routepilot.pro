@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Models\Tenant;
+use App\Support\EmailBrand;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -26,6 +28,8 @@ class ServiceRequestAnsweredMail extends Mailable
         public ?string $reply,
         public bool $declined,
         public ?string $portalUrl,
+        /** The company whose colours and logo the email wears (null = RoutePilot's own). */
+        public ?Tenant $tenant = null,
     ) {}
 
     public function envelope(): Envelope
@@ -35,6 +39,6 @@ class ServiceRequestAnsweredMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'emails.request-answered');
+        return new Content(view: 'emails.request-answered', with: ['brand' => EmailBrand::for($this->tenant)]);
     }
 }

@@ -25,6 +25,6 @@ class SendEmailChangeVerification
             ['user' => $user->id, 'email' => $newEmail],
         );
 
-        Mail::to($newEmail)->send(new EmailChangeVerificationMail($user->first_name, $newEmail, $url));
+        Mail::to($newEmail)->send(new EmailChangeVerificationMail($user->first_name, $newEmail, $url, $user->tenant));
     }
 }

@@ -1,53 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; background: #f9fafb; margin: 0; padding: 24px;">
-    <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px;">
-        <h2 style="color: #0ea5e9; margin: 0 0 16px;">Your pool was serviced</h2>
-        <p style="margin: 0 0 12px;">Hi {{ $customerName }},</p>
-        <p style="margin: 0 0 12px;">{{ $company }} serviced <strong>{{ $pool }}</strong> on {{ $date }}.</p>
+@php
+    $done = $tasks->where('is_completed', true);
+    $amount = fn ($t) => rtrim(rtrim(number_format((float) $t->amount, 2, '.', ''), '0'), '.').' '.$t->unit;
+@endphp
+<x-email.layout
+    :brand="$brand"
+    :greeting="'Hi '.$firstName.','"
+    :title="'Your pool was serviced on '.$date.'.'"
+    :sub="($service ?? 'Service visit').' at '.$pool.($agent ? ' with '.$agent : '').'.'"
+    :preheader="trim(($service ?? 'Service visit').' at '.$pool.'. '.$waterSummary)"
+>
+    {{-- what was done --}}
+    @if ($tasks->count() || count($checks) || $treatments->count())
+        <x-email.section title="What was done">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                @foreach ($tasks->chunk(2) as $pair)
+                    <tr>
+                        @foreach ($pair as $t)
+                            <td class="rp-col" width="50%" style="padding: 3px 0; font-size: 15px; color: {{ $t->is_completed ? '#0f172a' : '#64748b' }};">
+                                <span style="color: {{ $t->is_completed ? $brand['color'] : '#94a3b8' }}; font-weight: 600;">{{ $t->is_completed ? '✓' : '–' }}</span>&nbsp; {{ $t->task_name }}{{ $t->is_completed ? '' : ' (skipped)' }}
+                            </td>
+                        @endforeach
+                    </tr>
+                @endforeach
+                @if (count($checks))
+                    <tr><td colspan="2" style="padding: 3px 0; font-size: 15px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; Water tested</td></tr>
+                @endif
+                @if ($treatments->count())
+                    <tr><td colspan="2" style="padding: 3px 0; font-size: 15px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; {{ $treatments->count() }} chemical{{ $treatments->count() === 1 ? '' : 's' }} added</td></tr>
+                @endif
+            </table>
+        </x-email.section>
+    @endif
 
-        @if ($reading)
-            <h3 style="margin: 18px 0 6px; font-size: 14px;">Water chemistry</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-                @foreach ([['Free chlorine', $reading->free_chlorine, 'ppm'], ['pH', $reading->ph, ''], ['Alkalinity', $reading->alkalinity, 'ppm']] as $row)
-                    @if ($row[1] !== null)
-                        <tr>
-                            <td style="padding: 4px 0; color: #6b7280;">{{ $row[0] }}</td>
-                            <td style="padding: 4px 0; text-align: right;">{{ $row[1] }} {{ $row[2] }}</td>
-                        </tr>
-                    @endif
+    {{-- the tech's note --}}
+    @if ($notes)
+        <x-email.note :author="($agent ?? 'Your technician').' wrote'">{{ $notes }}</x-email.note>
+    @endif
+
+    {{-- the water test, against this pool's own targets --}}
+    @if (count($checks))
+        <x-email.section title="Your water">
+            <p style="margin: 0 0 12px; font-size: 15px; color: #475569;">{{ $waterSummary }}</p>
+            <x-email.water :brand="$brand" :checks="$checks" />
+        </x-email.section>
+    @endif
+
+    {{-- chemicals added --}}
+    @if ($treatments->count())
+        <x-email.section title="Chemicals added">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 16px; border-collapse: separate;">
+                @foreach ($treatments as $i => $t)
+                    <tr>
+                        <td style="padding: 12px 18px; font-size: 15px; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $t->chemical_name }}</td>
+                        <td align="right" style="padding: 12px 18px; font-size: 15px; color: #475569; white-space: nowrap; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $amount($t) }}</td>
+                    </tr>
                 @endforeach
             </table>
-        @endif
+        </x-email.section>
+    @endif
 
-        @if ($treatments->count())
-            <h3 style="margin: 18px 0 6px; font-size: 14px;">Treatments added</h3>
-            <ul style="margin: 0; padding-left: 18px; color: #6b7280;">
-                @foreach ($treatments as $t)
-                    <li>{{ $t->chemical_name }} — {{ $t->amount }} {{ $t->unit }}</li>
-                @endforeach
-            </ul>
-        @endif
+    {{-- photos --}}
+    @if (! empty($photos))
+        <x-email.section title="Photos">
+            @foreach ($photos as $photo)
+                <a href="{{ $photo }}" style="text-decoration: none;"><img src="{{ $photo }}" alt="Photo from the visit" width="164" height="164" style="width: 164px; height: 164px; object-fit: cover; border-radius: 12px; border: 0; margin: 0 6px 6px 0; vertical-align: top;"></a>
+            @endforeach
+        </x-email.section>
+    @endif
 
-        @if (!empty($photos))
-            <h3 style="margin: 18px 0 6px; font-size: 14px;">Service photos</h3>
-            <div>
-                @foreach ($photos as $photo)
-                    <a href="{{ $photo }}" style="text-decoration: none;"><img src="{{ $photo }}" alt="Service photo" width="120" height="120" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; margin: 0 6px 6px 0; vertical-align: top;" /></a>
-                @endforeach
-            </div>
-        @endif
+    {{-- what they owe --}}
+    @if ($balance > 0)
+        <x-email.section title="Your balance">
+            <p style="margin: 0; font-size: 15px;">You owe <strong>${{ number_format($balance, 2) }}</strong>.</p>
+            @if ($payUrl)
+                <x-email.button :brand="$brand" :href="$payUrl">Pay ${{ number_format($balance, 2) }}</x-email.button>
+            @endif
+        </x-email.section>
+    @endif
 
-        @if ($balance > 0)
-            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
-                <p style="margin: 0 0 10px;">Your current balance is <strong>${{ number_format($balance, 2) }}</strong>.</p>
-                @if ($payUrl)
-                    <a href="{{ $payUrl }}" style="display: inline-block; background: #0ea5e9; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: bold;">Pay online</a>
-                @endif
-            </div>
-        @endif
+    @if ($reportUrl)
+        <x-email.button :brand="$brand" :href="$reportUrl" :secondary="$balance > 0 && $payUrl">See the full report</x-email.button>
+    @endif
 
-        <p style="color: #6b7280; font-size: 13px; margin: 24px 0 0;">— {{ $company }}</p>
-    </div>
-</body>
-</html>
+    <x-slot:footer>
+        <p style="margin: 0;">You get this email after each visit to your pool.</p>
+    </x-slot:footer>
+</x-email.layout>

@@ -99,7 +99,7 @@ class ChargeAutopayCustomer
         $email = $customer->email;
         if (is_string($email) && $email !== '') {
             $payUrl = URL::signedRoute('pay.link', ['customer' => $customer->id]);
-            Mail::to($email)->queue(new PaymentFailedMail($customer->displayName(), $amount, $customer->tenant->name, $payUrl));
+            Mail::to($email)->queue(new PaymentFailedMail($customer->first_name ?: $customer->displayName(), $amount, $customer->tenant->name, $payUrl, $customer->tenant));
         }
 
         $admins = User::query()

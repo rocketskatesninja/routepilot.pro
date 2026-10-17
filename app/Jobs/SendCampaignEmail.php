@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Mail\CampaignMail;
 use App\Models\CampaignRecipient;
 use App\Models\MailCampaign;
+use App\Models\Tenant;
 use App\Services\TenantMailer;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -47,7 +48,10 @@ class SendCampaignEmail implements ShouldQueue
 
         Mail::mailer($prepared['mailer'])
             ->to($this->email)
-            ->send(new CampaignMail($this->subject, $this->body, $this->recipientName, $this->unsubscribeUrl, $prepared['from']));
+            ->send(new CampaignMail(
+                $this->subject, $this->body, $this->recipientName, $this->unsubscribeUrl, $prepared['from'],
+                $this->tenantId !== null ? Tenant::query()->find($this->tenantId) : null,
+            ));
 
         $this->mark('sent', null);
     }

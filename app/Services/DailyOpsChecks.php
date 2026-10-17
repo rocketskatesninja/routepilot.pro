@@ -194,7 +194,8 @@ class DailyOpsChecks
             return 0;
         }
 
-        $company = (string) (Tenant::query()->whereKey($tenantId)->value('name') ?? '');
+        $tenant = Tenant::query()->find($tenantId);
+        $company = (string) ($tenant->name ?? '');
         $sent = 0;
 
         foreach ($stops as $stop) {
@@ -216,12 +217,13 @@ class DailyOpsChecks
             if (is_string($email) && $email !== '' && ! $optedOut && $emailAllowed) {
                 $date = $stop->route?->scheduled_date;
                 Mail::to($email)->queue(new ServiceReminderMail(
-                    customerName: $customer->displayName(),
+                    customerName: $customer->first_name ?: $customer->displayName(),
                     company: $company,
                     poolName: (string) $pool->name,
                     date: $date?->format('l, F j') ?? 'tomorrow',
                     agentName: $stop->route?->agent?->firstName(),
                     arrivalWindow: EtaWindow::for($stop->estimated_arrival),
+                    tenant: $tenant,
                 ));
             }
         }

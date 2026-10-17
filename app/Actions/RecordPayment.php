@@ -47,10 +47,11 @@ class RecordPayment
         $email = $customer->email;
         if ($payment !== null && is_string($email) && $email !== '') {
             Mail::to($email)->queue(new PaymentReceiptMail(
-                $customer->displayName(),
+                $customer->first_name ?: $customer->displayName(),
                 (float) $payment->amount,
                 $customer->tenant->name,
                 now()->toFormattedDateString(),
+                $customer->tenant,
             ));
         }
 
