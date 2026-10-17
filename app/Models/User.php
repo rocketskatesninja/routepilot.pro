@@ -45,7 +45,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'first_name', 'last_name', 'email', 'password', 'phone',
         'address_line1', 'address_line2', 'city', 'state', 'zip',
         'avatar_path', 'map_color', 'admin_notes', 'last_login_at',
-        'theme', 'font_scale', 'dashboard_layout', 'sidebar_state',
+        'theme', 'font_scale', 'dashboard_layout', 'dashboard_style', 'sidebar_state',
     ];
 
     /** @var list<string> */

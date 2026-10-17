@@ -21,7 +21,7 @@ beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
     app()->instance('tenant_id', $this->tenant->id);
 
-    $this->user = User::factory()->customer()->for($this->tenant)->create();
+    $this->user = User::factory()->customer()->for($this->tenant)->create(['dashboard_style' => 'simple']); // the Home page, not the grid
     $this->agent = User::factory()->agent()->for($this->tenant)->create(['first_name' => 'Marcus']);
     $this->customer = Customer::factory()->for($this->tenant)->create(['first_name' => 'Robert']);
     $this->customer->forceFill(['user_id' => $this->user->id])->save();

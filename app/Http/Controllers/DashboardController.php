@@ -9,6 +9,7 @@ use App\Actions\AssemblePortalHome;
 use App\Actions\SaveDashboardLayout;
 use App\Dashboard\DashboardWidgets;
 use App\Http\Requests\UpdateDashboardLayoutRequest;
+use App\Http\Requests\UpdateDashboardStyleRequest;
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
@@ -22,8 +23,8 @@ use Inertia\Response;
  * Staff land on a per-user customizable widget grid: the role decides which
  * widgets are available and their default layout (App\Dashboard\DashboardWidgets),
  * and AssembleDashboardData computes only the data the placed widgets need.
- * Customers get a fixed Home page instead (AssemblePortalHome) — what a
- * homeowner checks, laid out for them, nothing to arrange.
+ * Customers get the same grid by default, or — if they pick it — the simple
+ * Home page (AssemblePortalHome): what a homeowner checks, laid out for them.
  */
 class DashboardController extends Controller
 {
@@ -32,7 +33,7 @@ class DashboardController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        if ($user->role === 'customer') {
+        if ($user->role === 'customer' && $user->getAttribute('dashboard_style') === 'simple') {
             $customer = Customer::query()->where('user_id', $user->id)->first();
             abort_if($customer === null, 404);
 
@@ -60,6 +61,14 @@ class DashboardController extends Controller
                 ? OnboardingStatus::for($tenant)
                 : null,
         ];
+    }
+
+    /** A customer switches between the widget grid and the simple Home page. */
+    public function updateStyle(UpdateDashboardStyleRequest $request): RedirectResponse
+    {
+        $request->user()?->update(['dashboard_style' => $request->validated('style') === 'simple' ? 'simple' : null]);
+
+        return redirect('/dashboard');
     }
 
     /** Hide the first-run "Getting started" checklist for this tenant. */

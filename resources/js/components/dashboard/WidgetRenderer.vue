@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue';
+import AccountBalanceWidget from './widgets/AccountBalanceWidget.vue';
 import BillingSummaryWidget from './widgets/BillingSummaryWidget.vue';
+import MyPoolsWidget from './widgets/MyPoolsWidget.vue';
 import MyRouteWidget from './widgets/MyRouteWidget.vue';
+import NextVisitWidget from './widgets/NextVisitWidget.vue';
 import NotificationsWidget from './widgets/NotificationsWidget.vue';
 import RecentTenantsWidget from './widgets/RecentTenantsWidget.vue';
 import RecentVisitsWidget from './widgets/RecentVisitsWidget.vue';
@@ -31,6 +34,11 @@ const registry: Record<string, Component> = {
     agent_route: MyRouteWidget,
     agent_route_map: RouteMapWidget,
     agent_visits: RecentVisitsWidget,
+    // customer
+    my_pools: MyPoolsWidget,
+    next_visit: NextVisitWidget,
+    account_balance: AccountBalanceWidget,
+    customer_visits: RecentVisitsWidget,
     // super_admin
     platform_stats: StatsWidget,
     recent_tenants: RecentTenantsWidget,

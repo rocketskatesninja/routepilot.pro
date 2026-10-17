@@ -64,7 +64,7 @@ test('an agent lands on the grid with their route + day stats', function () {
         );
 });
 
-test('a customer lands on their Home page, not the grid', function () {
+test('a customer lands on the grid with their pools', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
     $customer = Customer::factory()->for($this->tenant)->create();
     $customer->forceFill(['user_id' => $portalUser->id])->save();
@@ -73,7 +73,32 @@ test('a customer lands on their Home page, not the grid', function () {
     $this->actingAs($portalUser)
         ->get('/dashboard')
         ->assertInertia(fn (Assert $page) => $page
-            ->component('portal/Home')
-            ->where('firstName', $customer->first_name)
+            ->component('dashboards/Grid')
+            ->has('widgets.my_pools.pools', 1)
+            ->where('widgets.my_pools.pools.0.name', 'Backyard Pool')
         );
+});
+
+test('a customer can switch to the simple Home page and back', function () {
+    $portalUser = User::factory()->customer()->for($this->tenant)->create();
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $customer->forceFill(['user_id' => $portalUser->id])->save();
+
+    $this->actingAs($portalUser)->post('/dashboard/style', ['style' => 'simple'])->assertRedirect('/dashboard');
+    $this->actingAs($portalUser)->get('/dashboard')
+        ->assertInertia(fn (Assert $page) => $page->component('portal/Home')->where('firstName', $customer->first_name));
+
+    $this->actingAs($portalUser)->post('/dashboard/style', ['style' => 'widgets'])->assertRedirect('/dashboard');
+    expect($portalUser->fresh()->getAttribute('dashboard_style'))->toBeNull();
+    $this->actingAs($portalUser)->get('/dashboard')->assertInertia(fn (Assert $page) => $page->component('dashboards/Grid'));
+});
+
+test('only customers choose a dashboard style, and only from the two offered', function () {
+    $portalUser = User::factory()->customer()->for($this->tenant)->create();
+    Customer::factory()->for($this->tenant)->create()->forceFill(['user_id' => $portalUser->id])->save();
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+
+    $this->actingAs($portalUser)->post('/dashboard/style', ['style' => 'fancy'])->assertSessionHasErrors('style');
+    $this->actingAs($agent)->post('/dashboard/style', ['style' => 'simple'])->assertForbidden();
+    expect($agent->fresh()->getAttribute('dashboard_style'))->toBeNull();
 });

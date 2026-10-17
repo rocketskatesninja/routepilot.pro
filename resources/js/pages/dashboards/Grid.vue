@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import DashboardGrid from '@/components/dashboard/DashboardGrid.vue';
+import DashboardStyleToggle from '@/components/dashboard/DashboardStyleToggle.vue';
 import GettingStarted from '@/components/dashboard/GettingStarted.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem, type Onboarding } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
+import { type BreadcrumbItem, type Onboarding, type SharedData } from '@/types';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { Check, LayoutGrid, Monitor, Pencil, Plus, Smartphone } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -47,6 +48,9 @@ const props = defineProps<{
 const showOnboarding = computed(() => !!props.onboarding && !props.onboarding.dismissed && !props.onboarding.complete);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Dashboard', href: '/dashboard' }];
+// Customers can swap this grid for the simple Home page.
+const page = usePage<SharedData>();
+const isCustomer = computed(() => page.props.auth.role === 'customer');
 
 // The page owns the customization state so the controls can live in the header.
 const editing = ref(false);
@@ -148,6 +152,7 @@ onBeforeUnmount(() => {
     <Head title="Dashboard" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
+            <DashboardStyleToggle v-if="isCustomer && !editing" current="widgets" />
             <p v-if="editing" class="text-muted-foreground mr-1 hidden text-sm lg:block">
                 Editing the {{ deviceMode }} layout · drag to move, corner to resize
             </p>

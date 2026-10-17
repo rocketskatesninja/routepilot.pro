@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import NoteBubble from '@/components/NoteBubble.vue';
+import DashboardStyleToggle from '@/components/dashboard/DashboardStyleToggle.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
 import { subscribeCustomerEta } from '@/echo';
@@ -93,6 +94,10 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
     <Head title="Home" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
+        <template #actions>
+            <DashboardStyleToggle current="simple" />
+        </template>
+
         <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-6">
             <!-- when someone is coming next -->
             <PortalHero :greeting="`Hi ${props.firstName}, here’s your pool service with ${company}.`">

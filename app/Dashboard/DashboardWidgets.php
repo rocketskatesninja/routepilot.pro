@@ -33,7 +33,11 @@ class DashboardWidgets
         'agent_route_map' => ['label' => 'My route map', 'icon' => 'Map', 'minW' => 4, 'minH' => 4, 'w' => 8, 'h' => 6, 'roles' => ['agent']],
         'agent_visits' => ['label' => 'My recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 8, 'h' => 4, 'roles' => ['agent']],
 
-        // (customers get a fixed Home page, not this grid — see DashboardController)
+        // customer (portal)
+        'my_pools' => ['label' => 'My pools', 'icon' => 'Waves', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
+        'next_visit' => ['label' => 'Next visit', 'icon' => 'CalendarDays', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
+        'account_balance' => ['label' => 'Account balance', 'icon' => 'Banknote', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
+        'customer_visits' => ['label' => 'Recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
 
         // super_admin (platform)
         'platform_stats' => ['label' => 'Platform overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['super_admin']],
@@ -57,6 +61,11 @@ class DashboardWidgets
             ['i' => 'agent_visits', 'x' => 4, 'y' => 9, 'w' => 4, 'h' => 5],
             ['i' => 'notifications', 'x' => 8, 'y' => 9, 'w' => 4, 'h' => 5],
         ],
+        'customer' => [
+            ['i' => 'customer_visits', 'x' => 3, 'y' => 0, 'w' => 6, 'h' => 5],
+            ['i' => 'next_visit', 'x' => 3, 'y' => 5, 'w' => 3, 'h' => 4],
+            ['i' => 'account_balance', 'x' => 6, 'y' => 5, 'w' => 3, 'h' => 4],
+        ],
         'super_admin' => [
             ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
             ['i' => 'recent_tenants', 'x' => 0, 'y' => 3, 'w' => 12, 'h' => 5],
@@ -79,6 +88,12 @@ class DashboardWidgets
             ['i' => 'weather', 'x' => 0, 'y' => 17, 'w' => 12, 'h' => 5],
             ['i' => 'agent_visits', 'x' => 0, 'y' => 22, 'w' => 12, 'h' => 4],
             ['i' => 'notifications', 'x' => 0, 'y' => 26, 'w' => 12, 'h' => 5],
+        ],
+        'customer' => [
+            ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
+            ['i' => 'next_visit', 'x' => 0, 'y' => 4, 'w' => 12, 'h' => 3],
+            ['i' => 'account_balance', 'x' => 0, 'y' => 7, 'w' => 12, 'h' => 3],
+            ['i' => 'customer_visits', 'x' => 0, 'y' => 10, 'w' => 12, 'h' => 4],
         ],
         'super_admin' => [
             ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],

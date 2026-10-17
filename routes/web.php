@@ -205,6 +205,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('autopay/setup', [PortalController::class, 'setupAutopay'])->name('portal.autopay.setup');
         Route::get('autopay/complete', [PortalController::class, 'autopayComplete'])->name('portal.autopay.complete');
         Route::post('autopay/disable', [PortalController::class, 'disableAutopay'])->name('portal.autopay.disable');
+        Route::post('dashboard/style', [DashboardController::class, 'updateStyle'])->name('dashboard.style');
     });
 
     // ---- Super-admin platform console ----
