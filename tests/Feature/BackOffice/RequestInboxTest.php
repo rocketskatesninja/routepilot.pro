@@ -147,32 +147,48 @@ test('declining needs a reason, and the customer is told', function () {
     Mail::assertQueued(ServiceRequestAnsweredMail::class);
 });
 
-test('approving a pause puts the hold on the pool\'s active plans', function () {
-    $active = $this->pool->subscriptions()->create(['service_type_id' => $this->service->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'active']);
-    $ended = $this->pool->subscriptions()->create(['service_type_id' => $this->service->id, 'frequency' => 'weekly', 'preferred_day' => 'friday', 'status' => 'cancelled']);
+test('approving a pause holds only the service it\'s for', function () {
+    $chem = ServiceType::factory()->for($this->tenant)->create(['name' => 'Chemistry Check']);
+    $cleaning = $this->pool->subscriptions()->create(['service_type_id' => $this->service->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'active']);
+    $testing = $this->pool->subscriptions()->create(['service_type_id' => $chem->id, 'frequency' => 'weekly', 'preferred_day' => 'friday', 'status' => 'active']);
     $request = customerRequest(['type' => 'hold', 'service_type_id' => null, 'preferred_date' => '2026-10-19', 'ends_on' => '2026-10-31']);
+    $request->forceFill(['service_subscription_id' => $testing->id])->save();
+
+    $this->actingAs($this->admin)
+        ->get("/inbox?selected={$request->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('selected.title', 'Pause Chemistry Check'));
 
     $this->actingAs($this->admin)->post("/requests/{$request->id}/approve")->assertSessionHasNoErrors();
 
-    $active->refresh();
-    expect($active->hold_starts_at?->toDateString())->toBe('2026-10-19')
-        ->and($active->hold_ends_at?->toDateString())->toBe('2026-10-31')
-        ->and($ended->fresh()?->hold_starts_at)->toBeNull()
-        ->and(array_filter(stopDates($active), fn ($d) => $d >= '2026-10-19' && $d <= '2026-10-31'))->toBe([])
+    $testing->refresh();
+    expect($testing->hold_starts_at?->toDateString())->toBe('2026-10-19')
+        ->and($testing->hold_ends_at?->toDateString())->toBe('2026-10-31')
+        ->and(array_filter(stopDates($testing), fn ($d) => $d >= '2026-10-19' && $d <= '2026-10-31'))->toBe([])
+        ->and($cleaning->fresh()?->hold_starts_at)->toBeNull()
+        ->and(array_filter(stopDates($cleaning), fn ($d) => $d >= '2026-10-19' && $d <= '2026-10-31'))->not->toBe([])
         ->and($request->fresh()?->status)->toBe('approved');
 });
 
-test('approving a stop request ends the pool\'s plans — on the date asked, or right away', function () {
-    $plan = $this->pool->subscriptions()->create(['service_type_id' => $this->service->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'active', 'starts_on' => '2026-10-01']);
+test('approving a stop ends only that service — on the date asked, or right away', function () {
+    $chem = ServiceType::factory()->for($this->tenant)->create(['name' => 'Chemistry Check']);
+    $cleaning = $this->pool->subscriptions()->create(['service_type_id' => $this->service->id, 'frequency' => 'weekly', 'preferred_day' => 'monday', 'status' => 'active']);
+    $plan = $this->pool->subscriptions()->create(['service_type_id' => $chem->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'active', 'starts_on' => '2026-10-01']);
     $later = customerRequest(['type' => 'cancel', 'service_type_id' => null, 'preferred_date' => '2026-11-03']);
+    $later->forceFill(['service_subscription_id' => $plan->id])->save();
 
     $this->actingAs($this->admin)->post("/requests/{$later->id}/approve")->assertSessionHasNoErrors();
     expect($plan->fresh()?->ends_on?->toDateString())->toBe('2026-11-03')
-        ->and(max(stopDates($plan)))->toBe('2026-11-03');
+        ->and(max(stopDates($plan)))->toBe('2026-11-03')
+        ->and($later->fresh()?->statusLabel())->toBe('Stop confirmed');
+    Mail::assertQueued(ServiceRequestAnsweredMail::class, fn ($mail) => $mail->headline === 'Your service is stopping'
+        && $mail->summary === 'Your Chemistry Check for Backyard pool will stop after Tuesday, November 3.');
 
     $asap = customerRequest(['type' => 'cancel', 'service_type_id' => null, 'preferred_date' => null]);
+    $asap->forceFill(['service_subscription_id' => $plan->id])->save();
     $this->actingAs($this->admin)->post("/requests/{$asap->id}/approve")->assertSessionHasNoErrors();
-    expect($plan->fresh()?->status)->toBe('cancelled')->and(stopDates($plan))->toBe([]);
+    expect($plan->fresh()?->status)->toBe('cancelled')->and(stopDates($plan))->toBe([])
+        ->and($cleaning->fresh()?->status)->toBe('active')
+        ->and($cleaning->fresh()?->ends_on)->toBeNull();
 });
 
 test('"something else" is marked done with an optional reply', function () {

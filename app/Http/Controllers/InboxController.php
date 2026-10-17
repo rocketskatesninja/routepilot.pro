@@ -74,7 +74,7 @@ class InboxController extends Controller
     {
         // Requests from archived customers drop out of the inbox.
         return ServiceRequest::query()->whereHas('customer')
-            ->with(['customer:id,first_name,last_name', 'pool:id,name', 'serviceType'])
+            ->with(['customer:id,first_name,last_name', 'pool:id,name', 'serviceType', 'plan.serviceType:id,name'])
             ->latest('id');
     }
 
@@ -117,7 +117,9 @@ class InboxController extends Controller
             'message' => $r->message,
             'reply' => $r->reply,
             'answered_on' => Tenant::localDate($r->resolved_at),
+            // The plan it created (service requests) or the one being paused / stopped.
             'plan' => $r->plan?->scheduleLabel(),
+            'plan_service' => $r->plan?->serviceType?->name,
             'pool_plans' => $poolPlans->map(fn (ServiceSubscription $p): array => [
                 'id' => $p->id,
                 'service_type_id' => $p->getAttribute('service_type_id'),

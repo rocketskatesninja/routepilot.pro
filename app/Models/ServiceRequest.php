@@ -12,9 +12,9 @@ use Illuminate\Support\Carbon;
 /**
  * Something a customer asks their service company for, from the portal (or a
  * converted website lead). The company answers it once: approving a service
- * request creates its plan, a pause sets a hold, a stop ends the pool's plans;
- * or it declines with a reason. Status changes only via the Approve/Decline
- * actions (not mass-assignable).
+ * request creates its plan; a pause or stop applies to the one plan it names;
+ * or it declines with a reason. Status and the plan link change only at
+ * controlled call sites (not mass-assignable).
  *
  * @property string $type
  * @property string|null $message
@@ -70,7 +70,8 @@ class ServiceRequest extends Model
     }
 
     /**
-     * The plan that approving this request created.
+     * The plan the request is about: the one approving a service request
+     * created, or the one a pause / stop is for.
      *
      * @return BelongsTo<ServiceSubscription, $this>
      */
@@ -85,14 +86,15 @@ class ServiceRequest extends Model
         return $this->type === 'service' && $this->getAttribute('service_type_id') !== null;
     }
 
-    /** What the request is for, e.g. "Weekly Pool Service" or "Pause service". */
+    /** What the request is for, e.g. "Weekly Pool Service" or "Pause Chemistry Check". */
     public function title(): string
     {
-        if ($this->type === 'service') {
-            return $this->serviceType->name ?? 'Service request';
-        }
-
-        return self::TYPES[$this->type] ?? ucfirst($this->type);
+        return match ($this->type) {
+            'service' => $this->serviceType->name ?? 'Service request',
+            'hold' => 'Pause '.($this->plan->serviceType->name ?? 'service'),
+            'cancel' => 'Stop '.($this->plan->serviceType->name ?? 'service'),
+            default => self::TYPES[$this->type] ?? ucfirst($this->type),
+        };
     }
 
     /** The outcome in plain words, e.g. "Scheduled" or "Declined". */
@@ -104,7 +106,7 @@ class ServiceRequest extends Model
             default => match (true) {
                 $this->isForService() => 'Scheduled',
                 $this->type === 'hold' => 'Pause set',
-                $this->type === 'cancel' => 'Service stopped',
+                $this->type === 'cancel' => 'Stop confirmed',
                 default => 'Done',
             },
         };

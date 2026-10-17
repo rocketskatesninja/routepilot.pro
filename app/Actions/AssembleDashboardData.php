@@ -495,7 +495,7 @@ class AssembleDashboardData
     {
         return ServiceRequest::query()
             ->where('status', 'pending')->whereHas('customer')
-            ->with(['customer:id,first_name,last_name,photo_path', 'pool:id,name,photo_path', 'serviceType:id,name'])
+            ->with(['customer:id,first_name,last_name,photo_path', 'pool:id,name,photo_path', 'serviceType:id,name', 'plan.serviceType:id,name'])
             ->latest('id')->limit(8)->get()
             ->map(fn (ServiceRequest $r) => [
                 'id' => $r->id,

@@ -44,6 +44,7 @@ interface RequestDetail extends RequestRow {
     reply: string | null;
     answered_on: string | null;
     plan: string | null;
+    plan_service: string | null;
     pool_plans: PlanLine[];
     defaults: {
         frequency: string;
@@ -182,9 +183,6 @@ const duplicatePlan = computed(() => {
 });
 
 // What "approve" does for this kind of request, in plain words.
-const activePlans = computed(() => request.value?.pool_plans.filter((p) => p.status === 'active') ?? []);
-const endablePlans = computed(() => request.value?.pool_plans.filter((p) => p.status === 'active' || p.status === 'paused') ?? []);
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const approveLabel = computed(() => {
     const r = request.value;
     if (!r) return '';
@@ -194,12 +192,16 @@ const approveLabel = computed(() => {
 const approveExplainer = computed(() => {
     const r = request.value;
     if (!r) return '';
+    if ((r.type === 'hold' || r.type === 'cancel') && !r.plan_service) {
+        return 'That service has since been removed, so there is nothing to change — this just marks the request done.';
+    }
+    const service = `${r.plan_service} (${r.plan}) on ${r.pool}`;
     if (r.type === 'hold') {
-        return `Pauses ${plural(activePlans.value.length, 'active plan')} on ${r.pool} from ${formatDay(r.preferred_date)} through ${formatDay(r.ends_on)}. Visits come back on their own after that.`;
+        return `Pauses ${service} from ${formatDay(r.preferred_date)} through ${formatDay(r.ends_on)}; it comes back on its own after that. Their other services carry on.`;
     }
     if (r.type === 'cancel') {
         const when = r.preferred_date ? `after ${formatDay(r.preferred_date)}` : 'right away';
-        return `Ends ${plural(endablePlans.value.length, 'plan')} on ${r.pool} ${when}. Completed visits and billing history stay.`;
+        return `Ends ${service} ${when}. Their other services carry on, and completed visits and billing history stay.`;
     }
     return 'Marks the request as handled. Add a note if you want to reply.';
 });
@@ -392,7 +394,11 @@ const poolTypes: Record<string, string> = {
                                 <dt>Would like to start</dt>
                                 <dd>{{ request.preferred_date ? formatDay(request.preferred_date) : 'As soon as possible' }}</dd>
                             </div>
-                            <div v-else-if="request.type === 'hold'" class="flex justify-between gap-3">
+                            <div v-if="(request.type === 'hold' || request.type === 'cancel') && request.plan" class="flex justify-between gap-3">
+                                <dt>Service</dt>
+                                <dd>{{ request.plan_service }} · {{ request.plan }}</dd>
+                            </div>
+                            <div v-if="request.type === 'hold'" class="flex justify-between gap-3">
                                 <dt>Pause</dt>
                                 <dd>{{ formatDay(request.preferred_date) }} – {{ formatDay(request.ends_on) }}</dd>
                             </div>

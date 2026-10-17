@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceRequest;
+use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
@@ -25,10 +26,14 @@ beforeEach(function () {
     $this->service = ServiceType::factory()->for($this->tenant)->create(['name' => 'Weekly Pool Service', 'requestable' => true]);
 });
 
-/** Give the customer's pool an active plan (needed to pause or stop service). */
-function portalActivePlan(Pool $pool, ServiceType $service): void
+/**
+ * Give a pool a plan for a service (what a customer can pause or stop).
+ *
+ * @param  array<string, mixed>  $attrs
+ */
+function portalPlan(Pool $pool, ServiceType $service, array $attrs = []): ServiceSubscription
 {
-    $pool->subscriptions()->create(['service_type_id' => $service->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'active']);
+    return $pool->subscriptions()->create(array_merge(['service_type_id' => $service->id, 'frequency' => 'weekly', 'preferred_day' => 'tuesday', 'status' => 'active'], $attrs));
 }
 
 test('the portal offers only services customers can request', function () {
@@ -87,33 +92,63 @@ test('a request cannot target another customer\'s pool', function () {
         ->assertInvalid('pool_id');
 });
 
-test('pausing service needs dates, in order, on a pool that has service', function () {
+test('the portal lists the customer\'s current services, and what they already have', function () {
+    $plan = portalPlan($this->pool, $this->service, ['preferred_day' => 'wednesday']);
+    portalPlan($this->pool, $this->service, ['status' => 'cancelled']); // ended — not listed
+    ServiceRequest::create(['customer_id' => $this->customer->id, 'pool_id' => $this->pool->id, 'type' => 'cancel'])
+        ->forceFill(['service_subscription_id' => $plan->id])->save();
+
+    $this->actingAs($this->user)
+        ->get('/requests')
+        ->assertInertia(fn (Assert $page) => $page->component('portal/Requests')
+            ->has('plans', 1)
+            ->where('plans.0.id', $plan->id)
+            ->where('plans.0.service', 'Weekly Pool Service')
+            ->where('plans.0.service_type_id', $this->service->id)
+            ->where('plans.0.schedule', 'Weekly on Wednesday')
+            ->where('plans.0.pending', 'cancel'));
+});
+
+test('pausing is for one of the customer\'s own services, with dates in order', function () {
+    $plan = portalPlan($this->pool, $this->service);
     $from = now()->addDays(5)->toDateString();
     $to = now()->addDays(12)->toDateString();
 
-    // No active plan on the pool yet — nothing to pause.
+    $this->actingAs($this->user)->post('/requests', ['type' => 'hold'])->assertInvalid(['service_subscription_id', 'preferred_date', 'ends_on']);
     $this->actingAs($this->user)
-        ->post('/requests', ['type' => 'hold', 'pool_id' => $this->pool->id, 'preferred_date' => $from, 'ends_on' => $to])
-        ->assertInvalid('pool_id');
-
-    portalActivePlan($this->pool, $this->service);
-
-    $this->actingAs($this->user)->post('/requests', ['type' => 'hold', 'pool_id' => $this->pool->id])->assertInvalid(['preferred_date', 'ends_on']);
-    $this->actingAs($this->user)
-        ->post('/requests', ['type' => 'hold', 'pool_id' => $this->pool->id, 'preferred_date' => $to, 'ends_on' => $from])
+        ->post('/requests', ['type' => 'hold', 'service_subscription_id' => $plan->id, 'preferred_date' => $to, 'ends_on' => $from])
         ->assertInvalid('ends_on');
     $this->actingAs($this->user)
-        ->post('/requests', ['type' => 'hold', 'pool_id' => $this->pool->id, 'preferred_date' => $from, 'ends_on' => $to])
+        ->post('/requests', ['type' => 'hold', 'service_subscription_id' => $plan->id, 'preferred_date' => $from, 'ends_on' => $to])
         ->assertSessionHasNoErrors();
 
-    expect(ServiceRequest::query()->where('type', 'hold')->sole()->getAttribute('ends_on')?->toDateString())->toBe($to);
+    $request = ServiceRequest::query()->where('type', 'hold')->sole();
+    expect($request->getAttribute('service_subscription_id'))->toBe($plan->id)
+        ->and($request->getAttribute('pool_id'))->toBe($this->pool->id)
+        ->and($request->ends_on?->toDateString())->toBe($to);
 });
 
-test('stopping service can be as soon as possible', function () {
-    portalActivePlan($this->pool, $this->service);
+test('a customer can\'t pause or stop someone else\'s service, an ended one, or pause a one-time job', function () {
+    $theirs = portalPlan(Pool::factory()->for($this->tenant)->for(Customer::factory()->for($this->tenant))->create(), $this->service);
+    $ended = portalPlan($this->pool, $this->service, ['status' => 'cancelled']);
+    $oneTime = portalPlan($this->pool, $this->service, ['frequency' => 'one_time', 'preferred_day' => null, 'starts_on' => now()->addDays(3)->toDateString()]);
+    $dates = ['preferred_date' => now()->addDays(5)->toDateString(), 'ends_on' => now()->addDays(9)->toDateString()];
+
+    foreach ([$theirs, $ended, $oneTime] as $plan) {
+        $this->actingAs($this->user)->post('/requests', ['type' => 'hold', 'service_subscription_id' => $plan->id, ...$dates])->assertInvalid('service_subscription_id');
+    }
+    foreach ([$theirs, $ended] as $plan) {
+        $this->actingAs($this->user)->post('/requests', ['type' => 'cancel', 'service_subscription_id' => $plan->id])->assertInvalid('service_subscription_id');
+    }
+    // A one-time job can be cancelled.
+    $this->actingAs($this->user)->post('/requests', ['type' => 'cancel', 'service_subscription_id' => $oneTime->id])->assertSessionHasNoErrors();
+});
+
+test('stopping a service can be as soon as possible', function () {
+    $plan = portalPlan($this->pool, $this->service);
 
     $this->actingAs($this->user)
-        ->post('/requests', ['type' => 'cancel', 'pool_id' => $this->pool->id, 'message' => 'Moving house'])
+        ->post('/requests', ['type' => 'cancel', 'service_subscription_id' => $plan->id, 'message' => 'Moving house'])
         ->assertSessionHasNoErrors();
 
     expect(ServiceRequest::query()->where('type', 'cancel')->sole()->preferred_date)->toBeNull();

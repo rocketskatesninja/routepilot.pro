@@ -55,7 +55,7 @@ class SendRequestAnswer
         return match ($request->statusLabel()) {
             'Scheduled' => $request->plan?->frequency === 'one_time' ? 'You\'re booked' : 'You\'re scheduled',
             'Pause set' => 'Your pause is set',
-            'Service stopped' => 'Your service is stopping',
+            'Stop confirmed' => 'Your service is stopping',
             default => 'Your request is taken care of',
         };
     }
@@ -80,11 +80,13 @@ class SendRequestAnswer
                 : $request->title().' for '.$pool.' is scheduled: '.$plan->scheduleLabel().', starting '.$date($plan->starts_on).'.'.$techLine;
         }
 
+        $yours = 'Your '.($plan->serviceType->name ?? 'service').' for '.$pool;
+
         return match ($request->type) {
-            'hold' => 'Service for '.$pool.' is paused from '.$date($request->preferred_date).' through '.$date($request->ends_on).', and starts again automatically after that.',
+            'hold' => $yours.' is paused from '.$date($request->preferred_date).' through '.$date($request->ends_on).', and starts again automatically after that.',
             'cancel' => $request->preferred_date !== null && $request->preferred_date->gt(Tenant::localToday())
-                ? 'Service for '.$pool.' will stop after '.$date($request->preferred_date).'.'
-                : 'Service for '.$pool.' has stopped.',
+                ? $yours.' will stop after '.$date($request->preferred_date).'.'
+                : $yours.' has stopped.',
             default => $company.' has taken care of your request.',
         };
     }

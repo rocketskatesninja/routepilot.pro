@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\DB;
  * Say yes to a customer's request, turning it into scheduled work through the
  * plan actions:
  *  - a service request creates its plan (the company's schedule choices);
- *  - a pause puts the hold on the pool's active plans;
- *  - a stop ends the pool's plans on the date asked (or right away);
+ *  - a pause puts the hold on the plan it names;
+ *  - a stop ends that plan on the date asked (or right away);
  *  - anything else is simply marked done.
  * A request is answered once — false when it already was.
  */
@@ -38,26 +38,22 @@ class ApproveServiceRequest
                 return false;
             }
 
-            $plans = ServiceSubscription::query()->where('pool_id', $locked->getAttribute('pool_id'));
+            $plan = $locked->plan; // a pause / stop names the one plan it's for
 
             if ($locked->isForService()) {
-                $plan = $this->createPlan->handle([
+                $created = $this->createPlan->handle([
                     ...$data,
                     'pool_id' => $locked->getAttribute('pool_id'),
                     'service_type_id' => $locked->getAttribute('service_type_id'),
                 ]);
-                $locked->forceFill(['service_subscription_id' => $plan->id]);
-            } elseif ($locked->type === 'hold') {
-                foreach ($plans->where('status', 'active')->get() as $plan) {
-                    $this->updatePlan->handle($plan, [
-                        'hold_starts_at' => $locked->preferred_date?->toDateString(),
-                        'hold_ends_at' => $locked->ends_on?->toDateString(),
-                    ]);
-                }
-            } elseif ($locked->type === 'cancel') {
-                foreach ($plans->whereIn('status', ['active', 'paused'])->get() as $plan) {
-                    $this->updatePlan->handle($plan, $this->ending($plan, $locked));
-                }
+                $locked->forceFill(['service_subscription_id' => $created->id]);
+            } elseif ($locked->type === 'hold' && $plan !== null) {
+                $this->updatePlan->handle($plan, [
+                    'hold_starts_at' => $locked->preferred_date?->toDateString(),
+                    'hold_ends_at' => $locked->ends_on?->toDateString(),
+                ]);
+            } elseif ($locked->type === 'cancel' && $plan !== null) {
+                $this->updatePlan->handle($plan, $this->ending($plan, $locked));
             }
 
             $locked->forceFill([

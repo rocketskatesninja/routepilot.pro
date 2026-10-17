@@ -10,6 +10,7 @@ use App\Models\PaymentMethod;
 use App\Models\Pool;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
+use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
@@ -169,7 +170,7 @@ class PortalController extends Controller
 
         $requests = ServiceRequest::query()
             ->where('customer_id', $customer->id)
-            ->with(['pool:id,name', 'serviceType:id,name', 'plan'])
+            ->with(['pool:id,name', 'serviceType:id,name', 'plan.serviceType:id,name'])
             ->latest('id')
             ->limit(30)
             ->get()
@@ -188,6 +189,39 @@ class PortalController extends Controller
                 'on' => Tenant::localDate($r->created_at),
             ])->all();
 
+        // What they have now — each can be paused or stopped on its own.
+        $today = Tenant::localToday();
+        $pending = ServiceRequest::query()->where('customer_id', $customer->id)->where('status', 'pending')
+            ->whereIn('type', ['hold', 'cancel'])->whereNotNull('service_subscription_id')
+            ->pluck('type', 'service_subscription_id');
+        $plans = ServiceSubscription::query()
+            ->whereIn('pool_id', $customer->pools()->pluck('id'))
+            ->whereIn('status', ['active', 'paused'])
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today->toDateString()))
+            ->where(fn ($q) => $q->where('frequency', '!=', 'one_time')->orWhere('starts_on', '>=', $today->toDateString()))
+            ->with(['serviceType:id,name', 'agent:id,first_name,last_name', 'pool:id,name'])
+            ->get()
+            ->sortBy(fn (ServiceSubscription $p): string => ($p->pool?->getAttribute('name') ?? '').'|'.($p->serviceType->name ?? ''))
+            ->values()
+            ->map(function (ServiceSubscription $p) use ($pending, $today): array {
+                $onHold = $p->hold_ends_at !== null && $p->hold_ends_at->gte($today);
+
+                return [
+                    'id' => $p->id,
+                    'pool_id' => $p->getAttribute('pool_id'),
+                    'pool' => $p->pool?->getAttribute('name'),
+                    'service_type_id' => $p->getAttribute('service_type_id'),
+                    'service' => $p->serviceType?->name,
+                    'schedule' => $p->scheduleLabel(),
+                    'one_time' => $p->frequency === 'one_time',
+                    'agent' => $p->agent?->firstName(),
+                    'status' => $p->status,
+                    'hold_from' => $onHold ? $p->hold_starts_at?->toDateString() : null,
+                    'hold_to' => $onHold ? $p->hold_ends_at->toDateString() : null,
+                    'pending' => $pending[$p->id] ?? null,
+                ];
+            })->all();
+
         // What the company offers customers (active + "customers can request this").
         $services = ServiceType::query()->where('is_active', true)->where('requestable', true)->orderBy('price')->get()
             ->map(fn (ServiceType $t): array => [
@@ -198,17 +232,16 @@ class PortalController extends Controller
                 'offer' => $t->offerLabel(),
             ])->all();
 
-        $pools = $customer->pools()->orderBy('name')
-            ->withExists(['subscriptions as has_service' => fn ($q) => $q->where('status', 'active')])
-            ->get(['id', 'name'])
-            ->map(fn ($p): array => ['id' => $p->id, 'name' => $p->getAttribute('name'), 'has_service' => (bool) $p->getAttribute('has_service')])
+        $pools = $customer->pools()->orderBy('name')->get(['id', 'name'])
+            ->map(fn ($p): array => ['id' => $p->id, 'name' => $p->getAttribute('name')])
             ->all();
 
         return Inertia::render('portal/Requests', [
             'requests' => $requests,
+            'plans' => $plans,
             'services' => $services,
             'pools' => $pools,
-            'today' => Tenant::localToday()->toDateString(),
+            'today' => $today->toDateString(),
         ]);
     }
 
