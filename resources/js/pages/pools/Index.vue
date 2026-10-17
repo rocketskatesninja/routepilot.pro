@@ -6,17 +6,28 @@ import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import PlanScheduleFields from '@/components/PlanScheduleFields.vue';
 import SortableTh from '@/components/SortableTh.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneAction from '@/components/pane/PaneAction.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
+import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { SCHEDULES } from '@/lib/labels';
 import { agentLink, customerLink, reportLink } from '@/lib/links';
-import { SCHEDULES } from '@/lib/schedule';
+import { cap, checkWater, describePool, waterSummary } from '@/lib/portal';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { FileText, Pencil, Plus, Trash2, Waves } from 'lucide-vue-next';
+import { CalendarDays, FileText, Pencil, Plus, Trash2, Waves, Wrench } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface PoolRow {
@@ -72,8 +83,9 @@ interface PoolDetail {
     sanitizer: string;
     filter: string | null;
     equipment: string[];
+    features: string[];
     customer: { id: number | null; name: string; email: string | null; phone: string | null };
-    location: { city: string | null; gate_code: string | null; access_notes: string | null } | null;
+    location: { address: string | null; city: string | null; gate_code: string | null; access_notes: string | null } | null;
     subscriptions: {
         id: number;
         service: string;
@@ -108,6 +120,9 @@ interface PoolDetail {
         free_chlorine: number | null;
         ph: number | null;
         alkalinity: number | null;
+        calcium_hardness: number | null;
+        cyanuric_acid: number | null;
+        salt: number | null;
         health: Health | null;
         last_report_id: number | null;
     } | null;
@@ -160,11 +175,10 @@ function closePane() {
     }
 }
 
-const healthClasses: Record<Health['color'], string> = {
-    green: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-    amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    red: 'bg-red-500/15 text-red-600 dark:text-red-400',
-};
+const healthTone = { green: 'good', amber: 'warn', red: 'bad' } as const;
+const pool = computed(() => props.selected);
+// The latest water test, checked against this pool's own targets.
+const waterChecks = computed(() => (pool.value?.latest_reading ? checkWater(pool.value.latest_reading, pool.value.targets) : []));
 
 const equipmentToggles = [
     { key: 'has_heater', label: 'Heater' },
@@ -489,7 +503,9 @@ function submitTargets() {
                             <th class="w-8 px-4 py-2"><span class="sr-only">Health</span></th>
                             <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
                             <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
-                            <SortableTh sort-key="type" :active="props.sort" class="hidden md:table-cell">Type</SortableTh>
+                            <SortableTh sort-key="type" :active="props.sort" class="hidden min-[1440px]:table-cell md:table-cell xl:hidden"
+                                >Type</SortableTh
+                            >
                             <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
                             <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
                         </template>
@@ -521,7 +537,7 @@ function submitTargets() {
                                     <span>{{ item.customer }}</span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 capitalize md:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 capitalize min-[1440px]:table-cell md:table-cell xl:hidden">
                                 {{ item.type.replace('_', ' ') }}
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ item.cadence ?? '—' }}</td>
@@ -543,10 +559,7 @@ function submitTargets() {
                 <template #detail>
                     <!-- create / edit pool: hosted in the docked pane, not an overlay -->
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New pool' : 'Edit pool' }}</h2>
-                            <p class="text-muted-foreground text-sm">Specs, equipment, and the service location.</p>
-                        </div>
+                        <PaneHeader :title="formMode === 'create' ? 'New pool' : 'Edit pool'" summary="What it is, its equipment, and where it is." />
                         <ImageUpload
                             :model-value="photoFile"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
@@ -652,12 +665,10 @@ function submitTargets() {
 
                     <!-- create / edit service plan -->
                     <form v-else-if="subFormOpen" class="space-y-4 text-sm" @submit.prevent="submitSub">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">{{ subFormMode === 'create' ? 'New service plan' : 'Edit service plan' }}</h2>
-                            <p class="text-muted-foreground text-sm">
-                                Which service, how often, and who does it. Its visits go on the routes as soon as you save.
-                            </p>
-                        </div>
+                        <PaneHeader
+                            :title="subFormMode === 'create' ? 'New service plan' : 'Edit service plan'"
+                            summary="Which service, how often, and who does it. Its visits go on the routes as soon as you save."
+                        />
                         <div class="grid gap-1.5">
                             <Label for="sub_service">Service type</Label>
                             <select
@@ -698,10 +709,7 @@ function submitTargets() {
 
                     <!-- add equipment -->
                     <form v-else-if="equipOpen" class="space-y-4 text-sm" @submit.prevent="submitEquip">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Add equipment</h2>
-                            <p class="text-muted-foreground text-sm">Track a pump, filter, heater, salt cell, etc.</p>
-                        </div>
+                        <PaneHeader title="Add equipment" summary="Keep track of a pump, filter, heater, salt cell and so on." />
                         <div class="grid gap-1.5">
                             <Label for="eq_type">Type</Label>
                             <select
@@ -734,10 +742,7 @@ function submitTargets() {
 
                     <!-- log service -->
                     <form v-else-if="serviceOpen" class="space-y-4 text-sm" @submit.prevent="submitService">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Log service</h2>
-                            <p class="text-muted-foreground text-sm">Record a repair or maintenance — optionally bill it.</p>
-                        </div>
+                        <PaneHeader title="Log service" summary="Record a repair or maintenance, and bill it if you like." />
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="sv_on">Date</Label><Input id="sv_on" v-model="serviceForm.serviced_on" type="date" />
@@ -763,10 +768,7 @@ function submitTargets() {
 
                     <!-- per-pool chemistry targets -->
                     <form v-else-if="targetsOpen" class="space-y-3 text-sm" @submit.prevent="submitTargets">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Chemistry targets</h2>
-                            <p class="text-muted-foreground text-sm">Override the default target ranges for this pool. Blank = use defaults.</p>
-                        </div>
+                        <PaneHeader title="Water targets" summary="Set this pool’s own healthy ranges. Leave a box blank to use the usual range." />
                         <div v-for="p in chemParams" :key="p.key" class="grid grid-cols-3 items-center gap-3">
                             <Label class="text-muted-foreground">{{ p.label }}</Label>
                             <Input v-model="targetsForm.targets[p.key].min" type="number" step="0.1" placeholder="min" />
@@ -778,193 +780,123 @@ function submitTargets() {
                         </div>
                     </form>
 
-                    <div v-else-if="props.selected">
-                        <div class="mb-4 flex items-center gap-3">
-                            <EntityAvatar :src="props.selected.photo_url" type="pool" :name="props.selected.name" size="lg" />
-                            <div>
-                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-muted-foreground text-sm">
-                                    <Link
-                                        v-if="props.selected.customer.id"
-                                        :href="customerLink(props.selected.customer.id)"
-                                        class="text-primary hover:underline"
-                                        >{{ props.selected.customer.name }}</Link
-                                    >
-                                    <template v-else>{{ props.selected.customer.name }}</template>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-5 text-sm">
-                            <div v-if="props.canManage" class="flex flex-wrap gap-2">
+                    <div v-else-if="pool" class="space-y-6">
+                        <PaneHeader
+                            :title="pool.name"
+                            :summary="
+                                describePool({ volume: pool.volume_gallons, type: pool.type, sanitizer: pool.sanitizer, features: pool.features })
+                            "
+                        >
+                            <template #media>
+                                <img v-if="pool.photo_url" :src="pool.photo_url" :alt="pool.name" class="size-16 shrink-0 rounded-2xl object-cover" />
+                                <IconTile v-else :icon="Waves" size="lg" />
+                            </template>
+                            <template v-if="pool.latest_reading?.health" #badge>
+                                <Chip :tone="healthTone[pool.latest_reading.health.color]">{{ pool.latest_reading.health.label }}</Chip>
+                            </template>
+                            <p v-if="pool.customer.id" class="mt-2 text-[15px]">
+                                <Link :href="customerLink(pool.customer.id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
+                                    pool.customer.name
+                                }}</Link
+                                ><template v-if="pool.location?.city">, {{ pool.location.city }}</template>
+                            </p>
+                            <template v-if="props.canManage" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" @click="openTargets">Targets</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyPool"
+                                <Button size="sm" variant="outline" @click="openTargets">Water targets</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyPool"
                                     ><Trash2 class="mr-1 size-3.5" /> Remove</Button
                                 >
-                            </div>
+                            </template>
+                        </PaneHeader>
 
-                            <section v-if="props.selected.latest_reading?.health" class="border-border rounded-lg border p-3">
-                                <div class="flex items-center justify-between gap-2">
-                                    <span
-                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                        :class="healthClasses[props.selected.latest_reading.health.color]"
-                                    >
-                                        {{ props.selected.latest_reading.health.label }}
-                                    </span>
-                                    <Link
-                                        v-if="props.selected.latest_reading.last_report_id"
-                                        :href="reportLink(props.selected.latest_reading.last_report_id)"
-                                        class="text-primary inline-flex items-center gap-1 text-xs hover:underline"
-                                    >
-                                        <FileText class="size-3.5" /> Last report
-                                    </Link>
+                        <PaneSection :title="pool.latest_reading?.taken_on ? `Water on ${formatDay(pool.latest_reading.taken_on)}` : 'Water'">
+                            <template v-if="pool.latest_reading?.last_report_id" #action>
+                                <PaneAction :href="reportLink(pool.latest_reading.last_report_id)" :icon="FileText">Last report</PaneAction>
+                            </template>
+                            <template v-if="waterChecks.length">
+                                <p class="text-muted-foreground mb-3 text-sm">{{ waterSummary(waterChecks, false) }}</p>
+                                <div class="border-border rounded-2xl border px-4">
+                                    <WaterChecks :checks="waterChecks" :explain="false" />
                                 </div>
-                                <dl class="text-muted-foreground mt-2 grid grid-cols-3 gap-2">
-                                    <div>
-                                        <dt class="text-xs">Free Cl</dt>
-                                        <dd>{{ props.selected.latest_reading.free_chlorine ?? '—' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-xs">pH</dt>
-                                        <dd>{{ props.selected.latest_reading.ph ?? '—' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-xs">Alk</dt>
-                                        <dd>{{ props.selected.latest_reading.alkalinity ?? '—' }}</dd>
-                                    </div>
-                                </dl>
-                            </section>
+                            </template>
+                            <p v-else class="text-muted-foreground text-sm">No water test yet.</p>
+                        </PaneSection>
 
-                            <section>
-                                <h3 class="mb-1 font-medium">Specs</h3>
-                                <dl class="text-muted-foreground space-y-1">
-                                    <div class="flex justify-between">
-                                        <dt>Type</dt>
-                                        <dd class="capitalize">{{ props.selected.type.replace('_', ' ') }}</dd>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <dt>Volume</dt>
-                                        <dd>{{ props.selected.volume_gallons ? props.selected.volume_gallons.toLocaleString() + ' gal' : '—' }}</dd>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <dt>Sanitizer</dt>
-                                        <dd class="capitalize">{{ props.selected.sanitizer }}</dd>
-                                    </div>
-                                    <div v-if="props.selected.equipment.length" class="flex justify-between">
-                                        <dt>Equipment</dt>
-                                        <dd>{{ props.selected.equipment.join(', ') }}</dd>
-                                    </div>
-                                </dl>
-                            </section>
-
-                            <section v-if="props.selected.location">
-                                <h3 class="mb-1 font-medium">Location</h3>
-                                <dl class="text-muted-foreground space-y-1">
-                                    <div class="flex justify-between">
-                                        <dt>City</dt>
-                                        <dd>{{ props.selected.location.city ?? '—' }}</dd>
-                                    </div>
-                                    <div v-if="props.selected.location.gate_code" class="flex justify-between">
-                                        <dt>Gate code</dt>
-                                        <dd class="font-mono">{{ props.selected.location.gate_code }}</dd>
-                                    </div>
-                                    <p v-if="props.selected.location.access_notes" class="pt-1 text-xs italic">
-                                        {{ props.selected.location.access_notes }}
-                                    </p>
-                                </dl>
-                            </section>
-
-                            <section>
-                                <div class="mb-1 flex items-center justify-between">
-                                    <h3 class="font-medium">Service plans</h3>
-                                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openSubCreate"
-                                        ><Plus class="mr-1 size-3.5" /> Plan</Button
-                                    >
-                                </div>
-                                <ul class="space-y-2">
-                                    <li
-                                        v-for="sub in props.selected.subscriptions"
-                                        :key="sub.id"
-                                        class="border-border text-muted-foreground rounded-md border p-2"
-                                    >
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-foreground font-medium">{{ sub.service }}</span>
-                                            <span
-                                                class="rounded-full px-2 py-0.5 text-xs font-medium"
-                                                :class="
-                                                    sub.status === 'active'
-                                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                                        : sub.status === 'paused'
-                                                          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                                                          : 'bg-muted text-muted-foreground'
-                                                "
-                                                >{{ planStatus[sub.status] ?? sub.status }}</span
-                                            >
-                                        </div>
-                                        <div class="text-xs">
-                                            {{ sub.schedule }} ·
-                                            <Link v-if="sub.agent_id" :href="agentLink(sub.agent_id)" class="text-primary hover:underline">{{
+                        <PaneSection title="Service plans">
+                            <template v-if="props.canManage" #action>
+                                <PaneAction :icon="Plus" @click="openSubCreate">Add a plan</PaneAction>
+                            </template>
+                            <PaneList v-if="pool.subscriptions.length">
+                                <PaneItem v-for="sub in pool.subscriptions" :key="sub.id" :title="sub.service">
+                                    <template #icon><IconTile :icon="CalendarDays" size="sm" /></template>
+                                    <template #sub>
+                                        {{ sub.schedule
+                                        }}<template v-if="sub.agent_id">
+                                            with
+                                            <Link :href="agentLink(sub.agent_id)" class="text-primary underline-offset-4 hover:underline">{{
                                                 sub.agent
-                                            }}</Link>
-                                            <template v-else>{{ sub.agent }}</template>
-                                        </div>
-                                        <div
-                                            v-if="sub.hold_label && sub.status !== 'cancelled'"
-                                            class="text-xs font-medium text-amber-600 dark:text-amber-400"
+                                            }}</Link></template
                                         >
-                                            {{ sub.hold_label }}
-                                        </div>
-                                        <div v-if="props.canManage" class="mt-1.5 flex gap-3 text-xs">
-                                            <button class="hover:text-foreground" @click="openSubEdit(sub)">Edit</button>
-                                            <button class="hover:text-foreground" @click="toggleSub(sub)">
-                                                {{ sub.status === 'active' ? 'Pause' : sub.status === 'paused' ? 'Resume' : 'Restart' }}
-                                            </button>
-                                            <button class="text-red-600 hover:text-red-700" @click="removeSub(sub)">Remove</button>
-                                        </div>
-                                    </li>
-                                    <li v-if="props.selected.subscriptions.length === 0" class="text-muted-foreground text-sm">
-                                        No service plans yet.
-                                    </li>
-                                </ul>
-                            </section>
+                                    </template>
+                                    <p
+                                        v-if="sub.hold_label && sub.status !== 'cancelled'"
+                                        class="mt-0.5 font-medium text-amber-700 dark:text-amber-400"
+                                    >
+                                        {{ sub.hold_label }}
+                                    </p>
+                                    <div v-if="props.canManage" class="mt-1.5 flex gap-4">
+                                        <PaneAction @click="openSubEdit(sub)">Edit</PaneAction>
+                                        <PaneAction @click="toggleSub(sub)">
+                                            {{ sub.status === 'active' ? 'Pause' : sub.status === 'paused' ? 'Resume' : 'Restart' }}
+                                        </PaneAction>
+                                        <PaneAction danger @click="removeSub(sub)">Remove</PaneAction>
+                                    </div>
+                                    <template #trailing>
+                                        <Chip :tone="sub.status === 'active' ? 'good' : sub.status === 'paused' ? 'warn' : 'muted'">{{
+                                            planStatus[sub.status] ?? sub.status
+                                        }}</Chip>
+                                    </template>
+                                </PaneItem>
+                            </PaneList>
+                            <p v-else class="text-muted-foreground text-sm">No service plans yet.</p>
+                        </PaneSection>
 
-                            <section>
-                                <div class="mb-1 flex items-center justify-between">
-                                    <h3 class="font-medium">Equipment</h3>
-                                    <Button v-if="props.canManage" size="sm" variant="outline" @click="openEquip"
-                                        ><Plus class="mr-1 size-3.5" /> Equipment</Button
-                                    >
-                                </div>
-                                <ul class="space-y-2">
-                                    <li
-                                        v-for="item in props.selected.equipment_items"
-                                        :key="item.id"
-                                        class="border-border text-muted-foreground rounded-md border p-2"
-                                    >
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-foreground font-medium capitalize">{{ labelize(item.type) }}</span>
-                                            <span v-if="item.make || item.model" class="text-xs">{{
-                                                [item.make, item.model].filter(Boolean).join(' ')
-                                            }}</span>
-                                        </div>
-                                        <ul v-if="item.service_log.length" class="mt-1 space-y-0.5 text-xs">
-                                            <li v-for="log in item.service_log" :key="log.id" class="flex justify-between gap-2">
-                                                <span class="truncate">{{ log.on }} · {{ log.description }}</span>
-                                                <span v-if="log.cost > 0" class="shrink-0">${{ log.cost.toFixed(2) }}</span>
-                                            </li>
-                                        </ul>
-                                        <div v-if="props.canManage" class="mt-1.5 flex gap-3 text-xs">
-                                            <button class="hover:text-foreground" @click="openService(item)">Log service</button>
-                                            <button class="text-red-600 hover:text-red-700" @click="removeEquip(item)">Remove</button>
-                                        </div>
-                                    </li>
-                                    <li v-if="props.selected.equipment_items.length === 0" class="text-muted-foreground text-sm">
-                                        No equipment tracked yet.
-                                    </li>
-                                </ul>
-                            </section>
-                        </div>
+                        <PaneSection v-if="pool.location" title="Getting there">
+                            <PaneFacts
+                                :facts="[
+                                    { label: 'Address', value: [pool.location.address, pool.location.city].filter(Boolean).join(', ') },
+                                    { label: 'Gate code', value: pool.location.gate_code },
+                                ]"
+                            />
+                            <p v-if="pool.location.access_notes" class="text-muted-foreground mt-2 text-sm">{{ pool.location.access_notes }}</p>
+                        </PaneSection>
+
+                        <PaneSection title="Equipment">
+                            <template v-if="props.canManage" #action>
+                                <PaneAction :icon="Plus" @click="openEquip">Add equipment</PaneAction>
+                            </template>
+                            <PaneList v-if="pool.equipment_items.length">
+                                <PaneItem
+                                    v-for="item in pool.equipment_items"
+                                    :key="item.id"
+                                    :title="cap(labelize(item.type))"
+                                    :sub="[item.make, item.model].filter(Boolean).join(' ') || null"
+                                >
+                                    <template #icon><IconTile :icon="Wrench" size="sm" /></template>
+                                    <ul v-if="item.service_log.length" class="text-muted-foreground mt-1 space-y-0.5">
+                                        <li v-for="log in item.service_log" :key="log.id" class="flex justify-between gap-3">
+                                            <span class="min-w-0 truncate">{{ formatDay(log.on) }}: {{ log.description }}</span>
+                                            <span v-if="log.cost > 0" class="shrink-0 tabular-nums">{{ formatMoney(log.cost) }}</span>
+                                        </li>
+                                    </ul>
+                                    <div v-if="props.canManage" class="mt-1.5 flex gap-4">
+                                        <PaneAction @click="openService(item)">Log service</PaneAction>
+                                        <PaneAction danger @click="removeEquip(item)">Remove</PaneAction>
+                                    </div>
+                                </PaneItem>
+                            </PaneList>
+                            <p v-else class="text-muted-foreground text-sm">No equipment tracked yet.</p>
+                        </PaneSection>
                     </div>
                 </template>
             </MasterDetail>

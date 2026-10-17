@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -85,4 +86,25 @@ test('customers are denied the back-office screen', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
 
     $this->actingAs($portalUser)->get('/pools')->assertForbidden();
+});
+
+test('the pool panel has the full latest water test, dated by its visit, and the address', function () {
+    app()->instance('tenant_id', $this->tenant->id);
+    $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create(['has_cover' => true]);
+    $pool->serviceLocation()->create(['address_line1' => '27 Marsh Hen Lane', 'city' => 'St. Simons Island']);
+    $visit = ServiceVisit::factory()->for($this->tenant)->for($pool)->create([
+        'status' => 'completed', 'completed_at' => '2026-10-15 17:30:00',
+        'agent_id' => User::factory()->agent()->for($this->tenant)->create()->id,
+    ]);
+    $visit->chemicalReading()->create(['free_chlorine' => 2.6, 'ph' => 7.4, 'calcium_hardness' => 290, 'cyanuric_acid' => 50]);
+
+    $this->actingAs($this->admin)
+        ->get('/pools?selected='.$pool->id)
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.latest_reading.taken_on', '2026-10-15')
+            ->where('selected.latest_reading.calcium_hardness', 290)
+            ->where('selected.latest_reading.cyanuric_acid', 50)
+            ->where('selected.location.address', '27 Marsh Hen Lane')
+            ->where('selected.features', ['cover'])
+        );
 });

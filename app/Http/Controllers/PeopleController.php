@@ -9,6 +9,8 @@ use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\MailCampaign;
+use App\Models\RouteStop;
+use App\Models\ServiceSubscription;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -321,7 +323,7 @@ class PeopleController extends Controller
         // Tenant-scoped via the global scope — a foreign id returns null. Archived
         // customers (and their archived pools) are only reachable withTrashed.
         $customer = ($archived ? Customer::withTrashed() : Customer::query())
-            ->with(['pools' => fn ($q) => ($archived ? $q->withTrashed() : $q)->select('id', 'customer_id', 'name', 'type')])
+            ->with(['pools' => fn ($q) => ($archived ? $q->withTrashed() : $q)->select('id', 'customer_id', 'name', 'type', 'volume_gallons')])
             ->find($id);
         if ($customer === null) {
             return null;
@@ -331,10 +333,21 @@ class PeopleController extends Controller
         $visits = ServiceVisit::query()
             ->whereIn('pool_id', $poolIds)
             ->where('status', 'completed')
-            ->with('pool:id,name')
+            ->with(['pool:id,name', 'agent:id,first_name,last_name', 'serviceSubscription.serviceType:id,name'])
             ->latest('completed_at')
             ->limit(5)
             ->get();
+
+        // What each pool gets now, and when someone is next out.
+        $services = ServiceSubscription::query()->whereIn('pool_id', $poolIds)->current()->with('serviceType:id,name')->get()->groupBy('pool_id');
+        $next = RouteStop::query()->select('route_stops.*')
+            ->join('routes', 'routes.id', '=', 'route_stops.route_id')
+            ->whereIn('route_stops.pool_id', $poolIds)
+            ->where('route_stops.status', 'pending')
+            ->where('routes.scheduled_date', '>=', Tenant::localToday()->toDateString())
+            ->with(['route:id,scheduled_date,agent_id', 'route.agent:id,first_name,last_name', 'pool:id,name'])
+            ->orderBy('routes.scheduled_date')
+            ->first();
 
         return [
             'type' => 'customer',
@@ -344,6 +357,14 @@ class PeopleController extends Controller
             'email' => $customer->getAttribute('email'),
             'phone' => $customer->getAttribute('phone'),
             'city' => $customer->getAttribute('city'),
+            'address' => implode(', ', array_filter([$customer->address_line1, $customer->city, $customer->state])) ?: null,
+            'since' => Tenant::localDate($customer->getAttribute('onboarded_at') ?? $customer->created_at),
+            'balance' => app(BillingService::class)->outstandingForCustomer($customer),
+            'next_visit' => $next === null ? null : [
+                'date' => $next->route?->scheduled_date?->toDateString(),
+                'agent' => $next->route?->agent?->firstName(),
+                'pool' => $next->pool?->getAttribute('name'),
+            ],
             'portal_status' => $customer->portalStatus(),
             'archived' => $customer->trashed(),
             'archived_on' => $customer->deleted_at?->toDateString(),
@@ -358,11 +379,15 @@ class PeopleController extends Controller
                 'id' => $pool->id,
                 'name' => $pool->getAttribute('name'),
                 'type' => $pool->getAttribute('type'),
+                'volume' => $pool->getAttribute('volume_gallons'),
+                'services' => ($services[$pool->id] ?? collect())->map(fn (ServiceSubscription $p): ?string => $p->serviceType?->name)->filter()->unique()->values()->all(),
             ])->all(),
             'recent_visits' => $visits->map(fn (ServiceVisit $visit) => [
                 'id' => $visit->id,
                 'pool' => $visit->pool?->getAttribute('name'),
-                'completed_on' => $visit->completed_at?->toDateString(),
+                'service' => $visit->serviceSubscription?->serviceType?->name,
+                'agent' => $visit->agent?->firstName(),
+                'completed_on' => Tenant::localDate($visit->completed_at),
             ])->all(),
             // Raw values for the edit form.
             'fields' => [

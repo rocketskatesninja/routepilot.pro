@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Actions\CreateSubscription;
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\BillingService;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -113,4 +117,28 @@ test('customers are denied the People screen', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
 
     $this->actingAs($portalUser)->get('/people')->assertForbidden();
+});
+
+test('a customer panel says what they owe, when someone is next out, and what each pool gets', function () {
+    Carbon::setTestNow('2026-10-15 14:00:00');
+    app()->instance('tenant_id', $this->tenant->id);
+    $agent = User::factory()->agent()->for($this->tenant)->create(['first_name' => 'Marcus']);
+    $customer = Customer::factory()->for($this->tenant)->create(['address_line1' => '12 Oak St', 'city' => 'Brunswick', 'state' => 'GA']);
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create(['name' => 'Smith Pool', 'volume_gallons' => 15000]);
+    $service = ServiceType::factory()->for($this->tenant)->create(['name' => 'Weekly Pool Service', 'price' => 50]);
+    app(CreateSubscription::class)->handle([
+        'pool_id' => $pool->id, 'service_type_id' => $service->id, 'assigned_agent_id' => $agent->id, 'frequency' => 'weekly', 'preferred_day' => 'monday',
+    ]);
+    app(BillingService::class)->addCharge($customer, 'manual', 'Filter cartridge', 89.0, false, '2026-10-10', $this->admin->id);
+
+    $this->actingAs($this->admin)
+        ->get("/people?selected={$customer->id}&selected_type=customer")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.balance', 89)
+            ->where('selected.address', '12 Oak St, Brunswick, GA')
+            ->where('selected.next_visit.date', '2026-10-19')
+            ->where('selected.next_visit.agent', 'Marcus')
+            ->where('selected.pools.0.volume', 15000)
+            ->where('selected.pools.0.services', ['Weekly Pool Service'])
+        );
 });

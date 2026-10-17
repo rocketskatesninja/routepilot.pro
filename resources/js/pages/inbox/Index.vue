@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import NoteBubble from '@/components/NoteBubble.vue';
 import PlanScheduleFields from '@/components/PlanScheduleFields.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { POOL_TYPES } from '@/lib/labels';
 import { customerLink, poolLink, telLink } from '@/lib/links';
+import { cap } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Check, Inbox, UserPlus, X } from 'lucide-vue-next';
+import { CalendarCheck, Check, CirclePause, CircleStop, ClipboardList, Inbox, MessageSquare, UserPlus, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface RequestRow {
@@ -126,6 +136,8 @@ const statusClass = (status: string) =>
 
 const sources: Record<string, string> = { quote: 'Website quote', booking: 'Booking form', contact: 'Contact form', chatbot: 'Website chat' };
 const leadStatuses: Record<string, string> = { new: 'New', contacted: 'Contacted', converted: 'Customer', archived: 'Archived' };
+const requestIcon: Record<string, typeof Inbox> = { service: ClipboardList, hold: CirclePause, cancel: CircleStop, other: MessageSquare };
+const firstWord = (name: string | null) => name?.split(' ')[0] ?? null;
 
 // --- answering a request: one panel at a time in the detail pane ---
 const mode = ref<'none' | 'approve' | 'decline' | 'convert'>('none');
@@ -238,15 +250,6 @@ function openConvert() {
 const submitConvert = () => {
     if (!lead.value) return;
     convertForm.post(`/leads/${lead.value.id}/convert`, { onSuccess: () => (mode.value = 'none') });
-};
-
-const poolTypes: Record<string, string> = {
-    inground: 'In-ground',
-    above_ground: 'Above-ground',
-    indoor: 'Indoor',
-    spa: 'Spa / hot tub',
-    infinity: 'Infinity',
-    other: 'Other',
 };
 </script>
 
@@ -362,102 +365,113 @@ const poolTypes: Record<string, string> = {
 
                 <template #detail>
                     <!-- ===== a customer request ===== -->
-                    <div v-if="request" class="space-y-5 text-sm">
-                        <div>
-                            <div class="flex items-start justify-between gap-3">
-                                <h2 class="text-lg font-semibold">{{ request.title }}</h2>
-                                <span
-                                    class="mt-1 inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="statusClass(request.status)"
-                                    >{{ request.status_label }}</span
-                                >
-                            </div>
-                            <p class="text-muted-foreground">
-                                <Link :href="customerLink(request.customer_id)" class="hover:text-foreground underline-offset-2 hover:underline">{{
+                    <div v-if="request" class="space-y-6">
+                        <PaneHeader :title="request.title" :summary="`Received ${formatDay(request.on)}.`">
+                            <template #media><IconTile :icon="requestIcon[request.type] ?? MessageSquare" size="lg" /></template>
+                            <template #badge>
+                                <Chip :tone="request.status === 'pending' ? 'warn' : request.status === 'approved' ? 'good' : 'muted'">{{
+                                    request.status_label
+                                }}</Chip>
+                            </template>
+                            <p class="mt-2 text-[15px]">
+                                From
+                                <Link :href="customerLink(request.customer_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
                                     request.customer
-                                }}</Link>
-                                <template v-if="request.pool_id">
-                                    ·
-                                    <Link :href="poolLink(request.pool_id)" class="hover:text-foreground underline-offset-2 hover:underline">{{
+                                }}</Link
+                                ><template v-if="request.pool_id"
+                                    >, for
+                                    <Link :href="poolLink(request.pool_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
                                         request.pool
-                                    }}</Link>
-                                </template>
+                                    }}</Link></template
+                                >
                             </p>
-                        </div>
+                        </PaneHeader>
 
-                        <dl class="text-muted-foreground space-y-1">
-                            <div class="flex justify-between gap-3">
-                                <dt>Received</dt>
-                                <dd>{{ formatDay(request.on) }}</dd>
-                            </div>
-                            <div v-if="request.type === 'service'" class="flex justify-between gap-3">
-                                <dt>Would like to start</dt>
-                                <dd>{{ request.preferred_date ? formatDay(request.preferred_date) : 'As soon as possible' }}</dd>
-                            </div>
-                            <div v-if="(request.type === 'hold' || request.type === 'cancel') && request.plan" class="flex justify-between gap-3">
-                                <dt>Service</dt>
-                                <dd>{{ request.plan_service }} · {{ request.plan }}</dd>
-                            </div>
-                            <div v-if="request.type === 'hold'" class="flex justify-between gap-3">
-                                <dt>Pause</dt>
-                                <dd>{{ formatDay(request.preferred_date) }} – {{ formatDay(request.ends_on) }}</dd>
-                            </div>
-                            <div v-else-if="request.type === 'cancel'" class="flex justify-between gap-3">
-                                <dt>Last service</dt>
-                                <dd>{{ request.preferred_date ? formatDay(request.preferred_date) : 'As soon as possible' }}</dd>
-                            </div>
-                        </dl>
+                        <PaneFacts
+                            :facts="[
+                                {
+                                    label: 'Would like to start',
+                                    value:
+                                        request.type === 'service'
+                                            ? request.preferred_date
+                                                ? formatDay(request.preferred_date)
+                                                : 'As soon as possible'
+                                            : null,
+                                },
+                                {
+                                    label: 'Service',
+                                    value:
+                                        (request.type === 'hold' || request.type === 'cancel') && request.plan
+                                            ? `${request.plan_service}, ${request.plan}`
+                                            : null,
+                                },
+                                {
+                                    label: 'Pause',
+                                    value: request.type === 'hold' ? `${formatDay(request.preferred_date)} to ${formatDay(request.ends_on)}` : null,
+                                },
+                                {
+                                    label: 'Last service',
+                                    value:
+                                        request.type === 'cancel'
+                                            ? request.preferred_date
+                                                ? formatDay(request.preferred_date)
+                                                : 'As soon as possible'
+                                            : null,
+                                },
+                            ]"
+                        />
 
-                        <div v-if="request.service" class="bg-card rounded-xl border p-3">
-                            <div class="flex items-baseline justify-between gap-3">
-                                <span class="font-semibold">{{ request.service.name }}</span>
-                                <span class="text-primary text-xs font-semibold whitespace-nowrap">{{ request.service.offer }}</span>
-                            </div>
-                            <p v-if="request.service.description" class="text-muted-foreground mt-0.5">{{ request.service.description }}</p>
-                            <p v-if="!request.service.is_active" class="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                                This service is no longer active.
-                            </p>
-                        </div>
+                        <PaneList v-if="request.service">
+                            <PaneItem :title="request.service.name" :sub="request.service.description">
+                                <p v-if="!request.service.is_active" class="mt-1 text-amber-700 dark:text-amber-400">
+                                    This service is no longer active.
+                                </p>
+                                <template #trailing
+                                    ><span class="text-primary text-xs font-semibold whitespace-nowrap">{{ request.service.offer }}</span></template
+                                >
+                            </PaneItem>
+                        </PaneList>
 
-                        <section v-if="request.message">
-                            <h3 class="mb-1 font-medium">Their note</h3>
-                            <p class="bg-muted/50 rounded-lg p-3 whitespace-pre-line">{{ request.message }}</p>
-                        </section>
+                        <NoteBubble v-if="request.message" :author="`${firstWord(request.customer) ?? 'They'} wrote`">{{
+                            request.message
+                        }}</NoteBubble>
 
-                        <section v-if="request.pool_id">
-                            <h3 class="mb-1 font-medium">Already on this pool</h3>
-                            <ul v-if="request.pool_plans.length" class="text-muted-foreground space-y-1">
-                                <li v-for="p in request.pool_plans" :key="p.id" class="flex justify-between gap-3">
-                                    <span
-                                        ><span class="text-foreground">{{ p.service }}</span> · {{ p.schedule
-                                        }}<span v-if="p.agent"> · {{ p.agent }}</span></span
-                                    >
-                                    <span v-if="p.status !== 'active'" class="text-xs">{{ p.status === 'cancelled' ? 'Ended' : 'Paused' }}</span>
-                                </li>
-                            </ul>
-                            <p v-else class="text-muted-foreground">No plans yet.</p>
-                        </section>
+                        <PaneSection v-if="request.pool_id" title="Already on this pool">
+                            <PaneList v-if="request.pool_plans.length">
+                                <PaneItem
+                                    v-for="p in request.pool_plans"
+                                    :key="p.id"
+                                    :title="p.service"
+                                    :sub="`${p.schedule}${p.agent ? ` with ${p.agent}` : ''}`"
+                                >
+                                    <template v-if="p.status !== 'active'" #trailing>
+                                        <Chip>{{ p.status === 'cancelled' ? 'Ended' : 'Paused' }}</Chip>
+                                    </template>
+                                </PaneItem>
+                            </PaneList>
+                            <p v-else class="text-muted-foreground text-sm">No plans yet.</p>
+                        </PaneSection>
 
                         <!-- answered -->
-                        <section v-if="request.status !== 'pending'" class="rounded-lg border p-3">
-                            <p class="font-medium">
-                                {{ request.status_label
-                                }}<span v-if="request.answered_on" class="text-muted-foreground font-normal">
-                                    · {{ formatDay(request.answered_on) }}</span
-                                >
+                        <PaneSection v-if="request.status !== 'pending'" title="Your answer">
+                            <p class="text-sm">
+                                {{ request.status_label }}<template v-if="request.answered_on"> on {{ formatDay(request.answered_on) }}</template
+                                ><template v-if="request.plan && request.type === 'service'">: {{ request.plan }}</template
+                                >.
                             </p>
-                            <p v-if="request.plan" class="text-muted-foreground mt-0.5">{{ request.plan }}</p>
-                            <p v-if="request.reply" class="text-muted-foreground mt-1">
-                                <span class="text-foreground">{{ request.status === 'declined' ? 'Reason' : 'Your note' }}:</span>
-                                {{ request.reply }}
-                            </p>
-                        </section>
+                            <NoteBubble
+                                v-if="request.reply"
+                                :author="request.status === 'declined' ? 'The reason you gave' : 'Your note'"
+                                class="mt-2"
+                                >{{ request.reply }}</NoteBubble
+                            >
+                        </PaneSection>
 
                         <!-- answer it -->
                         <template v-else>
                             <p
                                 v-if="duplicatePlan"
-                                class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-amber-700 dark:text-amber-400"
+                                class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
                             >
                                 {{ request.pool }} already has {{ request.title }} ({{ duplicatePlan.schedule }}). Approving adds a second plan —
                                 decline instead if this is a mix-up.
@@ -468,11 +482,15 @@ const poolTypes: Record<string, string> = {
                             </div>
 
                             <!-- approve: a service request gets its plan -->
-                            <form v-else-if="mode === 'approve'" class="space-y-4 rounded-lg border p-3" @submit.prevent="submitApprove">
+                            <form
+                                v-else-if="mode === 'approve'"
+                                class="border-border space-y-4 rounded-2xl border p-4 text-sm"
+                                @submit.prevent="submitApprove"
+                            >
                                 <template v-if="request.for_service">
                                     <div>
-                                        <h3 class="font-medium">Schedule it</h3>
-                                        <p class="text-muted-foreground text-xs">
+                                        <h3 class="font-display text-lg font-semibold tracking-tight">Schedule it</h3>
+                                        <p class="text-muted-foreground">
                                             Creates the plan on {{ request.pool }}. Its visits go on the route as soon as you save.
                                         </p>
                                     </div>
@@ -501,7 +519,11 @@ const poolTypes: Record<string, string> = {
                             </form>
 
                             <!-- decline -->
-                            <form v-else-if="mode === 'decline'" class="space-y-3 rounded-lg border p-3" @submit.prevent="submitDecline">
+                            <form
+                                v-else-if="mode === 'decline'"
+                                class="border-border space-y-3 rounded-2xl border p-4 text-sm"
+                                @submit.prevent="submitDecline"
+                            >
                                 <div class="grid gap-1.5">
                                     <Label for="dc_reply">Why? <span class="text-muted-foreground font-normal">The customer sees this.</span></Label>
                                     <textarea
@@ -522,63 +544,55 @@ const poolTypes: Record<string, string> = {
                     </div>
 
                     <!-- ===== a website lead ===== -->
-                    <div v-else-if="lead" class="space-y-5 text-sm">
-                        <div>
-                            <div class="flex items-start justify-between gap-3">
-                                <h2 class="text-lg font-semibold">{{ lead.name }}</h2>
-                                <span
-                                    class="mt-1 inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="statusClass(lead.status)"
-                                    >{{ leadStatuses[lead.status] ?? lead.status }}</span
+                    <div v-else-if="lead" class="space-y-6">
+                        <PaneHeader :title="lead.name" :summary="`${sources[lead.source] ?? lead.source}, ${formatDay(lead.on)}.`">
+                            <template #media><IconTile :icon="UserPlus" size="lg" /></template>
+                            <template #badge>
+                                <Chip
+                                    :tone="
+                                        lead.status === 'new'
+                                            ? 'warn'
+                                            : lead.status === 'converted'
+                                              ? 'good'
+                                              : lead.status === 'contacted'
+                                                ? 'info'
+                                                : 'muted'
+                                    "
+                                    >{{ leadStatuses[lead.status] ?? lead.status }}</Chip
                                 >
-                            </div>
-                            <p class="text-muted-foreground">{{ sources[lead.source] ?? lead.source }} · {{ formatDay(lead.on) }}</p>
-                        </div>
+                            </template>
+                            <p v-if="lead.customer" class="mt-2 text-[15px]">
+                                Now a customer:
+                                <Link :href="customerLink(lead.customer.id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
+                                    lead.customer.name
+                                }}</Link>
+                            </p>
+                        </PaneHeader>
 
-                        <dl class="text-muted-foreground space-y-1">
-                            <div v-if="lead.email" class="flex justify-between gap-3">
-                                <dt>Email</dt>
-                                <dd>
-                                    <a :href="`mailto:${lead.email}`" class="hover:text-foreground underline-offset-2 hover:underline">{{
-                                        lead.email
-                                    }}</a>
-                                </dd>
-                            </div>
-                            <div v-if="lead.phone" class="flex justify-between gap-3">
-                                <dt>Phone</dt>
-                                <dd>
-                                    <a :href="telLink(lead.phone)" class="hover:text-foreground underline-offset-2 hover:underline">{{
-                                        lead.phone
-                                    }}</a>
-                                </dd>
-                            </div>
-                            <div v-for="d in lead.details" :key="d.label" class="flex justify-between gap-3">
-                                <dt>{{ d.label }}</dt>
-                                <dd class="capitalize">{{ d.label === 'Preferred date' ? formatDay(d.value) : d.value }}</dd>
-                            </div>
-                        </dl>
+                        <PaneFacts
+                            :facts="[
+                                { label: 'Email', value: lead.email, href: lead.email ? `mailto:${lead.email}` : null },
+                                { label: 'Phone', value: lead.phone, href: lead.phone ? telLink(lead.phone) : null },
+                                ...lead.details.map((d) => ({
+                                    label: d.label,
+                                    value: d.label === 'Preferred date' ? formatDay(d.value) : cap(d.value),
+                                })),
+                            ]"
+                        />
 
-                        <div v-if="lead.service" class="bg-card rounded-xl border p-3">
-                            <p class="text-muted-foreground mb-1 text-xs font-medium">Picked on your website</p>
-                            <div class="flex items-baseline justify-between gap-3">
-                                <span class="font-semibold">{{ lead.service.name }}</span>
-                                <span class="text-primary text-xs font-semibold whitespace-nowrap">{{ lead.service.offer }}</span>
-                            </div>
-                        </div>
+                        <PaneSection v-if="lead.service" title="Picked on your website">
+                            <PaneList>
+                                <PaneItem :title="lead.service.name">
+                                    <template #trailing
+                                        ><span class="text-primary text-xs font-semibold whitespace-nowrap">{{ lead.service.offer }}</span></template
+                                    >
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
 
-                        <section v-if="lead.message">
-                            <h3 class="mb-1 font-medium">Their message</h3>
-                            <p class="bg-muted/50 rounded-lg p-3 whitespace-pre-line">{{ lead.message }}</p>
-                        </section>
+                        <NoteBubble v-if="lead.message" :author="`${firstWord(lead.name) ?? 'They'} wrote`">{{ lead.message }}</NoteBubble>
 
-                        <div v-if="lead.customer" class="rounded-lg border p-3">
-                            Now a customer:
-                            <Link :href="customerLink(lead.customer.id)" class="text-primary font-medium underline-offset-2 hover:underline">{{
-                                lead.customer.name
-                            }}</Link>
-                        </div>
-
-                        <template v-else>
+                        <template v-if="!lead.customer">
                             <div v-if="mode !== 'convert'" class="flex flex-wrap items-center gap-2">
                                 <Button size="sm" @click="openConvert"><UserPlus class="mr-1 size-3.5" /> Convert to customer</Button>
                                 <select
@@ -594,10 +608,10 @@ const poolTypes: Record<string, string> = {
                             </div>
 
                             <!-- convert: the add-customer form, pre-filled -->
-                            <form v-else class="space-y-4 rounded-lg border p-3" @submit.prevent="submitConvert">
+                            <form v-else class="border-border space-y-4 rounded-2xl border p-4 text-sm" @submit.prevent="submitConvert">
                                 <div>
-                                    <h3 class="font-medium">New customer</h3>
-                                    <p class="text-muted-foreground text-xs">
+                                    <h3 class="font-display text-lg font-semibold tracking-tight">New customer</h3>
+                                    <p class="text-muted-foreground">
                                         Adds them and their pool.<template v-if="lead.service">
                                             Their pick — {{ lead.service.name }} — then waits in Customer requests for you to approve &amp;
                                             schedule.</template
@@ -658,7 +672,7 @@ const poolTypes: Record<string, string> = {
                                             v-model="convertForm.pool_type"
                                             class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
                                         >
-                                            <option v-for="(label, key) in poolTypes" :key="key" :value="key">{{ label }}</option>
+                                            <option v-for="(label, key) in POOL_TYPES" :key="key" :value="key">{{ label }}</option>
                                         </select>
                                     </div>
                                     <div class="grid gap-1.5">

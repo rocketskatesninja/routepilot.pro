@@ -12,6 +12,7 @@ use App\Http\Requests\StoreChemicalRequest;
 use App\Http\Requests\UpdateChemicalRequest;
 use App\Models\ChemicalInventory;
 use App\Models\InventoryTransaction;
+use App\Models\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -115,7 +116,7 @@ class InventoryController extends Controller
                 'id' => $t->id,
                 'type' => $t->getAttribute('type'),
                 'quantity' => (float) $t->quantity,
-                'on' => $t->created_at?->toDateString(),
+                'on' => Tenant::localDate($t->created_at),
                 'agent' => $t->agent?->displayName(),
                 'agent_id' => $t->agent?->getKey(),
             ])->all();

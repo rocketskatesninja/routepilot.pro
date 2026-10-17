@@ -3,17 +3,28 @@ import Sparkline from '@/components/charts/Sparkline.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import NoteBubble from '@/components/NoteBubble.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
+import WaterChecks from '@/components/portal/WaterChecks.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { targetsFor } from '@/lib/chemistry';
 import { agentLink, customerLink } from '@/lib/links';
+import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
+import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { FileText, Pencil, Plus, X } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { Check, FileText, Minus, Pencil, Plus, X } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 
 interface VisitRow {
     id: number;
@@ -41,6 +52,8 @@ interface Reading {
 interface VisitDetail {
     id: number;
     pool: string | null;
+    service: string | null;
+    targets: WaterTargets;
     customer: string | null;
     customer_id: number | null;
     agent: string | null;
@@ -77,7 +90,18 @@ const readingLabels: Record<keyof Reading, string> = {
     water_temperature: 'Temp °F',
     lsi_score: 'LSI',
 };
-const readingKeys = Object.keys(readingLabels) as (keyof Reading)[];
+
+// --- the side panel ---
+const visit = computed(() => props.selected);
+const waterChecks = computed(() => (visit.value?.reading ? checkWater(visit.value.reading, visit.value.targets) : []));
+const firstWord = (name: string | null) => name?.split(' ')[0] ?? null;
+/** "Weekly Pool Service on Thu, Oct 15." */
+const visitSummary = (v: VisitDetail) => `${v.service ?? 'Service visit'}${v.completed_on ? ` on ${formatDay(v.completed_on)}` : ''}.`;
+// The trend charts shade this pool's own healthy range.
+const band = (key: 'free_chlorine' | 'ph'): [number, number] => {
+    const r = targetsFor({ custom_target_ranges: visit.value?.targets ?? null })[key];
+    return [r.min, r.max];
+};
 
 // --- edit ---
 const editReadingKeys = [
@@ -181,17 +205,28 @@ function submitEdit() {
                 </template>
 
                 <template #detail>
-                    <div v-if="props.selected">
-                        <!-- pr-8 below xl clears the overlay Sheet's close (X); the docked pane (xl+) has none. -->
-                        <div class="mb-4 flex items-start justify-between gap-2 pr-8 xl:pr-0">
-                            <div>
-                                <h2 class="text-lg font-semibold">{{ props.selected.pool }}</h2>
-                                <p class="text-muted-foreground text-sm">{{ props.selected.completed_on }}</p>
-                            </div>
-                            <Button v-if="props.selected.can_edit && !editing" size="sm" variant="outline" @click="openEdit">
-                                <Pencil class="mr-1 size-3.5" /> Edit
-                            </Button>
-                        </div>
+                    <div v-if="visit" class="space-y-6">
+                        <PaneHeader :title="visit.pool ?? 'Visit'" :summary="visitSummary(visit)">
+                            <template #media><IconTile :icon="FileText" size="lg" /></template>
+                            <p class="mt-2 text-[15px]">
+                                <template v-if="visit.customer_id"
+                                    >For
+                                    <Link
+                                        :href="customerLink(visit.customer_id)"
+                                        class="text-primary font-medium underline-offset-4 hover:underline"
+                                        >{{ visit.customer }}</Link
+                                    ></template
+                                ><template v-if="visit.agent_id"
+                                    >{{ visit.customer_id ? ', by ' : 'By ' }}
+                                    <Link :href="agentLink(visit.agent_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
+                                        visit.agent
+                                    }}</Link></template
+                                >
+                            </p>
+                            <template v-if="visit.can_edit && !editing" #actions>
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                            </template>
+                        </PaneHeader>
 
                         <!-- edit form -->
                         <form v-if="editing" class="space-y-4 text-sm" @submit.prevent="submitEdit">
@@ -263,97 +298,91 @@ function submitEdit() {
                             </div>
                         </form>
 
-                        <div v-else class="space-y-5 text-sm">
-                            <dl class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <dt class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Customer</dt>
-                                    <dd class="mt-0.5">
-                                        <Link
-                                            v-if="props.selected.customer_id"
-                                            :href="customerLink(props.selected.customer_id)"
-                                            class="text-primary hover:underline"
-                                            >{{ props.selected.customer }}</Link
-                                        >
-                                        <template v-else>{{ props.selected.customer ?? '—' }}</template>
-                                    </dd>
-                                </div>
-                                <div>
-                                    <dt class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Agent</dt>
-                                    <dd class="mt-0.5">
-                                        <Link
-                                            v-if="props.selected.agent_id"
-                                            :href="agentLink(props.selected.agent_id)"
-                                            class="text-primary hover:underline"
-                                            >{{ props.selected.agent }}</Link
-                                        >
-                                        <template v-else>{{ props.selected.agent ?? '—' }}</template>
-                                    </dd>
-                                </div>
-                            </dl>
-                            <section v-if="props.selected.trend && (props.selected.trend.chlorine.length > 1 || props.selected.trend.ph.length > 1)">
-                                <h3 class="mb-1 font-medium">Chemistry trend</h3>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div v-if="props.selected.trend.chlorine.length > 1">
-                                        <p class="text-muted-foreground text-[11px]">Free chlorine</p>
-                                        <Sparkline :values="props.selected.trend.chlorine" :band="[1, 3]" color="hsl(var(--chart-1))" class="mt-1" />
-                                    </div>
-                                    <div v-if="props.selected.trend.ph.length > 1">
-                                        <p class="text-muted-foreground text-[11px]">pH</p>
-                                        <Sparkline :values="props.selected.trend.ph" :band="[7.2, 7.8]" color="hsl(var(--chart-2))" class="mt-1" />
-                                    </div>
-                                </div>
-                                <p v-if="props.selected.trend.dates.length > 1" class="text-muted-foreground mt-1.5 text-[10px]">
-                                    {{ props.selected.trend.dates[0] }} – {{ props.selected.trend.dates[props.selected.trend.dates.length - 1] }}
-                                </p>
-                            </section>
-
-                            <section v-if="props.selected.reading">
-                                <h3 class="mb-1 font-medium">Readings</h3>
-                                <dl class="text-muted-foreground grid grid-cols-3 gap-2">
-                                    <template v-for="k in readingKeys" :key="k">
-                                        <div v-if="props.selected.reading[k] !== null">
-                                            <dt class="text-xs">{{ readingLabels[k] }}</dt>
-                                            <dd>{{ props.selected.reading[k] }}</dd>
-                                        </div>
-                                    </template>
-                                </dl>
-                            </section>
-
-                            <section v-if="props.selected.treatments.length">
-                                <h3 class="mb-1 font-medium">Treatments</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="(t, i) in props.selected.treatments" :key="i" class="flex justify-between">
-                                        <span>{{ t.name }}</span
-                                        ><span>{{ t.amount }} {{ t.unit }}</span>
+                        <template v-else>
+                            <PaneSection v-if="visit.tasks.length" title="What was done">
+                                <ul class="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+                                    <li v-for="(t, i) in visit.tasks" :key="i" class="flex gap-2" :class="t.done ? '' : 'text-muted-foreground'">
+                                        <Check v-if="t.done" class="text-primary mt-0.5 size-4 shrink-0" />
+                                        <Minus v-else class="mt-0.5 size-4 shrink-0" />
+                                        {{ t.name }}<template v-if="!t.done"> (skipped)</template>
                                     </li>
                                 </ul>
-                            </section>
+                            </PaneSection>
 
-                            <section v-if="props.selected.tasks.length">
-                                <h3 class="mb-1 font-medium">Tasks</h3>
-                                <ul class="text-muted-foreground space-y-0.5">
-                                    <li v-for="(t, i) in props.selected.tasks" :key="i">{{ t.done ? '✓' : '○' }} {{ t.name }}</li>
-                                </ul>
-                            </section>
+                            <PaneSection v-if="waterChecks.length" title="Water test">
+                                <p class="text-muted-foreground mb-3 text-sm">{{ waterSummary(waterChecks, false) }}</p>
+                                <div class="border-border rounded-2xl border px-4">
+                                    <WaterChecks :checks="waterChecks" :explain="false" />
+                                </div>
+                                <PaneFacts
+                                    class="mt-3"
+                                    :facts="[
+                                        {
+                                            label: 'Water temperature',
+                                            value: visit.reading?.water_temperature ? `${visit.reading.water_temperature}°F` : null,
+                                        },
+                                        {
+                                            label: 'Total chlorine',
+                                            value: visit.reading?.total_chlorine ? `${visit.reading.total_chlorine} ppm` : null,
+                                        },
+                                        { label: 'Saturation (LSI)', value: visit.reading?.lsi_score },
+                                    ]"
+                                />
+                            </PaneSection>
 
-                            <section v-if="props.selected.photos.length">
-                                <h3 class="mb-1 font-medium">Photos</h3>
+                            <PaneSection v-if="visit.treatments.length" title="Chemicals added">
+                                <PaneList>
+                                    <PaneItem v-for="(t, i) in visit.treatments" :key="i" :title="t.name">
+                                        <template #trailing
+                                            ><span class="tabular-nums">{{ t.amount }} {{ t.unit }}</span></template
+                                        >
+                                    </PaneItem>
+                                </PaneList>
+                            </PaneSection>
+
+                            <NoteBubble v-if="visit.notes" :author="`${firstWord(visit.agent) ?? 'The tech'} wrote`">{{ visit.notes }}</NoteBubble>
+
+                            <PaneSection v-if="visit.photos.length" title="Photos">
                                 <div class="grid grid-cols-3 gap-2">
-                                    <a v-for="(photo, i) in props.selected.photos" :key="i" :href="photo" target="_blank" rel="noopener">
+                                    <a
+                                        v-for="(photo, i) in visit.photos"
+                                        :key="i"
+                                        :href="photo"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="focus-visible:ring-ring overflow-hidden rounded-xl focus-visible:ring-2 focus-visible:outline-none"
+                                    >
                                         <img
                                             :src="photo"
-                                            alt="Service photo"
-                                            class="border-border aspect-square w-full rounded-md border object-cover transition hover:opacity-90"
+                                            :alt="`Photo ${i + 1} from this visit`"
+                                            class="aspect-square w-full object-cover transition hover:opacity-90"
                                         />
                                     </a>
                                 </div>
-                            </section>
+                            </PaneSection>
 
-                            <section v-if="props.selected.notes">
-                                <h3 class="mb-1 font-medium">Notes</h3>
-                                <p class="text-muted-foreground">{{ props.selected.notes }}</p>
-                            </section>
-                        </div>
+                            <PaneSection v-if="visit.trend && (visit.trend.chlorine.length > 1 || visit.trend.ph.length > 1)" title="Recent visits">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <figure v-if="visit.trend.chlorine.length > 1" class="border-border rounded-2xl border p-3">
+                                        <figcaption class="text-sm font-medium">Chlorine</figcaption>
+                                        <Sparkline
+                                            :values="visit.trend.chlorine"
+                                            :band="band('free_chlorine')"
+                                            color="hsl(var(--brand))"
+                                            class="mt-1"
+                                        />
+                                    </figure>
+                                    <figure v-if="visit.trend.ph.length > 1" class="border-border rounded-2xl border p-3">
+                                        <figcaption class="text-sm font-medium">pH</figcaption>
+                                        <Sparkline :values="visit.trend.ph" :band="band('ph')" color="hsl(var(--brand))" class="mt-1" />
+                                    </figure>
+                                </div>
+                                <p v-if="visit.trend.dates.length > 1" class="text-muted-foreground mt-2 text-xs">
+                                    The last {{ visit.trend.dates.length }} visits, {{ visit.trend.dates[0] }} to
+                                    {{ visit.trend.dates[visit.trend.dates.length - 1] }}. Shaded area is the healthy range.
+                                </p>
+                            </PaneSection>
+                        </template>
                     </div>
                 </template>
             </MasterDetail>

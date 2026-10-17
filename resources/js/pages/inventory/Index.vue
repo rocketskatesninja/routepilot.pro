@@ -4,18 +4,25 @@ import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import SortableTh from '@/components/SortableTh.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink } from '@/lib/links';
-import { formatMoney } from '@/lib/utils';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface InventoryRow {
     id: number;
@@ -69,6 +76,13 @@ const open = (id: number) =>
     router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
 const closeDrawer = () => router.get('/inventory', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
 const money = formatMoney;
+
+// --- the side panel ---
+const chemical = computed(() => props.selected);
+const amount = (n: number, unit: string) => `${Number.isInteger(n) ? n : n.toFixed(2)} ${unit}`;
+/** "Restocked 10 gal" / "Used 2 gal" / "Counted 50 gal". */
+const movement = (t: InventoryDetail['transactions'][number], unit: string) =>
+    `${{ restock: 'Restocked', usage: 'Used', adjustment: 'Counted' }[t.type] ?? t.type} ${amount(t.quantity, unit)}`;
 
 // The detail pane is shared: it hosts the create/edit form when one is open,
 // otherwise the selected item's detail. Closing the pane cancels the form first.
@@ -230,10 +244,10 @@ function submitAdjust() {
                 <template #detail>
                     <!-- create / edit form: hosted in the docked pane, not an overlay -->
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New chemical' : 'Edit chemical' }}</h2>
-                            <p class="text-muted-foreground text-sm">Stock changes are logged via Adjust stock.</p>
-                        </div>
+                        <PaneHeader
+                            :title="formMode === 'create' ? 'New chemical' : 'Edit chemical'"
+                            summary="Change how much you have with Update stock, so every change is logged."
+                        />
                         <ImageUpload
                             :model-value="form.photo"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
@@ -283,78 +297,90 @@ function submitAdjust() {
                         </div>
                     </form>
 
-                    <div v-else-if="props.selected">
-                        <div class="mb-4 flex items-center gap-3">
-                            <EntityAvatar :src="props.selected.photo_url" type="inventory" :name="props.selected.name" size="lg" />
-                            <div>
-                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-muted-foreground text-sm">{{ props.selected.stock }} {{ props.selected.unit }} in stock</p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-5 text-sm">
-                            <div v-if="props.canManage" class="flex gap-2">
+                    <div v-else-if="chemical" class="space-y-6">
+                        <PaneHeader
+                            :title="chemical.name"
+                            :summary="`${amount(chemical.stock, chemical.unit)} in stock.${chemical.reorder_threshold !== null ? ` Reorder at ${amount(chemical.reorder_threshold, chemical.unit)}.` : ''}`"
+                        >
+                            <template #media>
+                                <img
+                                    v-if="chemical.photo_url"
+                                    :src="chemical.photo_url"
+                                    :alt="chemical.name"
+                                    class="size-16 shrink-0 rounded-2xl object-cover"
+                                />
+                                <IconTile v-else :icon="FlaskConical" size="lg" />
+                            </template>
+                            <template #badge>
+                                <Chip :tone="chemical.low ? 'warn' : 'good'">{{ chemical.low ? 'Running low' : 'In stock' }}</Chip>
+                            </template>
+                            <template v-if="props.canManage" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyChemical"
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyChemical"
                                     ><Trash2 class="mr-1 size-3.5" /> Remove</Button
                                 >
-                            </div>
+                            </template>
+                        </PaneHeader>
 
-                            <dl class="text-muted-foreground space-y-1">
-                                <div class="flex justify-between">
-                                    <dt>Reorder at</dt>
-                                    <dd>{{ props.selected.reorder_threshold ?? '—' }} {{ props.selected.unit }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt>Cost</dt>
-                                    <dd>{{ props.selected.cost_per_unit !== null ? money(props.selected.cost_per_unit) : '—' }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt>Sell price</dt>
-                                    <dd>{{ props.selected.sell_price !== null ? money(props.selected.sell_price) : '—' }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt>Stock value</dt>
-                                    <dd>{{ props.selected.value !== null ? money(props.selected.value) : '—' }}</dd>
-                                </div>
-                                <div v-if="props.selected.supplier" class="flex justify-between">
-                                    <dt>Supplier</dt>
-                                    <dd>{{ props.selected.supplier }}</dd>
-                                </div>
-                            </dl>
+                        <PaneSection v-if="props.canManage" title="Update stock">
+                            <form class="flex flex-wrap items-center gap-2" @submit.prevent="submitAdjust">
+                                <select
+                                    v-model="adjustForm.type"
+                                    aria-label="Kind of change"
+                                    class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
+                                >
+                                    <option value="restock">Restocked</option>
+                                    <option value="usage">Used</option>
+                                    <option value="adjustment">Counted, now</option>
+                                </select>
+                                <Input
+                                    v-model="adjustForm.quantity"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    :aria-label="`Amount in ${chemical.unit}`"
+                                    class="w-24"
+                                />
+                                <span class="text-muted-foreground text-sm">{{ chemical.unit }}</span>
+                                <Button type="submit" size="sm" :disabled="adjustForm.processing || adjustForm.quantity === ''">Save</Button>
+                            </form>
+                        </PaneSection>
 
-                            <section v-if="props.canManage" class="border-border rounded-lg border p-3">
-                                <h3 class="mb-2 font-medium">Adjust stock</h3>
-                                <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitAdjust">
-                                    <select v-model="adjustForm.type" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                        <option value="restock">Restock (+)</option>
-                                        <option value="usage">Usage (−)</option>
-                                        <option value="adjustment">Set to…</option>
-                                    </select>
-                                    <Input v-model="adjustForm.quantity" type="number" min="0" step="0.01" placeholder="Qty" class="w-24" />
-                                    <Button type="submit" size="sm" :disabled="adjustForm.processing || adjustForm.quantity === ''">Apply</Button>
-                                </form>
-                            </section>
+                        <PaneSection title="Prices">
+                            <PaneFacts
+                                :facts="[
+                                    {
+                                        label: `Cost per ${chemical.unit}`,
+                                        value: chemical.cost_per_unit !== null ? formatMoney(chemical.cost_per_unit) : null,
+                                    },
+                                    {
+                                        label: `Sell price per ${chemical.unit}`,
+                                        value: chemical.sell_price !== null ? formatMoney(chemical.sell_price) : null,
+                                    },
+                                    { label: 'Value on the shelf', value: chemical.value !== null ? formatMoney(chemical.value) : null },
+                                    { label: 'Supplier', value: chemical.supplier },
+                                ]"
+                            />
+                        </PaneSection>
 
-                            <section v-if="props.selected.transactions.length">
-                                <h3 class="mb-1 font-medium">Recent movement</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="t in props.selected.transactions" :key="t.id" class="flex justify-between">
-                                        <span class="capitalize">{{ t.type }} · {{ t.quantity }} {{ props.selected.unit }}</span>
-                                        <span>
-                                            <template v-if="t.agent">
-                                                <Link v-if="t.agent_id" :href="agentLink(t.agent_id)" class="text-primary hover:underline">{{
-                                                    t.agent
-                                                }}</Link>
-                                                <template v-else>{{ t.agent }}</template>
-                                                ·
-                                            </template>
-                                            {{ t.on }}
-                                        </span>
-                                    </li>
-                                </ul>
-                            </section>
-                        </div>
+                        <PaneSection v-if="chemical.transactions.length" title="Recent changes">
+                            <PaneList>
+                                <PaneItem v-for="t in chemical.transactions" :key="t.id" :title="movement(t, chemical.unit)">
+                                    <template #sub>
+                                        {{ formatDay(t.on)
+                                        }}<template v-if="t.agent">
+                                            by
+                                            <Link
+                                                v-if="t.agent_id"
+                                                :href="agentLink(t.agent_id)"
+                                                class="text-primary underline-offset-4 hover:underline"
+                                                >{{ t.agent }}</Link
+                                            ><template v-else>{{ t.agent }}</template></template
+                                        >
+                                    </template>
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
                     </div>
                 </template>
             </MasterDetail>

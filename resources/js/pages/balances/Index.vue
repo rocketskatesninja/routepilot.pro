@@ -4,17 +4,25 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import SortableTh from '@/components/SortableTh.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneAction from '@/components/pane/PaneAction.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { customerLink } from '@/lib/links';
-import { formatMoney } from '@/lib/utils';
+import { cap } from '@/lib/portal';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Ban, CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface BalanceRow {
     id: number;
@@ -43,7 +51,7 @@ interface OwingDetail {
     id: number;
     name: string;
     photo: string | null;
-    visits: { pool: string; date: string; price: number }[];
+    visits: { service: string; pool: string; date: string; price: number }[];
     charges: { description: string; amount: number }[];
     total: number;
     invoices: { id: number; number: string; status: string; total: number; balance: number; issued_on: string | null }[];
@@ -127,6 +135,31 @@ const statusClass = (s: string): string =>
     })[s] ?? 'bg-muted text-muted-foreground';
 
 const payMethod = ref('cash');
+const PAY_METHODS: Record<string, string> = { cash: 'Cash', check: 'Check', card: 'Card', ach: 'Bank transfer', other: 'Other' };
+
+// --- the side panel: an invoice, or what a customer owes ---
+const invoice = computed(() => (props.selected?.kind === 'invoice' ? props.selected : null));
+const owing = computed(() => (props.selected?.kind === 'owing' ? props.selected : null));
+const invoiceTone: Record<string, 'good' | 'warn' | 'info' | 'bad' | 'muted'> = {
+    paid: 'good',
+    overdue: 'bad',
+    sent: 'info',
+    draft: 'muted',
+    void: 'muted',
+};
+/** "Sent Thu, Oct 1" / "Paid, issued Thu, Oct 1" / "Draft". */
+const invoiceLine = (inv: OwingDetail['invoices'][number]) => {
+    const on = inv.issued_on ? formatDay(inv.issued_on) : '';
+    return inv.status === 'sent' && on ? `Sent ${on}` : `${cap(inv.status)}${on ? `, issued ${on}` : ''}`;
+};
+/** "Issued Thu, Oct 1, due Sat, Oct 31." */
+const invoiceSummary = (i: InvoiceDetail) =>
+    [
+        i.issued_on ? `Issued ${formatDay(i.issued_on)}` : 'Not sent yet',
+        i.due_on && i.status !== 'paid' && i.status !== 'void' ? `due ${formatDay(i.due_on)}` : '',
+    ]
+        .filter(Boolean)
+        .join(', ') + '.';
 
 // --- owing-view actions ---
 function recordPayment() {
@@ -323,10 +356,7 @@ function closePane() {
                 <template #detail>
                     <!-- add-charge form: hosted in the docked pane, not an overlay -->
                     <form v-if="chargeOpen" class="space-y-4 text-sm" @submit.prevent="submitCharge">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Add a charge</h2>
-                            <p class="text-muted-foreground text-sm">An ad-hoc charge raises the customer's balance.</p>
-                        </div>
+                        <PaneHeader title="Add a charge" summary="A one-off charge, like a part or a repair. It goes on the customer’s balance." />
                         <div class="grid gap-1.5">
                             <Label for="ch_cust">Customer</Label>
                             <Combobox id="ch_cust" v-model="chargeForm.customer_id" :options="props.customers" placeholder="Search customers…" />
@@ -349,192 +379,156 @@ function closePane() {
                         </div>
                     </form>
 
-                    <!-- invoice detail -->
-                    <div v-else-if="props.selected?.kind === 'invoice'">
-                        <div class="mb-4">
-                            <div class="flex items-center justify-between gap-2">
-                                <h2 class="text-lg font-semibold">{{ props.selected.number }}</h2>
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                    :class="statusClass(props.selected.status)"
-                                    >{{ props.selected.status }}</span
-                                >
-                            </div>
-                            <p class="text-muted-foreground text-sm">
-                                <Link
-                                    v-if="props.selected.customer_id"
-                                    :href="customerLink(props.selected.customer_id)"
-                                    class="text-primary hover:underline"
-                                    >{{ props.selected.customer }}</Link
-                                >
-                                <template v-else>{{ props.selected.customer }}</template>
+                    <!-- an invoice -->
+                    <div v-else-if="invoice" class="space-y-6">
+                        <PaneHeader :title="invoice.number" :summary="invoiceSummary(invoice)">
+                            <template #media><IconTile :icon="FileText" size="lg" /></template>
+                            <template #badge>
+                                <Chip :tone="invoiceTone[invoice.status] ?? 'muted'">{{ cap(invoice.status) }}</Chip>
+                            </template>
+                            <p v-if="invoice.customer_id" class="mt-2 text-[15px]">
+                                <Link :href="customerLink(invoice.customer_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
+                                    invoice.customer
+                                }}</Link>
                             </p>
-                        </div>
-
-                        <div class="space-y-5 text-sm">
-                            <dl class="text-muted-foreground space-y-1">
-                                <div class="flex justify-between">
-                                    <dt>Issued</dt>
-                                    <dd>{{ props.selected.issued_on ?? '—' }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt>Due</dt>
-                                    <dd>{{ props.selected.due_on ?? '—' }}</dd>
-                                </div>
-                                <div v-if="props.selected.period_end" class="flex justify-between">
-                                    <dt>Period</dt>
-                                    <dd>{{ props.selected.period_start ?? '…' }} – {{ props.selected.period_end }}</dd>
-                                </div>
-                            </dl>
-
-                            <section v-if="props.selected.line_items.length">
-                                <h3 class="mb-1 font-medium">Line items</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="(li, i) in props.selected.line_items" :key="i" class="flex justify-between gap-2">
-                                        <span>{{ li.description }}</span
-                                        ><span>{{ money(li.amount) }}</span>
-                                    </li>
-                                </ul>
-                            </section>
-
-                            <dl class="border-border space-y-1 border-t pt-2">
-                                <div class="text-muted-foreground flex justify-between">
-                                    <dt>Subtotal</dt>
-                                    <dd>{{ money(props.selected.subtotal) }}</dd>
-                                </div>
-                                <div class="text-muted-foreground flex justify-between">
-                                    <dt>Tax</dt>
-                                    <dd>{{ money(props.selected.tax) }}</dd>
-                                </div>
-                                <div class="flex justify-between font-medium">
-                                    <dt>Total</dt>
-                                    <dd>{{ money(props.selected.total) }}</dd>
-                                </div>
-                                <div v-if="props.selected.amount_paid > 0" class="flex justify-between text-emerald-600 dark:text-emerald-400">
-                                    <dt>Paid</dt>
-                                    <dd>{{ money(props.selected.amount_paid) }}</dd>
-                                </div>
-                                <div v-if="props.selected.balance > 0" class="flex justify-between font-medium text-amber-600 dark:text-amber-400">
-                                    <dt>Balance due</dt>
-                                    <dd>{{ money(props.selected.balance) }}</dd>
-                                </div>
-                            </dl>
-
-                            <div class="border-border flex flex-wrap gap-2 border-t pt-3">
-                                <a :href="`/invoices/${props.selected.id}/pdf`" target="_blank">
-                                    <Button size="sm" variant="outline"><Download class="mr-1 size-3.5" /> PDF</Button>
-                                </a>
-                                <Button v-if="props.canManage" size="sm" variant="outline" @click="emailInvoice(props.selected.id)"
+                            <template #actions>
+                                <Button as-child size="sm" variant="outline">
+                                    <a :href="`/invoices/${invoice.id}/pdf`" target="_blank"><Download class="mr-1 size-3.5" /> PDF</a>
+                                </Button>
+                                <Button v-if="props.canManage" size="sm" variant="outline" @click="emailInvoice(invoice.id)"
                                     ><Mail class="mr-1 size-3.5" /> Email</Button
                                 >
                                 <Button
-                                    v-if="props.canManage && props.selected.status !== 'paid' && props.selected.status !== 'void'"
+                                    v-if="props.canManage && invoice.status !== 'paid' && invoice.status !== 'void'"
                                     size="sm"
                                     variant="outline"
                                     class="text-red-600 hover:text-red-600 dark:text-red-400"
-                                    @click="voidInvoice(props.selected.id)"
+                                    @click="voidInvoice(invoice.id)"
                                     ><Ban class="mr-1 size-3.5" /> Void</Button
                                 >
-                            </div>
+                            </template>
+                        </PaneHeader>
 
-                            <div
-                                v-if="props.canManage && props.selected.status !== 'paid' && props.selected.status !== 'void'"
-                                class="border-border flex items-center gap-2 border-t pt-3"
-                            >
-                                <select v-model="payMethod" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                    <option value="cash">Cash</option>
-                                    <option value="check">Check</option>
-                                    <option value="card">Card</option>
-                                    <option value="ach">ACH</option>
-                                    <option value="other">Other</option>
+                        <PaneSection title="What it’s for">
+                            <PaneList>
+                                <PaneItem v-for="(li, i) in invoice.line_items" :key="i" :title="li.description">
+                                    <template #trailing
+                                        ><span class="tabular-nums">{{ formatMoney(li.amount) }}</span></template
+                                    >
+                                </PaneItem>
+                                <PaneItem v-if="invoice.tax > 0" title="Subtotal">
+                                    <template #trailing
+                                        ><span class="tabular-nums">{{ formatMoney(invoice.subtotal) }}</span></template
+                                    >
+                                </PaneItem>
+                                <PaneItem v-if="invoice.tax > 0" title="Tax">
+                                    <template #trailing
+                                        ><span class="tabular-nums">{{ formatMoney(invoice.tax) }}</span></template
+                                    >
+                                </PaneItem>
+                                <PaneItem title="Total">
+                                    <template #trailing
+                                        ><span class="font-semibold tabular-nums">{{ formatMoney(invoice.total) }}</span></template
+                                    >
+                                </PaneItem>
+                                <PaneItem v-if="invoice.amount_paid > 0" title="Paid">
+                                    <template #trailing
+                                        ><span class="text-emerald-700 tabular-nums dark:text-emerald-400"
+                                            >−{{ formatMoney(invoice.amount_paid) }}</span
+                                        ></template
+                                    >
+                                </PaneItem>
+                                <PaneItem v-if="invoice.balance > 0" title="Still due">
+                                    <template #trailing
+                                        ><span class="font-semibold text-amber-700 tabular-nums dark:text-amber-400">{{
+                                            formatMoney(invoice.balance)
+                                        }}</span></template
+                                    >
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
+
+                        <PaneSection v-if="props.canManage && invoice.status !== 'paid' && invoice.status !== 'void'" title="Record a payment">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <select
+                                    v-model="payMethod"
+                                    aria-label="Paid by"
+                                    class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
+                                >
+                                    <option v-for="(label, key) in PAY_METHODS" :key="key" :value="key">{{ label }}</option>
                                 </select>
-                                <Button size="sm" @click="markInvoicePaid">Mark paid · {{ money(props.selected.balance) }}</Button>
+                                <Button size="sm" @click="markInvoicePaid">Mark paid {{ formatMoney(invoice.balance) }}</Button>
                             </div>
-                        </div>
+                        </PaneSection>
                     </div>
 
-                    <!-- owing (customer balance) detail -->
-                    <div v-else-if="props.selected">
-                        <div class="mb-4 flex items-center gap-3">
-                            <EntityAvatar :src="props.selected.photo" type="person" :name="props.selected.name" size="lg" shape="circle" />
-                            <div>
-                                <h2 class="text-lg font-semibold">
-                                    <Link :href="customerLink(props.selected.id)" class="hover:underline">{{ props.selected.name }}</Link>
-                                </h2>
-                                <p class="text-muted-foreground text-sm">{{ money(props.selected.total) }} outstanding</p>
-                            </div>
-                        </div>
+                    <!-- what a customer owes -->
+                    <div v-else-if="owing" class="space-y-6">
+                        <PaneHeader :title="owing.name">
+                            <template #media>
+                                <EntityAvatar :src="owing.photo" type="person" :name="owing.name" size="lg" shape="circle" />
+                            </template>
+                            <p class="text-muted-foreground mt-1 text-[15px]">Owes</p>
+                            <p class="font-display text-4xl font-semibold tracking-tight">{{ formatMoney(owing.total) }}</p>
+                            <Link
+                                :href="customerLink(owing.id)"
+                                class="text-primary mt-2 inline-block text-sm font-medium underline-offset-4 hover:underline"
+                                >Open customer</Link
+                            >
+                        </PaneHeader>
 
-                        <div class="space-y-5 text-sm">
-                            <section v-if="props.selected.visits.length">
-                                <h3 class="mb-1 font-medium">Unpaid visits</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="(v, i) in props.selected.visits" :key="i" class="flex justify-between">
-                                        <span
-                                            >{{ v.pool }} <span class="text-xs">· {{ v.date }}</span></span
-                                        >
-                                        <span>{{ money(v.price) }}</span>
-                                    </li>
-                                </ul>
-                            </section>
-
-                            <section v-if="props.selected.charges.length">
-                                <h3 class="mb-1 font-medium">Manual charges</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="(c, i) in props.selected.charges" :key="i" class="flex justify-between">
-                                        <span>{{ c.description }}</span
-                                        ><span>{{ money(c.amount) }}</span>
-                                    </li>
-                                </ul>
-                            </section>
-
-                            <div class="border-border flex justify-between border-t pt-2 font-medium">
-                                <span>Total</span><span>{{ money(props.selected.total) }}</span>
-                            </div>
-
-                            <section v-if="props.selected.invoices.length">
-                                <h3 class="mb-1 font-medium">Invoices</h3>
-                                <ul class="text-muted-foreground space-y-1">
-                                    <li v-for="inv in props.selected.invoices" :key="inv.id" class="flex items-center justify-between">
-                                        <span class="flex items-center gap-2">
-                                            <a :href="`/invoices/${inv.id}/pdf`" target="_blank" class="text-foreground hover:underline"
-                                                >{{ inv.number }} <span class="text-muted-foreground text-xs capitalize">· {{ inv.status }}</span></a
-                                            >
-                                            <button
-                                                v-if="props.canManage"
-                                                class="text-xs text-sky-600 hover:underline dark:text-sky-400"
-                                                @click="emailInvoice(inv.id)"
-                                            >
-                                                Email
-                                            </button>
-                                        </span>
-                                        <span
-                                            >{{ money(inv.total)
-                                            }}<span v-if="inv.balance > 0" class="text-amber-600 dark:text-amber-400">
-                                                · {{ money(inv.balance) }} due</span
-                                            ></span
-                                        >
-                                    </li>
-                                </ul>
-                            </section>
-
-                            <div v-if="props.canManage" class="border-border space-y-2 border-t pt-3">
-                                <div class="flex items-center gap-2">
-                                    <select v-model="payMethod" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                        <option value="cash">Cash</option>
-                                        <option value="check">Check</option>
-                                        <option value="card">Card</option>
-                                        <option value="ach">ACH</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                    <Button size="sm" @click="recordPayment">Mark paid · {{ money(props.selected.total) }}</Button>
-                                </div>
-                                <Button size="sm" variant="outline" class="w-full" @click="generateInvoice"
-                                    ><FileText class="mr-1 size-3.5" /> Generate invoice</Button
+                        <PaneSection v-if="props.canManage" title="Record a payment">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <select
+                                    v-model="payMethod"
+                                    aria-label="Paid by"
+                                    class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
+                                >
+                                    <option v-for="(label, key) in PAY_METHODS" :key="key" :value="key">{{ label }}</option>
+                                </select>
+                                <Button size="sm" @click="recordPayment">Mark paid {{ formatMoney(owing.total) }}</Button>
+                                <Button size="sm" variant="outline" @click="generateInvoice"
+                                    ><FileText class="mr-1 size-3.5" /> Make an invoice</Button
                                 >
                             </div>
-                            <p v-else class="text-muted-foreground text-xs">Card payments + autopay arrive with the Stripe flow.</p>
-                        </div>
+                        </PaneSection>
+
+                        <PaneSection title="What they owe for">
+                            <PaneList>
+                                <PaneItem v-for="(v, i) in owing.visits" :key="`v${i}`" :title="v.service" :sub="`${formatDay(v.date)}, ${v.pool}`">
+                                    <template #trailing
+                                        ><span class="tabular-nums">{{ formatMoney(v.price) }}</span></template
+                                    >
+                                </PaneItem>
+                                <PaneItem v-for="(c, i) in owing.charges" :key="`c${i}`" :title="c.description">
+                                    <template #trailing
+                                        ><span class="tabular-nums">{{ formatMoney(c.amount) }}</span></template
+                                    >
+                                </PaneItem>
+                                <PaneItem title="Total">
+                                    <template #trailing
+                                        ><span class="font-semibold tabular-nums">{{ formatMoney(owing.total) }}</span></template
+                                    >
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
+
+                        <PaneSection v-if="owing.invoices.length" title="Invoices">
+                            <PaneList>
+                                <PaneItem v-for="inv in owing.invoices" :key="inv.id" :title="inv.number" :sub="invoiceLine(inv)">
+                                    <div class="mt-1 flex gap-4">
+                                        <PaneAction :href="`/invoices/${inv.id}/pdf`" new-tab>PDF</PaneAction>
+                                        <PaneAction v-if="props.canManage" @click="emailInvoice(inv.id)">Email</PaneAction>
+                                    </div>
+                                    <template #trailing>
+                                        <p class="tabular-nums">{{ formatMoney(inv.total) }}</p>
+                                        <p v-if="inv.balance > 0" class="text-xs text-amber-700 tabular-nums dark:text-amber-400">
+                                            {{ formatMoney(inv.balance) }} due
+                                        </p>
+                                    </template>
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
                     </div>
                 </template>
             </MasterDetail>

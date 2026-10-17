@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -83,4 +84,20 @@ test('customers are denied the Reports screen', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
 
     $this->actingAs($portalUser)->get('/reports')->assertForbidden();
+});
+
+test('the report panel names the service and carries the pool\'s own targets', function () {
+    $this->pool->update(['custom_target_ranges' => ['ph' => ['min' => 7.4, 'max' => 7.8]]]);
+    $service = ServiceType::factory()->for($this->tenant)->create(['name' => 'Weekly Pool Service']);
+    $plan = $this->pool->subscriptions()->create(['service_type_id' => $service->id, 'frequency' => 'weekly', 'preferred_day' => 'monday', 'status' => 'active']);
+    $visit = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create([
+        'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(), 'service_subscription_id' => $plan->id,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get("/reports?selected={$visit->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.service', 'Weekly Pool Service')
+            ->where('selected.targets.ph.min', 7.4)
+        );
 });

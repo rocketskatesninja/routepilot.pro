@@ -28,18 +28,18 @@ const rows = computed(() =>
 </script>
 
 <template>
-    <ul class="divide-border divide-y">
+    <ul class="divide-border @container divide-y">
         <li
             v-for="c in rows"
             :key="c.key"
-            class="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 py-3 sm:grid-cols-[minmax(0,1fr)_10rem_7.5rem]"
+            class="grid grid-cols-[1fr_auto] items-center gap-x-6 gap-y-2 py-3 @lg:grid-cols-[minmax(0,1fr)_10rem_7.5rem]"
         >
             <div class="min-w-0">
                 <p class="font-medium">{{ c.name }}</p>
                 <p v-if="explain" class="text-muted-foreground text-sm">{{ c.why }}</p>
             </div>
 
-            <div class="order-3 col-span-2 sm:order-none sm:col-span-1" role="img" :aria-label="c.aria">
+            <div class="order-3 col-span-2 @lg:order-none @lg:col-span-1" role="img" :aria-label="c.aria">
                 <div class="bg-muted relative h-2 rounded-full">
                     <div class="absolute inset-y-0 rounded-full bg-[hsl(var(--brand)/0.3)]" :style="c.band"></div>
                     <div

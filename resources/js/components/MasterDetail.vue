@@ -46,9 +46,9 @@ const overlayOpen = computed(() => !isDocked.value && props.hasSelection && (pro
         <aside
             v-if="isDocked"
             aria-label="Detail"
-            class="border-border bg-card hidden shrink-0 basis-1/3 flex-col overflow-hidden rounded-xl border xl:flex xl:max-w-[460px] xl:min-w-[340px]"
+            class="border-border bg-background hidden shrink-0 basis-[42%] flex-col overflow-hidden rounded-xl border xl:flex xl:max-w-[580px] xl:min-w-[400px]"
         >
-            <div class="min-h-0 flex-1 overflow-y-auto p-4" aria-live="polite">
+            <div class="min-h-0 flex-1 overflow-y-auto p-5" aria-live="polite">
                 <Transition name="swap" mode="out-in">
                     <div :key="props.selectionKey ?? '__empty__'">
                         <slot v-if="props.hasSelection" name="detail" />
@@ -65,7 +65,7 @@ const overlayOpen = computed(() => !isDocked.value && props.hasSelection && (pro
 
     <!-- detail (overlay, below xl): same #detail slot, today's behavior -->
     <Sheet v-if="!isDocked" :open="overlayOpen" @update:open="(o: boolean) => !o && emit('close')">
-        <SheetContent class="w-full overflow-y-auto sm:max-w-md">
+        <SheetContent class="w-full overflow-y-auto sm:max-w-lg">
             <Transition name="swap">
                 <div :key="props.selectionKey ?? '__empty__'">
                     <slot name="detail" />

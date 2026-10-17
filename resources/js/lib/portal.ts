@@ -71,6 +71,44 @@ export function extras(modules: string[]): string[] {
 /** "Robert", "Robert and Ana", "A, B and C". */
 export const andList = (items: string[]) => (items.length > 1 ? `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}` : (items[0] ?? ''));
 
+// --- pools ---
+
+const POOL_KINDS: Record<string, string> = {
+    inground: 'in-ground',
+    above_ground: 'above-ground',
+    indoor: 'indoor',
+    spa: 'spa',
+    infinity: 'infinity',
+    other: '',
+};
+const SANITIZERS: Record<string, string> = {
+    salt: 'salt',
+    chlorine: 'chlorine',
+    bromine: 'bromine',
+    biguanide: 'biguanide',
+    ozone: 'ozone',
+    uv: 'UV',
+};
+const FEATURES: Record<string, string> = {
+    heater: 'a heater',
+    cover: 'a cover',
+    automation: 'automation',
+    cleaner: 'a pool cleaner',
+    water_feature: 'a water feature',
+    auto_fill: 'an auto-fill',
+};
+
+/** "A 12,000-gallon in-ground salt pool, with a heater and a cover." */
+export function describePool(p: { volume: number | null; type: string; sanitizer: string | null; features: string[] }): string {
+    const size = p.volume ? `${p.volume.toLocaleString('en-US')}-gallon` : '';
+    const kind = POOL_KINDS[p.type] ?? '';
+    const water = p.sanitizer ? (SANITIZERS[p.sanitizer] ?? '') : '';
+    const words = [size, kind, water, p.type === 'spa' ? '' : 'pool'].filter(Boolean).join(' ');
+    const article = /^[aeiou8]/i.test(words) || /^1[18],/.test(words) ? 'An' : 'A';
+    const extras = p.features.map((f) => FEATURES[f]).filter(Boolean);
+    return `${article} ${words || 'pool'}${extras.length ? `, with ${andList(extras)}` : ''}.`;
+}
+
 // --- water tests ---
 
 export type WaterReading = Partial<Record<'free_chlorine' | 'ph' | 'alkalinity' | 'calcium_hardness' | 'cyanuric_acid' | 'salt', number | null>>;
@@ -115,13 +153,16 @@ export function checkWater(reading: WaterReading | null, targets: WaterTargets =
     });
 }
 
-/** One calm sentence about a water test: "Everything was in the healthy range." */
-export function waterSummary(checks: WaterCheck[]): string {
+/**
+ * One calm sentence about a water test: "Everything was in the healthy range."
+ * Customers also hear that their technician takes care of anything off; staff don't need telling.
+ */
+export function waterSummary(checks: WaterCheck[], forCustomer = true): string {
     if (!checks.length) return '';
     const off = checks.filter((c) => c.status !== 'good');
     if (!off.length) return 'Everything was in the healthy range.';
     const parts = off.map((c) => `${c.name === 'pH' ? 'pH' : c.name.toLowerCase()} was ${c.far ? '' : 'a little '}${c.status}`);
-    return `${cap(andList(parts))}. Your technician adjusts this as part of each visit.`;
+    return `${cap(andList(parts))}.${forCustomer ? ' Your technician adjusts this as part of each visit.' : ''}`;
 }
 
 /** "3.1 ppm" / "7.2". */

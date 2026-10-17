@@ -62,7 +62,10 @@ class ReportController extends Controller
         $selectedId = $request->integer('selected');
         if ($selectedId > 0) {
             $visit = ServiceVisit::query()
-                ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name', 'chemicalReading', 'treatments', 'tasks', 'photos'])
+                ->with([
+                    'pool:id,name,customer_id,custom_target_ranges', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name',
+                    'serviceSubscription.serviceType:id,name', 'chemicalReading', 'treatments', 'tasks', 'photos',
+                ])
                 ->find($selectedId);
             if ($visit !== null) {
                 $selected = $this->toDetail($visit);
@@ -102,6 +105,9 @@ class ReportController extends Controller
         return [
             'id' => $visit->id,
             'pool' => $visit->pool?->name,
+            'service' => $visit->serviceSubscription?->serviceType?->name,
+            // The pool's own healthy ranges, so the water test reads against what the tech works to.
+            'targets' => $visit->pool?->custom_target_ranges,
             'customer' => $visit->pool?->customer?->displayName(),
             'customer_id' => $visit->pool?->customer?->getKey(),
             'agent' => $visit->agent?->displayName(),

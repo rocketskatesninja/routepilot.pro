@@ -27,7 +27,7 @@ class InboxController extends Controller
         'service_name' => 'Service',
         'estimate' => 'Estimate',
         'pool_type' => 'Pool type',
-        'volume_gallons' => 'Pool size (gal)',
+        'volume_gallons' => 'Pool size',
         'preferred_date' => 'Preferred date',
         'time_window' => 'Time of day',
     ];
@@ -182,7 +182,9 @@ class InboxController extends Controller
             'message' => $l->getAttribute('message'),
             'details' => collect(self::LEAD_DETAILS)
                 ->filter(fn (string $label, string $key): bool => is_string($details[$key] ?? null) && $details[$key] !== '')
-                ->map(fn (string $label, string $key): array => ['label' => $label, 'value' => str_replace('_', ' ', (string) $details[$key])])
+                ->map(fn (string $label, string $key): array => ['label' => $label, 'value' => $key === 'volume_gallons' && is_numeric($details[$key])
+                    ? number_format((float) $details[$key]).' gal'
+                    : str_replace('_', ' ', (string) $details[$key])])
                 ->values()->all(),
             'service' => $l->serviceType === null ? null : ['name' => $l->serviceType->name, 'offer' => $l->serviceType->offerLabel()],
             'customer' => $l->customer === null ? null : ['id' => $l->customer->id, 'name' => $l->customer->displayName()],

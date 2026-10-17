@@ -210,6 +210,11 @@ class PoolController extends Controller
                 $pool->has_water_feature ? 'Water feature' : null,
                 $pool->has_auto_fill ? 'Auto-fill' : null,
             ])),
+            // The same feature keys the portal describes a pool with.
+            'features' => array_keys(array_filter([
+                'heater' => $pool->has_heater, 'cover' => $pool->has_cover, 'automation' => $pool->has_automation,
+                'cleaner' => $pool->has_pool_cleaner, 'water_feature' => $pool->has_water_feature, 'auto_fill' => $pool->has_auto_fill,
+            ])),
             'customer' => [
                 'id' => $pool->customer?->getKey(),
                 'name' => $pool->customer?->displayName() ?? '—',
@@ -217,6 +222,7 @@ class PoolController extends Controller
                 'phone' => $pool->customer?->getAttribute('phone'),
             ],
             'location' => $location !== null ? [
+                'address' => $location->getAttribute('address_line1'),
                 'city' => $location->getAttribute('city'),
                 'gate_code' => $location->getAttribute('gate_code'),
                 'access_notes' => $location->getAttribute('access_notes'),
@@ -258,10 +264,13 @@ class PoolController extends Controller
             ])->all(),
             'targets' => $pool->custom_target_ranges ?? [],
             'latest_reading' => $reading !== null ? [
-                'taken_on' => $reading->created_at?->toDateString(),
+                'taken_on' => Tenant::localDate($reading->serviceVisit?->completed_at),
                 'free_chlorine' => $reading->free_chlorine,
                 'ph' => $reading->ph,
                 'alkalinity' => $reading->alkalinity,
+                'calcium_hardness' => $reading->calcium_hardness,
+                'cyanuric_acid' => $reading->cyanuric_acid,
+                'salt' => $reading->salt,
                 'health' => $health,
                 'last_report_id' => $lastReportId,
             ] : null,

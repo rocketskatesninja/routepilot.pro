@@ -5,17 +5,26 @@ import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import SortableTh from '@/components/SortableTh.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { POOL_TYPES } from '@/lib/labels';
 import { composeLink, poolLink, reportLink, telLink } from '@/lib/links';
-import { formatMoney } from '@/lib/utils';
+import { andList, monthYear } from '@/lib/portal';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users } from 'lucide-vue-next';
+import { HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users, Waves } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -54,12 +63,16 @@ interface CustomerDetail {
     email: string | null;
     phone: string | null;
     city: string | null;
+    address: string | null;
+    since: string | null;
+    balance: number;
+    next_visit: { date: string; agent: string | null; pool: string | null } | null;
     portal_status: 'none' | 'active' | 'revoked';
     archived: boolean;
     archived_on: string | null;
     summary: { pools: number; visits: number; invoices: number; charges: number } | null;
-    pools: { id: number; name: string; type: string }[];
-    recent_visits: { id: number; pool: string | null; completed_on: string | null }[];
+    pools: { id: number; name: string; type: string; volume: number | null; services: string[] }[];
+    recent_visits: { id: number; pool: string | null; service: string | null; agent: string | null; completed_on: string | null }[];
     fields: CustomerFields;
 }
 
@@ -198,6 +211,19 @@ function closeDrawer() {
 
 const fullName = (p: PersonRow) => `${p.first_name} ${p.last_name ?? ''}`.trim();
 const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${props.selected.id}` : null));
+const customer = computed(() => (props.selected?.type === 'customer' ? props.selected : null));
+const agent = computed(() => (props.selected?.type === 'agent' ? props.selected : null));
+
+/** "In-ground, 18,000 gal. Weekly Pool Service and Chemistry Check." */
+const poolLine = (pool: CustomerDetail['pools'][number]) => {
+    const size = [POOL_TYPES[pool.type] ?? pool.type, pool.volume ? `${pool.volume.toLocaleString('en-US')} gal` : ''].filter(Boolean).join(', ');
+    return `${size}. ${pool.services.length ? `${andList(pool.services)}.` : 'No service yet.'}`;
+};
+/** "Weekly Pool Service at Beach House Pool with Ashley." */
+const visitLine = (v: CustomerDetail['recent_visits'][number]) =>
+    `${v.service ?? 'Service visit'}${v.pool ? ` at ${v.pool}` : ''}${v.agent ? ` with ${v.agent}` : ''}.`;
+const agentSummary = (a: AgentDetail) =>
+    `Agent. ${a.stats.completed_visits} visit${a.stats.completed_visits === 1 ? '' : 's'} done, ${a.stats.this_week} this week.`;
 
 // The detail pane is shared: it hosts whichever form is open (customer, agent,
 // or broadcast email), otherwise the selected item's detail. Only one form is
@@ -447,9 +473,11 @@ function destroyAgent() {
                             <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
                             <SortableTh sort-key="type" :active="props.sort">Type</SortableTh>
                             <SortableTh sort-key="email" :active="props.sort" class="hidden md:table-cell">Email</SortableTh>
-                            <SortableTh sort-key="phone" :active="props.sort" class="hidden lg:table-cell">Phone</SortableTh>
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Portal</th>
-                            <th class="hidden px-4 py-2 font-medium lg:table-cell">Last visit</th>
+                            <SortableTh sort-key="phone" :active="props.sort" class="hidden min-[1360px]:table-cell lg:table-cell xl:hidden"
+                                >Phone</SortableTh
+                            >
+                            <th class="hidden px-4 py-2 font-medium min-[1680px]:table-cell md:table-cell xl:hidden">Portal</th>
+                            <th class="hidden px-4 py-2 font-medium lg:table-cell xl:hidden 2xl:table-cell">Last visit</th>
                             <th class="px-4 py-2 text-right font-medium">Balance</th>
                         </template>
                         <template #row="{ item: person }">
@@ -480,8 +508,10 @@ function destroyAgent() {
                                 </span>
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ person.email ?? '—' }}</td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">{{ person.phone ?? '—' }}</td>
-                            <td class="hidden px-4 py-2.5 md:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 min-[1360px]:table-cell lg:table-cell xl:hidden">
+                                {{ person.phone ?? '—' }}
+                            </td>
+                            <td class="hidden px-4 py-2.5 min-[1680px]:table-cell md:table-cell xl:hidden">
                                 <template v-if="person.person_type === 'customer'">
                                     <span
                                         v-if="person.portal_status === 'active'"
@@ -497,7 +527,9 @@ function destroyAgent() {
                                 </template>
                                 <span v-else class="text-muted-foreground">—</span>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">{{ person.last_visit ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell xl:hidden 2xl:table-cell">
+                                {{ person.last_visit ?? '—' }}
+                            </td>
                             <td
                                 class="px-4 py-2.5 text-right font-medium"
                                 :class="person.balance && person.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'"
@@ -515,12 +547,10 @@ function destroyAgent() {
                 <template #detail>
                     <!-- create / edit customer form: hosted in the docked pane, not an overlay -->
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New customer' : 'Edit customer' }}</h2>
-                            <p class="text-muted-foreground text-sm">
-                                {{ formMode === 'create' ? 'Add a customer and optionally their first pool.' : 'Update contact details.' }}
-                            </p>
-                        </div>
+                        <PaneHeader
+                            :title="formMode === 'create' ? 'New customer' : 'Edit customer'"
+                            :summary="formMode === 'create' ? 'Add a customer and, if you like, their first pool.' : 'Update their contact details.'"
+                        />
                         <ImageUpload
                             :model-value="form.photo"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
@@ -617,12 +647,10 @@ function destroyAgent() {
 
                     <!-- create / edit agent form: hosted in the docked pane -->
                     <form v-else-if="agentFormOpen" class="space-y-4 text-sm" @submit.prevent="submitAgent">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">{{ agentFormMode === 'create' ? 'New agent' : 'Edit agent' }}</h2>
-                            <p class="text-muted-foreground text-sm">
-                                {{ agentFormMode === 'create' ? 'They log in with this email + password.' : 'Update profile + access.' }}
-                            </p>
-                        </div>
+                        <PaneHeader
+                            :title="agentFormMode === 'create' ? 'New agent' : 'Edit agent'"
+                            :summary="agentFormMode === 'create' ? 'They sign in with this email and password.' : 'Update their profile and access.'"
+                        />
                         <ImageUpload
                             :model-value="agentForm.photo"
                             :current="agentFormMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
@@ -668,10 +696,7 @@ function destroyAgent() {
 
                     <!-- broadcast email: hosted in the docked pane -->
                     <form v-else-if="emailOpen" class="space-y-4 text-sm" @submit.prevent="submitEmail">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Email people</h2>
-                            <p class="text-muted-foreground text-sm">Send to a whole audience. Customers who opted out are excluded.</p>
-                        </div>
+                        <PaneHeader title="Email people" summary="Send to a whole group at once. Customers who opted out won’t get it." />
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
                             <select id="aud" v-model="emailForm.audience" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
@@ -716,133 +741,141 @@ function destroyAgent() {
                         </div>
                     </form>
 
-                    <div v-else-if="props.selected">
-                        <div class="mb-4 flex items-center gap-3">
-                            <EntityAvatar :src="props.selected.photo_url" type="person" :name="props.selected.name" size="lg" shape="circle" />
-                            <div>
-                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <p class="text-muted-foreground text-sm capitalize">{{ props.selected.type }}</p>
+                    <!-- a customer -->
+                    <div v-else-if="customer" class="space-y-6">
+                        <PaneHeader :title="customer.name" :summary="customer.since ? `Customer since ${monthYear(customer.since)}.` : null">
+                            <template #media>
+                                <EntityAvatar :src="customer.photo_url" type="person" :name="customer.name" size="lg" shape="circle" />
+                            </template>
+                            <template #badge>
+                                <Chip v-if="customer.archived" tone="warn">Archived</Chip>
+                                <Chip v-else-if="customer.portal_status === 'active'" tone="good">Portal login</Chip>
+                            </template>
+                            <div class="mt-3 space-y-1 text-[15px]">
+                                <p v-if="customer.next_visit">
+                                    Next visit {{ formatDay(customer.next_visit.date)
+                                    }}<template v-if="customer.next_visit.agent"> with {{ customer.next_visit.agent }}</template
+                                    ><template v-if="customer.pools.length > 1"> at {{ customer.next_visit.pool }}</template
+                                    >.
+                                </p>
+                                <p>
+                                    <template v-if="customer.balance > 0">Owes {{ formatMoney(customer.balance) }}.</template>
+                                    <template v-else-if="customer.balance < 0">{{ formatMoney(-customer.balance) }} in credit.</template>
+                                    <template v-else>All paid up.</template>
+                                    <Link
+                                        v-if="customer.balance !== 0"
+                                        :href="`/balances?selected=${customer.id}`"
+                                        class="text-primary ml-1 font-medium underline-offset-4 hover:underline"
+                                        >See balance</Link
+                                    >
+                                </p>
+                            </div>
+                            <template v-if="props.canManage && !customer.archived" #actions>
+                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button v-if="customer.portal_status === 'none'" size="sm" variant="outline" @click="grantPortal"
+                                    >Grant portal</Button
+                                >
+                                <Button v-else-if="customer.portal_status === 'revoked'" size="sm" variant="outline" @click="restorePortal"
+                                    ><RotateCcw class="mr-1 size-3.5" /> Restore access</Button
+                                >
+                                <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyCustomer"
+                                    ><Trash2 class="mr-1 size-3.5" /> Archive</Button
+                                >
+                            </template>
+                        </PaneHeader>
+
+                        <!-- archived: restore or permanently delete -->
+                        <div v-if="customer.archived && props.canManage" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+                            <p class="font-medium">Archived{{ customer.archived_on ? ` on ${formatDay(customer.archived_on)}` : '' }}.</p>
+                            <p v-if="customer.summary" class="text-muted-foreground mt-0.5">
+                                Still holds {{ customer.summary.pools }} pool(s), {{ customer.summary.visits }} visit(s),
+                                {{ customer.summary.invoices }} invoice(s) and {{ customer.summary.charges }} charge(s).
+                            </p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" @click="restoreCustomer"><RotateCcw class="mr-1 size-3.5" /> Restore</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="purgeCustomer"
+                                    ><Trash2 class="mr-1 size-3.5" /> Delete permanently</Button
+                                >
                             </div>
                         </div>
 
-                        <div class="space-y-5 text-sm">
-                            <template v-if="props.canManage && props.selected.type === 'customer'">
-                                <!-- archived customer: restore or permanently delete -->
-                                <div v-if="props.selected.archived" class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                                    <p class="text-sm font-medium">
-                                        Archived{{ props.selected.archived_on ? ` on ${props.selected.archived_on}` : '' }}
-                                    </p>
-                                    <p v-if="props.selected.summary" class="text-muted-foreground mt-0.5 text-xs">
-                                        Still holds {{ props.selected.summary.pools }} pool(s), {{ props.selected.summary.visits }} visit(s),
-                                        {{ props.selected.summary.invoices }} invoice(s), {{ props.selected.summary.charges }} charge(s).
-                                    </p>
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        <Button size="sm" variant="outline" @click="restoreCustomer"
-                                            ><RotateCcw class="mr-1 size-3.5" /> Restore</Button
-                                        >
-                                        <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="purgeCustomer"
-                                            ><Trash2 class="mr-1 size-3.5" /> Delete permanently</Button
-                                        >
-                                    </div>
-                                </div>
-                                <!-- active customer: normal actions -->
-                                <div v-else class="flex flex-wrap gap-2">
-                                    <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                    <Button v-if="props.selected.portal_status === 'none'" size="sm" variant="outline" @click="grantPortal"
-                                        >Grant portal</Button
-                                    >
-                                    <Button v-else-if="props.selected.portal_status === 'revoked'" size="sm" variant="outline" @click="restorePortal"
-                                        ><RotateCcw class="mr-1 size-3.5" /> Restore access</Button
-                                    >
-                                    <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
-                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyCustomer"
-                                        ><Trash2 class="mr-1 size-3.5" /> Archive</Button
-                                    >
-                                </div>
-                            </template>
+                        <PaneSection title="Contact">
+                            <PaneFacts
+                                :facts="[
+                                    { label: 'Email', value: customer.email, href: composeLink(customer.id, 'customer') },
+                                    { label: 'Phone', value: customer.phone, href: customer.phone ? telLink(customer.phone) : null },
+                                    { label: 'Address', value: customer.address },
+                                ]"
+                            />
+                            <p v-if="!customer.email && !customer.phone && !customer.address" class="text-muted-foreground text-sm">
+                                No contact details yet.
+                            </p>
+                        </PaneSection>
 
-                            <section>
-                                <h3 class="mb-1 font-medium">Contact</h3>
-                                <dl class="text-muted-foreground space-y-1">
-                                    <div class="flex justify-between gap-2">
-                                        <dt>Email</dt>
-                                        <dd v-if="props.selected.email" class="truncate">
-                                            <Link :href="composeLink(props.selected.id, props.selected.type)" class="text-primary hover:underline">{{
-                                                props.selected.email
-                                            }}</Link>
-                                        </dd>
-                                        <dd v-else>—</dd>
-                                    </div>
-                                    <div class="flex justify-between gap-2">
-                                        <dt>Phone</dt>
-                                        <dd v-if="props.selected.phone">
-                                            <a :href="telLink(props.selected.phone)" class="text-primary hover:underline">{{
-                                                props.selected.phone
-                                            }}</a>
-                                        </dd>
-                                        <dd v-else>—</dd>
-                                    </div>
-                                </dl>
-                            </section>
+                        <PaneSection :title="customer.pools.length === 1 ? 'Pool' : 'Pools'">
+                            <PaneList v-if="customer.pools.length">
+                                <PaneItem
+                                    v-for="pool in customer.pools"
+                                    :key="pool.id"
+                                    :title="pool.name"
+                                    :sub="poolLine(pool)"
+                                    :href="poolLink(pool.id)"
+                                >
+                                    <template #icon><IconTile :icon="Waves" size="sm" /></template>
+                                </PaneItem>
+                            </PaneList>
+                            <p v-else class="text-muted-foreground text-sm">No pools yet.</p>
+                        </PaneSection>
 
-                            <template v-if="props.selected.type === 'customer'">
-                                <section>
-                                    <h3 class="mb-1 font-medium">Pools ({{ props.selected.pools.length }})</h3>
-                                    <ul class="text-muted-foreground space-y-1">
-                                        <li v-for="pool in props.selected.pools" :key="pool.id" class="flex justify-between">
-                                            <Link :href="poolLink(pool.id)" class="text-primary hover:underline">{{ pool.name }}</Link
-                                            ><span class="capitalize">{{ pool.type.replace('_', ' ') }}</span>
-                                        </li>
-                                        <li v-if="props.selected.pools.length === 0">No pools.</li>
-                                    </ul>
-                                </section>
-                                <section v-if="props.selected.recent_visits.length">
-                                    <h3 class="mb-1 font-medium">Recent visits</h3>
-                                    <ul class="text-muted-foreground space-y-1">
-                                        <li v-for="visit in props.selected.recent_visits" :key="visit.id">
-                                            <Link
-                                                :href="reportLink(visit.id)"
-                                                class="hover:bg-muted hover:text-foreground -mx-1 flex justify-between rounded px-1 py-0.5"
-                                                title="Open report"
-                                            >
-                                                <span>{{ visit.pool }}</span
-                                                ><span>{{ visit.completed_on }}</span>
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                </section>
-                            </template>
+                        <PaneSection v-if="customer.recent_visits.length" title="Recent visits">
+                            <PaneList>
+                                <PaneItem
+                                    v-for="visit in customer.recent_visits"
+                                    :key="visit.id"
+                                    :title="formatDay(visit.completed_on)"
+                                    :sub="visitLine(visit)"
+                                    :href="reportLink(visit.id)"
+                                />
+                            </PaneList>
+                        </PaneSection>
+                    </div>
 
-                            <template v-else>
-                                <div v-if="props.canManage" class="flex flex-wrap gap-2">
-                                    <Button size="sm" variant="outline" @click="openAgentEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                    <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyAgent"
-                                        ><Trash2 class="mr-1 size-3.5" /> Remove</Button
-                                    >
-                                </div>
-                                <section>
-                                    <h3 class="mb-1 font-medium">Activity</h3>
-                                    <dl class="text-muted-foreground space-y-1">
-                                        <div class="flex justify-between">
-                                            <dt>Status</dt>
-                                            <dd>{{ props.selected.is_active ? 'Active' : 'Inactive' }}</dd>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <dt>Agent+ mode</dt>
-                                            <dd>{{ props.selected.agent_plus ? 'On' : 'Off' }}</dd>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <dt>Completed visits</dt>
-                                            <dd>{{ props.selected.stats.completed_visits }}</dd>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <dt>This week</dt>
-                                            <dd>{{ props.selected.stats.this_week }}</dd>
-                                        </div>
-                                    </dl>
-                                </section>
+                    <!-- an agent -->
+                    <div v-else-if="agent" class="space-y-6">
+                        <PaneHeader :title="agent.name" :summary="agentSummary(agent)">
+                            <template #media>
+                                <EntityAvatar :src="agent.photo_url" type="person" :name="agent.name" size="lg" shape="circle" />
                             </template>
-                        </div>
+                            <template #badge>
+                                <Chip :tone="agent.is_active ? 'good' : 'muted'">{{ agent.is_active ? 'Active' : 'Inactive' }}</Chip>
+                            </template>
+                            <template v-if="props.canManage" #actions>
+                                <Button size="sm" variant="outline" @click="openAgentEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyAgent"
+                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
+                                >
+                            </template>
+                        </PaneHeader>
+
+                        <PaneSection title="Contact">
+                            <PaneFacts
+                                :facts="[
+                                    { label: 'Email', value: agent.email, href: composeLink(agent.id, 'agent') },
+                                    { label: 'Phone', value: agent.phone, href: agent.phone ? telLink(agent.phone) : null },
+                                ]"
+                            />
+                        </PaneSection>
+
+                        <PaneSection title="Their route">
+                            <p class="text-muted-foreground text-sm">
+                                {{
+                                    agent.agent_plus
+                                        ? 'Agent+ is on: they can reorder and skip stops on their own route.'
+                                        : 'They work the route as it’s planned. Turn on Agent+ to let them reorder and skip stops.'
+                                }}
+                            </p>
+                        </PaneSection>
                     </div>
                 </template>
             </MasterDetail>

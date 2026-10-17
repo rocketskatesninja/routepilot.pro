@@ -2,16 +2,24 @@
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import SortableTh from '@/components/SortableTh.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneItem from '@/components/pane/PaneItem.vue';
+import PaneList from '@/components/pane/PaneList.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
+import ServiceOffer, { type Offer } from '@/components/portal/ServiceOffer.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { andList, iconFor, soldAs as portalSoldAs, price } from '@/lib/portal';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ClipboardList, Eye, EyeOff, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { Check, ClipboardList, Eye, EyeOff, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface ServiceRow {
@@ -203,11 +211,33 @@ const recurring = computed({
     get: () => form.frequency !== 'one_time',
     set: (yes: boolean) => (form.frequency = yes ? 'weekly' : 'one_time'),
 });
-const previewOffer = computed(() =>
-    form.price === ''
-        ? ''
-        : `${money(form.price)} ${form.frequency === 'one_time' ? 'one-time job' : `per visit · ${soldAs(form.frequency).toLowerCase()}`}`,
-);
+// The form as the customer's card, updating as they type.
+const previewOffer = computed<Offer>(() => ({
+    name: form.name || 'Service name',
+    description: form.description || 'Your short description will appear here.',
+    frequency: form.frequency,
+    price: Number(form.price) || 0,
+    minutes: Number(form.estimated_duration_minutes) || null,
+    tasks: form.field_modules.tasks ? form.tasks.filter((t) => t.trim() !== '') : [],
+    modules: Object.keys(form.field_modules).filter((k) => form.field_modules[k]),
+}));
+
+// --- the selected service ---
+const detail = computed(() => props.selected);
+/** The saved service as the customer's card. */
+const offerOf = (d: ServiceDetail): Offer => ({
+    name: d.name,
+    description: d.description,
+    frequency: d.frequency,
+    price: Number(d.price),
+    minutes: d.duration_minutes,
+    tasks: d.fields.field_modules.tasks ? d.tasks : [],
+    modules: Object.keys(d.fields.field_modules).filter((k) => d.fields.field_modules[k]),
+});
+/** "$50 per visit, every week. About 30 minutes on site. On 9 pools." */
+const serviceSummary = (d: ServiceDetail) =>
+    `${price(Number(d.price))} ${d.frequency === 'one_time' ? 'for the job' : `per visit, ${portalSoldAs(d.frequency).toLowerCase()}`}. ` +
+    `About ${d.duration_minutes} minutes on site. ${d.pools ? `On ${d.pools} pool${d.pools === 1 ? '' : 's'}.` : 'Not on any pools yet.'}`;
 
 function applyTemplate(event: Event) {
     const t = templates[Number((event.target as HTMLSelectElement).value)];
@@ -332,10 +362,10 @@ function destroyService() {
                 <template #detail>
                     <!-- add / edit: in the order an owner thinks about a service -->
                     <form v-if="formOpen" class="space-y-5 text-sm" @submit.prevent="submitForm">
-                        <div>
-                            <h2 class="text-lg font-semibold">{{ formMode === 'create' ? 'New service' : 'Edit service' }}</h2>
-                            <p class="text-muted-foreground text-sm">Set it up once — you'll pick it when you add a plan to a pool.</p>
-                        </div>
+                        <PaneHeader
+                            :title="formMode === 'create' ? 'New service' : 'Edit service'"
+                            summary="Set it up once. You’ll pick it when you add a plan to a pool."
+                        />
 
                         <div v-if="formMode === 'create'" class="grid gap-1.5">
                             <Label for="template">Start from a template</Label>
@@ -346,23 +376,17 @@ function destroyService() {
                             <p class="text-muted-foreground text-xs">Fills in everything below — change whatever you like.</p>
                         </div>
 
-                        <!-- live preview of what a customer sees in the portal and on the website -->
-                        <div class="border-primary/30 bg-card rounded-xl border p-3">
-                            <p class="text-muted-foreground mb-1.5 flex items-center gap-1 text-xs font-medium">
+                        <!-- live preview: the same card customers see in their portal -->
+                        <div class="border-border rounded-2xl border p-5">
+                            <p class="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs font-medium">
                                 <Eye class="size-3.5" /> How customers see it
                             </p>
-                            <template v-if="form.is_active && form.requestable">
-                                <div class="flex items-baseline justify-between gap-3">
-                                    <span class="font-semibold">{{ form.name || 'Service name' }}</span>
-                                    <span class="text-primary text-xs font-semibold whitespace-nowrap">{{ previewOffer }}</span>
-                                </div>
-                                <p class="text-muted-foreground mt-0.5">{{ form.description || 'Your short description will appear here.' }}</p>
-                            </template>
-                            <p v-else class="text-muted-foreground">Hidden — customers won't see this service.</p>
+                            <ServiceOffer v-if="form.is_active && form.requestable" :service="previewOffer" />
+                            <p v-else class="text-muted-foreground">Hidden. Customers won’t see this service.</p>
                         </div>
 
                         <section class="space-y-3">
-                            <h3 class="font-semibold">1 · What it is</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">1. What it is</h3>
                             <div class="grid gap-1.5">
                                 <Label for="name">Name</Label>
                                 <Input id="name" v-model="form.name" placeholder="e.g. Weekly pool service" />
@@ -384,7 +408,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-semibold">2 · How it's sold</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">2. How it's sold</h3>
                             <div class="flex gap-2">
                                 <Button type="button" size="sm" :variant="recurring ? 'default' : 'outline'" @click="recurring = true"
                                     >Recurring</Button
@@ -407,7 +431,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-semibold">3 · Price</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">3. Price</h3>
                             <div class="flex items-center gap-2">
                                 <span class="text-muted-foreground">$</span>
                                 <Input id="price" v-model="form.price" type="number" step="0.01" min="0" class="w-28" />
@@ -418,7 +442,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-semibold">4 · What the tech does</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">4. What the tech does</h3>
                             <div>
                                 <span class="text-muted-foreground text-xs">Sections on the tech's visit screen</span>
                                 <div class="mt-1 grid grid-cols-2 gap-1">
@@ -447,7 +471,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-semibold">5 · Time on site</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">5. Time on site</h3>
                             <div class="flex items-center gap-2">
                                 <Input id="duration" v-model="form.estimated_duration_minutes" type="number" min="5" max="600" class="w-24" />
                                 <span class="text-muted-foreground">minutes</span>
@@ -459,7 +483,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-2">
-                            <h3 class="font-semibold">6 · Availability</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">6. Availability</h3>
                             <label class="flex items-start gap-2"
                                 ><input v-model="form.is_active" type="checkbox" class="mt-0.5" />
                                 <span>Active <span class="text-muted-foreground">— can be added to pools</span></span></label
@@ -479,66 +503,49 @@ function destroyService() {
                         </div>
                     </form>
 
-                    <div v-else-if="props.selected">
-                        <div class="mb-4">
-                            <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                            <p class="text-muted-foreground text-sm">{{ soldAs(props.selected.frequency) }} · {{ props.selected.offer }}</p>
-                        </div>
-
-                        <div class="space-y-5 text-sm">
-                            <div v-if="props.canManage" class="flex gap-2">
+                    <div v-else-if="detail" class="space-y-6">
+                        <PaneHeader :title="detail.name" :summary="serviceSummary(detail)">
+                            <template #media><IconTile :icon="iconFor(offerOf(detail).modules, detail.frequency)" size="lg" /></template>
+                            <template #badge>
+                                <Chip :tone="!detail.is_active ? 'muted' : detail.requestable ? 'good' : 'info'">{{
+                                    !detail.is_active ? 'Inactive' : detail.requestable ? 'Offered to customers' : 'Staff only'
+                                }}</Chip>
+                            </template>
+                            <template v-if="props.canManage" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600" @click="destroyService"
+                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyService"
                                     ><Trash2 class="mr-1 size-3.5" /> Remove</Button
                                 >
+                            </template>
+                        </PaneHeader>
+
+                        <PaneSection title="How customers see it">
+                            <div v-if="detail.is_active && detail.requestable" class="border-border rounded-2xl border p-5">
+                                <ServiceOffer :service="offerOf(detail)" />
                             </div>
+                            <p v-else class="text-muted-foreground text-sm">
+                                {{
+                                    detail.is_active
+                                        ? 'Customers don’t see this one. Only your team can add it to a pool.'
+                                        : 'It’s turned off, so nobody can add it to a pool.'
+                                }}
+                            </p>
+                        </PaneSection>
 
-                            <div class="bg-card rounded-xl border p-3">
-                                <p class="text-muted-foreground mb-1.5 flex items-center gap-1 text-xs font-medium">
-                                    <Eye class="size-3.5" /> How customers see it
-                                </p>
-                                <template v-if="props.selected.is_active && props.selected.requestable">
-                                    <div class="flex items-baseline justify-between gap-3">
-                                        <span class="font-semibold">{{ props.selected.name }}</span>
-                                        <span class="text-primary text-xs font-semibold whitespace-nowrap">{{ props.selected.offer }}</span>
-                                    </div>
-                                    <p v-if="props.selected.description" class="text-muted-foreground mt-0.5">{{ props.selected.description }}</p>
-                                </template>
-                                <p v-else class="text-muted-foreground">
-                                    {{
-                                        props.selected.is_active
-                                            ? "Internal only — customers can't see or request it."
-                                            : 'Inactive — not offered to anyone.'
-                                    }}
-                                </p>
-                            </div>
-
-                            <dl class="text-muted-foreground space-y-1">
-                                <div class="flex justify-between">
-                                    <dt>Time on site</dt>
-                                    <dd>{{ props.selected.duration_minutes }} min</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt>Active plans</dt>
-                                    <dd>{{ props.selected.pools }}</dd>
-                                </div>
-                            </dl>
-
-                            <section>
-                                <h3 class="mb-1 font-medium">On the tech's visit screen</h3>
-                                <div class="flex flex-wrap gap-1.5">
-                                    <span v-for="m in props.selected.modules" :key="m" class="bg-muted rounded-md px-2 py-0.5 text-xs">{{ m }}</span>
-                                    <span v-if="!props.selected.modules.length" class="text-muted-foreground text-xs">Notes only</span>
-                                </div>
-                            </section>
-
-                            <section v-if="props.selected.tasks.length">
-                                <h3 class="mb-1 font-medium">Checklist</h3>
-                                <ul class="text-muted-foreground list-inside list-disc space-y-0.5">
-                                    <li v-for="(task, i) in props.selected.tasks" :key="i">{{ task }}</li>
-                                </ul>
-                            </section>
-                        </div>
+                        <PaneSection title="On the visit">
+                            <p class="text-muted-foreground mb-3 text-sm">
+                                {{
+                                    detail.modules.length
+                                        ? `The tech’s visit screen has ${andList(detail.modules.map((m) => m.toLowerCase()))}.`
+                                        : 'The tech’s visit screen has notes only.'
+                                }}
+                            </p>
+                            <PaneList v-if="detail.tasks.length && !(detail.is_active && detail.requestable)">
+                                <PaneItem v-for="(task, i) in detail.tasks" :key="i" :title="task">
+                                    <template #icon><Check class="text-primary size-4 shrink-0" /></template>
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
                     </div>
                 </template>
             </MasterDetail>

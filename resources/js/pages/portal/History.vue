@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NoteBubble from '@/components/NoteBubble.vue';
 import PortalPageHeader from '@/components/portal/PortalPageHeader.vue';
 import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
@@ -155,10 +156,7 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
                                 </ul>
                             </div>
 
-                            <div v-if="v.notes" class="bg-muted max-w-prose rounded-2xl rounded-tl-md px-4 py-2.5 text-sm">
-                                <p class="text-muted-foreground text-xs font-medium">{{ v.agent ?? 'Your technician' }} wrote</p>
-                                <p class="whitespace-pre-line">{{ v.notes }}</p>
-                            </div>
+                            <NoteBubble v-if="v.notes" :author="`${v.agent ?? 'Your technician'} wrote`">{{ v.notes }}</NoteBubble>
 
                             <div v-if="v.photos.length" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                 <a

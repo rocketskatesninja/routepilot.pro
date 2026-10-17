@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import NoteBubble from '@/components/NoteBubble.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
 import { subscribeCustomerEta } from '@/echo';
@@ -206,10 +207,9 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                         </li>
                     </ul>
 
-                    <div v-if="props.lastVisit.notes" class="bg-muted mt-4 max-w-prose rounded-2xl rounded-tl-md px-4 py-2.5 text-sm">
-                        <p class="text-muted-foreground text-xs font-medium">{{ props.lastVisit.agent ?? 'Your technician' }} wrote</p>
-                        <p>{{ props.lastVisit.notes }}</p>
-                    </div>
+                    <NoteBubble v-if="props.lastVisit.notes" :author="`${props.lastVisit.agent ?? 'Your technician'} wrote`" class="mt-4">{{
+                        props.lastVisit.notes
+                    }}</NoteBubble>
 
                     <div v-if="props.lastVisit.photos.length" class="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
                         <a

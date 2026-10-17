@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import NoteBubble from '@/components/NoteBubble.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
+import ServiceOffer from '@/components/portal/ServiceOffer.vue';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { andList, cap, extras, howOften, iconFor, price, soldAs, when } from '@/lib/portal';
+import { andList, cap, howOften, iconFor, price, soldAs, when } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { Check, Clock, MessageSquare } from 'lucide-vue-next';
+import { MessageSquare } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface ServiceRequest {
@@ -102,12 +104,6 @@ const plansByPool = computed(() => {
 
 // Which of their pools already have a catalog service.
 const poolsWith = (serviceId: number) => [...new Set(props.plans.filter((p) => p.service_type_id === serviceId).map((p) => p.pool ?? ''))];
-
-// Long checklists open on request.
-const expanded = ref<number[]>([]);
-const toggle = (id: number) => (expanded.value = expanded.value.includes(id) ? expanded.value.filter((x) => x !== id) : [...expanded.value, id]);
-const longList = (s: Service) => s.tasks.length > 6;
-const shownTasks = (s: Service) => (longList(s) && !expanded.value.includes(s.id) ? s.tasks.slice(0, 4) : s.tasks);
 
 // --- one request form, in a dialog ---
 type Kind = 'service' | 'hold' | 'cancel' | 'other';
@@ -291,48 +287,9 @@ const statusClass = (status: string) =>
                 <p class="text-muted-foreground mt-1 text-sm">Pick what you’d like. {{ company }} confirms the day and lets you know here.</p>
 
                 <ul v-if="props.services.length" class="divide-border border-border mt-4 divide-y rounded-2xl border">
-                    <li v-for="s in props.services" :key="s.id" class="grid gap-5 p-5 sm:grid-cols-[1fr_11rem] sm:p-6">
-                        <div class="flex gap-4">
-                            <span class="text-primary grid size-11 shrink-0 place-items-center rounded-xl bg-[hsl(var(--brand)/0.1)]">
-                                <component :is="iconFor(s.modules, s.frequency)" class="size-5" />
-                            </span>
-                            <div class="min-w-0">
-                                <h3 class="font-display text-lg leading-snug font-semibold">{{ s.name }}</h3>
-                                <p v-if="s.description" class="text-muted-foreground mt-1 max-w-[60ch] text-[15px]">{{ s.description }}</p>
-
-                                <ul v-if="s.tasks.length || extras(s.modules).length" class="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
-                                    <li v-for="t in shownTasks(s)" :key="`t-${t}`" class="flex gap-2">
-                                        <Check class="text-primary mt-0.5 size-4 shrink-0" />{{ t }}
-                                    </li>
-                                    <li v-for="x in extras(s.modules)" :key="`x-${x}`" class="flex gap-2">
-                                        <Check class="text-primary mt-0.5 size-4 shrink-0" />{{ x }}
-                                    </li>
-                                </ul>
-                                <button
-                                    v-if="longList(s)"
-                                    type="button"
-                                    class="text-primary focus-visible:ring-ring mt-2 rounded text-sm font-medium underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:outline-none"
-                                    @click="toggle(s.id)"
-                                >
-                                    {{ expanded.includes(s.id) ? 'Show less' : `Show all ${s.tasks.length} steps` }}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap items-end justify-between gap-3 sm:flex-col sm:items-end sm:justify-start sm:text-right">
-                            <div>
-                                <p>
-                                    <span class="font-display text-[1.75rem] leading-none font-semibold tracking-tight">{{ price(s.price) }}</span>
-                                    <span class="text-muted-foreground ml-1 text-sm">{{
-                                        s.frequency === 'one_time' ? 'for the job' : 'per visit'
-                                    }}</span>
-                                </p>
-                                <p class="text-muted-foreground mt-1.5 text-sm">{{ soldAs(s.frequency) }}</p>
-                                <p v-if="s.minutes" class="text-muted-foreground flex items-center gap-1 text-sm sm:justify-end">
-                                    <Clock class="size-3.5" /> About {{ s.minutes }} minutes
-                                </p>
-                            </div>
-                            <div class="sm:mt-1">
+                    <li v-for="s in props.services" :key="s.id" class="p-5 sm:p-6">
+                        <ServiceOffer :service="s">
+                            <template #action>
                                 <p v-if="poolsWith(s.id).length" class="mb-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
                                     {{ manyPools ? `On ${andList(poolsWith(s.id))}` : 'You have this' }}
                                 </p>
@@ -343,8 +300,8 @@ const statusClass = (status: string) =>
                                 >
                                     {{ poolsWith(s.id).length ? 'Request another' : 'Request' }}
                                 </Button>
-                            </div>
-                        </div>
+                            </template>
+                        </ServiceOffer>
                     </li>
                 </ul>
                 <p v-else class="border-border text-muted-foreground mt-4 rounded-2xl border p-5 text-[15px]">
@@ -387,10 +344,7 @@ const statusClass = (status: string) =>
                         </div>
                         <p v-if="r.message" class="text-muted-foreground mt-1.5 text-sm">You wrote: “{{ r.message }}”</p>
                         <p v-if="r.plan && r.type === 'service' && r.status === 'approved'" class="mt-1.5 text-sm">Set up: {{ r.plan }}.</p>
-                        <div v-if="r.reply" class="bg-muted mt-2 max-w-prose rounded-2xl rounded-tl-md px-4 py-2.5 text-sm">
-                            <p class="text-muted-foreground text-xs font-medium">{{ company }}</p>
-                            <p>{{ r.reply }}</p>
-                        </div>
+                        <NoteBubble v-if="r.reply" :author="company" class="mt-2">{{ r.reply }}</NoteBubble>
                     </li>
                 </ul>
             </section>
