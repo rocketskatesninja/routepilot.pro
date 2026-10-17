@@ -2,13 +2,20 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneFacts from '@/components/pane/PaneFacts.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { telLink } from '@/lib/links';
+import { cap, monthYear } from '@/lib/portal';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Bot, LogIn, Mail, Pencil, Plus, Send, Users } from 'lucide-vue-next';
+import { Building2, LogIn, Mail, Pencil, Plus, Send, Users } from 'lucide-vue-next';
 import { computed, reactive, ref, watch } from 'vue';
 
 type PlatformType = 'tenants' | 'agents' | 'customers';
@@ -77,13 +84,6 @@ const tabs = [
     { key: 'agents', label: 'Agents' },
     { key: 'customers', label: 'Customers' },
 ] as const;
-
-const statusClass = (s: string) =>
-    s === 'active'
-        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-        : s === 'suspended'
-          ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-          : 'bg-red-500/15 text-red-600 dark:text-red-400';
 
 // --- list navigation ---
 const search = ref(props.filters.search);
@@ -235,6 +235,9 @@ function saveTenantAi() {
 // --- shared pane ---
 const tenant = computed(() => (props.selected?.type === 'tenant' ? (props.selected as TenantDetail) : null));
 const person = computed(() => (props.selected && props.selected.type !== 'tenant' ? (props.selected as PersonDetail) : null));
+/** "9 pools and 4 users. On RoutePilot since September 2026." */
+const tenantSummary = (t: TenantDetail) =>
+    `${t.pools} pool${t.pools === 1 ? '' : 's'} and ${t.users} user${t.users === 1 ? '' : 's'}.${t.created ? ` On RoutePilot since ${monthYear(t.created)}.` : ''}`;
 const anyFormOpen = computed(() => createOpen.value || editOpen.value || emailOpen.value);
 const paneKey = computed(() => {
     if (createOpen.value) return 'create';
@@ -351,10 +354,7 @@ function closePane() {
                 <template #detail>
                     <!-- add tenant -->
                     <form v-if="createOpen" class="space-y-4 text-sm" @submit.prevent="submitCreate">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">New tenant</h2>
-                            <p class="text-muted-foreground text-sm">Creates the company + its first admin (pre-verified).</p>
-                        </div>
+                        <PaneHeader title="New tenant" summary="Creates the company and its first admin, already verified." />
                         <div class="grid gap-1.5">
                             <Label for="company">Company name</Label>
                             <Input id="company" v-model="createForm.company" />
@@ -382,10 +382,7 @@ function closePane() {
 
                     <!-- edit tenant -->
                     <form v-else-if="editOpen" class="space-y-4 text-sm" @submit.prevent="submitEdit">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Edit tenant</h2>
-                            <p class="text-muted-foreground text-sm">Suspending locks the company's staff out (you keep impersonation access).</p>
-                        </div>
+                        <PaneHeader title="Edit tenant" summary="Suspending locks their staff out. You can still sign in as them." />
                         <div class="grid gap-1.5">
                             <Label for="tn">Company name</Label>
                             <Input id="tn" v-model="editForm.name" />
@@ -418,10 +415,7 @@ function closePane() {
 
                     <!-- broadcast / selected email -->
                     <form v-else-if="emailOpen" class="space-y-4 text-sm" @submit.prevent="submitEmail">
-                        <div class="mb-1">
-                            <h2 class="text-lg font-semibold">Email people</h2>
-                            <p class="text-muted-foreground text-sm">Tick people in the list, or send to a whole audience.</p>
-                        </div>
+                        <PaneHeader title="Email people" summary="Tick people in the list, or send to a whole group." />
                         <div class="grid gap-1.5">
                             <Label for="aud">Audience</Label>
                             <select id="aud" v-model="emailForm.audience" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
@@ -464,106 +458,102 @@ function closePane() {
                         </div>
                     </form>
 
-                    <!-- tenant detail (manage) -->
-                    <div v-else-if="tenant" class="space-y-6 text-sm">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex items-center gap-2.5">
-                                <EntityAvatar :src="tenant.logo_url" type="tenant" :name="tenant.name" size="md" />
-                                <div>
-                                    <h2 class="text-lg font-semibold">{{ tenant.name }}</h2>
-                                    <p class="text-muted-foreground text-xs">routepilot.pro/t/{{ tenant.slug }}</p>
-                                </div>
-                            </div>
-                            <div class="flex gap-1.5">
-                                <Button size="sm" variant="outline" @click="impersonate(tenant)"><LogIn class="mr-1 size-3.5" /> Sign in</Button>
-                                <Button size="sm" variant="outline" @click="openEdit(tenant)"><Pencil class="size-3.5" /></Button>
-                            </div>
-                        </div>
+                    <!-- a tenant (manage) -->
+                    <div v-else-if="tenant" class="space-y-6">
+                        <PaneHeader :title="tenant.name" :summary="tenantSummary(tenant)">
+                            <template #media>
+                                <img
+                                    v-if="tenant.logo_url"
+                                    :src="tenant.logo_url"
+                                    :alt="tenant.name"
+                                    class="size-16 shrink-0 rounded-2xl object-cover"
+                                />
+                                <IconTile v-else :icon="Building2" size="lg" />
+                            </template>
+                            <template #badge>
+                                <Chip :tone="tenant.status === 'active' ? 'good' : tenant.status === 'suspended' ? 'warn' : 'muted'">{{
+                                    cap(tenant.status)
+                                }}</Chip>
+                            </template>
+                            <p class="mt-2 text-[15px]">
+                                <a
+                                    :href="`/t/${tenant.slug}`"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="text-primary font-medium underline-offset-4 hover:underline"
+                                    >routepilot.pro/t/{{ tenant.slug }}</a
+                                >
+                            </p>
+                            <template #actions>
+                                <Button size="sm" variant="outline" @click="impersonate(tenant)"
+                                    ><LogIn class="mr-1 size-3.5" /> Sign in as them</Button
+                                >
+                                <Button size="sm" variant="outline" @click="openEdit(tenant)"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                            </template>
+                        </PaneHeader>
 
-                        <dl class="grid grid-cols-2 gap-x-4 gap-y-3">
-                            <div>
-                                <dt class="text-muted-foreground text-xs">Status</dt>
-                                <dd>
-                                    <span
-                                        class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                        :class="statusClass(tenant.status)"
-                                        >{{ tenant.status }}</span
-                                    >
-                                </dd>
-                            </div>
-                            <div>
-                                <dt class="text-muted-foreground text-xs">Created</dt>
-                                <dd>{{ tenant.created ?? '—' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-muted-foreground text-xs">Pools</dt>
-                                <dd>{{ tenant.pools }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-muted-foreground text-xs">Users</dt>
-                                <dd>{{ tenant.users }}</dd>
-                            </div>
-                        </dl>
-
-                        <div class="border-border rounded-lg border p-4">
-                            <div class="mb-3 flex items-center gap-2 font-medium"><Bot class="size-4" /> AI assistant</div>
-                            <div class="space-y-3">
-                                <label class="flex items-center justify-between gap-2">
-                                    <span>AI enabled</span>
-                                    <input v-model="aiForm.enabled" type="checkbox" @change="saveTenantAi" />
-                                </label>
-                                <div class="flex items-center justify-between gap-2">
-                                    <div>
-                                        <Label for="t_quota">Monthly quota</Label>
-                                        <p class="text-muted-foreground text-xs">Blank = platform default ({{ props.aiDefaultQuota }}).</p>
-                                    </div>
+                        <PaneSection title="AI assistant">
+                            <ul class="border-border divide-border divide-y rounded-2xl border text-sm">
+                                <li>
+                                    <label class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+                                        <span>
+                                            <span class="block font-medium">Turned on</span>
+                                            <span class="text-muted-foreground">Their team can use the assistant.</span>
+                                        </span>
+                                        <input v-model="aiForm.enabled" type="checkbox" class="accent-primary size-5" @change="saveTenantAi" />
+                                    </label>
+                                </li>
+                                <li class="flex items-center justify-between gap-4 px-4 py-3">
+                                    <span>
+                                        <Label for="t_quota" class="font-medium">Monthly allowance</Label>
+                                        <span class="text-muted-foreground block"
+                                            >Used {{ tenant.ai.used }} of {{ aiLimit }} this month. Leave blank for the platform default ({{
+                                                props.aiDefaultQuota
+                                            }}).</span
+                                        >
+                                    </span>
                                     <Input
                                         id="t_quota"
                                         v-model.number="aiForm.quota"
                                         type="number"
                                         min="0"
-                                        class="h-8 w-28"
+                                        class="h-9 w-24 shrink-0"
                                         :placeholder="`${props.aiDefaultQuota}`"
                                         @change="saveTenantAi"
                                     />
-                                </div>
-                                <div class="text-muted-foreground text-xs">Used this month: {{ tenant.ai.used }} / {{ aiLimit }}</div>
-                                <label class="border-border flex items-center justify-between gap-2 border-t pt-3">
-                                    <span>
-                                        May override
-                                        <span class="text-muted-foreground block text-xs">Let this tenant supply their own provider/model/key.</span>
-                                    </span>
-                                    <input v-model="aiForm.allow_override" type="checkbox" @change="saveTenantAi" />
-                                </label>
-                            </div>
-                        </div>
+                                </li>
+                                <li>
+                                    <label class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
+                                        <span>
+                                            <span class="block font-medium">Own AI provider</span>
+                                            <span class="text-muted-foreground">Let them use their own provider, model and key.</span>
+                                        </span>
+                                        <input v-model="aiForm.allow_override" type="checkbox" class="accent-primary size-5" @change="saveTenantAi" />
+                                    </label>
+                                </li>
+                            </ul>
+                        </PaneSection>
                     </div>
 
-                    <!-- agent / customer (read-only card) -->
-                    <div v-else-if="person" class="space-y-5 text-sm">
-                        <div class="flex items-center gap-2.5">
-                            <EntityAvatar :src="person.photo_url" type="person" :name="person.name" size="md" shape="circle" />
-                            <div>
-                                <h2 class="text-lg font-semibold">{{ person.name }}</h2>
-                                <p class="text-muted-foreground text-xs capitalize">
-                                    {{ person.type }}<span v-if="person.tenant"> · {{ person.tenant }}</span>
-                                </p>
-                            </div>
-                        </div>
-                        <dl class="grid grid-cols-1 gap-y-3">
-                            <div>
-                                <dt class="text-muted-foreground text-xs">Email</dt>
-                                <dd>{{ person.email ?? '—' }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-muted-foreground text-xs">Phone</dt>
-                                <dd>{{ person.phone ?? '—' }}</dd>
-                            </div>
-                            <div v-if="person.type === 'agent'">
-                                <dt class="text-muted-foreground text-xs">Active</dt>
-                                <dd>{{ person.is_active ? 'Yes' : 'No' }}</dd>
-                            </div>
-                        </dl>
+                    <!-- an agent or customer (read-only) -->
+                    <div v-else-if="person" class="space-y-6">
+                        <PaneHeader :title="person.name" :summary="`${cap(person.type)}${person.tenant ? ` at ${person.tenant}` : ''}.`">
+                            <template #media>
+                                <EntityAvatar :src="person.photo_url" type="person" :name="person.name" size="lg" shape="circle" />
+                            </template>
+                            <template v-if="person.type === 'agent'" #badge>
+                                <Chip :tone="person.is_active ? 'good' : 'muted'">{{ person.is_active ? 'Active' : 'Inactive' }}</Chip>
+                            </template>
+                        </PaneHeader>
+                        <PaneSection title="Contact">
+                            <PaneFacts
+                                :facts="[
+                                    { label: 'Email', value: person.email, href: person.email ? `mailto:${person.email}` : null },
+                                    { label: 'Phone', value: person.phone, href: person.phone ? telLink(person.phone) : null },
+                                ]"
+                            />
+                            <p v-if="!person.email && !person.phone" class="text-muted-foreground text-sm">No contact details.</p>
+                        </PaneSection>
                     </div>
                 </template>
             </MasterDetail>

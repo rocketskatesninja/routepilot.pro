@@ -101,3 +101,20 @@ test('the report panel names the service and carries the pool\'s own targets', f
             ->where('selected.targets.ph.min', 7.4)
         );
 });
+
+test('an agent sees only their own reports; an Agent+ sees everyone\'s', function () {
+    $mine = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create(['agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now()]);
+    $theirs = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create([
+        'agent_id' => User::factory()->agent()->for($this->tenant)->create()->id, 'status' => 'completed', 'completed_at' => now(),
+    ]);
+
+    $this->actingAs($this->agent)->get('/reports')
+        ->assertInertia(fn (Assert $page) => $page->has('visits.data', 1)->where('visits.data.0.id', $mine->id));
+    // Someone else's report can't be opened by id either.
+    $this->actingAs($this->agent)->get("/reports?selected={$theirs->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('selected', null));
+
+    $this->agent->forceFill(['agent_plus' => true])->save();
+    $this->actingAs($this->agent)->get("/reports?selected={$theirs->id}")
+        ->assertInertia(fn (Assert $page) => $page->has('visits.data', 2)->where('selected.id', $theirs->id));
+});

@@ -683,7 +683,8 @@ function destroyAgent() {
                             <p v-if="agentForm.errors.password" class="text-xs text-red-600">{{ agentForm.errors.password }}</p>
                         </div>
                         <label class="flex items-center gap-2"
-                            ><input v-model="agentForm.agent_plus" type="checkbox" /> Agent+ (manage own route — reorder + skip stops)</label
+                            ><input v-model="agentForm.agent_plus" type="checkbox" /> Agent+ (reorder and skip stops on their route, and see every
+                            report)</label
                         >
                         <label v-if="agentFormMode === 'edit'" class="flex items-center gap-2"
                             ><input v-model="agentForm.is_active" type="checkbox" /> Active (can log in)</label
@@ -867,12 +868,12 @@ function destroyAgent() {
                             />
                         </PaneSection>
 
-                        <PaneSection title="Their route">
+                        <PaneSection title="Access">
                             <p class="text-muted-foreground text-sm">
                                 {{
                                     agent.agent_plus
-                                        ? 'Agent+ is on: they can reorder and skip stops on their own route.'
-                                        : 'They work the route as it’s planned. Turn on Agent+ to let them reorder and skip stops.'
+                                        ? 'Agent+ is on: they can reorder and skip stops on their own route, and see every report.'
+                                        : 'They work the route as it’s planned and see only their own reports. Turn on Agent+ to let them reorder and skip stops and see every report.'
                                 }}
                             </p>
                         </PaneSection>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** A status word in a soft pill. Tone carries meaning; the word always says it too. */
-withDefaults(defineProps<{ tone?: 'good' | 'warn' | 'info' | 'bad' | 'muted' }>(), { tone: 'muted' });
+withDefaults(defineProps<{ tone?: 'good' | 'warn' | 'info' | 'bad' | 'muted' | 'special' }>(), { tone: 'muted' });
 </script>
 
 <template>
@@ -13,6 +13,7 @@ withDefaults(defineProps<{ tone?: 'good' | 'warn' | 'info' | 'bad' | 'muted' }>(
                 info: 'bg-sky-500/15 text-sky-700 dark:text-sky-400',
                 bad: 'bg-red-500/15 text-red-700 dark:text-red-400',
                 muted: 'bg-muted text-muted-foreground',
+                special: 'bg-violet-500/15 text-violet-700 dark:text-violet-400',
             }[tone]
         "
         ><slot

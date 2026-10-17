@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import PasswordInput from '@/components/PasswordInput.vue';
+import Chip from '@/components/pane/Chip.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
+import PortalPageHeader from '@/components/portal/PortalPageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { CheckCircle2, KeyRound, XCircle } from 'lucide-vue-next';
 import { watch } from 'vue';
 
 interface KeyStatus {
@@ -56,70 +58,67 @@ const save = () =>
     <Head title="AI" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-4">
-            <!-- Platform defaults -->
-            <form class="border-border rounded-xl border p-5" @submit.prevent="save">
-                <div class="mb-4">
-                    <h2 class="text-lg font-semibold">Platform AI</h2>
-                    <p class="text-muted-foreground text-sm">
-                        AI is bundled and platform-managed. The provider, model, and keys below power every tenant's assistant; tenants only get a
-                        monthly allowance.
-                    </p>
-                </div>
+        <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-6">
+            <PortalPageHeader
+                title="Platform AI"
+                summary="Every tenant’s assistant runs on the provider, model and key you set here. Tenants just get a monthly allowance."
+            />
 
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <div class="grid gap-1.5">
-                        <Label for="provider">Provider</Label>
-                        <select id="provider" v-model="form.provider" class="border-input bg-background h-9 rounded-md border px-3 text-sm">
-                            <option v-for="p in providers" :key="p.key" :value="p.key">{{ p.label }}</option>
-                        </select>
-                    </div>
-                    <div class="grid gap-1.5">
-                        <Label for="model">Model</Label>
-                        <Input id="model" v-model="form.model" :placeholder="props.modelHints[form.provider] ?? ''" />
-                    </div>
-                    <div class="grid gap-1.5">
-                        <Label for="quota">Default monthly quota</Label>
-                        <Input id="quota" v-model.number="form.default_quota" type="number" min="0" />
-                    </div>
-                </div>
-
-                <!-- API keys -->
-                <div class="mt-5 space-y-3">
-                    <div class="flex items-center gap-2 text-sm font-medium"><KeyRound class="size-4" /> API keys</div>
-                    <div v-for="p in providers" :key="p.key" class="grid items-center gap-2 sm:grid-cols-[10rem_1fr]">
-                        <div class="flex items-center gap-1.5 text-sm">
-                            <CheckCircle2 v-if="props.keys[p.key]?.configured" class="size-4 text-emerald-500" />
-                            <XCircle v-else class="text-muted-foreground size-4" />
-                            <span>{{ p.label }}</span>
+            <form class="space-y-8" @submit.prevent="save">
+                <PaneSection title="Which AI">
+                    <div class="border-border grid gap-4 rounded-2xl border p-5 sm:grid-cols-3">
+                        <div class="grid gap-1.5">
+                            <Label for="provider">Provider</Label>
+                            <select id="provider" v-model="form.provider" class="border-input bg-background h-9 rounded-md border px-3 text-sm">
+                                <option v-for="p in providers" :key="p.key" :value="p.key">{{ p.label }}</option>
+                            </select>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="grid gap-1.5">
+                            <Label for="model">Model</Label>
+                            <Input id="model" v-model="form.model" :placeholder="props.modelHints[form.provider] ?? ''" />
+                        </div>
+                        <div class="grid gap-1.5">
+                            <Label for="quota">Monthly allowance per tenant</Label>
+                            <Input id="quota" v-model.number="form.default_quota" type="number" min="0" />
+                        </div>
+                    </div>
+                </PaneSection>
+
+                <PaneSection title="API keys">
+                    <ul class="border-border divide-border divide-y rounded-2xl border">
+                        <li v-for="p in providers" :key="p.key" class="grid items-center gap-3 p-4 sm:grid-cols-[12rem_1fr] sm:px-5">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium">{{ p.label }}</span>
+                                <Chip :tone="props.keys[p.key]?.configured ? 'good' : 'muted'">{{
+                                    props.keys[p.key]?.configured ? 'Set' : 'Not set'
+                                }}</Chip>
+                            </div>
                             <PasswordInput
                                 v-model="(form as unknown as Record<string, string>)[`${p.key}_key`]"
                                 autocomplete="off"
+                                :aria-label="`${p.label} key`"
                                 :placeholder="
                                     props.keys[p.key]?.configured
-                                        ? `Set — ${props.keys[p.key].hint} (${props.keys[p.key].source}). Enter a new key to rotate.`
-                                        : 'Not configured — paste a key'
+                                        ? `${props.keys[p.key].hint} (${props.keys[p.key].source}). Paste a new key to replace it.`
+                                        : 'Paste a key'
                                 "
                             />
-                        </div>
-                    </div>
-                    <p class="text-muted-foreground text-xs">
-                        Keys are encrypted at rest and never shown in full. Leave a field blank to keep the current key.
+                        </li>
+                    </ul>
+                    <p class="text-muted-foreground mt-2 text-sm">
+                        Keys are encrypted and never shown in full. Leave a box empty to keep the current key.
                     </p>
-                </div>
+                </PaneSection>
 
-                <div class="mt-5 flex items-center gap-3">
+                <div class="flex items-center gap-3">
                     <Button type="submit" :disabled="form.processing">Save</Button>
-                    <span v-if="form.recentlySuccessful" class="text-sm text-emerald-600">Saved.</span>
+                    <span v-if="form.recentlySuccessful" class="text-sm text-emerald-700 dark:text-emerald-400">Saved.</span>
                 </div>
             </form>
 
-            <!-- Per-tenant -->
             <p class="text-muted-foreground text-sm">
-                Per-tenant AI — usage, quota, on/off, and the override policy — lives on each company's detail panel under
-                <Link href="/people" class="text-primary hover:underline">People → Tenants</Link>.
+                Each tenant’s usage, allowance, on/off switch and own-provider setting are on their panel in
+                <Link href="/people" class="text-primary font-medium underline-offset-4 hover:underline">People, under Tenants</Link>.
             </p>
         </div>
     </AppLayout>

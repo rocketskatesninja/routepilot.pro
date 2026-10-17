@@ -18,16 +18,20 @@ use Inertia\Response;
 /**
  * Back-office Reports screen — completed service visits, read-only, on the
  * table+drawer pattern. The drawer is the full visit report: readings,
- * treatments, tasks, and notes.
+ * treatments, tasks, and notes. The office and Agent+ agents see every
+ * report; other agents see only their own.
  */
 class ReportController extends Controller
 {
     public function index(Request $request): Response
     {
         $this->authorizeStaff($request);
+        $user = $request->user();
+        $ownOnly = $user?->role === 'agent' && ! $user->isAgentPlus();
 
         $query = ServiceVisit::query()
             ->where('status', 'completed')
+            ->when($ownOnly, fn ($q) => $q->where('agent_id', $user?->id))
             ->with(['pool:id,name,customer_id,photo_path', 'pool.customer:id,first_name,last_name,photo_path', 'agent:id,first_name,last_name,avatar_path']);
 
         // Relation columns sort via correlated subqueries — no joins, so the
@@ -62,6 +66,7 @@ class ReportController extends Controller
         $selectedId = $request->integer('selected');
         if ($selectedId > 0) {
             $visit = ServiceVisit::query()
+                ->when($ownOnly, fn ($q) => $q->where('agent_id', $user?->id))
                 ->with([
                     'pool:id,name,customer_id,custom_target_ranges', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name',
                     'serviceSubscription.serviceType:id,name', 'chemicalReading', 'treatments', 'tasks', 'photos',

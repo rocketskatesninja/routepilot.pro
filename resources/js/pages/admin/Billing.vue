@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import MasterDetail from '@/components/MasterDetail.vue';
+import Chip from '@/components/pane/Chip.vue';
+import IconTile from '@/components/pane/IconTile.vue';
+import PaneHeader from '@/components/pane/PaneHeader.vue';
+import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { formatMoney } from '@/lib/utils';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Gift } from 'lucide-vue-next';
+import { Building2, Gift } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
 
 interface TenantRow {
@@ -57,6 +61,22 @@ const statusMeta: Record<string, { label: string; class: string }> = {
     none: { label: 'No trial', class: 'bg-muted text-muted-foreground' },
 };
 const meta = (s: string) => statusMeta[s] ?? statusMeta.none;
+
+// --- the side panel ---
+const account = computed(() => props.selected);
+const statusTone: Record<string, 'good' | 'warn' | 'info' | 'bad' | 'muted' | 'special'> = {
+    active: 'good',
+    trialing: 'info',
+    past_due: 'bad',
+    expired: 'warn',
+    free: 'special',
+};
+/** "9 pools and 2 agents, about $34.99 a month. Trial ends Sat, Oct 31 (14 days left)." */
+const accountSummary = (a: TenantDetail) =>
+    `${a.pools} pool${a.pools === 1 ? '' : 's'} and ${a.agents} agent${a.agents === 1 ? '' : 's'}, about ${formatMoney(a.estimated)} a month.` +
+    (a.status === 'trialing' && a.trial_ends_at
+        ? ` Trial ends ${formatDay(a.trial_ends_at)} (${a.trial_days_left} day${a.trial_days_left === 1 ? '' : 's'} left).`
+        : '');
 
 // Annualized run-rate is a handy headline figure beside MRR.
 const arr = computed(() => props.metrics.mrr * 12);
@@ -113,28 +133,31 @@ function save() {
         <div class="flex h-full min-h-0 w-full flex-1 flex-col gap-6 p-4">
             <!-- headline metrics -->
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div class="border-border bg-card rounded-xl border p-4">
-                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">MRR</p>
-                    <p class="mt-1 font-mono text-2xl font-bold tabular-nums">{{ formatMoney(metrics.mrr) }}</p>
-                    <p class="text-muted-foreground mt-0.5 text-xs">{{ formatMoney(arr) }}/yr run-rate</p>
+                <div class="border-border rounded-2xl border p-5">
+                    <p class="text-muted-foreground text-sm">Monthly revenue</p>
+                    <p class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ formatMoney(metrics.mrr) }}</p>
+                    <p class="text-muted-foreground mt-0.5 text-sm">{{ formatMoney(arr) }} a year at this rate</p>
                 </div>
-                <div class="border-border bg-card rounded-xl border p-4">
-                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Trial pipeline</p>
-                    <p class="mt-1 font-mono text-2xl font-bold tabular-nums">{{ formatMoney(metrics.trial_pipeline) }}</p>
-                    <p class="text-muted-foreground mt-0.5 text-xs">{{ metrics.trialing }} on trial</p>
+                <div class="border-border rounded-2xl border p-5">
+                    <p class="text-muted-foreground text-sm">In trial</p>
+                    <p class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ formatMoney(metrics.trial_pipeline) }}</p>
+                    <p class="text-muted-foreground mt-0.5 text-sm">{{ metrics.trialing }} tenant{{ metrics.trialing === 1 ? '' : 's' }} on trial</p>
                 </div>
-                <div class="border-border bg-card rounded-xl border p-4">
-                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">At risk</p>
-                    <p class="mt-1 font-mono text-2xl font-bold tabular-nums" :class="metrics.at_risk > 0 ? 'text-red-600 dark:text-red-400' : ''">
+                <div class="border-border rounded-2xl border p-5">
+                    <p class="text-muted-foreground text-sm">At risk</p>
+                    <p
+                        class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums"
+                        :class="metrics.at_risk > 0 ? 'text-red-600 dark:text-red-400' : ''"
+                    >
                         {{ formatMoney(metrics.at_risk) }}
                     </p>
-                    <p class="text-muted-foreground mt-0.5 text-xs">{{ metrics.past_due }} past due</p>
+                    <p class="text-muted-foreground mt-0.5 text-sm">{{ metrics.past_due }} past due</p>
                 </div>
-                <div class="border-border bg-card rounded-xl border p-4">
-                    <p class="text-muted-foreground text-xs font-medium tracking-wide uppercase">Tenants</p>
-                    <p class="mt-1 font-mono text-2xl font-bold tabular-nums">{{ metrics.tenants }}</p>
-                    <p class="text-muted-foreground mt-0.5 text-xs">
-                        {{ metrics.active }} paying<span v-if="metrics.free"> · {{ metrics.free }} free</span> · {{ metrics.expired }} expired
+                <div class="border-border rounded-2xl border p-5">
+                    <p class="text-muted-foreground text-sm">Tenants</p>
+                    <p class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ metrics.tenants }}</p>
+                    <p class="text-muted-foreground mt-0.5 text-sm">
+                        {{ metrics.active }} paying<template v-if="metrics.free">, {{ metrics.free }} free</template>, {{ metrics.expired }} expired
                     </p>
                 </div>
             </div>
@@ -151,14 +174,14 @@ function save() {
                         <div class="border-border flex items-center justify-between gap-4 border-b px-4 py-3">
                             <h2 class="text-sm font-semibold">Accounts</h2>
                             <p class="text-muted-foreground text-xs">
-                                Plan: {{ formatMoney(plan.base_price) }}/mo · {{ plan.included_pools }} pools · {{ plan.included_agents }} agents
-                                incl.
+                                Plan: {{ formatMoney(plan.base_price) }} a month with {{ plan.included_pools }} pools and
+                                {{ plan.included_agents }} agents included
                             </p>
                         </div>
                         <div class="min-h-0 flex-1 overflow-auto">
                             <table class="w-full text-sm">
                                 <thead class="bg-card sticky top-0 z-10">
-                                    <tr class="border-border text-muted-foreground border-b text-left text-xs tracking-wide uppercase">
+                                    <tr class="border-border text-muted-foreground border-b text-left text-xs">
                                         <th class="px-4 py-2 font-medium">Company</th>
                                         <th class="px-4 py-2 font-medium">Status</th>
                                         <th class="px-4 py-2 text-right font-medium">Pools</th>
@@ -186,9 +209,9 @@ function save() {
                                                 ends {{ t.trial_ends_at }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-2.5 text-right font-mono tabular-nums">{{ t.pools }}</td>
-                                        <td class="px-4 py-2.5 text-right font-mono tabular-nums">{{ t.agents }}</td>
-                                        <td class="px-4 py-2.5 text-right font-mono font-medium tabular-nums">{{ formatMoney(t.estimated) }}</td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums">{{ t.pools }}</td>
+                                        <td class="px-4 py-2.5 text-right tabular-nums">{{ t.agents }}</td>
+                                        <td class="px-4 py-2.5 text-right font-medium tabular-nums">{{ formatMoney(t.estimated) }}</td>
                                     </tr>
                                     <tr v-if="!tenants.length">
                                         <td colspan="5" class="text-muted-foreground px-4 py-8 text-center text-sm">No tenants yet.</td>
@@ -201,101 +224,88 @@ function save() {
 
                 <!-- management panel -->
                 <template #detail>
-                    <div v-if="props.selected" class="space-y-5 text-sm">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h2 class="text-lg font-semibold">{{ props.selected.name }}</h2>
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="meta(props.selected.status).class">
-                                    {{ meta(props.selected.status).label }}
-                                </span>
-                            </div>
-                            <p class="text-muted-foreground text-xs">/{{ props.selected.slug }}</p>
-                        </div>
-
-                        <!-- usage at a glance -->
-                        <dl class="grid grid-cols-3 gap-2">
-                            <div class="border-border rounded-lg border p-2.5 text-center">
-                                <dt class="text-muted-foreground text-[10px] tracking-wide uppercase">Pools</dt>
-                                <dd class="font-mono text-lg font-semibold tabular-nums">{{ props.selected.pools }}</dd>
-                            </div>
-                            <div class="border-border rounded-lg border p-2.5 text-center">
-                                <dt class="text-muted-foreground text-[10px] tracking-wide uppercase">Agents</dt>
-                                <dd class="font-mono text-lg font-semibold tabular-nums">{{ props.selected.agents }}</dd>
-                            </div>
-                            <div class="border-border rounded-lg border p-2.5 text-center">
-                                <dt class="text-muted-foreground text-[10px] tracking-wide uppercase">Est./mo</dt>
-                                <dd class="font-mono text-lg font-semibold tabular-nums">{{ formatMoney(props.selected.estimated) }}</dd>
-                            </div>
-                        </dl>
+                    <div v-if="account" class="space-y-6">
+                        <PaneHeader :title="account.name" :summary="accountSummary(account)">
+                            <template #media><IconTile :icon="Building2" size="lg" /></template>
+                            <template #badge>
+                                <Chip :tone="statusTone[account.status] ?? 'muted'">{{ meta(account.status).label }}</Chip>
+                            </template>
+                            <p class="mt-2 text-[15px]">
+                                <a
+                                    :href="`/t/${account.slug}`"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="text-primary font-medium underline-offset-4 hover:underline"
+                                    >routepilot.pro/t/{{ account.slug }}</a
+                                >
+                            </p>
+                        </PaneHeader>
 
                         <p
-                            v-if="props.selected.subscribed"
-                            class="border-border bg-muted/40 text-muted-foreground rounded-lg border px-3 py-2 text-xs"
+                            v-if="account.subscribed"
+                            class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
                         >
-                            This account has an active Stripe subscription — comping it won't stop Stripe from billing them.
+                            They have an active Stripe subscription. Giving free access won’t stop Stripe from charging them.
                         </p>
 
-                        <form class="space-y-5" @submit.prevent="save">
-                            <!-- free access — the headline lever -->
-                            <div
-                                class="border-border rounded-xl border p-3.5"
-                                :class="form.billing_free ? 'border-violet-500/40 bg-violet-500/5' : ''"
-                            >
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    :aria-checked="form.billing_free"
-                                    class="flex w-full items-center justify-between gap-3 text-left"
-                                    @click="form.billing_free = !form.billing_free"
+                        <form class="space-y-6" @submit.prevent="save">
+                            <PaneSection title="Free access">
+                                <div
+                                    class="border-border space-y-3 rounded-2xl border p-4 text-sm"
+                                    :class="form.billing_free ? 'border-violet-500/40 bg-violet-500/5' : ''"
                                 >
-                                    <span class="flex items-center gap-2">
-                                        <Gift class="size-4" :class="form.billing_free ? 'text-violet-500' : 'text-muted-foreground'" />
-                                        <span class="font-medium">Free access</span>
-                                    </span>
-                                    <span
-                                        class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors"
-                                        :class="form.billing_free ? 'bg-violet-500' : 'bg-input'"
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="form.billing_free"
+                                        class="flex w-full items-center justify-between gap-3 text-left"
+                                        @click="form.billing_free = !form.billing_free"
                                     >
+                                        <span class="flex items-center gap-2">
+                                            <Gift class="size-4" :class="form.billing_free ? 'text-violet-500' : 'text-muted-foreground'" />
+                                            <span class="font-medium">{{ form.billing_free ? 'On: never billed, never locked' : 'Off' }}</span>
+                                        </span>
                                         <span
-                                            class="inline-block size-4 translate-x-0.5 rounded-full bg-white shadow transition-transform"
-                                            :class="{ 'translate-x-[18px]': form.billing_free }"
+                                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
+                                            :class="form.billing_free ? 'bg-violet-500' : 'bg-input'"
+                                        >
+                                            <span
+                                                class="inline-block size-5 translate-x-0.5 rounded-full bg-white shadow transition-transform"
+                                                :class="{ 'translate-x-[22px]': form.billing_free }"
+                                            />
+                                        </span>
+                                    </button>
+                                    <p class="text-muted-foreground">Comps the account with no end date. It overrides any trial or subscription.</p>
+                                    <div class="grid gap-1.5">
+                                        <Label for="note">Reason <span class="text-muted-foreground font-normal">(optional)</span></Label>
+                                        <Input
+                                            id="note"
+                                            v-model="form.billing_note"
+                                            placeholder="e.g. Beta partner, founder comp"
+                                            maxlength="255"
+                                            class="h-9"
                                         />
-                                    </span>
-                                </button>
-                                <p class="text-muted-foreground mt-1.5 text-xs">
-                                    Comps this account indefinitely — never billed, never locked. Overrides trial &amp; subscription state.
-                                </p>
-                                <div class="mt-3">
-                                    <Label for="note" class="text-xs">Reason (optional)</Label>
-                                    <Input
-                                        id="note"
-                                        v-model="form.billing_note"
-                                        placeholder="e.g. Beta partner, founder comp"
-                                        maxlength="255"
-                                        class="mt-1 h-9"
-                                    />
-                                    <p v-if="form.errors.billing_note" class="mt-1 text-xs text-red-500">{{ form.errors.billing_note }}</p>
+                                        <p v-if="form.errors.billing_note" class="text-xs text-red-600">{{ form.errors.billing_note }}</p>
+                                    </div>
                                 </div>
-                            </div>
+                            </PaneSection>
 
-                            <!-- trial management -->
-                            <div>
-                                <Label for="trial" class="text-xs">Trial ends</Label>
-                                <div class="mt-1 flex items-center gap-2">
-                                    <Input id="trial" v-model="form.trial_ends_at" type="date" class="h-9 w-40" />
-                                    <Button type="button" size="sm" variant="outline" @click="extendTrial(30)">+30d</Button>
-                                    <Button type="button" size="sm" variant="outline" @click="extendTrial(90)">+90d</Button>
+                            <PaneSection title="Trial">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <Input id="trial" v-model="form.trial_ends_at" type="date" class="h-9 w-40" aria-label="Trial ends" />
+                                    <Button type="button" size="sm" variant="outline" @click="extendTrial(30)">Add 30 days</Button>
+                                    <Button type="button" size="sm" variant="outline" @click="extendTrial(90)">Add 90 days</Button>
                                     <Button type="button" size="sm" variant="ghost" @click="form.trial_ends_at = null">Clear</Button>
                                 </div>
-                                <p v-if="form.errors.trial_ends_at" class="mt-1 text-xs text-red-500">{{ form.errors.trial_ends_at }}</p>
-                                <p class="text-muted-foreground mt-1 text-xs">
-                                    Leave empty for no trial. Extending gives the account back-office access until that date.
+                                <p v-if="form.errors.trial_ends_at" class="mt-1 text-xs text-red-600">{{ form.errors.trial_ends_at }}</p>
+                                <p class="text-muted-foreground mt-2 text-sm">
+                                    Leave it empty for no trial. A later date gives them office access until then.
                                 </p>
-                            </div>
+                            </PaneSection>
 
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-3">
                                 <Button type="submit" :disabled="form.processing || !form.isDirty">Save</Button>
-                                <span v-if="form.recentlySuccessful" class="text-xs text-emerald-600 dark:text-emerald-400">Saved.</span>
+                                <span v-if="form.recentlySuccessful" class="text-sm text-emerald-700 dark:text-emerald-400">Saved.</span>
                             </div>
                         </form>
                     </div>
