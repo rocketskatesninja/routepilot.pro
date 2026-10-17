@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Carbon\CarbonInterface;
 use Database\Factories\ServiceSubscriptionFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -87,6 +88,21 @@ class ServiceSubscription extends Model
         return $this->hold_starts_at !== null
             && $this->hold_ends_at !== null
             && $date->betweenIncluded($this->hold_starts_at, $this->hold_ends_at);
+    }
+
+    /**
+     * Plans the customer still has: active or paused, not past their end date,
+     * and — for a one-time job — not yet done.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeCurrent(Builder $query): void
+    {
+        $today = Tenant::localToday()->toDateString();
+
+        $query->whereIn('status', ['active', 'paused'])
+            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today))
+            ->where(fn ($q) => $q->where('frequency', '!=', 'one_time')->orWhere('starts_on', '>=', $today));
     }
 
     /** Human-readable schedule, e.g. "Weekly on Tuesday" or "One-time on Jun 17". */

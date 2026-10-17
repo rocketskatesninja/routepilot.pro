@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * The customer billing ledger — the one place money rules live.
@@ -79,7 +80,7 @@ class BillingService
     /**
      * What makes up a customer's balance: the unpaid part of each charge.
      *
-     * @return array{visits: list<array{pool: string, date: string, price: float}>, charges: list<array{description: string, amount: float}>, total: float}
+     * @return array{visits: list<array{service: string, pool: string, date: string, price: float}>, charges: list<array{description: string, amount: float}>, total: float}
      */
     public function breakdownForCustomer(Customer $customer): array
     {
@@ -88,7 +89,7 @@ class BillingService
             ->with('pool:id,name')->orderByDesc('occurred_on')->orderByDesc('id')->get();
 
         $visits = $open->where('kind', 'visit')->map(fn (Charge $c): array => [
-            'description' => $c->description, // "Weekly Pool Service — Anderson Pool"
+            'service' => Str::before($c->description, ' — '), // "Weekly Pool Service — Anderson Pool"
             'pool' => $c->pool?->getAttribute('name') ?? $c->description,
             'date' => $c->occurred_on->toDateString(),
             'price' => $unpaid[$c->id],

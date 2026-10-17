@@ -47,7 +47,8 @@ test('the portal offers only services customers can request', function () {
         ->assertInertia(fn (Assert $page) => $page->component('portal/Requests')
             ->has('services', 1)
             ->where('services.0.name', 'Weekly Pool Service')
-            ->where('services.0.offer', '$50.00 per visit · weekly')
+            ->where('services.0.price', 50)
+            ->where('services.0.frequency', 'weekly')
             ->has('pools', 1));
 });
 
@@ -106,7 +107,7 @@ test('the portal lists the customer\'s current services, and what they already h
             ->where('plans.0.id', $plan->id)
             ->where('plans.0.service', 'Weekly Pool Service')
             ->where('plans.0.service_type_id', $this->service->id)
-            ->where('plans.0.schedule', 'Weekly on Wednesday')
+            ->where('plans.0.preferred_day', 'wednesday')
             ->where('plans.0.pending', 'cancel'));
 });
 
@@ -118,7 +119,6 @@ test('each current service shows its next visit and what the catalog includes', 
     $this->actingAs($this->user)
         ->get('/requests')
         ->assertInertia(fn (Assert $page) => $page
-            ->where('firstName', $this->customer->first_name)
             ->where('plans.0.next_visit', '2026-10-20')
             ->where('plans.0.frequency', 'weekly')
             ->where('plans.0.preferred_day', 'tuesday')

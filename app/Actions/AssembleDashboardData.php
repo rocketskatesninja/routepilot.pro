@@ -413,17 +413,15 @@ class AssembleDashboardData
 
     /**
      * Recent activity — completed visits (each links to its report) + skipped
-     * stops, newest first. Optionally scoped to an agent and/or a set of pools.
+     * stops, newest first. Optionally scoped to one agent.
      *
-     * @param  list<int>|null  $poolIds
      * @return list<array<string, mixed>>
      */
-    private function recentActivity(?int $agentId, ?array $poolIds, string $reportPath): array
+    private function recentActivity(?int $agentId): array
     {
         $visits = ServiceVisit::query()
             ->where('status', 'completed')
             ->when($agentId !== null, fn ($q) => $q->where('agent_id', $agentId))
-            ->when($poolIds !== null, fn ($q) => $q->whereIn('pool_id', $poolIds))
             ->with(['pool:id,name,photo_path', 'agent:id,first_name,last_name,avatar_path'])
             ->latest('completed_at')->limit(8)->get()
             ->map(fn (ServiceVisit $v): array => [
@@ -434,13 +432,12 @@ class AssembleDashboardData
                 'on' => $v->completed_at?->toDateString(),
                 'ts' => $v->completed_at?->getTimestamp() ?? 0,
                 'status' => 'completed',
-                'report_url' => $reportPath.'?selected='.$v->id,
+                'report_url' => '/reports?selected='.$v->id,
             ]);
 
         $skipped = RouteStop::query()
             ->where('status', 'skipped')
             ->whereHas('route', fn ($r) => $agentId !== null ? $r->where('agent_id', $agentId) : $r)
-            ->when($poolIds !== null, fn ($q) => $q->whereIn('pool_id', $poolIds))
             ->with(['pool:id,name,photo_path', 'route:id,agent_id', 'route.agent:id,first_name,last_name,avatar_path'])
             ->latest('updated_at')->limit(8)->get()
             ->map(fn (RouteStop $s): array => [
@@ -466,7 +463,7 @@ class AssembleDashboardData
      */
     private function recentVisits(): array
     {
-        return $this->recentActivity(null, null, '/reports');
+        return $this->recentActivity(null);
     }
 
     /**
@@ -476,7 +473,7 @@ class AssembleDashboardData
      */
     private function agentVisits(User $user): array
     {
-        return $this->recentActivity($user->id, null, '/reports');
+        return $this->recentActivity($user->id);
     }
 
     private function photoUrl(mixed $path): ?string

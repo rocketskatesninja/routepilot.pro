@@ -35,14 +35,6 @@ class ServiceRequestAnsweredMail extends Mailable
 
     public function content(): Content
     {
-        return new Content(view: 'emails.request-answered', with: [
-            'customerName' => $this->customerName,
-            'company' => $this->company,
-            'headline' => $this->headline,
-            'summary' => $this->summary,
-            'reply' => $this->reply,
-            'declined' => $this->declined,
-            'portalUrl' => $this->portalUrl,
-        ]);
+        return new Content(view: 'emails.request-answered');
     }
 }

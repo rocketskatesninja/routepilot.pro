@@ -10,7 +10,7 @@ import { computed } from 'vue';
 
 const props = defineProps<{
     total: number;
-    visits: { description: string; pool: string; date: string; price: number }[];
+    visits: { service: string; pool: string; date: string; price: number }[];
     charges: { description: string; amount: number }[];
     payments: { amount: number; on: string | null; method: string }[];
     can_pay: boolean;
@@ -22,7 +22,6 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balance', href: '/balance' }];
 const page = usePage<SharedData>();
 const company = computed(() => page.props.tenant?.name ?? 'your pool company');
-const money = formatMoney;
 
 const payForm = useForm({});
 const pay = () => payForm.post('/balance/pay', { preserveScroll: true });
@@ -31,8 +30,6 @@ const setupAutopay = () => setupForm.post('/autopay/setup', { preserveScroll: tr
 const disableForm = useForm({});
 const disableAutopay = () => disableForm.post('/autopay/disable', { preserveScroll: true });
 
-/** "Weekly Pool Service — Anderson Pool" → the service, with the pool shown underneath. */
-const serviceOf = (v: { description: string }) => v.description.split(' — ')[0];
 const cardName = computed(() => (props.card?.brand ? cap(props.card.brand) : 'Card'));
 const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Check', ach: 'Bank transfer', other: 'Payment' };
 </script>
@@ -54,10 +51,10 @@ const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Ch
             <section class="rounded-2xl bg-[hsl(var(--brand)/0.08)] px-6 py-7 sm:px-8">
                 <template v-if="props.total > 0">
                     <h1 class="text-muted-foreground text-[15px] font-normal">You owe {{ company }}</h1>
-                    <p class="mt-1 text-5xl font-semibold tracking-tight">{{ money(props.total) }}</p>
+                    <p class="mt-1 text-5xl font-semibold tracking-tight">{{ formatMoney(props.total) }}</p>
                     <div class="mt-5 flex flex-wrap items-center gap-3">
                         <Button v-if="props.can_pay && !props.autopay" size="lg" :disabled="payForm.processing" @click="pay">
-                            <CreditCard class="mr-1.5 size-4" /> Pay {{ money(props.total) }}
+                            <CreditCard class="mr-1.5 size-4" /> Pay {{ formatMoney(props.total) }}
                         </Button>
                         <p v-else-if="props.autopay" class="text-sm">Autopay will pay this automatically. You don’t need to do anything.</p>
                         <p v-else class="text-sm">Online payment isn’t set up yet. Please pay {{ company }} the usual way.</p>
@@ -90,18 +87,18 @@ const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Ch
                 <ul class="border-border divide-border mt-4 divide-y rounded-2xl border">
                     <li v-for="(v, i) in props.visits" :key="`v${i}`" class="flex items-baseline justify-between gap-4 p-4 sm:px-5">
                         <span class="min-w-0">
-                            <span class="block font-medium">{{ serviceOf(v) }}</span>
+                            <span class="block font-medium">{{ v.service }}</span>
                             <span class="text-muted-foreground text-sm">{{ formatDay(v.date) }}, {{ v.pool }}</span>
                         </span>
-                        <span class="tabular-nums">{{ money(v.price) }}</span>
+                        <span class="tabular-nums">{{ formatMoney(v.price) }}</span>
                     </li>
                     <li v-for="(c, i) in props.charges" :key="`c${i}`" class="flex items-baseline justify-between gap-4 p-4 sm:px-5">
                         <span class="font-medium">{{ c.description }}</span>
-                        <span class="tabular-nums">{{ money(c.amount) }}</span>
+                        <span class="tabular-nums">{{ formatMoney(c.amount) }}</span>
                     </li>
                     <li class="flex items-baseline justify-between gap-4 p-4 sm:px-5">
                         <span class="font-semibold">Total</span>
-                        <span class="font-semibold tabular-nums">{{ money(props.total) }}</span>
+                        <span class="font-semibold tabular-nums">{{ formatMoney(props.total) }}</span>
                     </li>
                 </ul>
             </section>
@@ -115,7 +112,7 @@ const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Ch
                             <span class="block font-medium">{{ formatDay(p.on) }}</span>
                             <span class="text-muted-foreground text-sm">{{ METHODS[p.method] ?? 'Payment' }}</span>
                         </span>
-                        <span class="tabular-nums">{{ money(p.amount) }}</span>
+                        <span class="tabular-nums">{{ formatMoney(p.amount) }}</span>
                     </li>
                 </ul>
             </section>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import PlanScheduleFields from '@/components/PlanScheduleFields.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,7 +66,8 @@ interface LeadRow {
     status: string;
 }
 
-interface LeadDetail extends LeadRow {
+// The detail's `service` is the full pick (name + price), not just the name the row shows.
+interface LeadDetail extends Omit<LeadRow, 'service'> {
     email: string | null;
     phone: string | null;
     message: string | null;
@@ -91,18 +93,19 @@ const leadRows = computed(() => props.rows as Paginated<LeadRow>);
 const request = computed(() => (props.tab === 'requests' ? (props.selected as RequestDetail | null) : null));
 const lead = computed(() => (props.tab === 'leads' ? (props.selected as LeadDetail | null) : null));
 
-const visit = (params: Record<string, string | number | undefined>, keep = true) =>
-    router.get('/inbox', params, { preserveState: keep, preserveScroll: keep });
-const setTab = (tab: string) => visit({ tab: tab === 'leads' ? 'leads' : undefined }, false);
-const setStatus = (status: string) => visit({ tab: props.tab === 'leads' ? 'leads' : undefined, status: status === 'closed' ? 'closed' : undefined });
-const open = (id: number) =>
-    visit({ tab: props.tab === 'leads' ? 'leads' : undefined, status: props.status === 'closed' ? 'closed' : undefined, selected: id });
+// The URL keeps only what differs from the defaults (requests tab, "To do").
+const visit = (tab: string, status: string, selected?: number, keep = true) =>
+    router.get(
+        '/inbox',
+        { tab: tab === 'leads' ? tab : undefined, status: status === 'closed' ? status : undefined, selected },
+        { preserveState: keep, preserveScroll: keep },
+    );
+const setTab = (tab: string) => visit(tab, 'open', undefined, false);
+const setStatus = (status: string) => visit(props.tab, status);
+const open = (id: number) => visit(props.tab, props.status, id);
 const closePane = () => {
-    if (mode.value !== 'none') {
-        mode.value = 'none';
-        return;
-    }
-    visit({ tab: props.tab === 'leads' ? 'leads' : undefined, status: props.status === 'closed' ? 'closed' : undefined });
+    if (mode.value !== 'none') mode.value = 'none';
+    else visit(props.tab, props.status);
 };
 
 const tabs = computed(() => [
@@ -130,9 +133,6 @@ watch(
     () => props.selected?.id,
     () => (mode.value = 'none'),
 );
-
-const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const schedules: Record<string, string> = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', one_time: 'One-time' };
 
 // Forms are built from functions so reset() always starts blank — never with
 // the note or reason typed for the previous request.
@@ -476,61 +476,7 @@ const poolTypes: Record<string, string> = {
                                             Creates the plan on {{ request.pool }}. Its visits go on the route as soon as you save.
                                         </p>
                                     </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="ap_agent">Technician</Label>
-                                        <select
-                                            id="ap_agent"
-                                            v-model="approveForm.assigned_agent_id"
-                                            class="border-input bg-background h-9 w-64 max-w-full rounded-md border px-2 text-sm"
-                                        >
-                                            <option value="">Unassigned</option>
-                                            <option v-for="a in props.agents" :key="a.id" :value="a.id">{{ a.name }}</option>
-                                        </select>
-                                    </div>
-                                    <div class="flex flex-wrap gap-3">
-                                        <div class="grid gap-1.5">
-                                            <Label for="ap_freq">Schedule</Label>
-                                            <select
-                                                id="ap_freq"
-                                                v-model="approveForm.frequency"
-                                                class="border-input bg-background h-9 w-40 rounded-md border px-2 text-sm"
-                                            >
-                                                <option v-for="(label, key) in schedules" :key="key" :value="key">{{ label }}</option>
-                                            </select>
-                                        </div>
-                                        <div v-if="approveForm.frequency === 'weekly' || approveForm.frequency === 'biweekly'" class="grid gap-1.5">
-                                            <Label for="ap_day">Day</Label>
-                                            <select
-                                                id="ap_day"
-                                                v-model="approveForm.preferred_day"
-                                                class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm capitalize"
-                                            >
-                                                <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
-                                            </select>
-                                            <p v-if="approveForm.errors.preferred_day" class="text-xs text-red-600">
-                                                {{ approveForm.errors.preferred_day }}
-                                            </p>
-                                        </div>
-                                        <div v-else-if="approveForm.frequency === 'monthly'" class="grid gap-1.5">
-                                            <Label for="ap_dom">Day of month</Label>
-                                            <Input id="ap_dom" v-model="approveForm.day_of_month" type="number" min="1" max="31" class="w-20" />
-                                            <p v-if="approveForm.errors.day_of_month" class="text-xs text-red-600">
-                                                {{ approveForm.errors.day_of_month }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-wrap gap-3">
-                                        <div class="grid gap-1.5">
-                                            <Label for="ap_start">{{ approveForm.frequency === 'one_time' ? 'Date' : 'Starts' }}</Label>
-                                            <Input id="ap_start" v-model="approveForm.starts_on" type="date" class="w-40" />
-                                            <p v-if="approveForm.errors.starts_on" class="text-xs text-red-600">{{ approveForm.errors.starts_on }}</p>
-                                        </div>
-                                        <div v-if="approveForm.frequency !== 'one_time'" class="grid gap-1.5">
-                                            <Label for="ap_end">Ends <span class="text-muted-foreground font-normal">(optional)</span></Label>
-                                            <Input id="ap_end" v-model="approveForm.ends_on" type="date" class="w-40" />
-                                            <p v-if="approveForm.errors.ends_on" class="text-xs text-red-600">{{ approveForm.errors.ends_on }}</p>
-                                        </div>
-                                    </div>
+                                    <PlanScheduleFields v-model="approveForm" :agents="props.agents" id-prefix="ap" />
                                 </template>
                                 <p v-else class="text-muted-foreground">{{ approveExplainer }}</p>
 

@@ -3,7 +3,7 @@ import PortalPageHeader from '@/components/portal/PortalPageHeader.vue';
 import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { checkWater, monthYear, waterSummary, type WaterReading, type WaterTargets } from '@/lib/portal';
+import { checkWater, monthYear, waterSummary, type WaterCheck, type WaterReading, type WaterTargets } from '@/lib/portal';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -35,14 +35,15 @@ const manyPools = computed(() => new Set(props.visits.data.map((v) => v.pool_id)
 const openId = ref<number | null>(Number(new URL(page.url, 'http://localhost').searchParams.get('selected')) || null);
 const toggle = (id: number) => (openId.value = openId.value === id ? null : id);
 
-// Visits grouped by month, newest first.
+// Visits grouped by month, newest first, each with its water test checked against the pool's targets.
 const months = computed(() => {
-    const groups: { label: string; visits: Visit[] }[] = [];
+    const groups: { label: string; visits: (Visit & { checks: WaterCheck[] })[] }[] = [];
     for (const v of props.visits.data) {
+        const visit = { ...v, checks: checkWater(v.reading, v.targets) };
         const label = v.on ? monthYear(v.on) : 'Earlier';
         const g = groups.find((x) => x.label === label);
-        if (g) g.visits.push(v);
-        else groups.push({ label, visits: [v] });
+        if (g) g.visits.push(visit);
+        else groups.push({ label, visits: [visit] });
     }
     return groups;
 });
@@ -140,8 +141,8 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
 
                             <div v-if="v.reading">
                                 <h3 class="text-sm font-medium">Water test</h3>
-                                <p class="text-muted-foreground text-sm">{{ waterSummary(checkWater(v.reading, v.targets)) }}</p>
-                                <WaterChecks :checks="checkWater(v.reading, v.targets)" :explain="false" class="mt-1" />
+                                <p class="text-muted-foreground text-sm">{{ waterSummary(v.checks) }}</p>
+                                <WaterChecks :checks="v.checks" :explain="false" class="mt-1" />
                             </div>
 
                             <div v-if="v.treatments.length">

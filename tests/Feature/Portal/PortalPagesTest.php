@@ -125,7 +125,8 @@ test('Balance names the service on each visit charge and lists recent payments',
     $this->actingAs($this->user)
         ->get('/balance')
         ->assertInertia(fn (Assert $page) => $page->component('portal/Balance')
-            ->where('visits.0.description', 'Weekly Pool Service — Backyard pool')
+            ->where('visits.0.service', 'Weekly Pool Service')
+            ->where('visits.0.pool', 'Backyard pool')
             ->where('payments.0.amount', 25)
             ->where('payments.0.on', '2026-10-12'));
 });

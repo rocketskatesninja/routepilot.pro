@@ -80,6 +80,12 @@ class ServiceRequest extends Model
         return $this->belongsTo(ServiceSubscription::class, 'service_subscription_id');
     }
 
+    /** Record the company's answer (approved / declined) and who gave it. */
+    public function markAnswered(string $status, ?string $reply, User $by): void
+    {
+        $this->forceFill(['status' => $status, 'reply' => $reply, 'resolved_by' => $by->id, 'resolved_at' => now()])->save();
+    }
+
     /** A request for a catalog service (older free-text requests have none). */
     public function isForService(): bool
     {

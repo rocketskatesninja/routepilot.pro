@@ -4,6 +4,7 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import PlanScheduleFields from '@/components/PlanScheduleFields.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, customerLink, reportLink } from '@/lib/links';
+import { SCHEDULES } from '@/lib/schedule';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -273,8 +275,6 @@ function destroyPool() {
 const subFormOpen = ref(false);
 const subFormMode = ref<'create' | 'edit'>('create');
 const subFormId = ref<number | null>(null);
-const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-const schedules: Record<string, string> = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', one_time: 'One-time' };
 const planStatus: Record<string, string> = { active: 'Active', paused: 'Paused', cancelled: 'Ended' };
 const localToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the office's time zone
 
@@ -310,7 +310,7 @@ watch(
     (id) => {
         if (subFormMode.value !== 'create') return;
         const service = props.serviceTypes.find((t) => t.id === Number(id));
-        if (service && schedules[service.frequency]) subForm.frequency = service.frequency;
+        if (service && SCHEDULES[service.frequency]) subForm.frequency = service.frequency;
     },
 );
 
@@ -670,59 +670,7 @@ function submitTargets() {
                             </select>
                             <p v-if="subForm.errors.service_type_id" class="text-xs text-red-600">{{ subForm.errors.service_type_id }}</p>
                         </div>
-                        <div class="grid gap-1.5">
-                            <Label for="sub_agent">Agent</Label>
-                            <select
-                                id="sub_agent"
-                                v-model="subForm.assigned_agent_id"
-                                class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                            >
-                                <option value="">Unassigned</option>
-                                <option v-for="a in props.agents" :key="a.id" :value="a.id">{{ a.name }}</option>
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="sub_freq">Schedule</Label>
-                                <select
-                                    id="sub_freq"
-                                    v-model="subForm.frequency"
-                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm"
-                                >
-                                    <option v-for="(label, key) in schedules" :key="key" :value="key">{{ label }}</option>
-                                </select>
-                            </div>
-                            <div v-if="subForm.frequency === 'weekly' || subForm.frequency === 'biweekly'" class="grid gap-1.5">
-                                <Label for="sub_day">Day</Label>
-                                <select
-                                    id="sub_day"
-                                    v-model="subForm.preferred_day"
-                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm capitalize"
-                                >
-                                    <option value="" disabled>Pick a day…</option>
-                                    <option v-for="d in days" :key="d" :value="d" class="capitalize">{{ d }}</option>
-                                </select>
-                                <p v-if="subForm.errors.preferred_day" class="text-xs text-red-600">{{ subForm.errors.preferred_day }}</p>
-                            </div>
-                            <div v-else-if="subForm.frequency === 'monthly'" class="grid gap-1.5">
-                                <Label for="sub_dom">Day of month</Label>
-                                <Input id="sub_dom" v-model="subForm.day_of_month" type="number" min="1" max="31" class="w-20" />
-                                <p class="text-muted-foreground text-xs">31 = last day of short months</p>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="sub_start">{{ subForm.frequency === 'one_time' ? 'Date' : 'Starts' }}</Label>
-                                <Input id="sub_start" v-model="subForm.starts_on" type="date" />
-                                <p v-if="subForm.errors.starts_on" class="text-xs text-red-600">{{ subForm.errors.starts_on }}</p>
-                            </div>
-                            <div v-if="subForm.frequency !== 'one_time'" class="grid gap-1.5">
-                                <Label for="sub_end">Ends <span class="text-muted-foreground font-normal">(optional)</span></Label>
-                                <Input id="sub_end" v-model="subForm.ends_on" type="date" />
-                                <p v-if="subForm.errors.ends_on" class="text-xs text-red-600">{{ subForm.errors.ends_on }}</p>
-                                <p v-else class="text-muted-foreground text-xs">For seasonal service</p>
-                            </div>
-                        </div>
+                        <PlanScheduleFields v-model="subForm" :agents="props.agents" id-prefix="sub" />
                         <div v-if="subFormMode === 'edit'" class="grid gap-1.5">
                             <Label for="sub_status">Status</Label>
                             <select id="sub_status" v-model="subForm.status" class="border-input bg-background h-9 rounded-md border px-2 text-sm">

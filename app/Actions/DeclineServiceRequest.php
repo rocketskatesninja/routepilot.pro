@@ -24,12 +24,7 @@ class DeclineServiceRequest
                 return false;
             }
 
-            $locked->forceFill([
-                'status' => 'declined',
-                'reply' => $reason,
-                'resolved_by' => $by->id,
-                'resolved_at' => now(),
-            ])->save();
+            $locked->markAnswered('declined', $reason, $by);
 
             return true;
         });

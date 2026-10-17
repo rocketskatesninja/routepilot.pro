@@ -3,7 +3,7 @@ import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
 import { subscribeCustomerEta } from '@/echo';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { andList, checkWater, longDay, waterSummary, when, type WaterReading, type WaterTargets } from '@/lib/portal';
+import { andList, cap, checkWater, longDay, waterSummary, when, type WaterReading, type WaterTargets } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
@@ -70,18 +70,15 @@ onMounted(() => {
 onBeforeUnmount(() => unsubscribe?.());
 const arriving = computed(() => liveWindow.value ?? (next.value && next.value.date === props.today ? next.value.window : null));
 
-// The water, one sentence per pool.
+// The water, one sentence per pool: "Beach House Pool: the water was in good shape on Thu, Oct 15."
 const waterLines = computed(() =>
     props.water.map((w) => {
         const checks = checkWater(w.reading, w.targets);
-        const ok = checks.every((c) => c.status === 'good');
-        const where = props.water.length > 1 ? `${w.pool}: ` : '';
-        return {
-            ok,
-            text: ok
-                ? `${where}the water was in good shape on ${formatDay(w.on)}.`
-                : `${where}on ${formatDay(w.on)}, ${waterSummary(checks).charAt(0).toLowerCase()}${waterSummary(checks).slice(1)}`,
-        };
+        const summary = waterSummary(checks);
+        const text = checks.every((c) => c.status === 'good')
+            ? `the water was in good shape on ${formatDay(w.on)}.`
+            : `on ${formatDay(w.on)}, ${summary.charAt(0).toLowerCase()}${summary.slice(1)}`;
+        return cap(manyPools.value ? `${w.pool}: ${text}` : text);
     }),
 );
 
@@ -125,7 +122,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                     <div class="min-w-0">
                         <p class="font-medium">Your water</p>
                         <template v-if="waterLines.length">
-                            <p v-for="(w, i) in waterLines" :key="i" class="text-muted-foreground text-sm first-letter:uppercase">{{ w.text }}</p>
+                            <p v-for="(line, i) in waterLines" :key="i" class="text-muted-foreground text-sm">{{ line }}</p>
                         </template>
                         <p v-else class="text-muted-foreground text-sm">Your technician tests the water on each visit. Results show up here.</p>
                     </div>

@@ -51,16 +51,12 @@ class PortalController extends Controller
     public function pools(Request $request): Response
     {
         $customer = $this->resolveCustomer($request);
-        $today = Tenant::localToday()->toDateString();
 
-        $pools = $customer->pools()->with('serviceLocation')->orderBy('name')->get()->map(function (Pool $pool) use ($today): array {
+        $pools = $customer->pools()->with('serviceLocation')->orderBy('name')->get()->map(function (Pool $pool): array {
             // Newest first — the latest reading, plus the recent trend for chlorine and pH.
             $history = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->limit(8)->get();
             $tested = $history->first(fn (ServiceVisit $v): bool => $v->chemicalReading !== null);
-            $plans = $pool->subscriptions()->whereIn('status', ['active', 'paused'])
-                ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today))
-                ->where(fn ($q) => $q->where('frequency', '!=', 'one_time')->orWhere('starts_on', '>=', $today))
-                ->with(['serviceType:id,name', 'agent:id,first_name,last_name'])->get();
+            $plans = $pool->subscriptions()->current()->with(['serviceType:id,name', 'agent:id,first_name,last_name'])->get();
 
             return [
                 'id' => $pool->id,
@@ -127,9 +123,7 @@ class PortalController extends Controller
             ->pluck('type', 'service_subscription_id');
         $plans = ServiceSubscription::query()
             ->whereIn('pool_id', $customer->pools()->pluck('id'))
-            ->whereIn('status', ['active', 'paused'])
-            ->where(fn ($q) => $q->whereNull('ends_on')->orWhere('ends_on', '>=', $today->toDateString()))
-            ->where(fn ($q) => $q->where('frequency', '!=', 'one_time')->orWhere('starts_on', '>=', $today->toDateString()))
+            ->current()
             ->with(['serviceType', 'agent:id,first_name,last_name', 'pool:id,name'])
             ->get()
             ->sortBy(fn (ServiceSubscription $p): string => ($p->pool?->getAttribute('name') ?? '').'|'.($p->serviceType->name ?? ''))
@@ -155,7 +149,6 @@ class PortalController extends Controller
                     'pool' => $p->pool?->getAttribute('name'),
                     'service_type_id' => $p->getAttribute('service_type_id'),
                     'service' => $p->serviceType?->name,
-                    'schedule' => $p->scheduleLabel(),
                     'frequency' => $p->frequency,
                     'preferred_day' => $p->preferred_day,
                     'day_of_month' => $p->day_of_month,
@@ -183,7 +176,6 @@ class PortalController extends Controller
                     'description' => $t->description,
                     'frequency' => $t->frequency,
                     'price' => (float) $t->price,
-                    'offer' => $t->offerLabel(),
                     'minutes' => $t->estimated_duration_minutes,
                     // The checklist only when the tech actually works through it on the visit.
                     'tasks' => $modules['tasks'] ? array_values($t->tasks ?? []) : [],
@@ -200,7 +192,6 @@ class PortalController extends Controller
             'plans' => $plans,
             'services' => $services,
             'pools' => $pools,
-            'firstName' => $customer->first_name,
             'today' => $today->toDateString(),
         ]);
     }

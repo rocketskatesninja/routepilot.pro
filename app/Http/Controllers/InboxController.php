@@ -192,7 +192,7 @@ class InboxController extends Controller
                 'last_name' => $last,
                 'email' => $l->email ?? '',
                 'phone' => $l->getAttribute('phone') ?? '',
-                'pool_type' => in_array($poolType, ['inground', 'above_ground', 'spa', 'infinity', 'other'], true) ? $poolType : 'inground',
+                'pool_type' => in_array($poolType, ['inground', 'above_ground', 'indoor', 'spa', 'infinity', 'other'], true) ? $poolType : 'inground',
                 'pool_volume' => is_numeric($details['volume_gallons'] ?? null) ? (int) $details['volume_gallons'] : null,
             ],
         ];

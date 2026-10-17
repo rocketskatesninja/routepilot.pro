@@ -34,7 +34,6 @@ interface Plan {
     pool: string | null;
     service_type_id: number;
     service: string | null;
-    schedule: string;
     frequency: string;
     preferred_day: string | null;
     day_of_month: number | null;
@@ -56,7 +55,6 @@ interface Service {
     description: string | null;
     frequency: string;
     price: number;
-    offer: string;
     minutes: number;
     tasks: string[];
     modules: string[];
@@ -67,7 +65,6 @@ const props = defineProps<{
     plans: Plan[];
     services: Service[];
     pools: { id: number; name: string }[];
-    firstName: string;
     today: string;
 }>();
 
@@ -379,7 +376,9 @@ const statusClass = (status: string) =>
                     <li v-for="r in props.requests" :key="r.id" class="py-4">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <p class="font-medium">{{ r.title }}</p>
+                                <p class="font-medium">
+                                    {{ r.title }}<template v-if="manyPools && r.pool"> for {{ r.pool }}</template>
+                                </p>
                                 <p class="text-muted-foreground text-sm">{{ sentLine(r) }}</p>
                             </div>
                             <span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium" :class="statusClass(r.status)">{{
@@ -407,7 +406,7 @@ const statusClass = (status: string) =>
                     </DialogHeader>
 
                     <!-- which pool: for a new service when they have several, or optional for a note -->
-                    <div v-if="(kind === 'service' && manyPools) || (kind === 'other' && props.pools.length > 1)" class="grid gap-1.5">
+                    <div v-if="manyPools && (kind === 'service' || kind === 'other')" class="grid gap-1.5">
                         <Label for="pool">{{ kind === 'other' ? 'Which pool is this about? (optional)' : 'Which pool?' }}</Label>
                         <select
                             id="pool"
@@ -455,7 +454,10 @@ const statusClass = (status: string) =>
                         <p v-else class="text-muted-foreground text-xs">Leave blank to stop as soon as possible.</p>
                     </div>
 
-                    <p v-if="form.errors.service_subscription_id" class="text-xs text-red-600">{{ form.errors.service_subscription_id }}</p>
+                    <!-- the service itself was turned down, e.g. it stopped being offered since the page loaded -->
+                    <p v-if="form.errors.service_type_id || form.errors.service_subscription_id" class="text-xs text-red-600">
+                        {{ form.errors.service_type_id ?? form.errors.service_subscription_id }}
+                    </p>
 
                     <div class="grid gap-1.5">
                         <Label for="message">

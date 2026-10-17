@@ -40,6 +40,8 @@ const props = defineProps<{ pools: PoolInfo[] }>();
 const breadcrumbs: BreadcrumbItem[] = [{ title: props.pools.length === 1 ? 'Your pool' : 'Your pools', href: '/my-pools' }];
 // More than one pool: a page title with a link to each, and each pool's address to tell them apart.
 const manyPools = computed(() => props.pools.length > 1);
+// Each pool's latest water test, checked against its own targets.
+const pools = computed(() => props.pools.map((p) => ({ ...p, checks: checkWater(p.reading, p.targets) })));
 
 const TYPES: Record<string, string> = {
     inground: 'in-ground',
@@ -110,7 +112,7 @@ const band = (p: PoolInfo, key: 'free_chlorine' | 'ph'): [number, number] => {
             </PortalPageHeader>
 
             <article
-                v-for="(p, i) in props.pools"
+                v-for="(p, i) in pools"
                 :id="`about-pool-${p.id}`"
                 :key="p.id"
                 class="flex scroll-mt-6 flex-col gap-8"
@@ -135,9 +137,9 @@ const band = (p: PoolInfo, key: 'free_chlorine' | 'ph'): [number, number] => {
                         {{ p.tested_on ? `Your water on ${formatDay(p.tested_on)}` : 'Your water' }}
                     </h2>
                     <template v-if="p.reading">
-                        <p class="text-muted-foreground mt-1 text-sm">{{ waterSummary(checkWater(p.reading, p.targets)) }}</p>
+                        <p class="text-muted-foreground mt-1 text-sm">{{ waterSummary(p.checks) }}</p>
                         <div class="border-border mt-4 rounded-2xl border px-4 sm:px-5">
-                            <WaterChecks :checks="checkWater(p.reading, p.targets)" />
+                            <WaterChecks :checks="p.checks" />
                         </div>
 
                         <div v-if="p.trend.chlorine.length > 1 || p.trend.ph.length > 1" class="mt-4 grid gap-4 sm:grid-cols-2">

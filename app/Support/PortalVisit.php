@@ -16,7 +16,7 @@ final class PortalVisit
 {
     /** Relations to eager-load before calling toArray(). */
     public const WITH = [
-        'pool:id,name,custom_target_ranges,sanitizer_type',
+        'pool:id,name,custom_target_ranges',
         'agent:id,first_name,last_name',
         'chemicalReading', 'treatments', 'tasks', 'photos',
         'serviceSubscription.serviceType:id,name',

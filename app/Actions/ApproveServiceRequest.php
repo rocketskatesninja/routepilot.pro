@@ -56,12 +56,7 @@ class ApproveServiceRequest
                 $this->updatePlan->handle($plan, $this->ending($plan, $locked));
             }
 
-            $locked->forceFill([
-                'status' => 'approved',
-                'reply' => $data['reply'] ?? null,
-                'resolved_by' => $by->id,
-                'resolved_at' => now(),
-            ])->save();
+            $locked->markAnswered('approved', $data['reply'] ?? null, $by);
 
             return true;
         });

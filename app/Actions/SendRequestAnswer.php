@@ -48,14 +48,11 @@ class SendRequestAnswer
 
     private function headline(ServiceRequest $request): string
     {
-        if ($request->status === 'declined') {
-            return 'About your request';
-        }
-
-        return match ($request->statusLabel()) {
-            'Scheduled' => $request->plan?->frequency === 'one_time' ? 'You\'re booked' : 'You\'re scheduled',
-            'Pause set' => 'Your pause is set',
-            'Stop confirmed' => 'Your service is stopping',
+        return match (true) {
+            $request->status === 'declined' => 'About your request',
+            $request->isForService() => $request->plan?->frequency === 'one_time' ? 'You\'re booked' : 'You\'re scheduled',
+            $request->type === 'hold' => 'Your pause is set',
+            $request->type === 'cancel' => 'Your service is stopping',
             default => 'Your request is taken care of',
         };
     }

@@ -13,7 +13,7 @@ const parse = (ymd: string) => {
 
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export const ordinal = (n: number) => {
+const ordinal = (n: number) => {
     const t = n % 100;
     return `${n}${t >= 11 && t <= 13 ? 'th' : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th')}`;
 };
@@ -24,7 +24,7 @@ export const longDay = (ymd: string) => parse(ymd).toLocaleDateString('en-US', {
 /** "October 2026". */
 export const monthYear = (ymd: string) => parse(ymd).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-export const dayAfter = (ymd: string) => {
+const dayAfter = (ymd: string) => {
     const d = parse(ymd);
     d.setDate(d.getDate() + 1);
     return d.toLocaleDateString('en-CA');
