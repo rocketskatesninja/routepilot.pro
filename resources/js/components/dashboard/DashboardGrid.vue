@@ -60,7 +60,7 @@ const commit = () =>
 </script>
 
 <template>
-    <div>
+    <div class="dashboard-grid" :class="{ 'is-editing': editing }">
         <!-- Both desktop and phone use the same 12-col drag grid — on a phone the
              layout is full-width widgets, so it reads as a stack you can still
              drag to reorder and drag the corner to resize. -->
@@ -109,6 +109,17 @@ const commit = () =>
 </template>
 
 <style>
+/*
+ * Boxes only animate while you rearrange them. grid-layout-plus otherwise
+ * slides every box in from the top-left corner on each page load — and when the
+ * page is busy loading, that slide starts late, so the boxes sit piled on top
+ * of each other for a second before they settle.
+ */
+.dashboard-grid:not(.is-editing) .vgl-layout,
+.dashboard-grid:not(.is-editing) .vgl-item {
+    transition: none;
+}
+
 /* grid-layout-plus visual tuning to match the ops theme. */
 .vgl-item:not(.vgl-item--placeholder) {
     background: transparent;
