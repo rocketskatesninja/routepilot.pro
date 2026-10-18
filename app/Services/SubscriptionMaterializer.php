@@ -127,11 +127,12 @@ class SubscriptionMaterializer
     }
 
     /**
-     * A plan's visit dates in [start, end]. All values are plain dates.
+     * A plan's visit dates in [start, end]. All values are plain dates. Public so
+     * demo history can be laid on exactly the days the schedule would use.
      *
      * @return list<Carbon>
      */
-    protected function projectDates(ServiceSubscription $sub, Carbon $start, Carbon $end): array
+    public function projectDates(ServiceSubscription $sub, Carbon $start, Carbon $end): array
     {
         $startsOn = $sub->starts_on !== null ? Carbon::parse($sub->starts_on->toDateString()) : null;
 

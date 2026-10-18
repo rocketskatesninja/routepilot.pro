@@ -7,6 +7,8 @@ namespace Database\Seeders;
 use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\Route;
+use App\Models\RouteStop;
 use App\Models\ServiceLocation;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
@@ -24,7 +26,9 @@ use Illuminate\Support\Carbon;
  * Demo data for kicking the tyres: one tenant (Demo Company) with the
  * four login roles, a handful of customers/pools on weekly service, a
  * materialized schedule, and recent completed visits with readings — enough
- * for every role dashboard to render real numbers.
+ * for every role dashboard to render real numbers. The visits sit on each
+ * plan's own days and are finished through their route stops, the way the
+ * field app records them, so a pool's history always matches its plan.
  *
  * Logins (all password "password"):
  *   admin@routepilot.pro      super_admin (platform)
@@ -138,17 +142,31 @@ class DemoSeeder extends Seeder
 
             // Concentrate the week so a couple of days are genuinely busy across
             // both agents — Monday gets 6 stops (3 each), Tuesday the rest.
+            $agent = $agents[$i % 2];
             $plan = ServiceSubscription::factory()->for($tenant)->for($pool)->for($weekly)->create([
-                'assigned_agent_id' => $agents[$i % 2]->id,
+                'assigned_agent_id' => $agent->id,
                 'frequency' => 'weekly', 'preferred_day' => $i < 6 ? 'monday' : 'tuesday', 'status' => 'active',
+                'starts_on' => $tenant->today()->subWeeks(2)->toDateString(),
             ]);
 
-            // A couple of recent completed visits with readings for history/health.
-            foreach ([7, 14] as $daysAgo) {
+            // The plan's last two visit days, each completed through its route stop
+            // with a reading, for history/health.
+            $days = app(SubscriptionMaterializer::class)->projectDates($plan, $tenant->today()->subWeeks(2), $tenant->today()->subDay());
+            foreach (array_slice($days, -2) as $day) {
+                $at = Carbon::parse($day->toDateString().' 09:00', $tenant->timezone)->addMinutes(35 * ($i % 3))->utc();
+                $route = Route::query()->firstOrCreate(
+                    ['agent_id' => $agent->id, 'scheduled_date' => $day->toDateString()],
+                    ['status' => 'completed'],
+                );
+                $stop = RouteStop::create([
+                    'route_id' => $route->id, 'pool_id' => $pool->id, 'service_subscription_id' => $plan->id,
+                    'stop_order' => ((int) $route->stops()->max('stop_order')) + 1,
+                    'status' => 'completed', 'completed_at' => $at,
+                ]);
                 $visit = ServiceVisit::factory()->for($tenant)->for($pool)->create([
-                    'service_subscription_id' => $plan->id,
-                    'agent_id' => $agents[$i % 2]->id, 'status' => 'completed',
-                    'visited_at' => now()->subDays($daysAgo), 'completed_at' => now()->subDays($daysAgo),
+                    'route_stop_id' => $stop->id, 'service_subscription_id' => $plan->id,
+                    'agent_id' => $agent->id, 'status' => 'completed',
+                    'visited_at' => $at, 'completed_at' => $at,
                 ]);
                 $visit->chemicalReading()->create([
                     'tenant_id' => $tenant->id,
