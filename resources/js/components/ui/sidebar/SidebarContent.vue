@@ -10,7 +10,7 @@ const props = defineProps<{
 <template>
     <div
         data-sidebar="content"
-        :class="cn('flex min-h-0 flex-1 flex-col gap-1 overflow-auto group-data-[collapsible=icon]:overflow-hidden', props.class)"
+        :class="cn('flex min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:[scrollbar-width:none]', props.class)"
     >
         <slot />
     </div>

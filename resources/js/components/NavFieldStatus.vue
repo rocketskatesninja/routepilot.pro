@@ -26,7 +26,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <!-- p-0 to match the footer inset used by NavNotifications / NavUser. -->
+    <!-- p-0: the footer wrapper already supplies the 8px inset (as for NavUser). -->
     <SidebarGroup class="p-0">
         <SidebarMenu>
             <!-- Connectivity (informational, non-interactive). -->

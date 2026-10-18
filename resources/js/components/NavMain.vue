@@ -24,7 +24,8 @@ const isActive = (href: string): boolean => currentPath.value === strip(href);
 <template>
     <SidebarGroup class="px-2 py-0">
         <SidebarGroupLabel v-if="label">{{ label }}</SidebarGroupLabel>
-        <SidebarMenu>
+        <!-- Rows sit flush (no gap) so the tenant admin's full menu fits without scrolling. -->
+        <SidebarMenu class="gap-0">
             <SidebarMenuItem v-for="item in items" :key="item.title">
                 <SidebarMenuButton as-child :is-active="isActive(item.href)" :tooltip="item.title">
                     <Link :href="item.href">

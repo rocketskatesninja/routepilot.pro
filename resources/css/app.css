@@ -105,9 +105,9 @@ html {
 /* ── Collapsed sidebar: dock-style icon magnification ─────────────────────────
    Left unlayered on purpose so these win over Tailwind's layered utilities
    (e.g. the button's overflow-hidden) without !important. Scoped by button size
-   (data-size=default) so it covers the nav links AND the footer notification
-   bell alike, while the header logo and user avatar (size lg) stay untouched.
-   Icons sit +75% at rest and swell toward the cursor, tapering across their
+   (data-size=default) so it covers the nav links while the header logo and user
+   avatar (size lg) stay untouched. The rail's icons are drawn full size (see
+   sidebarMenuButtonVariants) and swell toward the cursor, tapering across their
    neighbours for a parabolic falloff. Transform only — no reflow, GPU-smooth. */
 [data-collapsible='icon'] [data-sidebar='menu-button'][data-size='default'] {
     overflow: visible; /* let a magnified icon spill past its cell */
@@ -115,15 +115,12 @@ html {
 [data-sidebar='menu-button'][data-size='default'] > svg {
     transition: transform 180ms ease;
 }
-[data-collapsible='icon'] [data-sidebar='menu-button'][data-size='default'] > svg {
-    transform: scale(1.75); /* +75% at rest */
-}
 [data-collapsible='icon'] [data-sidebar='menu-item']:hover [data-sidebar='menu-button'][data-size='default'] > svg {
-    transform: scale(2.25); /* peak — under the cursor */
+    transform: scale(1.3); /* peak — under the cursor */
 }
 [data-collapsible='icon'] [data-sidebar='menu-item']:hover + [data-sidebar='menu-item'] [data-sidebar='menu-button'][data-size='default'] > svg,
 [data-collapsible='icon'] [data-sidebar='menu-item']:has(+ [data-sidebar='menu-item']:hover) [data-sidebar='menu-button'][data-size='default'] > svg {
-    transform: scale(2); /* immediate neighbours */
+    transform: scale(1.15); /* immediate neighbours */
 }
 
 /* No collapse animation on the first paint: `preload` is set on <html> in the

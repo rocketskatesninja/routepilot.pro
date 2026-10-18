@@ -50,12 +50,14 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
             <span v-if="meta" class="text-muted-foreground truncate text-sm">{{ meta }}</span>
         </div>
 
-        <!-- Mobile quick actions stay pinned to the top row's right. -->
-        <div v-if="isMobile" class="flex items-center gap-1">
+        <!-- Search + notifications: the top row's right on a phone, after the page
+             actions on desktop. -->
+        <div class="flex items-center gap-1 md:order-last">
             <button
                 v-if="isStaff"
                 type="button"
                 class="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-2 transition-colors"
+                title="Search (⌘K)"
                 aria-label="Search"
                 @click="openCommand()"
             >
@@ -64,6 +66,8 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
             <Link
                 href="/notifications"
                 class="text-muted-foreground hover:bg-muted hover:text-foreground relative rounded-md p-2 transition-colors"
+                :class="{ 'bg-muted text-foreground': page.url.startsWith('/notifications') }"
+                title="Notifications"
                 aria-label="Notifications"
             >
                 <Bell class="size-5" />

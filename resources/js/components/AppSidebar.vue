@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import NavFieldStatus from '@/components/NavFieldStatus.vue';
 import NavMain from '@/components/NavMain.vue';
-import NavNotifications from '@/components/NavNotifications.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
     Sidebar,
@@ -13,7 +12,6 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { useCommandPalette } from '@/composables/useCommandPalette';
 import { type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import {
@@ -32,7 +30,6 @@ import {
     LayoutGrid,
     Map,
     Navigation,
-    Search,
     ShieldCheck,
     Users,
     Waves,
@@ -124,43 +121,31 @@ const navSections = computed<NavSection[]>(() => {
 });
 
 const isAgent = computed(() => page.props.auth.role === 'agent');
-const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 
-const { open: openCommand } = useCommandPalette();
-const { isMobile, toggleSidebar } = useSidebar();
+const { state, toggleSidebar } = useSidebar();
+const toggleLabel = computed(() => (state.value === 'collapsed' ? 'Expand sidebar' : 'Collapse sidebar'));
 </script>
 
 <template>
+    <!-- Search and notifications live in the page header (AppSidebarHeader) on every
+         screen size, so the panel holds only the logo, the nav and the account. -->
     <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child class="h-14">
-                        <button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" @click="toggleSidebar">
-                            <AppLogo />
-                        </button>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem v-if="isStaff && !isMobile">
-                    <SidebarMenuButton tooltip="Search (⌘K)" @click="openCommand()">
-                        <Search />
-                        <span class="group-data-[collapsible=icon]:hidden">Search</span>
-                        <kbd
-                            class="border-sidebar-border text-muted-foreground ml-auto rounded border px-1 text-[10px] group-data-[collapsible=icon]:hidden"
-                            >⌘K</kbd
-                        >
+                    <SidebarMenuButton size="lg" type="button" :title="toggleLabel" :aria-label="toggleLabel" @click="toggleSidebar">
+                        <AppLogo />
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent class="gap-1.5">
             <NavMain v-for="(section, i) in navSections" :key="section.label ?? `section-${i}`" :label="section.label" :items="section.items" />
         </SidebarContent>
 
         <SidebarFooter>
             <NavFieldStatus v-if="isAgent" />
-            <NavNotifications v-if="!isMobile" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
