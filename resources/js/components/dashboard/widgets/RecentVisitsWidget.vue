@@ -2,7 +2,7 @@
 import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Link } from '@inertiajs/vue3';
-import { SkipForward } from 'lucide-vue-next';
+import { CalendarX, SkipForward } from 'lucide-vue-next';
 
 interface Activity {
     key: string;
@@ -30,7 +30,9 @@ defineProps<{ data: Activity[] }>();
                     <span class="flex min-w-0 items-center gap-2">
                         <EntityAvatar :src="a.pool_photo" type="pool" :name="a.pool" size="sm" />
                         <span class="min-w-0 truncate">
-                            <span :class="a.status === 'skipped' ? 'text-muted-foreground line-through' : ''">{{ a.pool }}</span>
+                            <span :class="a.status === 'skipped' || a.status === 'missed' ? 'text-muted-foreground line-through' : ''">{{
+                                a.pool
+                            }}</span>
                             <span class="text-muted-foreground"> · {{ a.agent }}</span>
                         </span>
                     </span>
@@ -40,6 +42,12 @@ defineProps<{ data: Activity[] }>();
                             class="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-amber-600 dark:text-amber-400"
                         >
                             <SkipForward class="size-3" /> skipped
+                        </span>
+                        <span
+                            v-else-if="a.status === 'missed'"
+                            class="inline-flex items-center gap-0.5 rounded-full bg-red-500/15 px-1.5 py-0.5 text-red-600 dark:text-red-400"
+                        >
+                            <CalendarX class="size-3" /> missed
                         </span>
                         {{ a.on }}
                     </span>

@@ -3,6 +3,7 @@ export const visitStatusClasses: Record<string, string> = {
     in_progress: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
     pending: 'bg-muted text-muted-foreground',
     skipped: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    missed: 'bg-red-500/15 text-red-600 dark:text-red-400',
 };
 
 export const visitStatusClass = (status: string): string => visitStatusClasses[status] ?? 'bg-muted text-muted-foreground';

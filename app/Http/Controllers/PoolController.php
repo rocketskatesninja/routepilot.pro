@@ -13,6 +13,8 @@ use App\Models\Customer;
 use App\Models\EquipmentServiceLog;
 use App\Models\Pool;
 use App\Models\PoolEquipment;
+use App\Models\Route;
+use App\Models\RouteStop;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
@@ -172,6 +174,29 @@ class PoolController extends Controller
         ];
     }
 
+    /**
+     * Visits nobody made (stops left unfinished after their day, see MarkMissedStops):
+     * how many in all, and the latest few with their day and service.
+     *
+     * @return array{count: int, recent: list<array{id: int, on: string|null, service: string|null}>}
+     */
+    private function missedVisits(Pool $pool): array
+    {
+        $missed = RouteStop::query()->where('pool_id', $pool->id)->where('status', 'missed');
+
+        $recent = (clone $missed)
+            ->with(['route:id,scheduled_date', 'serviceSubscription.serviceType:id,name'])
+            ->orderByDesc(Route::query()->select('scheduled_date')->whereColumn('routes.id', 'route_stops.route_id'))
+            ->limit(5)->get()
+            ->map(fn (RouteStop $s): array => [
+                'id' => $s->id,
+                'on' => $s->route?->scheduled_date?->toDateString(),
+                'service' => $s->serviceSubscription?->serviceType?->name,
+            ])->all();
+
+        return ['count' => $missed->count(), 'recent' => $recent];
+    }
+
     /** @return array<string, mixed> */
     private function toDetail(Pool $pool, ChemistryService $chem): array
     {
@@ -246,6 +271,7 @@ class PoolController extends Controller
                 'hold_starts_at' => $sub->hold_starts_at?->toDateString(),
                 'hold_ends_at' => $sub->hold_ends_at?->toDateString(),
             ])->all(),
+            'missed' => $this->missedVisits($pool),
             'equipment_items' => $pool->equipmentItems()->with('serviceLog')->latest('id')->get()->map(fn (PoolEquipment $e): array => [
                 'id' => $e->id,
                 'type' => $e->type,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Pool;
+use App\Models\Route;
+use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -69,6 +71,22 @@ test('?selected loads that pool into the drawer prop', function () {
             ->where('selected.name', 'Smith Pool')
             ->where('selected.volume_gallons', 18000)
             ->where('selected.customer.name', trim($this->customer->first_name.' '.$this->customer->last_name))
+        );
+});
+
+test('the pool panel lists its missed visits, newest first', function () {
+    $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
+    foreach (['2026-10-05' => 'missed', '2026-10-12' => 'missed', '2026-09-28' => 'missed', '2026-10-19' => 'pending'] as $date => $status) {
+        $route = Route::factory()->for($this->tenant)->create(['scheduled_date' => $date]);
+        RouteStop::factory()->for($route)->for($pool)->create(['status' => $status]);
+    }
+
+    $this->actingAs($this->admin)
+        ->get('/pools?selected='.$pool->id)
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.missed.count', 3)
+            ->where('selected.missed.recent.0.on', '2026-10-12')
+            ->where('selected.missed.recent.2.on', '2026-09-28')
         );
 });
 

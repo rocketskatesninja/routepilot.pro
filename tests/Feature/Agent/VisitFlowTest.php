@@ -209,6 +209,15 @@ test('editing a visit appends new photos without dropping the originals', functi
     expect($visit->photos()->count())->toBe(2);
 });
 
+test('a visit that syncs after its stop was marked missed still completes it', function () {
+    $this->stop->forceFill(['status' => 'missed'])->save();
+
+    $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
+
+    expect($this->stop->fresh()?->status)->toBe('completed');
+    expect(ServiceVisit::query()->where('route_stop_id', $this->stop->id)->value('status'))->toBe('completed');
+});
+
 test('an agent cannot complete another agent\'s stop', function () {
     $otherAgent = User::factory()->agent()->for($this->tenant)->create();
 

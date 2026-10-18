@@ -27,7 +27,7 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarDays, FileText, Pencil, Plus, Trash2, Waves, Wrench } from 'lucide-vue-next';
+import { CalendarDays, CalendarX, FileText, Pencil, Plus, Trash2, Waves, Wrench } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface PoolRow {
@@ -103,6 +103,7 @@ interface PoolDetail {
         hold_starts_at: string | null;
         hold_ends_at: string | null;
     }[];
+    missed: { count: number; recent: { id: number; on: string | null; service: string | null }[] };
     equipment_items: {
         id: number;
         type: string;
@@ -859,6 +860,25 @@ function submitTargets() {
                                 </PaneItem>
                             </PaneList>
                             <p v-else class="text-muted-foreground text-sm">No service plans yet.</p>
+                        </PaneSection>
+
+                        <!-- Visits nobody made: stops left unfinished after their day. -->
+                        <PaneSection v-if="pool.missed.count" title="Missed visits">
+                            <template v-if="pool.missed.count > pool.missed.recent.length" #action>
+                                <span class="text-muted-foreground text-sm">{{ pool.missed.count }} in all</span>
+                            </template>
+                            <PaneList>
+                                <PaneItem
+                                    v-for="m in pool.missed.recent"
+                                    :key="m.id"
+                                    :title="m.on ? formatDay(m.on) : 'Missed visit'"
+                                    :sub="m.service"
+                                    :href="m.on ? `/schedule?date=${m.on}` : null"
+                                >
+                                    <template #icon><IconTile :icon="CalendarX" size="sm" /></template>
+                                    <template #trailing><Chip tone="bad">Missed</Chip></template>
+                                </PaneItem>
+                            </PaneList>
                         </PaneSection>
 
                         <PaneSection v-if="pool.location" title="Getting there">

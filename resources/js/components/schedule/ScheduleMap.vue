@@ -37,7 +37,7 @@ const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || pr
 const mapEl = ref<HTMLElement | null>(null);
 
 // Completed/skipped stops override the agent colour, mirroring the legacy map.
-const STATUS_COLOR: Record<string, string> = { completed: '#10b981', skipped: '#9ca3af' };
+const STATUS_COLOR: Record<string, string> = { completed: '#10b981', skipped: '#9ca3af', missed: '#ef4444' };
 const UNASSIGNED = '#9ca3af';
 
 const lineColorFor = (agentId: number | null): string => (agentId !== null ? (props.colors[agentId] ?? UNASSIGNED) : UNASSIGNED);

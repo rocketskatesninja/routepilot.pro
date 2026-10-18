@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Services\WeatherService;
+use Carbon\CarbonInterface;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Storage;
 
@@ -511,7 +512,7 @@ class AssembleDashboardData
     }
 
     /**
-     * Recent activity — completed visits (each links to its report) + skipped
+     * Recent activity — completed visits (each links to its report) + skipped and missed
      * stops, newest first. Optionally scoped to an agent and/or a set of pools.
      *
      * @param  list<int>|null  $poolIds
@@ -536,30 +537,35 @@ class AssembleDashboardData
                 'report_url' => $reportPath.'?selected='.$v->id,
             ]);
 
-        $skipped = RouteStop::query()
-            ->where('status', 'skipped')
+        // Stops that didn't happen: skipped ones dated when they were skipped, missed
+        // ones by the day nobody serviced them (they're all marked in one nightly run).
+        $stops = fn (string $status) => RouteStop::query()
+            ->where('status', $status)
             ->whereHas('route', fn ($r) => $agentId !== null ? $r->where('agent_id', $agentId) : $r)
             ->when($poolIds !== null, fn ($q) => $q->whereIn('pool_id', $poolIds))
-            ->with(['pool:id,name,photo_path', 'route:id,agent_id', 'route.agent:id,first_name,last_name,avatar_path'])
-            ->latest('updated_at')->limit(8)->get()
-            ->map(fn (RouteStop $s): array => [
-                'key' => 's'.$s->id,
-                'pool' => $s->pool?->getAttribute('name'),
-                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
-                'agent' => $this->name($s->route?->agent),
-                'on' => $s->updated_at?->toDateString(),
-                'ts' => $s->updated_at?->getTimestamp() ?? 0,
-                'status' => 'skipped',
-                'report_url' => null,
-            ]);
+            ->with(['pool:id,name,photo_path', 'route:id,agent_id,scheduled_date', 'route.agent:id,first_name,last_name,avatar_path']);
+        $stopRow = fn (RouteStop $s, ?CarbonInterface $on): array => [
+            'key' => 's'.$s->id,
+            'pool' => $s->pool?->getAttribute('name'),
+            'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
+            'agent' => $this->name($s->route?->agent),
+            'on' => $on?->toDateString(),
+            'ts' => $on?->getTimestamp() ?? 0,
+            'status' => $s->status,
+            'report_url' => null,
+        ];
+        $skipped = $stops('skipped')->latest('updated_at')->limit(8)->get()->map(fn (RouteStop $s) => $stopRow($s, $s->updated_at));
+        $missed = $stops('missed')
+            ->orderByDesc(Route::query()->select('scheduled_date')->whereColumn('routes.id', 'route_stops.route_id'))
+            ->limit(8)->get()->map(fn (RouteStop $s) => $stopRow($s, $s->route?->scheduled_date));
 
-        return $visits->concat($skipped)->sortByDesc('ts')->take(6)
+        return $visits->concat($skipped)->concat($missed)->sortByDesc('ts')->take(6)
             ->map(fn (array $a): array => collect($a)->except('ts')->all())
             ->values()->all();
     }
 
     /**
-     * Recent activity across the tenant (completed visits + skipped stops).
+     * Recent activity across the tenant (completed visits + skipped and missed stops).
      *
      * @return list<array<string, mixed>>
      */

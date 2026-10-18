@@ -52,6 +52,7 @@ class DailyOpsChecks
         $alerts += $this->overdueBalances($admins) ? 1 : 0;
         $alerts += $this->staleChemistry($admins) ? 1 : 0;
         $alerts += $this->idleAgents($admins) ? 1 : 0;
+        $alerts += $this->missedYesterday($admins) ? 1 : 0;
 
         // Customer-facing reminders (one per affected homeowner, not per tenant).
         $alerts += $this->serviceTomorrow($tenantId);
@@ -176,6 +177,29 @@ class DailyOpsChecks
         return $this->alert($admins, 'idle_agents', 'Idle agents',
             $count.' active '.($count === 1 ? 'agent has' : 'agents have').' no stops scheduled today.',
             '/schedule', 'Users');
+    }
+
+    /**
+     * Stops from yesterday that nobody finished or skipped (MarkMissedStops marks
+     * them just before these checks run).
+     *
+     * @param  Collection<int, User>  $admins
+     */
+    private function missedYesterday(Collection $admins): bool
+    {
+        $yesterday = Tenant::localToday()->subDay();
+        $count = RouteStop::query()
+            ->where('status', 'missed')
+            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', $yesterday))
+            ->count();
+
+        if ($count === 0) {
+            return false;
+        }
+
+        return $this->alert($admins, 'missed_stops', 'Missed stops',
+            $count.' '.($count === 1 ? 'stop' : 'stops').' from yesterday '.($count === 1 ? 'was' : 'were').' never finished or skipped.',
+            '/schedule?date='.$yesterday->toDateString(), 'CalendarX');
     }
 
     /**
