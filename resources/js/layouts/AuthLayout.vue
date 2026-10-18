@@ -47,11 +47,13 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                 ></div>
             </div>
 
-            <Link href="/" class="relative z-10 flex items-center gap-2 text-2xl font-bold">
-                <span class="flex size-9 items-center justify-center rounded-md bg-white/15 ring-1 ring-white/20">
-                    <RouteIcon class="size-5" />
-                </span>
-                <span><span class="text-sky-300">Route</span><span class="text-orange-400">Pilot</span></span>
+            <!-- The screenshots already carry the RoutePilot logo, so this corner is just the way home
+                 (h-9 keeps the panel's height maths below unchanged). -->
+            <Link
+                href="/"
+                class="relative z-10 flex h-9 w-fit items-center gap-2 text-sm font-medium text-sky-100/80 transition-colors hover:text-white"
+            >
+                <ArrowLeft class="size-4" /> Back to home
             </Link>
 
             <!-- Product showcase: the real app, desktop + mobile, light/dark aware. Up to 50.4rem wide,
