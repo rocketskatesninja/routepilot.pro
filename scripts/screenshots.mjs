@@ -16,21 +16,28 @@
  *
  * Env overrides:
  *   SCREENSHOT_BASE   base URL              (default https://routepilot.pro)
- *   SCREENSHOT_DATE   schedule date to load (default 2026-06-15 — a demo day with materialized stops)
+ *   SCREENSHOT_DATE   schedule date to load (default today; needs the demo agent's stops on that day)
  *   CHROME_PATH       chrome executable     (default /usr/bin/google-chrome)
  *   DEMO_PASSWORD     demo login password   (default "password")
+ *   SCREENSHOT_INSECURE=1   accept a self-signed or expired certificate
+ *   SCREENSHOT_HOST_RULES   point a hostname at another box (Chrome's
+ *                           --host-resolver-rules), e.g. "MAP test.routepilot.pro
+ *                           192.168.0.80" to shoot staging under a name the
+ *                           Google Maps key allows
  *
  * Requires a Chrome/Chromium binary on the machine (uses playwright-core, which
  * does NOT bundle browsers) and the demo tenant seeded on the target host.
  */
-import { chromium } from 'playwright-core';
-import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright-core';
 
 const BASE = process.env.SCREENSHOT_BASE ?? 'https://routepilot.pro';
-const DATE = process.env.SCREENSHOT_DATE ?? '2026-06-15';
+const DATE = process.env.SCREENSHOT_DATE ?? new Date().toISOString().slice(0, 10);
 const CHROME = process.env.CHROME_PATH ?? '/usr/bin/google-chrome';
 const PASSWORD = process.env.DEMO_PASSWORD ?? 'password';
+const INSECURE = process.env.SCREENSHOT_INSECURE === '1';
+const HOST_RULES = process.env.SCREENSHOT_HOST_RULES ? [`--host-resolver-rules=${process.env.SCREENSHOT_HOST_RULES}`] : [];
 
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../public/assets/images/screenshots');
 
@@ -78,7 +85,7 @@ async function shoot(page, path, file, { openRow = false, settle = 2500, clip } 
 
 /** Desktop carousel shots for one colour scheme. `dir` is '' (light) or 'dark/'. */
 async function desktop(browser, scheme, dir) {
-    const ctx = await browser.newContext({ viewport: DESKTOP_VIEWPORT, deviceScaleFactor: 2, colorScheme: scheme });
+    const ctx = await browser.newContext({ viewport: DESKTOP_VIEWPORT, deviceScaleFactor: 2, colorScheme: scheme, ignoreHTTPSErrors: INSECURE });
     const page = await login(ctx, TENANT);
     await page.waitForTimeout(2500);
     await page.screenshot({ path: `${OUT}/${dir}dashboard.png` });
@@ -90,21 +97,31 @@ async function desktop(browser, scheme, dir) {
     console.log(`desktop ${scheme} done`);
 }
 
-/** Phone carousel shots for one colour scheme. */
+/** Phone carousel shots for one colour scheme: the tech's field app and the customer's portal. */
 async function phone(browser, scheme, dir) {
-    const opt = { viewport: PHONE_VIEWPORT, deviceScaleFactor: 3, isMobile: true, hasTouch: true, colorScheme: scheme };
+    const opt = { viewport: PHONE_VIEWPORT, deviceScaleFactor: 3, isMobile: true, hasTouch: true, colorScheme: scheme, ignoreHTTPSErrors: INSECURE };
 
     let ctx = await browser.newContext(opt);
     let page = await login(ctx, AGENT);
-    await page.waitForTimeout(2500);
-    await page.screenshot({ path: `${OUT}/${dir}phone-day.png`, clip: PHONE_CLIP });
-    console.log('  ✓', `${dir}phone-day.png`);
-    await shoot(page, `/schedule?date=${DATE}`, `${dir}phone-route.png`, { settle: 4000, clip: PHONE_CLIP });
+    await shoot(page, '/field', `${dir}phone-day.png`, { settle: 2000, clip: PHONE_CLIP });
+    // A visit's water test, each reading checked against the pool's targets as it's typed.
+    await page.locator('main ol li').first().click();
+    await page.waitForTimeout(800);
+    const inputs = page.locator('section:has(h3:text-is("Water test")) input[type=number]');
+    for (const [i, v] of ['0.3', '0.4', '7.9', '60'].entries()) await inputs.nth(i).fill(v);
+    await page.locator('h3:text-is("Water test")').evaluate((el) => el.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: `${OUT}/${dir}phone-water.png`, clip: PHONE_CLIP });
+    console.log('  ✓', `${dir}phone-water.png`);
     await ctx.close();
 
+    // The customer's simple Home (they choose it over the widget grid in the page header).
     ctx = await browser.newContext(opt);
     page = await login(ctx, CUSTOMER);
-    await shoot(page, '/history', `${dir}phone-portal.png`, { settle: 3000, clip: PHONE_CLIP });
+    const simple = page.locator('[aria-label="Dashboard style"] button:has-text("Simple")');
+    await simple.click({ timeout: 3000 }).catch(() => {});
+    await page.locator('[aria-label="Dashboard style"] button[aria-pressed="true"]:has-text("Simple")').waitFor({ timeout: 10000 });
+    await shoot(page, '/dashboard', `${dir}phone-portal.png`, { settle: 2000, clip: PHONE_CLIP });
     await ctx.close();
     console.log(`phone ${scheme} done`);
 }
@@ -115,7 +132,7 @@ async function landing(browser) {
         ['light', ''],
         ['dark', 'dark/'],
     ]) {
-        const ctx = await browser.newContext({ viewport: DESKTOP_VIEWPORT, deviceScaleFactor: 2, colorScheme: scheme });
+        const ctx = await browser.newContext({ viewport: DESKTOP_VIEWPORT, deviceScaleFactor: 2, colorScheme: scheme, ignoreHTTPSErrors: INSECURE });
         const page = await ctx.newPage();
         await page.goto(`${BASE}/t/demo`, { waitUntil: 'networkidle' });
         await page.waitForTimeout(3500);
@@ -126,7 +143,7 @@ async function landing(browser) {
     console.log('landing done');
 }
 
-const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox'] });
+const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', ...HOST_RULES] });
 try {
     console.log(`Capturing from ${BASE} → ${OUT}`);
     if (wantApp) {

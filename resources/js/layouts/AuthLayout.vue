@@ -11,7 +11,7 @@ defineProps<{
 // Carousels of real app screens — 5s each, slow crossfade. Each frame has a
 // light + dark capture; the dark one shows when the page is in dark mode.
 const shots = ['dashboard', 'route-map', 'reports', 'pools'];
-const phones = ['phone-day', 'phone-route', 'phone-portal'];
+const phones = ['phone-day', 'phone-water', 'phone-portal'];
 const current = ref(0);
 const phoneCurrent = ref(0);
 let timer: ReturnType<typeof setInterval> | undefined;
@@ -28,10 +28,11 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 </script>
 
 <template>
-    <div class="grid min-h-svh lg:grid-cols-2">
+    <!-- The showcase side gets 60% so the screenshots can be big; the form keeps at least 30rem. -->
+    <div class="grid min-h-svh lg:grid-cols-[minmax(0,3fr)_minmax(30rem,2fr)]">
         <!-- Brand panel (desktop) -->
         <div
-            class="relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex"
+            class="relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex [@media(max-height:50rem)]:p-6"
             style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #0369a1 75%, #0ea5e9 100%)"
         >
             <div class="hero-dots pointer-events-none absolute inset-0"></div>
@@ -53,9 +54,15 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                 <span><span class="text-sky-300">Route</span><span class="text-orange-400">Pilot</span></span>
             </Link>
 
-            <!-- Product showcase: the real app, desktop + mobile, light/dark aware -->
-            <div class="relative z-10 my-8 flex flex-1 items-center justify-center">
-                <div class="relative mx-auto w-full max-w-2xl">
+            <!-- Product showcase: the real app, desktop + mobile, light/dark aware. Up to 50.4rem wide,
+                 but never so tall that the panel outgrows the window: its padding, logo, margins,
+                 tagline and the frame's browser bar take 21.5rem, and the screen is 16:10. On a
+                 short window (a laptop) the padding tightens and the tagline drops its second line,
+                 leaving 14.5rem, so the screenshots can stay big without the page scrolling. -->
+            <div class="relative z-10 my-8 flex flex-1 items-center justify-center [@media(max-height:50rem)]:my-5">
+                <div
+                    class="relative mx-auto w-full max-w-[min(50.4rem,calc((100svh-21.5rem)*1.6))] [@media(max-height:50rem)]:max-w-[min(50.4rem,calc((100svh-14.5rem)*1.6))]"
+                >
                     <div class="[rotate:-1.5deg] overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40">
                         <div class="flex items-center gap-2 bg-slate-800 px-3 py-2 text-slate-400">
                             <ArrowLeft class="size-3.5" />
@@ -89,7 +96,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 
                     <!-- phone carousel -->
                     <div
-                        class="absolute right-2 -bottom-6 w-24 [rotate:4deg] overflow-hidden rounded-[1.4rem] border-4 border-slate-800 shadow-2xl sm:w-28"
+                        class="absolute right-2 -bottom-6 w-1/6 min-w-28 [rotate:4deg] overflow-hidden rounded-[1.4rem] border-4 border-slate-800 shadow-2xl"
                     >
                         <div class="relative aspect-[390/640] bg-white dark:bg-slate-900">
                             <template v-for="(name, i) in phones" :key="name">
@@ -115,7 +122,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 
             <div class="relative z-10 max-w-md">
                 <p class="text-2xl leading-snug font-bold">Route smarter. Dose precisely. Get paid faster.</p>
-                <p class="mt-3 text-sm text-sky-100/70">
+                <p class="mt-3 text-sm text-sky-100/70 [@media(max-height:50rem)]:hidden">
                     The complete pool service platform — routing, chemistry, billing, and a customer portal in one place.
                 </p>
             </div>
