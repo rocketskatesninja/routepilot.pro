@@ -8,6 +8,7 @@ use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -21,7 +22,8 @@ test('the day view groups stops under their route/agent', function () {
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create(['name' => 'Smith Pool']);
     $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
     RouteStop::factory()->for($route)->for($pool)->create([
-        'stop_order' => 1, 'status' => 'pending', 'estimated_arrival' => today()->setTime(8, 5),
+        // ETAs are real moments: 8:05 on the company's clock.
+        'stop_order' => 1, 'status' => 'pending', 'estimated_arrival' => Carbon::parse(today()->toDateString().' 08:05', $this->tenant->timezone)->utc(),
     ]);
 
     $this->actingAs($this->admin)

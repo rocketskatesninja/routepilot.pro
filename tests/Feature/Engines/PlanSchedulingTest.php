@@ -212,8 +212,9 @@ test('the schedule board can\'t drag a visit onto a different day', function () 
     $wednesday = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => '2026-06-10']);
 
     $this->actingAs($this->admin)->post('/schedule/arrange', [
+        'date' => '2026-06-10',
         'routes' => [['id' => $wednesday->id, 'stop_ids' => [$stop->id]]],
-    ]);
+    ])->assertSessionHasNoErrors();
 
     expect($stop->fresh()->route_id)->toBe($stop->route_id);
 });

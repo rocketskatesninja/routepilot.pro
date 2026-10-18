@@ -24,7 +24,7 @@ interface Stop {
 }
 
 interface RouteCard {
-    id: number;
+    id: number | null; // null: the day's unassigned bucket before it has ever held a stop
     agent: string | null;
     agent_id: number | null;
     agent_photo: string | null;
@@ -139,10 +139,11 @@ function go(date?: string) {
     router.get('/schedule', date ? { date } : {}, { preserveState: true, preserveScroll: true });
 }
 
+// Step a day on the local calendar (toISOString would convert to UTC and can skip a day).
 function shift(days: number) {
     const d = new Date(props.date + 'T00:00:00');
     d.setDate(d.getDate() + days);
-    go(d.toISOString().slice(0, 10));
+    go([d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'));
 }
 
 function openCalendar() {
@@ -173,11 +174,11 @@ function persist() {
         if (localUnassigned.value) {
             routes.push({ id: localUnassigned.value.id, stop_ids: localUnassigned.value.stops.map((s) => s.id) });
         }
-        router.post('/schedule/arrange', { routes }, { preserveScroll: true, preserveState: true });
+        router.post('/schedule/arrange', { date: props.date, routes }, { preserveScroll: true, preserveState: true });
     }, 120);
 }
 
-const optimize = (id: number) => router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
+const optimize = (id: number | null) => id !== null && router.post(`/routes/${id}/optimize`, {}, { preserveScroll: true });
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
 const unskipStop = (id: number) => router.post(`/stops/${id}/unskip`, {}, { preserveScroll: true });
 

@@ -35,14 +35,69 @@ test('the day view surfaces the unassigned bucket with its stops', function () {
         );
 });
 
-test('visiting the day creates an unassigned route as a drop target', function () {
-    expect(Route::query()->whereNull('agent_id')->count())->toBe(0);
-
+test('opening a day saves nothing, but an admin still gets an empty bucket to drop into', function () {
     $this->actingAs($this->admin)
         ->get('/schedule')
-        ->assertInertia(fn (Assert $page) => $page->where('unassigned.total', 0));
+        ->assertInertia(fn (Assert $page) => $page->where('unassigned.id', null)->where('unassigned.total', 0));
 
-    expect(Route::query()->whereNull('agent_id')->whereDate('scheduled_date', today())->count())->toBe(1);
+    expect(Route::query()->count())->toBe(0);
+});
+
+test('an agent sees no unassigned bucket when the day has none', function () {
+    $this->actingAs($this->agent)
+        ->get('/schedule')
+        ->assertInertia(fn (Assert $page) => $page->where('unassigned', null));
+});
+
+test('dropping a stop into a bucket that was never saved creates the day\'s unassigned route', function () {
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
+    $agentRoute = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
+    $stop = RouteStop::factory()->for($agentRoute)->for($pool)->create(['status' => 'pending', 'stop_order' => 1]);
+
+    $this->actingAs($this->admin)->post('/schedule/arrange', [
+        'date' => today()->toDateString(),
+        'routes' => [
+            ['id' => $agentRoute->id, 'stop_ids' => []],
+            ['id' => null, 'stop_ids' => [$stop->id]],
+        ],
+    ])->assertRedirect();
+
+    $bucket = Route::query()->whereNull('agent_id')->whereDate('scheduled_date', today())->sole();
+    expect($stop->fresh()?->route_id)->toBe($bucket->id);
+});
+
+test('arranging never pulls in a stop from another day', function () {
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
+    $today = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
+    $tomorrow = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()->addDay()]);
+    $stop = RouteStop::factory()->for($tomorrow)->for($pool)->create(['status' => 'pending', 'stop_order' => 1]);
+
+    $this->actingAs($this->admin)->post('/schedule/arrange', [
+        'date' => today()->toDateString(),
+        'routes' => [['id' => $today->id, 'stop_ids' => [$stop->id]]],
+    ])->assertRedirect();
+
+    expect($stop->fresh()?->route_id)->toBe($tomorrow->id);
+});
+
+test('a finished stop stays on its route when dragged elsewhere', function () {
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
+    $unassigned = Route::factory()->for($this->tenant)->create(['agent_id' => null, 'scheduled_date' => today()]);
+    $agentRoute = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
+    $stop = RouteStop::factory()->for($agentRoute)->for($pool)->create(['status' => 'completed', 'stop_order' => 1]);
+
+    $this->actingAs($this->admin)->post('/schedule/arrange', [
+        'date' => today()->toDateString(),
+        'routes' => [
+            ['id' => $agentRoute->id, 'stop_ids' => []],
+            ['id' => $unassigned->id, 'stop_ids' => [$stop->id]],
+        ],
+    ])->assertRedirect();
+
+    expect($stop->fresh()?->route_id)->toBe($agentRoute->id);
 });
 
 test('arranging an unassigned stop onto an agent route assigns it', function () {
@@ -53,6 +108,7 @@ test('arranging an unassigned stop onto an agent route assigns it', function () 
     $stop = RouteStop::factory()->for($unassigned)->for($pool)->create(['status' => 'pending', 'stop_order' => 1]);
 
     $this->actingAs($this->admin)->post('/schedule/arrange', [
+        'date' => today()->toDateString(),
         'routes' => [
             ['id' => $unassigned->id, 'stop_ids' => []],
             ['id' => $agentRoute->id, 'stop_ids' => [$stop->id]],
@@ -70,6 +126,7 @@ test('arranging an assigned stop onto the unassigned route un-assigns it', funct
     $stop = RouteStop::factory()->for($agentRoute)->for($pool)->create(['status' => 'pending', 'stop_order' => 1]);
 
     $this->actingAs($this->admin)->post('/schedule/arrange', [
+        'date' => today()->toDateString(),
         'routes' => [
             ['id' => $agentRoute->id, 'stop_ids' => []],
             ['id' => $unassigned->id, 'stop_ids' => [$stop->id]],

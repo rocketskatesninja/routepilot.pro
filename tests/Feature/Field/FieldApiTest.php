@@ -33,7 +33,8 @@ test('today returns the agent\'s route bundle with stops and inventory', functio
 });
 
 test('today exposes each stop\'s estimated arrival', function () {
-    $this->stop->forceFill(['estimated_arrival' => $this->tenant->today()->setTime(8, 5)])->save();
+    // Stored as a real moment: 8:05 on the company's clock.
+    $this->stop->forceFill(['estimated_arrival' => $this->tenant->today()->setTime(8, 5)->utc()])->save();
 
     $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()
         ->assertJsonPath('stops.0.eta', '8:05 AM');

@@ -153,10 +153,29 @@ class Tenant extends Model
      */
     public function today(): Carbon
     {
-        $tz = $this->getAttribute('timezone');
-        $tz = is_string($tz) && $tz !== '' ? $tz : (string) config('app.timezone');
+        return Carbon::now($this->timezoneName())->startOfDay();
+    }
 
-        return Carbon::now($tz)->startOfDay();
+    /** The company's own time zone, falling back to the app's. */
+    public function timezoneName(): string
+    {
+        $tz = $this->getAttribute('timezone');
+
+        return is_string($tz) && $tz !== '' ? $tz : (string) config('app.timezone');
+    }
+
+    /**
+     * Where the company's day starts: its geocoded address (set from Company
+     * settings), or null when it has none. Route ETAs and the optimizer start here.
+     *
+     * @return array{0: float, 1: float}|null
+     */
+    public function coordinates(): ?array
+    {
+        $lat = $this->getAttribute('lat');
+        $lng = $this->getAttribute('lng');
+
+        return $lat === null || $lng === null || ((float) $lat === 0.0 && (float) $lng === 0.0) ? null : [(float) $lat, (float) $lng];
     }
 
     /** today() for the request-bound tenant; app-timezone fallback when unbound. */
@@ -173,10 +192,18 @@ class Tenant extends Model
      */
     public static function localDate(?CarbonInterface $at): ?string
     {
-        if ($at === null) {
-            return null;
-        }
+        return $at === null ? null : self::local($at)->toDateString();
+    }
 
-        return Carbon::instance($at)->setTimezone(self::localToday()->getTimezone())->toDateString();
+    /** A stored UTC moment as the request-bound tenant's clock time, e.g. "9:05 AM". */
+    public static function localTime(?CarbonInterface $at): ?string
+    {
+        return $at === null ? null : self::local($at)->format('g:i A');
+    }
+
+    /** A stored UTC moment in the request-bound tenant's time zone. */
+    public static function local(CarbonInterface $at): Carbon
+    {
+        return Carbon::instance($at)->setTimezone(self::localToday()->getTimezone());
     }
 }

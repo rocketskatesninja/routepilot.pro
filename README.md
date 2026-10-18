@@ -80,7 +80,7 @@ rendered SSR with per-tenant branding.
 |---|---|---|
 | **Live route status** — real-time per-stop badges and live map colors across every agent | **Automated billing & autopay** — invoices, receipts, and card-on-file autopay run themselves | **Inventory management** — chemical usage auto-deducts from every service visit |
 | **Visit reports** — photos, checklist, and the water test emailed after every visit | **Build-your-own dashboard** — drag-to-reorder widgets for stops, map, weather, and billing | **AI assistant** — ask about a customer, a route, or pool chemistry in plain English |
-| **Drag-to-reassign** — move a stop to another tech and every future visit follows | **Customer requests inbox** — add, pause, and stop requests from the portal, answered in one click | **Insights** — revenue, visits, receivables aging, and top techs at a glance |
+| **Drag-to-reassign** — hand a day's stop to another tech or back to the unassigned pile; the plan form changes a pool's tech for good | **Customer requests inbox** — add, pause, and stop requests from the portal, answered in one click | **Insights** — revenue, visits, receivables aging, and top techs at a glance |
 | **⌘K search** — jump to any customer, pool, agent, or page | **Email preferences** — customers pick their emails; signed one-click unsubscribe (RFC 8058) | **Role-aware access** — techs see their own reports unless the office grants Agent+ |
 
 ## Architecture

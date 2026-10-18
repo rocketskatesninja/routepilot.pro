@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
+use App\Actions\SkipStop as SkipStopAction;
 use App\Models\RouteStop;
 use App\Models\Tenant;
 use App\Services\Chat\AiTool;
@@ -58,10 +59,7 @@ class SkipStop extends AiTool
             return "No pending stop found for \"{$customerName}\" on {$date}.";
         }
 
-        $stop->update([
-            'status' => 'skipped',
-            'skip_reason' => $reason !== '' ? $reason : 'Skipped via AI assistant',
-        ]);
+        app(SkipStopAction::class)->handle($stop, $reason !== '' ? $reason : 'Skipped via AI assistant');
 
         return "Done! Skipped {$stop->pool?->customer?->displayName()}'s \"{$stop->pool?->name}\" stop on {$date}.";
     }

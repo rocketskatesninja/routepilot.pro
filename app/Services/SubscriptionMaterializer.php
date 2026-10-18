@@ -10,6 +10,7 @@ use App\Models\ServiceSubscription;
 use App\Models\Tenant;
 use App\Support\Weekday;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * The one owner of a plan's dated schedule: turns active ServiceSubscriptions
@@ -24,6 +25,8 @@ use Carbon\Carbon;
  *    (e.g. a clean + a chemistry check).
  *  - Plans without a tech still get stops, on that day's "unassigned" route.
  *  - Dates inside a vacation hold are skipped; the plan resumes after it.
+ *  - One run at a time per company (a cache lock), so the nightly job, the
+ *    Generate button and a plan edit can't race each other into duplicates.
  */
 class SubscriptionMaterializer
 {
@@ -37,6 +40,17 @@ class SubscriptionMaterializer
      *                                look further ahead; capped at 6 months.
      */
     public function run(int $tenantId, ?string $through = null): int
+    {
+        return $this->locked($tenantId, fn (): int => $this->materialize($tenantId, $through));
+    }
+
+    /** The last date the standard window schedules through (the company's today + WINDOW_WEEKS). */
+    public function windowEnd(int $tenantId): string
+    {
+        return $this->today($tenantId)->addWeeks(self::WINDOW_WEEKS)->toDateString();
+    }
+
+    private function materialize(int $tenantId, ?string $through): int
     {
         $start = $this->today($tenantId);
         $end = $through !== null
@@ -77,7 +91,7 @@ class SubscriptionMaterializer
                 }
 
                 $agentId = $sub->assigned_agent_id;
-                $route = $routes[($agentId ?? 'unassigned').'|'.$dateStr] ??= $this->routeFor($tenantId, $agentId, $dateStr);
+                $route = $routes[($agentId ?? 'unassigned').'|'.$dateStr] ??= Route::forDay($tenantId, $agentId, $dateStr);
 
                 RouteStop::create([
                     'route_id' => $route->id,
@@ -101,9 +115,24 @@ class SubscriptionMaterializer
      */
     public function resync(ServiceSubscription $sub): int
     {
-        $this->clearUpcoming($sub);
+        $tenantId = (int) $sub->getAttribute('tenant_id');
 
-        return $this->run((int) $sub->getAttribute('tenant_id'));
+        return $this->locked($tenantId, function () use ($sub, $tenantId): int {
+            $this->clearUpcoming($sub);
+
+            return $this->materialize($tenantId, null);
+        });
+    }
+
+    /**
+     * @template T
+     *
+     * @param  callable(): T  $work
+     * @return T
+     */
+    private function locked(int $tenantId, callable $work): mixed
+    {
+        return Cache::lock('schedule:'.$tenantId, 120)->block(30, $work);
     }
 
     /** Remove a plan's upcoming pending stops, and any future routes left empty. */
@@ -174,7 +203,7 @@ class SubscriptionMaterializer
             while ($anchor->dayOfWeek !== $weekday) {
                 $anchor->addDay();
             }
-            if (((int) round(abs($anchor->diffInDays($date))) / 7) % 2 === 1) {
+            if (intdiv((int) round(abs($anchor->diffInDays($date))), 7) % 2 === 1) {
                 $date->addWeek();
             }
         }
@@ -193,23 +222,5 @@ class SubscriptionMaterializer
         $local = $tenant instanceof Tenant ? $tenant->today() : Tenant::localToday();
 
         return Carbon::parse($local->toDateString());
-    }
-
-    /** The agent's (or the unassigned) route for a date, created if missing. */
-    private function routeFor(int $tenantId, ?int $agentId, string $date): Route
-    {
-        $route = Route::query()->withoutGlobalScopes()
-            ->where('tenant_id', $tenantId)
-            ->when($agentId !== null, fn ($q) => $q->where('agent_id', $agentId), fn ($q) => $q->whereNull('agent_id'))
-            ->whereDate('scheduled_date', $date)
-            ->first();
-
-        if ($route === null) {
-            // tenant_id is deliberately not fillable (charter: privilege fields via forceFill).
-            $route = new Route(['agent_id' => $agentId, 'scheduled_date' => $date, 'status' => 'scheduled']);
-            $route->forceFill(['tenant_id' => $tenantId])->save();
-        }
-
-        return $route;
     }
 }

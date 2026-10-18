@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\EstimateArrivals;
+use App\Actions\SkipStop;
+use App\Actions\UnskipStop;
 use App\Events\RouteUpdated;
 use App\Models\AgentLocation;
 use App\Models\Route;
@@ -23,9 +25,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Back-office Schedule screen — a day view of the materialized routes, one
- * card per agent with their ordered stops. The rich map + drag panel is a
- * later iteration; this is the read model behind it.
+ * Back-office Schedule screen: a day view of the materialized routes, one card
+ * per agent with their ordered stops, plus the day's "unassigned" bucket, a
+ * map, and the actions that change a day (rearrange, optimize, skip).
  */
 class ScheduleController extends Controller
 {
@@ -34,17 +36,11 @@ class ScheduleController extends Controller
         $this->authorizeStaff($request);
 
         $date = $this->resolveDate((string) $request->string('date'));
-
-        // Admins manage assignments by dragging stops on/off the per-day
-        // "unassigned" route (agent_id null) — ensure it exists so it's always a
-        // drop target. Agents only read, so no need to create it for them.
         $canManage = $this->canManage($request->user());
-        if ($canManage) {
-            $this->unassignedRoute((int) $request->user()->tenant_id, $date);
-        }
 
+        // Past days stay readable after a pool is archived or a tech removed.
         $stopLoad = fn ($q) => $q->orderBy('stop_order')->with([
-            'pool:id,name,customer_id,photo_path',
+            'pool' => fn ($p) => $p->withTrashed()->select('id', 'name', 'customer_id', 'photo_path'),
             'pool.customer:id,first_name,last_name,photo_path',
             'pool.serviceLocation:id,pool_id,lat,lng,address_line1,city,state,zip',
             'serviceSubscription.serviceType:id,name',
@@ -53,7 +49,10 @@ class ScheduleController extends Controller
         $routeModels = Route::query()
             ->whereDate('scheduled_date', $date)
             ->whereNotNull('agent_id')
-            ->with(['agent:id,first_name,last_name,avatar_path,map_color', 'stops' => $stopLoad])
+            ->with([
+                'agent' => fn ($q) => $q->withTrashed()->select('id', 'first_name', 'last_name', 'avatar_path', 'map_color'),
+                'stops' => $stopLoad,
+            ])
             ->get();
 
         $unassignedRoute = Route::query()
@@ -72,7 +71,8 @@ class ScheduleController extends Controller
             'date' => $date,
             'today' => Tenant::localToday()->toDateString(),
             'routes' => $routeModels->map(fn (Route $route): array => $this->presentRoute($route))->all(),
-            'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : null,
+            // Admins always get the bucket as a drop target; it's saved the first time a stop lands in it.
+            'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : ($canManage ? $this->emptyBucket() : null),
             'canManage' => $canManage,
             // An Agent+ may manage only their own route card; the UI matches this id.
             'manageAgentId' => $request->user()?->isAgentPlus() ? $request->user()->id : null,
@@ -118,17 +118,18 @@ class ScheduleController extends Controller
             ->all();
     }
 
-    /** Materialize route stops from active subscriptions through 4 weeks out. */
+    /** Put any plan visits that are missing onto the routes, over the same window the nightly job uses. */
     public function materialize(Request $request, SubscriptionMaterializer $materializer): RedirectResponse
     {
         $this->authorizeAdmin($request);
 
-        $through = Tenant::localToday()->addWeeks(4)->toDateString();
-        $created = $materializer->run((int) $request->user()->tenant_id, $through);
+        $tenantId = (int) $request->user()->tenant_id;
+        $created = $materializer->run($tenantId);
+        $through = Carbon::parse($materializer->windowEnd($tenantId))->format('M j');
 
         return back()->with('success', $created > 0
-            ? "Generated {$created} new stop".($created === 1 ? '' : 's')." through {$through}."
-            : 'Schedule is already up to date — no new stops to add.');
+            ? "Added {$created} stop".($created === 1 ? '' : 's')." through {$through}."
+            : "The schedule is already up to date through {$through}.");
     }
 
     /**
@@ -154,59 +155,41 @@ class ScheduleController extends Controller
 
         $result = $optimizer->optimize($route);
         $arrivals->handle($route);
-        $this->broadcastRoute($route);
+        event(RouteUpdated::for($route));
 
         return back()->with('success', "Optimized {$result['optimized']} stops · {$result['total_distance_km']} km.");
     }
 
-    /** Skip a single pending stop (office, or the Agent+ assigned to its route). */
-    public function skipStop(Request $request, RouteStop $stop): RedirectResponse
+    /** Skip a stop that's still due (office, or the Agent+ assigned to its route). */
+    public function skipStop(Request $request, RouteStop $stop, SkipStop $skip): RedirectResponse
     {
-        // RouteStop isn't globally scoped; its Route is — a foreign stop's route resolves to null.
+        // RouteStop isn't globally scoped; its Route is, so a foreign stop's route resolves to null.
         abort_if($stop->route === null, 404);
         $user = $request->user();
         abort_unless($this->canManageRoute($user, $stop->route), 403);
 
-        $stop->update([
-            'status' => 'skipped',
-            'skip_reason' => $this->canManage($user) ? 'Skipped by office' : 'Skipped by tech',
-        ]);
-        $this->broadcastRoute($stop->route);
-
-        return back()->with('success', 'Stop skipped.');
+        return $skip->handle($stop, $this->canManage($user) ? 'Skipped by office' : 'Skipped by tech')
+            ? back()->with('success', 'Stop skipped.')
+            : back()->with('error', 'Only a stop that is still due can be skipped.');
     }
 
-    /** Restore a skipped stop to pending (office, or the Agent+ assigned to its route). */
-    public function unskipStop(Request $request, RouteStop $stop): RedirectResponse
+    /** Put a skipped stop back (office, or the Agent+ assigned to its route). */
+    public function unskipStop(Request $request, RouteStop $stop, UnskipStop $unskip): RedirectResponse
     {
         abort_if($stop->route === null, 404);
-        $user = $request->user();
-        abort_unless($this->canManageRoute($user, $stop->route), 403);
+        abort_unless($this->canManageRoute($request->user(), $stop->route), 403);
 
-        if ($stop->status === 'skipped') {
-            $stop->update(['status' => 'pending', 'skip_reason' => null]);
-            $this->broadcastRoute($stop->route);
-        }
+        $unskip->handle($stop);
 
         return back()->with('success', 'Stop restored.');
     }
 
-    /** Push a live "this day's routes changed" event to the tenant's schedule board. */
-    private function broadcastRoute(Route $route): void
-    {
-        $agentId = $route->getAttribute('agent_id');
-        event(new RouteUpdated(
-            (int) $route->getAttribute('tenant_id'),
-            $route->scheduled_date->toDateString(),
-            $agentId !== null ? (int) $agentId : null,
-        ));
-    }
-
     /**
-     * Persist a drag-and-drop rearrangement of the day's stops: each route's
-     * new ordered stop ids. A pending stop dragged onto another route is
-     * reassigned to that route's agent; completed/skipped stops keep their
-     * route and only have their order updated. Everything is tenant-scoped.
+     * Save a drag-and-drop rearrangement of one day: each route's ordered stop
+     * ids. Only that day's routes and stops are touched. An admin may move a
+     * still-due stop onto another tech's route (that day only; the plan keeps its
+     * tech) or into the unassigned bucket, which is sent without an id until it
+     * first holds a stop. An Agent+ only reorders their own route.
      */
     public function arrange(Request $request, EstimateArrivals $arrivals): RedirectResponse
     {
@@ -214,58 +197,56 @@ class ScheduleController extends Controller
         abort_unless($this->canManage($user) || $user?->isAgentPlus(), 403);
 
         $validated = $request->validate([
+            'date' => ['required', 'date'],
             'routes' => ['array'],
-            'routes.*.id' => ['required', 'integer'],
+            'routes.*.id' => ['nullable', 'integer'],
             'routes.*.stop_ids' => ['array'],
             'routes.*.stop_ids.*' => ['integer'],
         ]);
 
-        $tenantId = (int) $user->tenant_id;
         $isAdmin = $this->canManage($user);
+        $date = Carbon::parse($validated['date'])->toDateString();
 
-        DB::transaction(function () use ($validated, $tenantId, $user, $isAdmin): void {
-            foreach ((array) $validated['routes'] as $r) {
-                if (! is_array($r)) {
+        $touched = DB::transaction(function () use ($validated, $user, $isAdmin, $date): array {
+            $touched = [];
+            foreach ($validated['routes'] ?? [] as $r) {
+                $stopIds = array_map('intval', array_values($r['stop_ids'] ?? []));
+                $route = isset($r['id'])
+                    ? Route::query()->find((int) $r['id'])
+                    : ($isAdmin && $stopIds !== [] ? Route::forDay((int) $user->tenant_id, null, $date) : null);
+                if ($route === null || $route->scheduled_date->toDateString() !== $date) {
                     continue;
                 }
-                $route = Route::query()->where('tenant_id', $tenantId)->find((int) ($r['id'] ?? 0));
-                if ($route === null) {
-                    continue;
-                }
-                // An Agent+ may only reorder their OWN route — never another's.
                 if (! $isAdmin && (int) $route->getAttribute('agent_id') !== $user->id) {
-                    continue;
+                    continue; // an Agent+ may only reorder their own route
                 }
-                foreach (array_values((array) ($r['stop_ids'] ?? [])) as $i => $stopId) {
-                    $stop = RouteStop::query()
-                        ->whereHas('route', fn ($q) => $q->where('tenant_id', $tenantId))
-                        ->find((int) $stopId);
+
+                $stops = RouteStop::query()
+                    ->whereKey($stopIds)
+                    ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', $date))
+                    ->get()
+                    ->keyBy('id');
+                foreach ($stopIds as $i => $id) {
+                    $stop = $stops->get($id);
                     if ($stop === null) {
                         continue;
                     }
-                    // Agents never reassign across routes — only reorder stops already on this one.
-                    if (! $isAdmin && (int) $stop->getAttribute('route_id') !== $route->id) {
-                        continue;
+                    $moving = (int) $stop->getAttribute('route_id') !== $route->id;
+                    if ($moving && ! ($isAdmin && $stop->status === 'pending')) {
+                        continue; // only an admin moves a stop, and only one still due
                     }
-                    $stop->setAttribute('stop_order', $i + 1);
-                    // Only an admin may move a still-pending stop between routes — and only
-                    // between techs on the same day; the plan decides the date.
-                    $sameDay = $stop->route?->scheduled_date?->toDateString() === $route->scheduled_date->toDateString();
-                    if ($isAdmin && $sameDay && $stop->getAttribute('status') === 'pending') {
-                        $stop->setAttribute('route_id', $route->id);
-                    }
-                    $stop->save();
+                    $stop->update(['route_id' => $route->id, 'stop_order' => $i + 1]);
                 }
+                $touched[$route->id] = $route;
             }
+
+            return $touched;
         });
 
-        // Re-estimate arrivals for every route whose order may have changed.
-        foreach ((array) $validated['routes'] as $r) {
-            $route = is_array($r) ? Route::query()->where('tenant_id', $tenantId)->find((int) ($r['id'] ?? 0)) : null;
-            if ($route !== null) {
-                $arrivals->handle($route);
-                $this->broadcastRoute($route);
-            }
+        // Re-time and refresh every route whose order may have changed.
+        foreach ($touched as $route) {
+            $arrivals->handle($route);
+            event(RouteUpdated::for($route));
         }
 
         return back();
@@ -297,7 +278,7 @@ class ScheduleController extends Controller
                 'customer' => $s->pool?->customer?->displayName(),
                 'service' => $s->serviceSubscription?->serviceType?->name,
                 'status' => $s->status,
-                'eta' => $s->estimated_arrival?->format('g:i A'),
+                'eta' => Tenant::localTime($s->estimated_arrival),
             ])->values()->all(),
         ];
     }
@@ -356,23 +337,14 @@ class ScheduleController extends Controller
         return is_string($color) && $color !== '' ? $color : '#0ea5e9';
     }
 
-    /** The per-day unassigned route (agent_id null), created on first use. */
-    private function unassignedRoute(int $tenantId, string $date): Route
+    /**
+     * The unassigned bucket for a day that has no unassigned route yet.
+     *
+     * @return array<string, mixed>
+     */
+    private function emptyBucket(): array
     {
-        $route = Route::query()
-            ->where('tenant_id', $tenantId)
-            ->whereNull('agent_id')
-            ->whereDate('scheduled_date', $date)
-            ->first();
-
-        if ($route === null) {
-            // tenant_id is deliberately not fillable (charter: privilege fields
-            // via forceFill at controlled sites).
-            $route = new Route(['agent_id' => null, 'scheduled_date' => $date, 'status' => 'scheduled']);
-            $route->forceFill(['tenant_id' => $tenantId])->save();
-        }
-
-        return $route;
+        return ['id' => null, 'agent' => null, 'agent_id' => null, 'agent_photo' => null, 'color' => $this->agentColor(null), 'completed' => 0, 'total' => 0, 'stops' => []];
     }
 
     private function resolveDate(string $input): string

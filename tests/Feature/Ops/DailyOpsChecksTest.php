@@ -142,10 +142,11 @@ test('a pool due tomorrow reminds the portal customer in-app and by email', func
 });
 
 test('the service reminder email carries the softened arrival window', function () {
+    app()->instance('tenant', $this->tenant); // as the nightly command binds it: windows read on the company's clock
     poolDueTomorrow();
     RouteStop::query()
         ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()->addDay()))
-        ->update(['estimated_arrival' => today()->addDay()->setTime(9, 15)]);
+        ->update(['estimated_arrival' => $this->tenant->today()->addDay()->setTime(9, 15)->utc()]); // 9:15 on the company's clock
     Notification::fake();
     Mail::fake();
 

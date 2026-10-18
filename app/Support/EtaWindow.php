@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\Tenant;
 use Illuminate\Support\Carbon;
 
 /**
@@ -18,7 +19,8 @@ class EtaWindow
             return null;
         }
 
-        $start = $eta->copy()->minute(0)->second(0);
+        // ETAs are stored as real (UTC) moments; customers read them on the company's clock.
+        $start = Tenant::local($eta)->minute(0)->second(0);
         $end = $start->copy()->addHour();
 
         // Drop the meridiem from the start only when both sides share it.

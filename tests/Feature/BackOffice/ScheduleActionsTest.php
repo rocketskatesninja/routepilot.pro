@@ -129,7 +129,7 @@ test('an Agent+ can reorder their own route but not another', function () {
     $t1 = stopOn($theirs, $this->tenant, 1);
     $t2 = stopOn($theirs, $this->tenant, 2);
 
-    $this->actingAs($plus)->post('/schedule/arrange', ['routes' => [
+    $this->actingAs($plus)->post('/schedule/arrange', ['date' => today()->toDateString(), 'routes' => [
         ['id' => $mine->id, 'stop_ids' => [$m2->id, $m1->id]],
         ['id' => $theirs->id, 'stop_ids' => [$t2->id, $t1->id]],
     ]])->assertRedirect();

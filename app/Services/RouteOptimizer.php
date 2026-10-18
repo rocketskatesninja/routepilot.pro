@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Support\Geo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -15,16 +16,17 @@ use Illuminate\Support\Facades\DB;
  *
  * Zero external dependencies; close-enough proxy for drive time over
  * short urban distances. Swap for a drive-time API later without
- * touching callers. Completed/skipped stops keep their order; only the
- * pending tail is reordered, starting from the agent's last completed
- * location (or the tenant HQ from settings.hq_lat/hq_lng).
+ * touching callers. Every stop that isn't pending (done, skipped, missed,
+ * under way) keeps its place at the front; only the pending tail is
+ * reordered, starting from the last of those that has a location, else the
+ * company's address, else simply the first pending stop.
  *
  * Typical routes (5–15 stops) optimize in single-digit milliseconds.
  */
 class RouteOptimizer
 {
     /**
-     * Optimize a route's pending stops in place (updates stop_order).
+     * Optimize a route's pending stops in place (renumbers every stop_order 1..n).
      *
      * @return array{optimized: int, skipped_no_location: int, total_distance_km: float}
      */
@@ -35,7 +37,7 @@ class RouteOptimizer
             ->orderBy('stop_order')
             ->get();
 
-        $completed = $allStops->whereIn('status', ['completed', 'skipped'])->values();
+        $fixed = $allStops->where('status', '!=', 'pending')->values();
         $pending = $allStops->where('status', 'pending')->values();
 
         // Partition pending stops into located (optimizable) and
@@ -45,7 +47,7 @@ class RouteOptimizer
         /** @var list<RouteStop> $unlocated */
         $unlocated = [];
         foreach ($pending as $stop) {
-            $coord = $stop->pool->coordinates();
+            $coord = $stop->pool?->coordinates();
             if ($coord === null) {
                 $unlocated[] = $stop;
             } else {
@@ -62,22 +64,26 @@ class RouteOptimizer
             ];
         }
 
-        $start = $this->determineStartPoint($completed, $route);
         $coords = array_column($located, 'coord');
+        $start = $this->startPoint($fixed, $route) ?? $coords[0];
 
         $order = $this->nearestNeighbor($start, $coords);
         $order = $this->twoOpt($order, $coords, $start);
         $totalDistance = $this->tourDistance($order, $coords, $start);
 
-        // Transactional write: either every stop gets its new order or
-        // nothing changes (also guards against a concurrent drag-reorder).
-        DB::transaction(function () use ($order, $located, $unlocated, $completed) {
-            $nextOrder = $completed->count() + 1;
+        // Transactional write: either every stop gets its new order or nothing
+        // changes (also guards against a concurrent drag-reorder). Numbering the
+        // fixed stops too keeps every order unique.
+        DB::transaction(function () use ($order, $located, $unlocated, $fixed) {
+            $next = 1;
+            foreach ($fixed as $stop) {
+                $stop->update(['stop_order' => $next++]);
+            }
             foreach ($order as $idx) {
-                $located[$idx]['stop']->update(['stop_order' => $nextOrder++]);
+                $located[$idx]['stop']->update(['stop_order' => $next++]);
             }
             foreach ($unlocated as $stop) {
-                $stop->update(['stop_order' => $nextOrder++]);
+                $stop->update(['stop_order' => $next++]);
             }
         });
 
@@ -89,28 +95,22 @@ class RouteOptimizer
     }
 
     /**
-     * Start from the last completed stop (where the agent is now), else
-     * the tenant HQ coordinates stored in tenants.settings.
+     * Where the pending tail starts: the last finished-or-under-way stop that has
+     * a location (where the agent is now), else the company's address.
      *
-     * @param  Collection<int, RouteStop>  $completed
-     * @return array{0: float, 1: float}
+     * @param  Collection<int, RouteStop>  $fixed
+     * @return array{0: float, 1: float}|null
      */
-    private function determineStartPoint(Collection $completed, Route $route): array
+    private function startPoint(Collection $fixed, Route $route): ?array
     {
-        $lastCompleted = $completed->last();
-        if ($lastCompleted !== null) {
-            $coord = $lastCompleted->pool->coordinates();
+        foreach ($fixed->reverse() as $stop) {
+            $coord = $stop->pool?->coordinates();
             if ($coord !== null) {
                 return $coord;
             }
         }
 
-        $settings = is_array($route->tenant?->settings) ? $route->tenant->settings : [];
-
-        return [
-            (float) ($settings['hq_lat'] ?? 0.0),
-            (float) ($settings['hq_lng'] ?? 0.0),
-        ];
+        return $route->tenant?->coordinates();
     }
 
     /**
@@ -130,7 +130,7 @@ class RouteOptimizer
             $bestIdx = null;
             $bestDist = INF;
             foreach ($remaining as $idx) {
-                $d = $this->haversine($current, $coords[$idx]);
+                $d = Geo::km($current, $coords[$idx]);
                 if ($d < $bestDist) {
                     $bestDist = $d;
                     $bestIdx = $idx;
@@ -195,33 +195,10 @@ class RouteOptimizer
         $total = 0.0;
         $prev = $start;
         foreach ($order as $idx) {
-            $total += $this->haversine($prev, $coords[$idx]);
+            $total += Geo::km($prev, $coords[$idx]);
             $prev = $coords[$idx];
         }
 
         return $total;
-    }
-
-    /**
-     * Haversine great-circle distance in km. Driving distance is
-     * typically 1.2–1.4× this, but the ratio is near-constant so the
-     * ordering is unaffected.
-     *
-     * @param  array{0: float, 1: float}  $a
-     * @param  array{0: float, 1: float}  $b
-     */
-    private function haversine(array $a, array $b): float
-    {
-        $earthKm = 6371.0;
-        $lat1 = deg2rad($a[0]);
-        $lat2 = deg2rad($b[0]);
-        $dLat = deg2rad($b[0] - $a[0]);
-        $dLng = deg2rad($b[1] - $a[1]);
-
-        $h = sin($dLat / 2) ** 2
-            + cos($lat1) * cos($lat2) * sin($dLng / 2) ** 2;
-        $c = 2 * atan2(sqrt($h), sqrt(1 - $h));
-
-        return $earthKm * $c;
     }
 }

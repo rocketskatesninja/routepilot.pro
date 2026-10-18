@@ -13,7 +13,7 @@ use App\Services\PhotoService;
  */
 class UpdateAgent
 {
-    public function __construct(private readonly PhotoService $photos) {}
+    public function __construct(private readonly PhotoService $photos, private readonly UnassignAgentPlans $unassign) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -35,6 +35,11 @@ class UpdateAgent
             'agent_plus' => (bool) ($data['agent_plus'] ?? false),
         ]);
         $agent->save();
+
+        // Switched off: they can't sign in, so their plans go back to the office.
+        if ($agent->wasChanged('is_active') && ! $agent->getAttribute('is_active')) {
+            $this->unassign->handle($agent);
+        }
 
         $this->photos->attach($agent, $data['photo'] ?? null, 'avatar_path', 'agents');
 

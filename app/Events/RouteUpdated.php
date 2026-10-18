@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Events;
 
+use App\Models\Route;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -24,6 +25,14 @@ class RouteUpdated implements ShouldBroadcast
         public string $date,
         public ?int $agentId = null,
     ) {}
+
+    /** The event for one route's day: its company, date and tech. */
+    public static function for(Route $route): self
+    {
+        $agentId = $route->getAttribute('agent_id');
+
+        return new self((int) $route->getAttribute('tenant_id'), $route->scheduled_date->toDateString(), $agentId !== null ? (int) $agentId : null);
+    }
 
     public function broadcastOn(): PrivateChannel
     {

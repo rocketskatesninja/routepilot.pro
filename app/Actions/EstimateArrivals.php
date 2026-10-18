@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\Route;
+use App\Support\Geo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +13,9 @@ use Illuminate\Support\Facades\DB;
  * Compute each stop's `estimated_arrival` for a route. Walk the stops in order
  * from the route's start time, accumulating a drive-time estimate (haversine ×
  * road factor ÷ average speed, floored) between consecutive located stops plus
- * each stop's on-site service duration.
+ * each stop's on-site service duration. Arrivals are real (UTC) moments: the
+ * start time is the company's local clock on the route's date, and screens show
+ * them back on that clock (Tenant::localTime, EtaWindow).
  *
  * A local, zero-cost model — driveMinutes() is the one seam a real drive-time
  * API would replace later. Stops without coordinates get a null ETA and don't
@@ -53,8 +56,8 @@ class EstimateArrivals
 
         DB::transaction(function () use ($stops, $start, $live, &$prev, &$offset, $roadFactor, $speed, $minDrive, $defaultService): void {
             foreach ($stops as $stop) {
-                // A live re-anchor leaves finished stops alone — they're history.
-                if ($live && in_array((string) $stop->getAttribute('status'), ['completed', 'skipped'], true)) {
+                // A live re-anchor re-times only what's still ahead; the rest is history.
+                if ($live && $stop->getAttribute('status') !== 'pending') {
                     continue;
                 }
 
@@ -74,11 +77,12 @@ class EstimateArrivals
         });
     }
 
-    /** The route's start moment: route.start_time → tenant day_start → config. */
+    /**
+     * The route's start moment: route.start_time → tenant day_start → config, on
+     * the company's own clock for the route's date.
+     */
     private function startTime(Route $route): Carbon
     {
-        $date = $route->scheduled_date->copy();
-
         $settings = is_array($route->tenant?->settings) ? $route->tenant->settings : [];
         $routeStart = $route->getAttribute('start_time');
         $time = is_string($routeStart) && $routeStart !== ''
@@ -86,23 +90,20 @@ class EstimateArrivals
             : (is_string($settings['day_start'] ?? null) ? $settings['day_start'] : (string) config('routing.day_start'));
 
         [$h, $m] = array_pad(explode(':', $time), 2, '0');
+        $tz = $route->tenant?->timezoneName() ?? (string) config('app.timezone');
 
-        return $date->setTime((int) $h, (int) $m);
+        return Carbon::parse($route->scheduled_date->toDateString(), $tz)->setTime((int) $h, (int) $m)->utc();
     }
 
     /**
-     * The depot the agent leaves from (tenant HQ), or null when unset — then
-     * the first stop's arrival is simply the start time (no opening drive leg).
+     * The depot the agent leaves from (the company's address), or null when unset;
+     * then the first stop's arrival is simply the start time (no opening drive leg).
      *
      * @return array{0: float, 1: float}|null
      */
     private function startPoint(Route $route): ?array
     {
-        $settings = is_array($route->tenant?->settings) ? $route->tenant->settings : [];
-        $lat = (float) ($settings['hq_lat'] ?? 0);
-        $lng = (float) ($settings['hq_lng'] ?? 0);
-
-        return ($lat === 0.0 && $lng === 0.0) ? null : [$lat, $lng];
+        return $route->tenant?->coordinates();
     }
 
     /**
@@ -111,27 +112,8 @@ class EstimateArrivals
      */
     private function driveMinutes(array $a, array $b, float $roadFactor, float $speed, int $min): int
     {
-        $km = $this->haversine($a, $b) * $roadFactor;
+        $km = Geo::km($a, $b) * $roadFactor;
 
         return max($min, (int) ceil($km / $speed * 60));
-    }
-
-    /**
-     * Haversine great-circle distance in km.
-     *
-     * @param  array{0: float, 1: float}  $a
-     * @param  array{0: float, 1: float}  $b
-     */
-    private function haversine(array $a, array $b): float
-    {
-        $earthKm = 6371.0;
-        $lat1 = deg2rad($a[0]);
-        $lat2 = deg2rad($b[0]);
-        $dLat = deg2rad($b[0] - $a[0]);
-        $dLng = deg2rad($b[1] - $a[1]);
-
-        $h = sin($dLat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($dLng / 2) ** 2;
-
-        return $earthKm * 2 * atan2(sqrt($h), sqrt(1 - $h));
     }
 }

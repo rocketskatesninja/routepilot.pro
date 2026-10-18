@@ -21,9 +21,8 @@ use App\Services\RouteOptimizer;
  * 0.0 lat/lng as an unset geocode, the failure sentinel.)
  */
 beforeEach(function () {
-    $this->tenant = Tenant::factory()->create([
-        'settings' => ['hq_lat' => 28.0, 'hq_lng' => -82.10],
-    ]);
+    // HQ is the company's geocoded address.
+    $this->tenant = Tenant::factory()->create(['lat' => 28.0, 'lng' => -82.10]);
     app()->instance('tenant_id', $this->tenant->id);
 
     $this->agent = User::factory()->create();
@@ -111,4 +110,46 @@ test('a route with fewer than two locatable pending stops is a no-op', function 
     $summary = $this->optimizer->optimize($route);
 
     expect($summary)->toBe(['optimized' => 0, 'skipped_no_location' => 0, 'total_distance_km' => 0.0]);
+});
+
+test('a missed or under-way stop keeps its place and every order stays unique', function () {
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id]);
+    $underWay = RouteStop::factory()->for($route)->for(poolAt(-82.05))->create(['stop_order' => 2, 'status' => 'in_progress']);
+    $missed = RouteStop::factory()->for($route)->for(poolAt(-82.04))->create(['stop_order' => 5, 'status' => 'missed']);
+    foreach ([-82.09, -82.08, -82.07] as $i => $lng) {
+        RouteStop::factory()->for($route)->for(poolAt($lng))->create(['stop_order' => [1, 3, 4][$i]]);
+    }
+
+    $this->optimizer->optimize($route);
+
+    $orders = $route->stops()->pluck('stop_order')->all();
+    expect($underWay->fresh()->stop_order)->toBe(1)
+        ->and($missed->fresh()->stop_order)->toBe(2)
+        ->and($orders)->toBe([1, 2, 3, 4, 5]);
+});
+
+test('with no address on file and nothing done yet, the tour starts at the first pending stop', function () {
+    $tenant = Tenant::factory()->create(['lat' => null, 'lng' => null]);
+    app()->instance('tenant_id', $tenant->id);
+    $customer = Customer::factory()->for($tenant)->create();
+    $route = Route::factory()->for($tenant)->create(['agent_id' => $this->agent->id]);
+    $place = function (float $lng) use ($tenant, $customer): Pool {
+        $pool = Pool::factory()->for($tenant)->for($customer)->create();
+        ServiceLocation::factory()->for($pool)->create(['lat' => 28.0, 'lng' => $lng]);
+
+        return $pool;
+    };
+    // Seeded west-most first, so the tour walks steadily east from there. (An unset
+    // HQ used to be read as 0,0, off West Africa, which made the east-most stop,
+    // the one nearest that point, come first.)
+    $west = $place(-82.09);
+    $east = $place(-82.01);
+    $middle = $place(-82.05);
+    foreach ([$west, $east, $middle] as $i => $pool) {
+        RouteStop::factory()->for($route)->for($pool)->create(['stop_order' => $i + 1]);
+    }
+
+    $this->optimizer->optimize($route);
+
+    expect($route->stops()->get()->pluck('pool_id')->all())->toBe([$west->id, $middle->id, $east->id]);
 });

@@ -23,10 +23,7 @@ beforeEach(function () {
 /** A stop on the agent's route for the given day. */
 function missedTestStop(string $date, string $status = 'pending'): RouteStop
 {
-    $route = Route::query()->firstOrCreate(
-        ['tenant_id' => test()->tenant->id, 'agent_id' => test()->agent->id, 'scheduled_date' => $date],
-        ['status' => 'scheduled'],
-    );
+    $route = Route::forDay(test()->tenant->id, test()->agent->id, $date);
 
     return RouteStop::factory()->for($route)->for(test()->pool)->create(['status' => $status]);
 }
@@ -85,4 +82,12 @@ test('the nightly run marks yesterday\'s unfinished stops and alerts on them', f
 
     expect($stop->fresh()?->status)->toBe('missed');
     Notification::assertSentTo($this->admin, OpsAlert::class, fn (OpsAlert $n): bool => $n->kind === 'missed_stops');
+});
+
+test('a stop left under way after its day is missed too', function () {
+    $stop = missedTestStop(today()->subDay()->toDateString(), 'in_progress');
+
+    app(MarkMissedStops::class)->handle();
+
+    expect($stop->fresh()?->status)->toBe('missed');
 });

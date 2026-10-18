@@ -11,7 +11,7 @@ use App\Models\Tenant;
 use App\Models\User;
 
 beforeEach(function () {
-    $this->tenant = Tenant::factory()->create(['status' => 'active', 'settings' => ['hq_lat' => 28.0, 'hq_lng' => -82.10]]);
+    $this->tenant = Tenant::factory()->create(['status' => 'active', 'lat' => 28.0, 'lng' => -82.10]);
     app()->instance('tenant_id', $this->tenant->id);
     $this->agent = User::factory()->for($this->tenant)->create();
     $this->customer = Customer::factory()->for($this->tenant)->create();
@@ -34,7 +34,8 @@ test('the command estimates arrivals for upcoming routes', function () {
 
     $this->artisan('app:estimate-arrivals')->assertSuccessful();
 
-    expect($stop->fresh()->estimated_arrival?->format('H:i'))->toBe('08:05');
+    // 8:05 on the company's own clock (arrivals are stored as real moments).
+    expect($stop->fresh()->estimated_arrival?->setTimezone($this->tenant->timezone)->format('H:i'))->toBe('08:05');
 });
 
 test('past routes are left untouched', function () {

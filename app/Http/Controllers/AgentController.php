@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\CreateAgent;
+use App\Actions\UnassignAgentPlans;
 use App\Actions\UpdateAgent;
 use App\Http\Requests\StoreAgentRequest;
 use App\Http\Requests\UpdateAgentRequest;
@@ -45,12 +46,13 @@ class AgentController extends Controller
         return back()->with('success', 'Agent updated.');
     }
 
-    public function destroy(Request $request, User $agent): RedirectResponse
+    public function destroy(Request $request, User $agent, UnassignAgentPlans $unassign): RedirectResponse
     {
         $this->authorizeAdmin($request);
         $this->authorizeAgent($request, $agent);
 
         AuditLog::record($request->user(), 'agent.deleted', $agent);
+        $unassign->handle($agent); // their routes would otherwise keep filling with stops nobody works
         $agent->delete();
 
         return back()->with('success', 'Agent removed.');

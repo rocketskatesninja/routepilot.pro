@@ -63,7 +63,7 @@ test('a customer lands on their Home page, not the staff dashboard grid', functi
 test('Home leads with the next visit: who, when, and what for', function () {
     $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => '2026-10-16']);
     RouteStop::factory()->for($route)->for($this->pool)->create([
-        'service_subscription_id' => $this->plan->id, 'estimated_arrival' => Carbon::parse('2026-10-16 14:20'),
+        'service_subscription_id' => $this->plan->id, 'estimated_arrival' => Carbon::parse('2026-10-16 14:20', $this->tenant->timezone)->utc(),
     ]);
     $later = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => '2026-10-23']);
     RouteStop::factory()->for($later)->for($this->pool)->create(['service_subscription_id' => $this->plan->id]);

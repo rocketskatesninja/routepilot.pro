@@ -51,7 +51,6 @@ class DemoSeeder extends Seeder
             'name' => 'Demo Company', 'slug' => 'demo',
             'brand_color' => '#0ea5e9',
             'address_line1' => '1937 6th St', 'city' => 'Brunswick', 'state' => 'GA', 'postal_code' => '31520',
-            'settings' => ['hq_lat' => 31.1805, 'hq_lng' => -81.4931], // Brunswick, GA
         ]);
         $tenant->forceFill(['lat' => 31.1805228, 'lng' => -81.4930654])->save();
 
@@ -154,10 +153,7 @@ class DemoSeeder extends Seeder
             $days = app(SubscriptionMaterializer::class)->projectDates($plan, $tenant->today()->subWeeks(2), $tenant->today()->subDay());
             foreach (array_slice($days, -2) as $day) {
                 $at = Carbon::parse($day->toDateString().' 09:00', $tenant->timezone)->addMinutes(35 * ($i % 3))->utc();
-                $route = Route::query()->firstOrCreate(
-                    ['agent_id' => $agent->id, 'scheduled_date' => $day->toDateString()],
-                    ['status' => 'completed'],
-                );
+                $route = Route::forDay($tenant->id, $agent->id, $day->toDateString());
                 $stop = RouteStop::create([
                     'route_id' => $route->id, 'pool_id' => $pool->id, 'service_subscription_id' => $plan->id,
                     'stop_order' => ((int) $route->stops()->max('stop_order')) + 1,

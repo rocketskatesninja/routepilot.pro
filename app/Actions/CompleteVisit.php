@@ -43,6 +43,9 @@ class CompleteVisit
     public function handle(RouteStop $stop, array $data, User $agent, array $photos = []): ServiceVisit
     {
         $visit = DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
+            // One visit per stop: lock the stop so two syncs of the same visit (a retry
+            // racing its original) queue up, and the second edits what the first made.
+            RouteStop::query()->whereKey($stop->id)->lockForUpdate()->first();
             $visit = $stop->serviceVisit()->first();
 
             $gps = [
@@ -121,12 +124,7 @@ class CompleteVisit
         // Live-refresh the office schedule board (and any other dispatcher).
         $route = $stop->route()->first();
         if ($route !== null) {
-            $agentId = $route->getAttribute('agent_id');
-            event(new RouteUpdated(
-                (int) $route->getAttribute('tenant_id'),
-                $route->scheduled_date->toDateString(),
-                $agentId !== null ? (int) $agentId : null,
-            ));
+            event(RouteUpdated::for($route));
         }
 
         return $visit;
