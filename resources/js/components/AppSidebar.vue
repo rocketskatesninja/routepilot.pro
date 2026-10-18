@@ -122,6 +122,18 @@ const navSections = computed<NavSection[]>(() => {
 
 const isAgent = computed(() => page.props.auth.role === 'agent');
 
+// Feeds the panel-filling row height in app.css: how many links share the nav's
+// height, and how much of it the section labels (h-5) and the gaps between
+// sections (gap-1.5) take up.
+const navFit = computed(() => {
+    const sections = navSections.value;
+    const labels = sections.filter((section) => section.label).length;
+    return {
+        '--nav-links': sections.reduce((count, section) => count + section.items.length, 0),
+        '--nav-chrome': `${labels * 20 + (sections.length - 1) * 6}px`,
+    };
+});
+
 const { state, toggleSidebar } = useSidebar();
 const toggleLabel = computed(() => (state.value === 'collapsed' ? 'Expand sidebar' : 'Collapse sidebar'));
 </script>
@@ -140,7 +152,7 @@ const toggleLabel = computed(() => (state.value === 'collapsed' ? 'Expand sideba
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent class="gap-1.5">
+        <SidebarContent class="gap-1.5" :style="navFit">
             <NavMain v-for="(section, i) in navSections" :key="section.label ?? `section-${i}`" :label="section.label" :items="section.items" />
         </SidebarContent>
 

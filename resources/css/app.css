@@ -123,6 +123,25 @@ html {
     transform: scale(1.15); /* immediate neighbours */
 }
 
+/* ── Desktop nav sizing: links fill the panel ─────────────────────────────────
+   The nav area is a size container, so its rows can split its height evenly.
+   AppSidebar sets --nav-links (how many links) and --nav-chrome (the height its
+   section labels and gaps take); each row gets an equal share of the rest, from
+   34px up to 56px, with text and icons scaling along (text tops out at 28px so
+   the longest label, a customer's "Service History", still fits the width). Below 34px rows the nav
+   scrolls, as when someone zooms right in. The 1px keeps rounding from tipping
+   the menu into a scrollbar. */
+@media (min-width: 768px) {
+    [data-sidebar='content'] {
+        container-type: size;
+    }
+    [data-sidebar='content'] [data-sidebar='menu'] {
+        --nav-row: clamp(34px, (100cqh - var(--nav-chrome, 0px) - 1px) / var(--nav-links, 1), 56px);
+        --nav-text: clamp(18px, var(--nav-row) * 0.55, 28px);
+        --nav-icon: clamp(20px, var(--nav-row) * 0.5, 26px);
+    }
+}
+
 /* No collapse animation on the first paint: `preload` is set on <html> in the
    root template and removed after mount (app.ts). Scoped to the sidebar shell
    so intentional entrance animations elsewhere (e.g. the landing hero) survive. */
