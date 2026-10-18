@@ -14,21 +14,26 @@ Built with **Laravel 12 · Inertia v2 · Vue 3 (TypeScript) · Tailwind**.
 
 ## What it does
 
-- **Your own branded customer website + portal** — homeowners see pool health, service history,
-  and their next visit; fewer "when are you coming?" calls.
+- **A branded customer portal** — homeowners see when their tech is coming, how their water
+  looked on the last visit (each reading checked against their pool's own targets), photos,
+  their bill, and the services they get. They can add, pause, or stop a service themselves.
 - **AI chemistry that thinks for your techs** — reads 12-visit trends and the 7-day forecast and
   tells the tech exactly what to add, on-device, even offline.
 - **Smart routing + live operations** — pack more stops into fewer miles, then watch the day
   unfold live: pending, in-progress, and completed stops across every truck on one map.
-- **A field app that works offline** — on-device chemistry dosing and photo capture, no signal
-  required at the pool.
+- **A field app that works offline** — the water test is checked as it's typed, doses are worked
+  out on the phone, and finished visits queue until there's signal again.
+- **Emails customers want to open** — a visit report with the water-test bars and photos after
+  every visit, reminders the day before, invoices and receipts, all in the company's colors.
+  Customers choose which ones they get, and every optional email has a one-click unsubscribe.
 
 ## Screenshots
 
-Three surfaces, one tenant — all from the seeded demo tenant ("Demo Company"), no real customer
-data. The full tour (every back-office page in light + dark, the complete field-app flow, and
-every customer portal page — 36 screens in all) lives in
-[`public/assets/images/screenshots/tour/`](public/assets/images/screenshots/tour/).
+All from the seeded demo company ("Demo Company"), no real customer data. The full tour (every
+back-office page in light + dark, the complete field-app flow in both themes, and every customer
+portal page on a phone, the main ones on a desktop — 51 screens in all) lives in
+[`public/assets/images/screenshots/tour/`](public/assets/images/screenshots/tour/), and
+`npm run screenshots:tour` re-shoots it.
 
 **Back office** (tenant admin)
 
@@ -36,24 +41,35 @@ every customer portal page — 36 screens in all) lives in
 |---|---|
 | ![Dashboard](public/assets/images/screenshots/tour/tenant/dashboard.png) | ![Route map](public/assets/images/screenshots/tour/tenant/schedule.png) |
 
-| Pools (master-detail) | Reports |
+| Pools (master-detail) | Customer requests |
 |---|---|
-| ![Pools](public/assets/images/screenshots/tour/tenant/pools.png) | ![Reports](public/assets/images/screenshots/tour/tenant/reports.png) |
+| ![Pools](public/assets/images/screenshots/tour/tenant/pools.png) | ![Customer requests](public/assets/images/screenshots/tour/tenant/requests.png) |
 
-<sub>Dark "ops" theme: [dashboard](public/assets/images/screenshots/tour/tenant/dark/dashboard.png) ·
+<sub>Dark theme: [dashboard](public/assets/images/screenshots/tour/tenant/dark/dashboard.png) ·
 [schedule](public/assets/images/screenshots/tour/tenant/dark/schedule.png) ·
-[pools](public/assets/images/screenshots/tour/tenant/dark/pools.png)</sub>
+[pools](public/assets/images/screenshots/tour/tenant/dark/pools.png) ·
+[insights](public/assets/images/screenshots/tour/tenant/dark/insights.png)</sub>
 
 **Agent field app** (offline-resilient PWA)
 
-<img src="public/assets/images/screenshots/tour/agent/day.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/visit-analysis.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/day-offline.png" width="240">
+<img src="public/assets/images/screenshots/tour/agent/day.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/visit-water.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/visit-analysis.png" width="240">
 
-The middle screen is the on-device AI chemistry engine: a water test produces real dosing
-recommendations — computed offline, no round trip to a server.
+Today's route, the water test checked against the pool's targets as it's typed, and the on-device
+chemistry engine's doses — worked out on the phone, no round trip to a server. Offline, the route
+keeps working from the phone's copy and finished visits wait to sync
+([offline](public/assets/images/screenshots/tour/agent/day-offline.png) ·
+[queued](public/assets/images/screenshots/tour/agent/day-queued.png)).
 
 **Customer portal**
 
-<img src="public/assets/images/screenshots/tour/customer/history.png" width="240"> <img src="public/assets/images/screenshots/tour/customer/balance.png" width="240">
+![Customer portal home](public/assets/images/screenshots/tour/customer/desktop/home.png)
+
+<img src="public/assets/images/screenshots/tour/customer/pools.png" width="240"> <img src="public/assets/images/screenshots/tour/customer/history.png" width="240"> <img src="public/assets/images/screenshots/tour/customer/services.png" width="240">
+
+Home leads with the next visit, in plain words. My Pools shows each pool's last water test,
+Service History every visit with its photos, and Services lets the homeowner add, pause, or stop
+a service. Home can be this simple page or a drag-and-drop widget grid (the default), whichever
+the customer prefers.
 
 The public landing page (hero image above) is the fourth surface — same tenant, same data,
 rendered SSR with per-tenant branding.
@@ -63,15 +79,16 @@ rendered SSR with per-tenant branding.
 | | | |
 |---|---|---|
 | **Live route status** — real-time per-stop badges and live map colors across every agent | **Automated billing & autopay** — invoices, receipts, and card-on-file autopay run themselves | **Inventory management** — chemical usage auto-deducts from every service visit |
-| **Professional service reports** — photo + chemistry reports emailed after every visit | **Build-your-own dashboard** — drag-to-reorder widgets for stops, map, weather, and billing | **AI assistant** — ask about a customer, a route, or pool chemistry in plain English |
-| **Drag-to-reassign** — move a stop to another tech and every future visit follows | **Customer management** — a pool company CRM built in: pools, contacts, notes, history | |
+| **Visit reports** — photos, checklist, and the water test emailed after every visit | **Build-your-own dashboard** — drag-to-reorder widgets for stops, map, weather, and billing | **AI assistant** — ask about a customer, a route, or pool chemistry in plain English |
+| **Drag-to-reassign** — move a stop to another tech and every future visit follows | **Customer requests inbox** — add, pause, and stop requests from the portal, answered in one click | **Insights** — revenue, visits, receivables aging, and top techs at a glance |
+| **⌘K search** — jump to any customer, pool, agent, or page | **Email preferences** — customers pick their emails; signed one-click unsubscribe (RFC 8058) | **Role-aware access** — techs see their own reports unless the office grants Agent+ |
 
 ## Architecture
 
 Four surfaces, one codebase:
 
-1. **Back-office** (tenant admin) — dark "ops" theme, customizable dashboards.
-2. **Agent field PWA** — daylight theme, offline-resilient, installable.
+1. **Back-office** (tenant admin) — light + dark "ops" themes, customizable dashboards.
+2. **Agent field PWA** — offline-resilient, installable, light + dark.
 3. **Customer portal** — lightweight, online-only.
 4. **Public landing** — SSR, section-based page builder, per-tenant branding.
 
@@ -80,10 +97,12 @@ Four surfaces, one codebase:
 - **Conventions:** thin controllers → Form Requests → single-purpose Action classes; Eloquent
   relationships and query scopes over raw SQL; `declare(strict_types=1)` everywhere.
 - **Security:** privilege/identity fields (`role`, `tenant_id`, `is_active`) are never
-  mass-assignable — set only via `forceFill()` at controlled call sites; Google OAuth requires a
-  verified email and a linked `google_id`, never an email-match login; secrets are `encrypted` at
-  rest; policies/gates on every sensitive action with audit logging on billing, permissions,
-  deletes, and impersonation.
+  mass-assignable — set only via `forceFill()` at controlled call sites; route-model bindings
+  resolve after the tenant is bound, so another company's ids simply 404; Google OAuth requires a
+  verified email and a linked `google_id`, never an email-match login; optional TOTP two-factor
+  with recovery codes; secrets are `encrypted` at rest; unsubscribe and payment links are signed;
+  policies/gates on every sensitive action with audit logging on billing, permissions, deletes,
+  and impersonation.
 - **Theming:** CSS-variable design tokens (`resources/css/app.css`), daylight + dark "ops" themes,
   per-tenant brand color overlay at runtime.
 
