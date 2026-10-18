@@ -101,8 +101,9 @@ const tabs = [
     { key: 'invoices', label: 'Invoices' },
 ] as const;
 function setView(v: 'owing' | 'invoices') {
-    // Each view has its own sort/status/selection, so reset them on switch.
-    visitQuery({ view: v === 'owing' ? undefined : v, selected: undefined, sort: undefined, dir: undefined, status: undefined, page: undefined });
+    // The sort carries across (a column the other view lacks falls back to its default
+    // order there, and returns when you switch back); selection, status and page reset.
+    visitQuery({ view: v === 'owing' ? undefined : v, selected: undefined, status: undefined, page: undefined });
 }
 
 const statusFilters = [

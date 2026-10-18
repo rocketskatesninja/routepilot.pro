@@ -192,12 +192,18 @@ const { search } = useListSearch(props.filters.search, { extra: () => ({ type: t
 
 const tab = () => (props.filters.type === 'all' ? undefined : props.filters.type);
 
-function visit(params: Record<string, string | number | undefined>) {
-    router.get('/people', params, { preserveState: true, replace: true, preserveScroll: true });
-}
-
+// Switching tabs keeps the search and sort; selection and page reset.
 function setType(type: 'all' | 'customers' | 'agents' | 'archived') {
-    visit({ search: search.value || undefined, type: type === 'all' ? undefined : type });
+    visitQuery(
+        {
+            search: search.value || undefined,
+            type: type === 'all' ? undefined : type,
+            selected: undefined,
+            selected_type: undefined,
+            page: undefined,
+        },
+        { replace: true },
+    );
 }
 
 function openPerson(person: PersonRow) {
