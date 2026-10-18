@@ -121,7 +121,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
             </div>
 
             <div class="relative z-10 max-w-md">
-                <p class="text-2xl leading-snug font-bold">Route smarter. Dose precisely. Get paid faster.</p>
+                <p class="text-2xl leading-snug font-bold">Route smarter. Dose precisely.<br />Get paid faster.</p>
                 <p class="mt-3 text-sm text-sky-100/70 [@media(max-height:50rem)]:hidden">
                     The complete pool service platform — routing, chemistry, billing, and a customer portal in one place.
                 </p>
@@ -139,7 +139,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                     <span><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span>
                 </Link>
 
-                <div class="mb-6 flex flex-col gap-2">
+                <div class="mb-6 flex flex-col gap-2 text-center">
                     <h1 v-if="title" class="text-2xl font-bold tracking-tight">{{ title }}</h1>
                     <p v-if="description" class="text-muted-foreground text-sm">{{ description }}</p>
                 </div>
