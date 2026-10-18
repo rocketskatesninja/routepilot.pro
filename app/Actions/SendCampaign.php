@@ -8,8 +8,8 @@ use App\Jobs\SendCampaignEmail;
 use App\Models\Customer;
 use App\Models\MailCampaign;
 use App\Models\User;
+use App\Support\EmailPreferences;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Resolve a campaign's audience (role-scoped) and queue a branded email to
@@ -50,11 +50,14 @@ class SendCampaign
                 'status' => 'queued',
             ]);
 
-            $unsubscribe = $recipient['customer_id'] !== null
-                ? URL::signedRoute('unsubscribe', ['customer' => $recipient['customer_id']])
-                : null;
-
-            SendCampaignEmail::dispatch($recipient['email'], $subject, $body, $recipient['name'], $unsubscribe, $sender->tenant_id, $row->id);
+            // Customers can stop news and offers from the email itself (staff recipients have no such list).
+            $customerId = $recipient['customer_id'];
+            SendCampaignEmail::dispatch(
+                $recipient['email'], $subject, $body, $recipient['name'],
+                $customerId !== null ? EmailPreferences::pageUrl($customerId, 'news') : null,
+                $sender->tenant_id, $row->id,
+                $customerId !== null ? EmailPreferences::oneClickUrl($customerId, 'news') : null,
+            );
         }
 
         return $campaign;
@@ -183,7 +186,7 @@ class SendCampaign
      */
     private function customerQuery(): Builder
     {
-        return Customer::query()->whereNotNull('email')->where('email_opt_out', false);
+        return Customer::query()->whereNotNull('email')->where(EmailPreferences::column('news'), true);
     }
 
     /**

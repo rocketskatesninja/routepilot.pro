@@ -35,7 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias(['role' => EnsureRole::class]);
 
         // Stripe posts webhooks without a CSRF token (verified by signature).
-        $middleware->validateCsrfTokens(except: ['stripe/webhook']);
+        // Inboxes post one-click unsubscribes with no CSRF token; the signed URL is the proof.
+        $middleware->validateCsrfTokens(except: ['stripe/webhook', 'email-preferences/*/one-click/*']);
 
         // The sidebar collapse state is a plaintext cookie set client-side and
         // read back at render time to avoid an open→collapse flash — leave it

@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Notifications\BalanceReminder;
 use App\Notifications\OpsAlert;
 use App\Notifications\ServiceReminder;
+use App\Support\EmailPreferences;
 use App\Support\EtaWindow;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
@@ -212,7 +213,7 @@ class DailyOpsChecks
             }
 
             $email = $customer->email;
-            $optedOut = (bool) $customer->getAttribute('email_opt_out');
+            $optedOut = ! EmailPreferences::wants($customer, 'reminders');
             $emailAllowed = $user === null || $user->wantsNotification('service', 'email');
             if (is_string($email) && $email !== '' && ! $optedOut && $emailAllowed) {
                 $date = $stop->route?->scheduled_date;
@@ -224,6 +225,7 @@ class DailyOpsChecks
                     agentName: $stop->route?->agent?->firstName(),
                     arrivalWindow: EtaWindow::for($stop->estimated_arrival),
                     tenant: $tenant,
+                    customerId: $customer->id,
                 ));
             }
         }

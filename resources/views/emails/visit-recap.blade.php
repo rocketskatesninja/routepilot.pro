@@ -83,6 +83,6 @@
     @endif
 
     <x-slot:footer>
-        <p style="margin: 0;">You get this email after each visit to your pool.</p>
+        <p style="margin: 0;">You get this email after each visit to your pool. <a href="{{ $stopUrl }}" style="color: #475569;">Stop visit reports</a></p>
     </x-slot:footer>
 </x-email.layout>

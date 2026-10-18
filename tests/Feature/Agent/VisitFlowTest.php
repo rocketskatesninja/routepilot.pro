@@ -227,9 +227,9 @@ test('completing a visit emails the homeowner a recap', function () {
     Mail::assertQueued(VisitRecapMail::class);
 });
 
-test('an opted-out customer gets no recap email', function () {
+test('a customer who turned off visit reports gets no visit email', function () {
     Mail::fake();
-    $this->pool->customer->update(['email_opt_out' => true]);
+    $this->pool->customer->forceFill(['email_visit_reports' => false])->save();
 
     $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 

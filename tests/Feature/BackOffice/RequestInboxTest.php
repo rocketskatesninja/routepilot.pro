@@ -199,14 +199,14 @@ test('"something else" is marked done with an optional reply', function () {
     expect($request->fresh()?->status)->toBe('approved')->and($request->fresh()?->getAttribute('reply'))->toBe('Thanks, noted!');
 });
 
-test('a customer who opted out of email still gets the portal notice but no email', function () {
-    $this->customer->forceFill(['email_opt_out' => true])->save();
+test('a customer who turned off every optional email still hears back about their own request', function () {
+    $this->customer->forceFill(['email_visit_reports' => false, 'email_reminders' => false, 'email_news' => false])->save();
     $request = customerRequest(['type' => 'other', 'service_type_id' => null, 'message' => 'Hi']);
 
     $this->actingAs($this->admin)->post("/requests/{$request->id}/approve")->assertSessionHasNoErrors();
 
     Notification::assertSentTo($this->user, ServiceRequestAnswered::class);
-    Mail::assertNothingQueued();
+    Mail::assertQueued(ServiceRequestAnsweredMail::class);
 });
 
 test('only company admins can use the inbox or answer requests', function () {

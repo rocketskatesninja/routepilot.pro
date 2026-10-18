@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmailChoices from '@/components/EmailChoices.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
@@ -68,6 +69,7 @@ interface CustomerDetail {
     balance: number;
     next_visit: { date: string; agent: string | null; pool: string | null } | null;
     portal_status: 'none' | 'active' | 'revoked';
+    emails: Record<string, boolean>;
     archived: boolean;
     archived_on: string | null;
     summary: { pools: number; visits: number; invoices: number; charges: number } | null;
@@ -212,6 +214,26 @@ function closeDrawer() {
 const fullName = (p: PersonRow) => `${p.first_name} ${p.last_name ?? ''}`.trim();
 const selectedKey = computed(() => (props.selected ? `${props.selected.type}-${props.selected.id}` : null));
 const customer = computed(() => (props.selected?.type === 'customer' ? props.selected : null));
+
+// Which optional emails the customer gets — the office can change them (say they asked on the phone).
+const EMAIL_TYPES: Record<string, [string, string]> = {
+    visit_reports: ['Visit reports', 'After each visit: what was done, the water test and photos.'],
+    reminders: ['Visit reminders', 'The day before someone comes.'],
+    news: ['News and offers', 'Emails you send from Email people.'],
+};
+const emailBusy = ref(false);
+const setEmail = (type: string, on: boolean) => {
+    if (!customer.value) return;
+    router.patch(
+        `/customers/${customer.value.id}/emails`,
+        { [type]: on },
+        {
+            preserveScroll: true,
+            onStart: () => (emailBusy.value = true),
+            onFinish: () => (emailBusy.value = false),
+        },
+    );
+};
 const agent = computed(() => (props.selected?.type === 'agent' ? props.selected : null));
 
 /** "In-ground, 18,000 gal. Weekly Pool Service and Chemistry Check." */
@@ -812,6 +834,16 @@ function destroyAgent() {
                             <p v-if="!customer.email && !customer.phone && !customer.address" class="text-muted-foreground text-sm">
                                 No contact details yet.
                             </p>
+                        </PaneSection>
+
+                        <PaneSection title="Emails">
+                            <EmailChoices
+                                :types="EMAIL_TYPES"
+                                :preferences="customer.emails"
+                                :busy="!props.canManage || emailBusy"
+                                who="they"
+                                @change="(type, on) => setEmail(type, on)"
+                            />
                         </PaneSection>
 
                         <PaneSection :title="customer.pools.length === 1 ? 'Pool' : 'Pools'">

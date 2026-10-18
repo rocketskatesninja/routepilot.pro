@@ -11,6 +11,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 /**
@@ -33,7 +34,16 @@ class CampaignMail extends Mailable
         public ?array $fromAddress = null,
         /** The company sending it (its colours and logo); null for RoutePilot's own broadcasts. */
         public ?Tenant $tenant = null,
+        /** Where the inbox's own "Unsubscribe" button posts (customer recipients only). */
+        public ?string $oneClickUrl = null,
     ) {}
+
+    public function headers(): Headers
+    {
+        return new Headers(text: $this->oneClickUrl !== null
+            ? ['List-Unsubscribe' => '<'.$this->oneClickUrl.'>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click']
+            : []);
+    }
 
     public function envelope(): Envelope
     {

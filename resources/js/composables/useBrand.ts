@@ -6,7 +6,7 @@
  * `--brand` custom property on <html>, so brand-aware components
  * (`hsl(var(--brand))`) pick up the tenant color on top of either theme.
  */
-function hexToHslChannels(hex: string): string | null {
+export function hexToHslChannels(hex: string): string | null {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
     if (!m) {
         return null;

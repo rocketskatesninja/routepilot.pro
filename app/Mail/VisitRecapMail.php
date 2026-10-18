@@ -6,11 +6,13 @@ namespace App\Mail;
 
 use App\Models\ServiceVisit;
 use App\Support\EmailBrand;
+use App\Support\EmailPreferences;
 use App\Support\WaterReport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 /**
@@ -28,6 +30,11 @@ class VisitRecapMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(subject: 'Your pool was serviced — '.$this->visit->pool->customer->tenant->name);
+    }
+
+    public function headers(): Headers
+    {
+        return EmailPreferences::headers((int) $this->visit->pool->getAttribute('customer_id'), 'visit_reports');
     }
 
     public function content(): Content
@@ -62,6 +69,7 @@ class VisitRecapMail extends Mailable
             'payUrl' => $this->payUrl,
             // Only customers with a portal login can open the full report there.
             'reportUrl' => $customer->getAttribute('user_id') !== null ? url('/history?selected='.$visit->id) : null,
+            'stopUrl' => EmailPreferences::pageUrl($customer->id, 'visit_reports'),
         ]);
     }
 }

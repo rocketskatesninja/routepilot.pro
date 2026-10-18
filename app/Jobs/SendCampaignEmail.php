@@ -40,6 +40,7 @@ class SendCampaignEmail implements ShouldQueue
         public ?string $unsubscribeUrl,
         public ?int $tenantId,
         public ?int $recipientId = null,
+        public ?string $oneClickUrl = null,
     ) {}
 
     public function handle(TenantMailer $tenantMailer): void
@@ -51,6 +52,7 @@ class SendCampaignEmail implements ShouldQueue
             ->send(new CampaignMail(
                 $this->subject, $this->body, $this->recipientName, $this->unsubscribeUrl, $prepared['from'],
                 $this->tenantId !== null ? Tenant::query()->find($this->tenantId) : null,
+                $this->oneClickUrl,
             ));
 
         $this->mark('sent', null);

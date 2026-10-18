@@ -14,6 +14,7 @@ use App\Actions\UpdateCustomer;
 use App\Http\Requests\GrantPortalRequest;
 use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
+use App\Http\Requests\UpdateEmailPreferencesRequest;
 use App\Models\AuditLog;
 use App\Models\Charge;
 use App\Models\Customer;
@@ -21,6 +22,7 @@ use App\Models\Invoice;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\User;
+use App\Support\EmailPreferences;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -166,5 +168,15 @@ class CustomerController extends Controller
         $this->audit($request, 'customer.portal_restored', $customer);
 
         return back()->with('success', 'Portal access restored.');
+    }
+
+    /** The office changes which optional emails a customer gets (say they asked on the phone). */
+    public function updateEmails(UpdateEmailPreferencesRequest $request, Customer $customer): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+        EmailPreferences::set($customer, $request->changes());
+        AuditLog::record($request->user(), 'customer.emails', $customer, $request->changes());
+
+        return back()->with('success', 'Email choices saved.');
     }
 }

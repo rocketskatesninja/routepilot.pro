@@ -121,7 +121,7 @@ test('checks are tenant-scoped — a foreign tenant\'s idle agent is not alerted
 function poolDueTomorrow(string $email = 'home@example.test', bool $optOut = false): array
 {
     $portal = User::factory()->customer()->for(test()->tenant)->create();
-    $customer = Customer::factory()->for(test()->tenant)->create(['user_id' => $portal->id, 'email' => $email, 'email_opt_out' => $optOut]);
+    $customer = Customer::factory()->for(test()->tenant)->create(['user_id' => $portal->id, 'email' => $email, 'email_reminders' => ! $optOut]);
     $pool = Pool::factory()->for(test()->tenant)->for($customer)->create();
     $agent = User::factory()->agent()->for(test()->tenant)->create();
     $route = Route::factory()->for(test()->tenant)->create(['agent_id' => $agent->id, 'scheduled_date' => today()->addDay()]);

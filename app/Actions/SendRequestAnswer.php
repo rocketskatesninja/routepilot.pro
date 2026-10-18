@@ -33,7 +33,8 @@ class SendRequestAnswer
 
         $email = $customer->email;
         $emailAllowed = $user === null || $user->wantsNotification('service', 'email');
-        if (is_string($email) && $email !== '' && ! $customer->getAttribute('email_opt_out') && $emailAllowed) {
+        // An answer to something they asked for, so it isn't one of the emails they can turn off.
+        if (is_string($email) && $email !== '' && $emailAllowed) {
             Mail::to($email)->queue(new ServiceRequestAnsweredMail(
                 customerName: $customer->first_name ?: $customer->displayName(),
                 company: $company,

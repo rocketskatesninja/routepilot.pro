@@ -16,6 +16,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
 use App\Services\PlatformAiSettings;
+use App\Support\EmailPreferences;
 use App\Support\PersonListBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -366,6 +367,7 @@ class PeopleController extends Controller
                 'pool' => $next->pool?->getAttribute('name'),
             ],
             'portal_status' => $customer->portalStatus(),
+            'emails' => EmailPreferences::for($customer),
             'archived' => $customer->trashed(),
             'archived_on' => $customer->deleted_at?->toDateString(),
             // What a permanent delete would remove — shown on the archived panel.

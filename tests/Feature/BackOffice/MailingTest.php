@@ -18,11 +18,11 @@ beforeEach(function () {
     $this->admin = User::factory()->for($this->tenant)->create();
 });
 
-test('a tenant admin emails their customers (opt-outs excluded)', function () {
+test('a tenant admin emails their customers (anyone who turned off news is left out)', function () {
     foreach (['a', 'b', 'c'] as $n) {
         Customer::factory()->for($this->tenant)->create(['email' => "{$n}@x.test"]);
     }
-    Customer::factory()->for($this->tenant)->create(['email' => 'opted@x.test', 'email_opt_out' => true]);
+    Customer::factory()->for($this->tenant)->create(['email' => 'opted@x.test', 'email_news' => false]);
 
     $this->actingAs($this->admin)
         ->post('/people/email', ['audience' => 'customers', 'subject' => 'Spring tips', 'body' => 'Hello!'])
@@ -91,11 +91,11 @@ test('agents cannot send campaigns', function () {
     $this->actingAs($agent)->post('/people/email', ['audience' => 'customers', 'subject' => 'x', 'body' => 'y'])->assertForbidden();
 });
 
-test('one-click unsubscribe opts a customer out', function () {
+test('an unsubscribe link from an older email opens the choices page on news, changing nothing yet', function () {
     $customer = Customer::factory()->for($this->tenant)->create(['email' => 'leave@x.test']);
     $url = URL::signedRoute('unsubscribe', ['customer' => $customer->id]);
 
-    $this->get($url)->assertOk();
+    $this->get($url)->assertRedirectContains('/email-preferences/'.$customer->id)->assertRedirectContains('stop=news');
 
-    expect($customer->fresh()?->email_opt_out)->toBeTrue();
+    expect($customer->fresh()?->email_news)->toBeTrue();
 });

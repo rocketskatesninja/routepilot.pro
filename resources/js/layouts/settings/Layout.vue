@@ -18,6 +18,8 @@ const sidebarNavItems = computed<NavItem[]>(() => [
     { title: 'Password', href: '/settings/password' },
     ...(isStaff.value ? [{ title: 'Two-factor', href: '/settings/two-factor' }] : []),
     { title: 'Appearance', href: '/settings/appearance' },
+    // Customers choose which optional emails they get.
+    ...(page.props.auth?.user?.role === 'customer' ? [{ title: 'Emails', href: '/settings/emails' }] : []),
 ]);
 </script>
 

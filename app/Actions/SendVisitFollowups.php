@@ -9,6 +9,7 @@ use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Notifications\VisitCompleted;
 use App\Services\BillingService;
+use App\Support\EmailPreferences;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
@@ -36,8 +37,8 @@ class SendVisitFollowups
             }
         }
 
-        // Per-visit recap email (skipped for opt-out customers).
-        if ($customer !== null && is_string($customer->email) && $customer->email !== '' && ! $customer->email_opt_out) {
+        // Per-visit report email, unless they've turned visit reports off.
+        if ($customer !== null && is_string($customer->email) && $customer->email !== '' && EmailPreferences::wants($customer, 'visit_reports')) {
             $balance = $this->billing->outstandingForCustomer($customer);
             $payUrl = $balance > 0 ? URL::signedRoute('pay.link', ['customer' => $customer->id]) : null;
             Mail::to($customer->email)->queue(new VisitRecapMail($visit, $balance, $payUrl));

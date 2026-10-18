@@ -9,6 +9,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\CompanySettingsController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmailPreferenceController;
 use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\InboxController;
@@ -31,12 +32,12 @@ use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\Settings\EmailsController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\VisitController;
 use App\Http\Middleware\EnsureBillingActive;
-use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -52,12 +53,14 @@ Route::get('t/{tenant:slug}', [PublicSiteController::class, 'showBySlug'])->name
 Route::get('privacy', fn () => Inertia::render('Privacy'))->name('privacy');
 Route::get('terms', fn () => Inertia::render('Terms'))->name('terms');
 
-// Public one-click unsubscribe (signed) — sets the marketing suppression flag.
-Route::get('unsubscribe/{customer}', function (Customer $customer) {
-    $customer->forceFill(['email_opt_out' => true])->save();
-
-    return response('You have been unsubscribed from marketing emails.');
-})->name('unsubscribe')->middleware('signed');
+// A customer's email choices, from a signed link in one of their emails — no login.
+// Opening the page changes nothing; the one-click route is what inboxes post to.
+Route::middleware(['signed', 'throttle:30,1'])->group(function () {
+    Route::get('email-preferences/{customer}', [EmailPreferenceController::class, 'show'])->name('email-preferences.show');
+    Route::post('email-preferences/{customer}', [EmailPreferenceController::class, 'update'])->name('email-preferences.update');
+    Route::post('email-preferences/{customer}/one-click/{type}', [EmailPreferenceController::class, 'oneClick'])->name('email-preferences.one-click');
+    Route::get('unsubscribe/{customer}', [EmailPreferenceController::class, 'legacy'])->name('unsubscribe'); // links in older emails
+});
 
 // Public lead capture from a tenant's landing site (by slug), rate-limited.
 Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->middleware('throttle:10,1')->name('leads.capture');
@@ -141,6 +144,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('equipment/{equipment}/service', [EquipmentController::class, 'logService'])->name('equipment.service');
         Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
         Route::patch('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+        Route::patch('customers/{customer}/emails', [CustomerController::class, 'updateEmails'])->name('customers.emails');
         Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
         // Archived-customer management (bind trashed rows; TenantScope still applies).
         Route::post('customers/{customer}/restore', [CustomerController::class, 'restore'])->withTrashed()->name('customers.restore');
@@ -206,6 +210,8 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('autopay/complete', [PortalController::class, 'autopayComplete'])->name('portal.autopay.complete');
         Route::post('autopay/disable', [PortalController::class, 'disableAutopay'])->name('portal.autopay.disable');
         Route::post('dashboard/style', [DashboardController::class, 'updateStyle'])->name('dashboard.style');
+        Route::get('settings/emails', [EmailsController::class, 'edit'])->name('settings.emails');
+        Route::patch('settings/emails', [EmailsController::class, 'update'])->name('settings.emails.update');
     });
 
     // ---- Super-admin platform console ----
