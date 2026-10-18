@@ -182,49 +182,93 @@ class BillingService
     }
 
     /**
-     * The unpaid part of each of a customer's charges. Payments (and credits)
-     * made against an invoice pay that invoice first; everything else pays the
-     * oldest charges first.
+     * What paid an invoice: each payment (or credit) that went to it, newest
+     * first, and how much of it did — a payment on account can be split across
+     * several invoices.
+     *
+     * @return list<array{source: Payment|Charge, applied: float}>
+     */
+    public function paidBy(Invoice $invoice): array
+    {
+        $applied = $this->allocate((int) $invoice->getAttribute('customer_id'))['applied'][$invoice->id] ?? [];
+        $payments = Payment::query()->with('recorder:id,first_name,last_name')->whereKey(array_keys($applied['payment'] ?? []))->get();
+        $credits = Charge::query()->whereKey(array_keys($applied['credit'] ?? []))->get();
+
+        return $payments->map(fn (Payment $p): array => ['source' => $p, 'applied' => $applied['payment'][$p->id], 'on' => $p->paid_at?->getTimestamp() ?? 0])
+            ->concat($credits->map(fn (Charge $c): array => ['source' => $c, 'applied' => $applied['credit'][$c->id], 'on' => $c->occurred_on->getTimestamp()]))
+            ->sortByDesc('on')
+            ->map(fn (array $row): array => ['source' => $row['source'], 'applied' => $row['applied']])
+            ->values()->all();
+    }
+
+    /**
+     * The unpaid part of each of a customer's charges.
      *
      * @return array<int, float> charge id => unpaid amount
      */
     private function unpaid(Customer $customer): array
     {
-        $charges = Charge::query()->active()->where('customer_id', $customer->id)
+        return $this->allocate($customer->id)['unpaid'];
+    }
+
+    /**
+     * Put a customer's money (payments, and credits) against their charges.
+     * Money made against an invoice pays that invoice first; everything else,
+     * and whatever is left over, pays the oldest charges first. Returns what's
+     * still owed on each charge, and what paid each invoice (by payment/credit id).
+     *
+     * @return array{unpaid: array<int, float>, applied: array<int, array{payment?: array<int, float>, credit?: array<int, float>}>}
+     */
+    private function allocate(int $customerId): array
+    {
+        $charges = Charge::query()->active()->where('customer_id', $customerId)
             ->orderBy('occurred_on')->orderBy('id')->get();
-        $payments = Payment::query()->where('customer_id', $customer->id)->where('status', 'succeeded')->get(['amount', 'invoice_id']);
-
-        $left = [];
-        $credits = $charges->filter(fn (Charge $c): bool => $c->total() < 0);
+        $unpaid = [];
         foreach ($charges as $c) {
-            $left[$c->id] = max(0.0, $c->total());
+            $unpaid[$c->id] = max(0.0, $c->total());
         }
+        $applied = [];
 
-        $pay = function (Collection $targets, float $money) use (&$left): float {
+        // The money, oldest first: payments, then credits (negative charges).
+        $sources = Payment::query()->where('customer_id', $customerId)->where('status', 'succeeded')
+            ->orderBy('paid_at')->orderBy('id')->get(['id', 'amount', 'invoice_id'])
+            ->map(fn (Payment $p): array => ['kind' => 'payment', 'id' => $p->id, 'invoice_id' => $p->invoice_id, 'amount' => (float) $p->amount])
+            ->concat($charges->filter(fn (Charge $c): bool => $c->total() < 0)
+                ->map(fn (Charge $c): array => ['kind' => 'credit', 'id' => $c->id, 'invoice_id' => $c->invoice_id, 'amount' => -$c->total()]));
+
+        // Pay down the targets in order; returns what's left of the money.
+        $pay = function (Collection $targets, array $source) use (&$unpaid, &$applied): float {
+            $money = $source['amount'];
             foreach ($targets as $c) {
                 if ($money <= 0) {
                     break;
                 }
-                $take = min($left[$c->id], $money);
-                $left[$c->id] = round($left[$c->id] - $take, 2);
+                $take = min($unpaid[$c->id], $money);
+                if ($take <= 0) {
+                    continue;
+                }
+                $unpaid[$c->id] = round($unpaid[$c->id] - $take, 2);
                 $money = round($money - $take, 2);
+                if ($c->invoice_id !== null) {
+                    $applied[$c->invoice_id][$source['kind']][$source['id']] = round(($applied[$c->invoice_id][$source['kind']][$source['id']] ?? 0.0) + $take, 2);
+                }
             }
 
             return $money;
         };
 
-        $general = 0.0;
-        $invoiceIds = $payments->pluck('invoice_id')->merge($credits->pluck('invoice_id'))->filter()->unique();
-        foreach ($invoiceIds as $invoiceId) {
-            $money = (float) $payments->where('invoice_id', $invoiceId)->sum('amount')
-                - (float) $credits->where('invoice_id', $invoiceId)->sum(fn (Charge $c): float => $c->total());
-            $general += $pay($charges->where('invoice_id', $invoiceId), $money);
+        $rest = [];
+        foreach ($sources as $source) {
+            if ($source['invoice_id'] !== null) {
+                $source['amount'] = $pay($charges->where('invoice_id', $source['invoice_id']), $source);
+            }
+            $rest[] = $source;
         }
-        $general += (float) $payments->whereNull('invoice_id')->sum('amount')
-            - (float) $credits->whereNull('invoice_id')->sum(fn (Charge $c): float => $c->total());
-        $pay($charges, $general);
+        foreach ($rest as $source) {
+            $pay($charges, $source);
+        }
 
-        return $left;
+        return ['unpaid' => $unpaid, 'applied' => $applied];
     }
 
     /** The visit's date in the company's own time zone. */

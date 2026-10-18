@@ -14,6 +14,7 @@ use App\Models\AuditLog;
 use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Tenant;
 use App\Services\BillingService;
@@ -52,7 +53,7 @@ class BalanceController extends Controller
         $selectedId = $request->integer('selected');
         $selected = match (true) {
             $selectedId <= 0 => null,
-            $view === 'invoices' => $this->invoiceDetail($selectedId),
+            $view === 'invoices' => $this->invoiceDetail($selectedId, $billing),
             default => $this->owingDetail($selectedId, $billing),
         };
 
@@ -159,7 +160,7 @@ class BalanceController extends Controller
     }
 
     /** @return array<string, mixed>|null */
-    private function invoiceDetail(int $id): ?array
+    private function invoiceDetail(int $id, BillingService $billing): ?array
     {
         $invoice = Invoice::query()->with(['customer:id,first_name,last_name,email', 'charges'])->find($id);
         if ($invoice === null) {
@@ -187,6 +188,31 @@ class BalanceController extends Controller
                 'description' => $c->description,
                 'amount' => (float) $c->amount,
             ])->all(),
+            // What paid it — including payments on account, which pay the oldest bills first.
+            'paid_by' => array_map(fn (array $row): array => $row['source'] instanceof Payment
+                ? [...$this->paymentRow($row['source']), 'applied' => $row['applied']]
+                : ['kind' => 'credit', 'on' => $row['source']->occurred_on->toDateString(), 'description' => $row['source']->description, 'amount' => -$row['source']->total(), 'applied' => $row['applied']],
+                $billing->paidBy($invoice)),
+        ];
+    }
+
+    /**
+     * One payment as the panels show it: when, how, how much, and who recorded
+     * it (none for card payments made online). A declined autopay try is dated
+     * when it was tried.
+     *
+     * @return array<string, mixed>
+     */
+    private function paymentRow(Payment $p): array
+    {
+        return [
+            'kind' => 'payment',
+            'on' => Tenant::localDate($p->paid_at ?? $p->created_at),
+            'method' => $p->method,
+            'amount' => (float) $p->amount,
+            'declined' => $p->status === 'failed',
+            'by' => $p->recorder?->firstName(),
+            'invoice' => $p->invoice?->number,
         ];
     }
 
@@ -204,6 +230,10 @@ class BalanceController extends Controller
             'name' => $customer->displayName(),
             'photo' => $this->photoUrl($customer->getAttribute('photo_path')),
             ...$billing->breakdownForCustomer($customer),
+            'payments' => Payment::query()->where('customer_id', $customer->id)->whereIn('status', ['succeeded', 'failed'])
+                ->with(['recorder:id,first_name,last_name', 'invoice:id,number'])
+                ->latest('created_at')->latest('id')->limit(10)->get()
+                ->map(fn (Payment $p): array => $this->paymentRow($p))->all(),
             'invoices' => Invoice::query()
                 ->where('customer_id', $customer->id)
                 ->latest('issued_at')->latest('id')->limit(10)->get()

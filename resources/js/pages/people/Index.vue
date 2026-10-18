@@ -789,10 +789,9 @@ function destroyAgent() {
                                     <template v-else-if="customer.balance < 0">{{ formatMoney(-customer.balance) }} in credit.</template>
                                     <template v-else>All paid up.</template>
                                     <Link
-                                        v-if="customer.balance !== 0"
                                         :href="`/balances?selected=${customer.id}`"
                                         class="text-primary ml-1 font-medium underline-offset-4 hover:underline"
-                                        >See balance</Link
+                                        >{{ customer.balance !== 0 ? 'See balance' : 'See payments' }}</Link
                                     >
                                 </p>
                             </div>

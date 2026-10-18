@@ -47,6 +47,22 @@ interface InvoiceRow {
     status: string;
 }
 
+interface PaymentRow {
+    kind: 'payment';
+    on: string | null;
+    method: string;
+    amount: number;
+    declined: boolean;
+    by: string | null;
+    invoice: string | null;
+}
+interface CreditRow {
+    kind: 'credit';
+    on: string;
+    description: string;
+    amount: number;
+}
+
 interface OwingDetail {
     kind: 'owing';
     id: number;
@@ -55,6 +71,7 @@ interface OwingDetail {
     visits: { service: string; pool: string; date: string; price: number }[];
     charges: { description: string; amount: number }[];
     total: number;
+    payments: PaymentRow[];
     invoices: { id: number; number: string; status: string; total: number; balance: number; issued_on: string | null }[];
 }
 
@@ -76,6 +93,7 @@ interface InvoiceDetail {
     amount_paid: number;
     balance: number;
     line_items: { description: string; amount: number }[];
+    paid_by: ((PaymentRow | CreditRow) & { applied: number })[];
 }
 
 const props = defineProps<{
@@ -140,6 +158,22 @@ const invoiceTone: Record<string, 'good' | 'warn' | 'info' | 'bad' | 'muted'> = 
     void: 'muted',
 };
 /** "Sent Thu, Oct 1" / "Paid, issued Thu, Oct 1" / "Draft". */
+/** "Card" / "Card declined". */
+const paymentTitle = (p: PaymentRow) => `${PAY_METHODS[p.method] ?? 'Payment'}${p.declined ? ' declined' : ''}`;
+/** "Fri, Oct 2, paid online" / "Mon, Oct 5, recorded by Sarah, for INV-00001". */
+const paymentSub = (p: PaymentRow, withInvoice = true) =>
+    [
+        p.on ? formatDay(p.on) : '',
+        p.declined ? 'autopay' : p.by ? `recorded by ${p.by}` : 'paid online',
+        withInvoice && p.invoice ? `for ${p.invoice}` : '',
+    ]
+        .filter(Boolean)
+        .join(', ');
+/** What paid an invoice: a payment (maybe only part of it went here) or a credit. */
+const paidBySub = (p: InvoiceDetail['paid_by'][number]) =>
+    p.kind === 'credit'
+        ? `Credit, ${formatDay(p.on)}`
+        : paymentSub(p, false) + (p.applied < p.amount ? `, part of a ${formatMoney(p.amount)} payment` : '');
 const invoiceLine = (inv: OwingDetail['invoices'][number]) => {
     const on = inv.issued_on ? formatDay(inv.issued_on) : '';
     return inv.status === 'sent' && on ? `Sent ${on}` : `${cap(inv.status)}${on ? `, issued ${on}` : ''}`;
@@ -446,6 +480,23 @@ function closePane() {
                             </PaneList>
                         </PaneSection>
 
+                        <PaneSection v-if="invoice.paid_by.length" title="Paid by">
+                            <PaneList>
+                                <PaneItem
+                                    v-for="(p, i) in invoice.paid_by"
+                                    :key="i"
+                                    :title="p.kind === 'credit' ? p.description : paymentTitle(p)"
+                                    :sub="paidBySub(p)"
+                                >
+                                    <template #trailing
+                                        ><span class="text-emerald-700 tabular-nums dark:text-emerald-400">{{
+                                            formatMoney(p.applied)
+                                        }}</span></template
+                                    >
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
+
                         <PaneSection v-if="props.canManage && invoice.status !== 'paid' && invoice.status !== 'void'" title="Record a payment">
                             <div class="flex flex-wrap items-center gap-2">
                                 <select
@@ -466,8 +517,10 @@ function closePane() {
                             <template #media>
                                 <EntityAvatar :src="owing.photo" type="person" :name="owing.name" size="lg" shape="circle" />
                             </template>
-                            <p class="text-muted-foreground mt-1 text-[15px]">Owes</p>
-                            <p class="font-display text-4xl font-semibold tracking-tight">{{ formatMoney(owing.total) }}</p>
+                            <p class="text-muted-foreground mt-1 text-[15px]">
+                                {{ owing.total > 0 ? 'Owes' : owing.total < 0 ? 'In credit' : 'All paid up' }}
+                            </p>
+                            <p class="font-display text-4xl font-semibold tracking-tight">{{ formatMoney(Math.abs(owing.total)) }}</p>
                             <Link
                                 :href="customerLink(owing.id)"
                                 class="text-primary mt-2 inline-block text-sm font-medium underline-offset-4 hover:underline"
@@ -475,7 +528,7 @@ function closePane() {
                             >
                         </PaneHeader>
 
-                        <PaneSection v-if="props.canManage" title="Record a payment">
+                        <PaneSection v-if="props.canManage && owing.total > 0" title="Record a payment">
                             <div class="flex flex-wrap items-center gap-2">
                                 <select
                                     v-model="payMethod"
@@ -495,7 +548,7 @@ function closePane() {
                             </div>
                         </PaneSection>
 
-                        <PaneSection title="What they owe for">
+                        <PaneSection v-if="owing.visits.length || owing.charges.length" title="What they owe for">
                             <PaneList>
                                 <PaneItem v-for="(v, i) in owing.visits" :key="`v${i}`" :title="v.service" :sub="`${formatDay(v.date)}, ${v.pool}`">
                                     <template #trailing
@@ -515,10 +568,25 @@ function closePane() {
                             </PaneList>
                         </PaneSection>
 
+                        <PaneSection v-if="owing.payments.length" title="Payments">
+                            <PaneList>
+                                <PaneItem v-for="(p, i) in owing.payments" :key="i" :title="paymentTitle(p)" :sub="paymentSub(p)">
+                                    <template #trailing
+                                        ><span
+                                            class="tabular-nums"
+                                            :class="p.declined ? 'text-muted-foreground line-through' : 'text-emerald-700 dark:text-emerald-400'"
+                                            >{{ formatMoney(p.amount) }}</span
+                                        ></template
+                                    >
+                                </PaneItem>
+                            </PaneList>
+                        </PaneSection>
+
                         <PaneSection v-if="owing.invoices.length" title="Invoices">
                             <PaneList>
                                 <PaneItem v-for="inv in owing.invoices" :key="inv.id" :title="inv.number" :sub="invoiceLine(inv)">
                                     <div class="mt-1 flex gap-4">
+                                        <PaneAction :href="`/balances?view=invoices&selected=${inv.id}`">Open</PaneAction>
                                         <PaneAction :href="`/invoices/${inv.id}/pdf`" new-tab>PDF</PaneAction>
                                         <PaneAction v-if="props.canManage && inv.status !== 'void'" @click="emailInvoice(inv.id)">Email</PaneAction>
                                     </div>

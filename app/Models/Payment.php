@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property string $amount
  * @property string $status
  * @property string $method
+ * @property int|null $invoice_id
  * @property Carbon|null $paid_at
  */
 class Payment extends Model
@@ -32,6 +33,16 @@ class Payment extends Model
     protected function casts(): array
     {
         return ['amount' => 'decimal:2', 'paid_at' => 'datetime'];
+    }
+
+    /**
+     * The staff member who recorded it (null for card payments made online).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 
     /** @return BelongsTo<Customer, $this> */
