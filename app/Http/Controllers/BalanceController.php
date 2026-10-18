@@ -304,6 +304,7 @@ class BalanceController extends Controller
         $this->authorizeAdmin($request);
 
         $invoices = Invoice::query()->with('customer:id,first_name,last_name')->latest('issued_at')->latest('id')->get();
+        AuditLog::record($request->user(), 'invoices.exported', null, ['format' => 'csv', 'rows' => $invoices->count()]);
 
         return response()->streamDownload(function () use ($invoices): void {
             $out = fopen('php://output', 'w');

@@ -14,6 +14,7 @@ import PaneItem from '@/components/pane/PaneItem.vue';
 import PaneList from '@/components/pane/PaneList.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
@@ -26,7 +27,7 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users, Waves } from 'lucide-vue-next';
+import { Download, FileSpreadsheet, FileText, HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users, Waves } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -151,6 +152,21 @@ function openEmail() {
     emailForm.clearErrors();
     emailOpen.value = true;
 }
+/** Put the email form away; the checkboxes, and anyone ticked, go with it (a typed draft stays). */
+function closeEmail() {
+    emailOpen.value = false;
+    picked.value = [];
+    emailForm.clearErrors();
+}
+const toggleEmail = () => (emailOpen.value ? closeEmail() : openEmail());
+
+// Export: the list exactly as shown — same tab, search and sort, every page.
+function exportUrl(format: 'csv' | 'pdf') {
+    const q = new URLSearchParams({ format, sort: props.sort.key, dir: props.sort.dir });
+    if (props.filters.type !== 'all') q.set('type', props.filters.type);
+    if (props.filters.search) q.set('search', props.filters.search);
+    return `/people/export?${q}`;
+}
 function submitEmail() {
     emailForm.recipients = emailForm.audience === 'selected' ? [...picked.value] : [];
     emailForm.post('/people/email', {
@@ -264,7 +280,7 @@ function closePane() {
     if (anyFormOpen.value) {
         formOpen.value = false;
         agentFormOpen.value = false;
-        emailOpen.value = false;
+        if (emailOpen.value) closeEmail();
     } else {
         closeDrawer();
     }
@@ -470,10 +486,32 @@ function destroyAgent() {
             <Button v-if="props.canManage" size="sm" variant="outline" title="New agent" @click="openAgentCreate">
                 <HardHat class="size-4 sm:mr-1" /><span class="hidden sm:inline">Agent</span>
             </Button>
-            <Button v-if="props.canEmail" size="sm" variant="outline" title="Email selected" @click="openEmail">
+            <Button
+                v-if="props.canEmail"
+                size="sm"
+                :variant="emailOpen ? 'default' : 'outline'"
+                :aria-pressed="emailOpen"
+                :title="emailOpen ? 'Close the email form' : 'Email people'"
+                @click="toggleEmail"
+            >
                 <Mail class="size-4 sm:mr-1" /><span class="hidden sm:inline">Email</span
                 ><span v-if="picked.length" class="ml-1">({{ picked.length }})</span>
             </Button>
+            <DropdownMenu v-if="props.canManage">
+                <DropdownMenuTrigger as-child>
+                    <Button size="sm" variant="outline" title="Export this list">
+                        <Download class="size-4 sm:mr-1" /><span class="hidden sm:inline">Export</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem as-child>
+                        <a :href="exportUrl('csv')"><FileSpreadsheet class="mr-2 size-4" /> Spreadsheet (CSV)</a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem as-child>
+                        <a :href="exportUrl('pdf')"><FileText class="mr-2 size-4" /> PDF</a>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
@@ -760,7 +798,7 @@ function destroyAgent() {
                             </ul>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="emailOpen = false">Cancel</Button>
+                            <Button type="button" variant="outline" @click="closeEmail">Cancel</Button>
                             <Button type="submit" :disabled="emailForm.processing || emailCount === 0"
                                 ><Send class="mr-1 size-4" /> Send to {{ emailCount }}</Button
                             >

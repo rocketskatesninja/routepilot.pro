@@ -20,6 +20,7 @@ use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PeopleController;
+use App\Http\Controllers\PeopleExportController;
 use App\Http\Controllers\PlatformAiController;
 use App\Http\Controllers\PlatformBillingController;
 use App\Http\Controllers\PoolController;
@@ -128,6 +129,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
 
     // ---- Back-office writes + admin screens (tenant_admin) ----
     Route::middleware('role:tenant_admin')->group(function () {
+        Route::get('people/export', PeopleExportController::class)->name('people.export'); // the list as CSV/PDF
         Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
         Route::post('photos/{photo}/showcase', [VisitController::class, 'toggleShowcase'])->name('photos.showcase');
 

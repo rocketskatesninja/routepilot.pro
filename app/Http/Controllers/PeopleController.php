@@ -20,7 +20,6 @@ use App\Support\EmailPreferences;
 use App\Support\PersonListBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +30,7 @@ use Inertia\Response;
  */
 class PeopleController extends Controller
 {
-    public function index(Request $request, PersonListBuilder $builder, SendCampaign $campaigns, BillingService $billing): Response
+    public function index(Request $request, PersonListBuilder $builder, SendCampaign $campaigns): Response
     {
         $user = $request->user();
         if ($user?->isSuperAdmin()) {
@@ -41,33 +40,12 @@ class PeopleController extends Controller
         $this->authorizeStaff($request);
         $tenantId = (int) $user?->tenant_id;
 
-        $type = (string) $request->string('type');
-        if (! in_array($type, ['all', 'customers', 'agents', 'archived'], true)) {
-            $type = 'all';
-        }
-        $search = trim((string) $request->string('search'));
+        $filters = PersonListBuilder::filters($request);
+        $type = $filters['type'];
 
-        $sortKey = (string) $request->string('sort');
-        if (! in_array($sortKey, ['name', 'type', 'email', 'phone'], true)) {
-            $sortKey = 'name';
-        }
-        $sortDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
-
-        $people = $builder->paginate($tenantId, $type, $search, $this->perPage($request), $sortKey, $sortDir)->withQueryString();
-
-        // Enrich the current page's customer rows with balance + last visit (batched).
-        $customerIds = $people->getCollection()
-            ->filter(fn (object $r): bool => $r->person_type === 'customer')
-            ->map(fn (object $r): int => (int) $r->id)
-            ->values()->all();
-        $balances = $billing->balancesFor($customerIds);
-        $lastVisits = $this->lastVisitsFor($customerIds);
-        $portalStatuses = $this->portalStatusesFor($customerIds);
-        $people->setCollection($people->getCollection()->map(function (object $r) use ($balances, $lastVisits, $portalStatuses): object {
-            $isCustomer = $r->person_type === 'customer';
-            $r->balance = $isCustomer ? ($balances[(int) $r->id] ?? 0.0) : null;
-            $r->last_visit = $isCustomer ? ($lastVisits[(int) $r->id] ?? null) : null;
-            $r->portal_status = $isCustomer ? ($portalStatuses[(int) $r->id] ?? 'none') : null;
+        $people = $builder->paginate($tenantId, $filters, $this->perPage($request))->withQueryString();
+        // The current page's customer rows get their balance, last visit and portal login (batched).
+        $people->setCollection($builder->withDetails($people->getCollection())->map(function (object $r): object {
             $r->photo_url = $this->photoUrl($r->photo ?? null);
 
             return $r;
@@ -86,75 +64,15 @@ class PeopleController extends Controller
 
         return Inertia::render('people/Index', [
             'people' => $people,
-            'counts' => $builder->counts($tenantId, $search),
+            'counts' => $builder->counts($tenantId, $filters['search']),
             'selected' => $selected,
-            'filters' => ['search' => $search, 'type' => $type],
-            'sort' => ['key' => $sortKey, 'dir' => $sortDir],
+            'filters' => ['search' => $filters['search'], 'type' => $type],
+            'sort' => ['key' => $filters['sort'], 'dir' => $filters['dir']],
             'canManage' => $this->canManage($user),
             'canEmail' => $this->canManage($user),
             'audiences' => $this->canManage($user) ? $campaigns->audiencesFor($user) : [],
             'recent' => $this->recentCampaigns(),
         ]);
-    }
-
-    /**
-     * Most-recent completed-visit date per customer (one query).
-     *
-     * @param  list<int>  $customerIds
-     * @return array<int, string|null>
-     */
-    private function lastVisitsFor(array $customerIds): array
-    {
-        if ($customerIds === []) {
-            return [];
-        }
-
-        return ServiceVisit::query()
-            ->join('pools', 'service_visits.pool_id', '=', 'pools.id')
-            ->whereIn('pools.customer_id', $customerIds)
-            ->where('service_visits.status', 'completed')
-            ->groupBy('pools.customer_id')
-            ->selectRaw('pools.customer_id as cid, max(service_visits.completed_at) as last')
-            ->pluck('last', 'cid')
-            ->map(fn ($d): ?string => $d !== null ? Carbon::parse((string) $d)->toDateString() : null)
-            ->all();
-    }
-
-    /**
-     * Portal-login state per customer for the current page — 'active', 'revoked'
-     * (login soft-deleted, e.g. they deleted their own account) or 'none'.
-     * Batched into two queries to avoid a per-row lookup.
-     *
-     * @param  list<int>  $customerIds
-     * @return array<int, string>
-     */
-    private function portalStatusesFor(array $customerIds): array
-    {
-        if ($customerIds === []) {
-            return [];
-        }
-
-        $userIdByCustomer = Customer::withTrashed()
-            ->whereIn('id', $customerIds)
-            ->whereNotNull('user_id')
-            ->pluck('user_id', 'id');
-        if ($userIdByCustomer->isEmpty()) {
-            return [];
-        }
-
-        $deletedByUserId = User::withTrashed()
-            ->whereIn('id', $userIdByCustomer->values()->all())
-            ->pluck('deleted_at', 'id');
-
-        $out = [];
-        foreach ($userIdByCustomer as $customerId => $userId) {
-            if (! $deletedByUserId->has($userId)) {
-                continue; // dangling reference → treated as no portal ('none')
-            }
-            $out[(int) $customerId] = $deletedByUserId[$userId] === null ? 'active' : 'revoked';
-        }
-
-        return $out;
     }
 
     /** Super-admin platform-wide People (manage + broadcast), table+drawer like the tenant screen. */
