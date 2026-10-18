@@ -28,8 +28,8 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 </script>
 
 <template>
-    <!-- The showcase side gets 60% so the screenshots can be big; the form keeps at least 30rem. -->
-    <div class="grid min-h-svh lg:grid-cols-[minmax(0,3fr)_minmax(30rem,2fr)]">
+    <!-- The showcase side gets two thirds so the screenshots can be big; the form keeps at least 30rem. -->
+    <div class="grid min-h-svh lg:grid-cols-[minmax(0,2fr)_minmax(30rem,1fr)]">
         <!-- Brand panel (desktop) -->
         <div
             class="relative hidden flex-col justify-between overflow-hidden p-10 text-white lg:flex [@media(max-height:50rem)]:p-6"
@@ -56,14 +56,17 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                 <ArrowLeft class="size-4" /> Back to home
             </Link>
 
-            <!-- Product showcase: the real app, desktop + mobile, light/dark aware. Up to 50.4rem wide,
+            <!-- Product showcase: the real app, desktop + mobile, light/dark aware. Up to 58rem wide,
                  but never so tall that the panel outgrows the window: its padding, logo, margins,
                  tagline and the frame's browser bar take 18rem, and the screen is 16:10. On a short
                  window (a laptop) the padding tightens to 14.5rem, so the screenshots can stay big
-                 without the page scrolling. -->
-            <div class="relative z-10 my-8 flex flex-1 items-center justify-center [@media(max-height:50rem)]:my-5">
+                 without the page scrolling. Spare height splits one part above to two below, so it
+                 sits a little above centre; with no spare height it simply fills the space. On
+                 taller windows it may reach 1rem into the panel's side padding. -->
+            <div class="relative z-10 -mx-4 my-8 flex flex-1 flex-col [@media(max-height:50rem)]:mx-0 [@media(max-height:50rem)]:my-5">
+                <div class="flex-1" aria-hidden="true"></div>
                 <div
-                    class="relative mx-auto w-full max-w-[min(50.4rem,calc((100svh-18rem)*1.6))] [@media(max-height:50rem)]:max-w-[min(50.4rem,calc((100svh-14.5rem)*1.6))]"
+                    class="relative mx-auto w-full max-w-[min(58rem,calc((100svh-18rem)*1.6))] [@media(max-height:50rem)]:max-w-[min(58rem,calc((100svh-14.5rem)*1.6))]"
                 >
                     <div class="[rotate:-1.5deg] overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40">
                         <div class="flex items-center gap-2 bg-slate-800 px-3 py-2 text-slate-400">
@@ -120,6 +123,7 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                         </div>
                     </div>
                 </div>
+                <div class="flex-[2]" aria-hidden="true"></div>
             </div>
 
             <!-- Each line stays on one line: full size from 1280px up, scaled to the panel's width below that. -->
