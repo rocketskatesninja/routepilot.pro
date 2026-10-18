@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
+import { visitQuery } from '@/lib/listQuery';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -21,11 +21,8 @@ const icon = computed(() => (dir.value === 'asc' ? ArrowUp : dir.value === 'desc
 
 function toggle() {
     const next = isActive.value && dir.value === 'asc' ? 'desc' : 'asc';
-    const url = new URL(usePage().url, 'http://localhost');
-    url.searchParams.set('sort', props.sortKey);
-    url.searchParams.set('dir', next);
-    url.searchParams.delete('page'); // a new order invalidates the current page
-    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true, replace: true });
+    // A new order invalidates the current page.
+    visitQuery({ sort: props.sortKey, dir: next, page: undefined }, { replace: true });
 }
 </script>
 

@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { POOL_TYPES } from '@/lib/labels';
 import { customerLink, poolLink, telLink } from '@/lib/links';
+import { visitQuery } from '@/lib/listQuery';
 import { cap } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
@@ -112,10 +113,10 @@ const visit = (tab: string, status: string, selected?: number, keep = true) =>
     );
 const setTab = (tab: string) => visit(tab, 'open', undefined, false);
 const setStatus = (status: string) => visit(props.tab, status);
-const open = (id: number) => visit(props.tab, props.status, id);
+const open = (id: number) => visitQuery({ selected: id });
 const closePane = () => {
     if (mode.value !== 'none') mode.value = 'none';
-    else visit(props.tab, props.status);
+    else visitQuery({ selected: undefined });
 };
 
 const tabs = computed(() => [

@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink } from '@/lib/links';
+import { visitQuery } from '@/lib/listQuery';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
@@ -70,11 +71,10 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Inventory', href: '/inventory' }];
 
-const { search } = useListSearch('/inventory', props.filters.search);
+const { search } = useListSearch(props.filters.search);
 
-const open = (id: number) =>
-    router.get('/inventory', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
-const closeDrawer = () => router.get('/inventory', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
+const open = (id: number) => visitQuery({ search: search.value || undefined, selected: id });
+const closeDrawer = () => visitQuery({ search: search.value || undefined, selected: undefined });
 const money = formatMoney;
 
 // --- the side panel ---

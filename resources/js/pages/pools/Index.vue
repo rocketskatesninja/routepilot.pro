@@ -22,6 +22,7 @@ import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { SCHEDULES } from '@/lib/labels';
 import { agentLink, customerLink, reportLink } from '@/lib/links';
+import { visitQuery } from '@/lib/listQuery';
 import { cap, checkWater, describePool, waterSummary } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
@@ -145,11 +146,10 @@ type Subscription = PoolDetail['subscriptions'][number];
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pools', href: '/pools' }];
 
-const { search } = useListSearch('/pools', props.filters.search);
+const { search } = useListSearch(props.filters.search);
 
-const openPool = (id: number) =>
-    router.get('/pools', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
-const closeDrawer = () => router.get('/pools', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
+const openPool = (id: number) => visitQuery({ search: search.value || undefined, selected: id });
+const closeDrawer = () => visitQuery({ search: search.value || undefined, selected: undefined });
 
 // The detail pane is shared: it hosts the create/edit/sub-action forms when one
 // is open, otherwise the selected pool's detail. Every form is a sub-action of

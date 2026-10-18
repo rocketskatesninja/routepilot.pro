@@ -18,11 +18,12 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { targetsFor } from '@/lib/chemistry';
 import { agentLink, customerLink } from '@/lib/links';
+import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Check, FileText, Minus, Pencil, Plus, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -76,8 +77,8 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Reports', href: '/reports' }];
 
-const open = (id: number) => router.get('/reports', { selected: id }, { preserveState: true, preserveScroll: true });
-const closeDrawer = () => router.get('/reports', {}, { preserveState: true, preserveScroll: true });
+const open = (id: number) => visitQuery({ selected: id });
+const closeDrawer = () => visitQuery({ selected: undefined });
 
 const readingLabels: Record<keyof Reading, string> = {
     free_chlorine: 'Free Cl',

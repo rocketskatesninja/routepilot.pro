@@ -20,6 +20,7 @@ import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { POOL_TYPES } from '@/lib/labels';
 import { composeLink, poolLink, reportLink, telLink } from '@/lib/links';
+import { visitQuery } from '@/lib/listQuery';
 import { andList, monthYear } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
@@ -187,7 +188,7 @@ const tabs = [
     { key: 'archived', label: 'Archived' },
 ] as const;
 
-const { search } = useListSearch('/people', props.filters.search, { extra: () => ({ type: tab() }) });
+const { search } = useListSearch(props.filters.search, { extra: () => ({ type: tab() }) });
 
 const tab = () => (props.filters.type === 'all' ? undefined : props.filters.type);
 
@@ -200,15 +201,11 @@ function setType(type: 'all' | 'customers' | 'agents' | 'archived') {
 }
 
 function openPerson(person: PersonRow) {
-    router.get(
-        '/people',
-        { search: search.value || undefined, type: tab(), selected: person.id, selected_type: person.person_type },
-        { preserveState: true, preserveScroll: true },
-    );
+    visitQuery({ search: search.value || undefined, type: tab(), selected: person.id, selected_type: person.person_type });
 }
 
 function closeDrawer() {
-    visit({ search: search.value || undefined, type: tab() });
+    visitQuery({ search: search.value || undefined, type: tab(), selected: undefined, selected_type: undefined });
 }
 
 const fullName = (p: PersonRow) => `${p.first_name} ${p.last_name ?? ''}`.trim();

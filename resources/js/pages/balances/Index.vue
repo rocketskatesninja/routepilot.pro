@@ -16,11 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { customerLink } from '@/lib/links';
+import { visitQuery } from '@/lib/listQuery';
 import { cap } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Ban, CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -91,20 +92,9 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }];
 const money = formatMoney;
-const page = usePage();
 
-// Merge a patch onto the current query and navigate — preserves sort/status/etc.
-function navigate(patch: Record<string, string | number | undefined>) {
-    const url = new URL(page.url, 'http://localhost');
-    for (const [k, v] of Object.entries(patch)) {
-        if (v === undefined || v === '') url.searchParams.delete(k);
-        else url.searchParams.set(k, String(v));
-    }
-    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
-}
-
-const open = (id: number) => navigate({ selected: id });
-const closeDrawer = () => navigate({ selected: undefined });
+const open = (id: number) => visitQuery({ selected: id });
+const closeDrawer = () => visitQuery({ selected: undefined });
 
 const tabs = [
     { key: 'owing', label: 'Owing' },
@@ -112,7 +102,7 @@ const tabs = [
 ] as const;
 function setView(v: 'owing' | 'invoices') {
     // Each view has its own sort/status/selection, so reset them on switch.
-    navigate({ view: v === 'owing' ? undefined : v, selected: undefined, sort: undefined, dir: undefined, status: undefined, page: undefined });
+    visitQuery({ view: v === 'owing' ? undefined : v, selected: undefined, sort: undefined, dir: undefined, status: undefined, page: undefined });
 }
 
 const statusFilters = [
@@ -123,7 +113,7 @@ const statusFilters = [
     { key: 'draft', label: 'Draft' },
     { key: 'void', label: 'Void' },
 ];
-const setStatus = (s: string) => navigate({ status: s || undefined, selected: undefined, page: undefined });
+const setStatus = (s: string) => visitQuery({ status: s || undefined, selected: undefined, page: undefined });
 
 const statusClass = (s: string): string =>
     ({

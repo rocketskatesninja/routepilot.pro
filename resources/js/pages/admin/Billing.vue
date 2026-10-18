@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { visitQuery } from '@/lib/listQuery';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, useForm } from '@inertiajs/vue3';
 import { Building2, Gift } from 'lucide-vue-next';
 import { computed, watch } from 'vue';
 
@@ -84,10 +85,10 @@ const arr = computed(() => props.metrics.mrr * 12);
 // Server-driven selection (mirrors people/Index): the ?selected id round-trips
 // so the panel gets the tenant's full billing detail without an extra fetch.
 function openTenant(row: TenantRow) {
-    router.get('/platform/billing', { selected: row.id }, { preserveState: true, preserveScroll: true });
+    visitQuery({ selected: row.id });
 }
 function closePane() {
-    router.get('/platform/billing', {}, { preserveState: true, preserveScroll: true });
+    visitQuery({ selected: undefined });
 }
 
 // The editor form, kept in sync with whichever tenant is selected.

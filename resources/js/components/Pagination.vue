@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
+import { visitQuery } from '@/lib/listQuery';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { computed } from 'vue';
 
@@ -12,15 +12,11 @@ const props = defineProps<{
     meta: { current_page: number; last_page: number; total: number; from: number | null; to: number | null };
 }>();
 
-const page = usePage();
-
 function go(p: number) {
     if (p < 1 || p > props.meta.last_page || p === props.meta.current_page) {
         return;
     }
-    const url = new URL(page.url, 'http://localhost');
-    url.searchParams.set('page', String(p));
-    router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true });
+    visitQuery({ page: p });
 }
 
 // A compact window of page numbers around the current page.

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { visitQuery } from '@/lib/listQuery';
 import { andList, iconFor, soldAs as portalSoldAs, price } from '@/lib/portal';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
@@ -69,11 +70,10 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Services', href: '/services' }];
-const { search } = useListSearch('/services', props.filters.search);
+const { search } = useListSearch(props.filters.search);
 
-const open = (id: number) =>
-    router.get('/services', { search: search.value || undefined, selected: id }, { preserveState: true, preserveScroll: true });
-const closeDrawer = () => router.get('/services', { search: search.value || undefined }, { preserveState: true, preserveScroll: true });
+const open = (id: number) => visitQuery({ search: search.value || undefined, selected: id });
+const closeDrawer = () => visitQuery({ search: search.value || undefined, selected: undefined });
 const money = formatMoney;
 
 // How a service is sold, in plain words.
