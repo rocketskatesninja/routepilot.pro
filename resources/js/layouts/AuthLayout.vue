@@ -56,12 +56,12 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 
             <!-- Product showcase: the real app, desktop + mobile, light/dark aware. Up to 50.4rem wide,
                  but never so tall that the panel outgrows the window: its padding, logo, margins,
-                 tagline and the frame's browser bar take 21.5rem, and the screen is 16:10. On a
-                 short window (a laptop) the padding tightens and the tagline drops its second line,
-                 leaving 14.5rem, so the screenshots can stay big without the page scrolling. -->
+                 tagline and the frame's browser bar take 18rem, and the screen is 16:10. On a short
+                 window (a laptop) the padding tightens to 14.5rem, so the screenshots can stay big
+                 without the page scrolling. -->
             <div class="relative z-10 my-8 flex flex-1 items-center justify-center [@media(max-height:50rem)]:my-5">
                 <div
-                    class="relative mx-auto w-full max-w-[min(50.4rem,calc((100svh-21.5rem)*1.6))] [@media(max-height:50rem)]:max-w-[min(50.4rem,calc((100svh-14.5rem)*1.6))]"
+                    class="relative mx-auto w-full max-w-[min(50.4rem,calc((100svh-18rem)*1.6))] [@media(max-height:50rem)]:max-w-[min(50.4rem,calc((100svh-14.5rem)*1.6))]"
                 >
                     <div class="[rotate:-1.5deg] overflow-hidden rounded-xl border border-white/15 shadow-2xl ring-1 ring-black/40">
                         <div class="flex items-center gap-2 bg-slate-800 px-3 py-2 text-slate-400">
@@ -120,9 +120,12 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                 </div>
             </div>
 
-            <div class="relative z-10 max-w-md">
-                <p class="text-2xl leading-snug font-bold">Route smarter. Dose precisely.<br />Get paid faster.</p>
-                <p class="mt-3 text-sm text-sky-100/70 [@media(max-height:50rem)]:hidden">
+            <!-- Each line stays on one line: full size from 1280px up, scaled to the panel's width below that. -->
+            <div class="@container relative z-10">
+                <p class="text-[length:min(1.5rem,4.4cqi)] leading-snug font-bold whitespace-nowrap">
+                    Route smarter. Dose precisely. Get paid faster.
+                </p>
+                <p class="mt-3 text-[length:min(0.875rem,2.2cqi)] whitespace-nowrap text-sky-100/70">
                     The complete pool service platform — routing, chemistry, billing, and a customer portal in one place.
                 </p>
             </div>
