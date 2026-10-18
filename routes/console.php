@@ -20,7 +20,7 @@ Schedule::command('app:materialize-schedules')->dailyAt('02:00');
 Schedule::command('app:estimate-arrivals')->dailyAt('02:15'); // drive-time ETAs for the freshly materialized routes
 Schedule::command('app:flag-overdue-invoices')->dailyAt('03:00');
 Schedule::command('app:geocode-locations')->dailyAt('03:30'); // retry any locations missing coordinates
-Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00');
+Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00')->withoutOverlapping();
 Schedule::command('app:charge-autopay')->monthlyOn(2, '05:00')->withoutOverlapping();
 Schedule::command('app:retry-autopay')->dailyAt('06:00')->withoutOverlapping();
 Schedule::command('app:reconcile-stripe-payments')->hourly()->withoutOverlapping(); // settle Checkout payments a webhook missed

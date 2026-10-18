@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\GenerateInvoice;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Pool;
@@ -28,17 +29,15 @@ test('the materialize command creates route stops for active subscriptions', fun
     expect(RouteStop::query()->count())->toBeGreaterThan(0);
 });
 
-test('the overdue command flags sent invoices past due', function () {
+test('the overdue command flags unpaid invoices past due', function () {
     $customer = Customer::factory()->for($this->tenant)->create();
-    $invoice = Invoice::create([
-        'customer_id' => $customer->id, 'number' => 'INV-1', 'status' => 'sent',
-        'subtotal' => 50, 'tax' => 0, 'total' => 50, 'amount_paid' => 0,
-        'issued_at' => now()->subDays(40), 'due_at' => now()->subDays(10),
-    ]);
+    manualCharge($customer, 50, 'Weekly service');
+    $invoice = app(GenerateInvoice::class)->handle($customer);
+    $invoice?->update(['status' => 'sent', 'due_at' => now()->subDays(10)]);
 
     $this->artisan('app:flag-overdue-invoices')->assertSuccessful();
 
-    expect($invoice->fresh()?->status)->toBe('overdue');
+    expect($invoice?->fresh()?->status)->toBe('overdue');
 });
 
 test('the monthly command invoices owing customers', function () {

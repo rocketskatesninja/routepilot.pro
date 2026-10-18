@@ -7,7 +7,6 @@ use App\Actions\CompleteVisit;
 use App\Actions\CreateSubscription;
 use App\Actions\DeleteSubscription;
 use App\Actions\GenerateInvoice;
-use App\Actions\MarkInvoicePaid;
 use App\Actions\RecordPayment;
 use App\Actions\SettleCheckoutSession;
 use App\Actions\UpdateSubscription;
@@ -168,7 +167,7 @@ test('a partial payment lowers the balance and leaves the invoice open', functio
 
     expect(balanceOf($this->customer))->toBe(70.0)
         ->and((float) $invoice->fresh()->amount_paid)->toBe(30.0)
-        ->and($invoice->fresh()->status)->toBe('sent');
+        ->and($invoice->fresh()->status)->toBe('draft'); // still open, and never emailed
 });
 
 test('marking an invoice paid pays that invoice — not an older one', function () {
@@ -180,7 +179,7 @@ test('marking an invoice paid pays that invoice — not an older one', function 
     completeNext($plan);
     $newer = app(GenerateInvoice::class)->handle($this->customer); // $100
 
-    app(MarkInvoicePaid::class)->handle($newer, 'cash', $this->admin->id);
+    app(RecordPayment::class)->handle($this->customer, 'cash', $this->admin->id, invoice: $newer);
 
     expect($newer->fresh()->status)->toBe('paid')
         ->and($older->fresh()->status)->not->toBe('paid')

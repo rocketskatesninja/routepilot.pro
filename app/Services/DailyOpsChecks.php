@@ -257,12 +257,13 @@ class DailyOpsChecks
         return $sent;
     }
 
-    /** Remind portal customers who have a bill past its due date. */
+    /** Remind portal customers who have a bill past its due date — weekly, not every morning. */
     private function overdueCustomerBalances(): int
     {
         $customers = Customer::query()
             ->whereHas('invoices', fn ($q) => $q->where('status', 'overdue'))
             ->whereNotNull('user_id')
+            ->whereDoesntHave('user.notifications', fn ($q) => $q->where('type', BalanceReminder::class)->where('created_at', '>=', now()->subDays(7)))
             ->with('user')
             ->get();
 

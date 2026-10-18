@@ -22,7 +22,8 @@ use Illuminate\Support\Str;
  *  - Tax is worked out per charge, when the charge is created.
  *  - Payments made against an invoice pay that invoice first; everything else
  *    (and any credits) pays the oldest charges first. Invoice paid/overdue
- *    status always follows from that.
+ *    status always follows from that, here in refreshInvoices() and nowhere
+ *    else.
  */
 class BillingService
 {
@@ -161,9 +162,11 @@ class BillingService
         foreach ($invoices as $invoice) {
             $total = round((float) $invoice->charges->sum(fn (Charge $c): float => $c->total()), 2);
             $left = round((float) $invoice->charges->sum(fn (Charge $c): float => max(0.0, $unpaid[$c->id] ?? 0.0)), 2);
+            // Overdue is about money still owed: an invoice with nothing left on
+            // it is never overdue, however old it is.
             $status = match (true) {
                 $total > 0 && $left <= 0 => 'paid',
-                $invoice->due_at !== null && $invoice->due_at->toDateString() < $today => 'overdue',
+                $left > 0 && $invoice->due_at !== null && $invoice->due_at->toDateString() < $today => 'overdue',
                 $invoice->status === 'draft' => 'draft',
                 default => 'sent',
             };
@@ -227,7 +230,7 @@ class BillingService
     /** The visit's date in the company's own time zone. */
     private function localDate(ServiceVisit $visit): string
     {
-        $tz = (string) ($visit->tenant?->getAttribute('timezone') ?: config('app.timezone'));
+        $tz = $visit->tenant?->timezoneName() ?? (string) config('app.timezone');
 
         return ($visit->completed_at ?? now())->copy()->setTimezone($tz)->toDateString();
     }

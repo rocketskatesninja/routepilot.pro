@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\AddManualCharge;
 use App\Actions\GenerateInvoice;
 use App\Actions\RecordPayment;
+use App\Actions\SendInvoice;
 use App\Http\Requests\RecordPaymentRequest;
 use App\Http\Requests\StoreManualChargeRequest;
 use App\Models\AuditLog;
@@ -14,20 +15,23 @@ use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\PaymentMethod;
+use App\Models\Tenant;
 use App\Services\BillingService;
 use App\Support\OptionLists;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Back-office Balances screen — accounts receivable. Lists every customer
- * who owes (highest first); the drawer breaks the balance down by unpaid
- * visit and manual charge. Mark-paid / send-invoice are Phase-6 actions
- * (they need the payment + invoice-generation flow).
+ * Back-office Balances screen — accounts receivable. Two views: who owes
+ * (highest first; the side panel breaks a balance down by unpaid visit and
+ * charge) and the invoices list (the side panel shows one invoice). Plus the
+ * money actions: add a charge, record a payment, invoice a customer now.
  */
 class BalanceController extends Controller
 {
@@ -42,12 +46,42 @@ class BalanceController extends Controller
 
         // Owing summary: drives the owing list, the header total, and the tab badge.
         $balances = $billing->outstandingBalances();
+        [$owing, $owingSort] = $this->owingPage($request, $balances);
+        [$invoices, $invoiceSort, $invoiceStatus] = $view === 'invoices' ? $this->invoicePage($request) : [null, null, ''];
 
-        // Batch-load the saved default cards so the Autopay column can show the
-        // card without an N+1 (one query covers every owing customer).
-        $cardIds = $balances->map(fn (array $r) => $r['customer']->getAttribute('default_payment_method_id'))
-            ->filter()->unique()->values()->all();
-        $cards = PaymentMethod::query()->whereIn('id', $cardIds)->get()->keyBy('id');
+        $selectedId = $request->integer('selected');
+        $selected = match (true) {
+            $selectedId <= 0 => null,
+            $view === 'invoices' => $this->invoiceDetail($selectedId),
+            default => $this->owingDetail($selectedId, $billing),
+        };
+
+        return Inertia::render('balances/Index', [
+            'view' => $view,
+            'balances' => $owing,
+            'invoices' => $invoices,
+            'counts' => ['owing' => $balances->count(), 'invoices' => Invoice::query()->count()],
+            'total' => round((float) $balances->sum(fn (array $r): float => $r['balance']), 2),
+            'selected' => $selected,
+            'sort' => $view === 'invoices' ? $invoiceSort : $owingSort,
+            'invoiceStatus' => $invoiceStatus,
+            'canManage' => $this->canManage($request->user()),
+            'customers' => OptionLists::customers(),
+        ]);
+    }
+
+    /**
+     * The owing list, sorted and paged in memory (balances are computed, not
+     * queried).
+     *
+     * @param  Collection<int, array{customer: Customer, balance: float}>  $balances
+     * @return array{0: LengthAwarePaginator<int, covariant array<string, mixed>>, 1: array{key: string, dir: string}}
+     */
+    private function owingPage(Request $request, Collection $balances): array
+    {
+        $customers = (new EloquentCollection($balances->pluck('customer')->all()))->loadCount('pools');
+        // The saved default cards, for the Autopay column, in one query.
+        $cards = PaymentMethod::query()->whereIn('id', $customers->pluck('default_payment_method_id')->filter()->unique())->get()->keyBy('id');
 
         $rows = $balances->map(function (array $r) use ($cards): array {
             $c = $r['customer'];
@@ -58,7 +92,7 @@ class BalanceController extends Controller
                 'name' => $c->displayName(),
                 'photo' => $this->photoUrl($c->getAttribute('photo_path')),
                 'balance' => $r['balance'],
-                'pools' => $c->pools->count(),
+                'pools' => (int) $c->getAttribute('pools_count'),
                 'autopay' => (bool) $c->getAttribute('autopay_enabled'),
                 'card' => $pm !== null
                     ? trim(ucfirst((string) $pm->getAttribute('brand')).' •••• '.$pm->getAttribute('last4'))
@@ -66,130 +100,122 @@ class BalanceController extends Controller
             ];
         })->all();
 
-        // The owing list is computed (not a query), so it sorts in memory.
-        $owingKey = (string) $request->string('sort');
-        if (! in_array($owingKey, ['name', 'pools', 'balance'], true)) {
-            $owingKey = 'balance';
-            $owingDir = 'desc';
+        $key = (string) $request->string('sort');
+        if (! in_array($key, ['name', 'pools', 'balance'], true)) {
+            [$key, $dir] = ['balance', 'desc'];
         } else {
-            $owingDir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
+            $dir = strtolower((string) $request->string('dir')) === 'desc' ? 'desc' : 'asc';
         }
-        usort($rows, fn (array $a, array $b): int => match ($owingKey) {
+        usort($rows, fn (array $a, array $b): int => match ($key) {
             'name' => strcasecmp((string) $a['name'], (string) $b['name']),
             'pools' => $a['pools'] <=> $b['pools'],
             default => $a['balance'] <=> $b['balance'],
         });
-        if ($owingDir === 'desc') {
+        if ($dir === 'desc') {
             $rows = array_reverse($rows);
         }
 
-        // Paginate the (sorted) owing list in memory so it pages like the others.
-        $owingPerPage = $this->perPage($request);
-        $owingPage = max(1, $request->integer('page'));
-        $owing = new LengthAwarePaginator(
-            array_slice($rows, ($owingPage - 1) * $owingPerPage, $owingPerPage),
-            count($rows),
-            $owingPerPage,
-            $owingPage,
-            ['path' => $request->url(), 'query' => $request->query()],
-        );
+        $perPage = $this->perPage($request);
+        $page = max(1, $request->integer('page'));
+        $paginator = new LengthAwarePaginator(array_slice($rows, ($page - 1) * $perPage, $perPage), count($rows), $perPage, $page,
+            ['path' => $request->url(), 'query' => $request->query()]);
 
-        // Invoices view: a paginated, sortable, status-filterable list.
-        $invoices = null;
-        $invoiceSort = null;
-        $invoiceStatus = '';
-        if ($view === 'invoices') {
-            $statusFilter = (string) $request->string('status');
-            $valid = in_array($statusFilter, ['draft', 'sent', 'overdue', 'paid', 'void'], true);
-            $query = Invoice::query()
-                ->with('customer:id,first_name,last_name')
-                ->when($valid, fn ($q) => $q->where('status', $statusFilter));
-            $invoiceSort = $this->applySort($query, $request, [
-                'number' => 'number',
-                'issued' => 'issued_at',
-                'due' => 'due_at',
-                'total' => 'total',
-                'status' => 'status',
-                'customer' => fn ($q, $dir) => $q->orderBy(Customer::query()->select('first_name')->whereColumn('customers.id', 'invoices.customer_id'), $dir),
-            ], 'issued', 'desc');
-            $invoices = $query->paginate($this->perPage($request))->withQueryString()->through(fn (Invoice $i): array => [
-                'id' => $i->id,
-                'number' => $i->number,
-                'customer' => $i->customer?->displayName(),
-                'customer_id' => $i->getAttribute('customer_id'),
-                'issued_on' => $i->issued_at?->toDateString(),
-                'due_on' => $i->due_at?->toDateString(),
-                'total' => (float) $i->total,
-                'balance' => $i->balance(),
-                'status' => $i->status,
-            ]);
-            $invoiceStatus = $valid ? $statusFilter : '';
-        }
+        return [$paginator, ['key' => $key, 'dir' => $dir]];
+    }
 
-        // Detail pane: an invoice (invoices view) or a customer breakdown (owing).
-        $selected = null;
-        $selectedId = $request->integer('selected');
-        if ($selectedId > 0 && $view === 'invoices') {
-            $invoice = Invoice::query()->with(['customer:id,first_name,last_name', 'charges'])->find($selectedId);
-            if ($invoice !== null) {
-                $selected = [
-                    'kind' => 'invoice',
-                    'id' => $invoice->id,
-                    'number' => $invoice->number,
-                    'status' => $invoice->status,
-                    'customer' => $invoice->customer?->displayName(),
-                    'customer_id' => $invoice->getAttribute('customer_id'),
-                    'period_start' => $invoice->period_start?->toDateString(),
-                    'period_end' => $invoice->period_end?->toDateString(),
-                    'issued_on' => $invoice->issued_at?->toDateString(),
-                    'due_on' => $invoice->due_at?->toDateString(),
-                    'subtotal' => (float) $invoice->subtotal,
-                    'tax' => (float) $invoice->tax,
-                    'total' => (float) $invoice->total,
-                    'amount_paid' => (float) $invoice->amount_paid,
-                    'balance' => $invoice->balance(),
-                    'line_items' => $invoice->charges->map(fn (Charge $c): array => [
-                        'description' => $c->description,
-                        'amount' => (float) $c->amount,
-                    ])->all(),
-                ];
-            }
-        } elseif ($selectedId > 0) {
-            $customer = Customer::query()->find($selectedId);
-            if ($customer !== null) {
-                $selected = [
-                    'kind' => 'owing',
-                    'id' => $customer->id,
-                    'name' => $customer->displayName(),
-                    'photo' => $this->photoUrl($customer->getAttribute('photo_path')),
-                    ...$billing->breakdownForCustomer($customer),
-                    'invoices' => Invoice::query()
-                        ->where('customer_id', $customer->id)
-                        ->latest('issued_at')->latest('id')->limit(10)->get()
-                        ->map(fn (Invoice $i): array => [
-                            'id' => $i->id,
-                            'number' => $i->number,
-                            'status' => $i->status,
-                            'total' => (float) $i->total,
-                            'balance' => $i->balance(),
-                            'issued_on' => $i->issued_at?->toDateString(),
-                        ])->all(),
-                ];
-            }
-        }
-
-        return Inertia::render('balances/Index', [
-            'view' => $view,
-            'balances' => $owing,
-            'invoices' => $invoices,
-            'counts' => ['owing' => count($rows), 'invoices' => Invoice::query()->count()],
-            'total' => round((float) $balances->sum(fn (array $r): float => $r['balance']), 2),
-            'selected' => $selected,
-            'sort' => $view === 'invoices' ? $invoiceSort : ['key' => $owingKey, 'dir' => $owingDir],
-            'invoiceStatus' => $invoiceStatus,
-            'canManage' => $this->canManage($request->user()),
-            'customers' => OptionLists::customers(),
+    /**
+     * The invoices list: paginated, sortable, filterable by status.
+     *
+     * @return array{0: LengthAwarePaginator<int, covariant array<string, mixed>>, 1: array{key: string, dir: string}, 2: string}
+     */
+    private function invoicePage(Request $request): array
+    {
+        $status = (string) $request->string('status');
+        $valid = in_array($status, ['draft', 'sent', 'overdue', 'paid', 'void'], true);
+        $query = Invoice::query()
+            ->with('customer:id,first_name,last_name')
+            ->when($valid, fn ($q) => $q->where('status', $status));
+        $sort = $this->applySort($query, $request, [
+            'number' => 'number',
+            'issued' => 'issued_at',
+            'due' => 'due_at',
+            'total' => 'total',
+            'status' => 'status',
+            'customer' => fn ($q, $dir) => $q->orderBy(Customer::query()->select('first_name')->whereColumn('customers.id', 'invoices.customer_id'), $dir),
+        ], 'issued', 'desc');
+        $invoices = $query->paginate($this->perPage($request))->withQueryString()->through(fn (Invoice $i): array => [
+            'id' => $i->id,
+            'number' => $i->number,
+            'customer' => $i->customer?->displayName(),
+            'customer_id' => $i->getAttribute('customer_id'),
+            'issued_on' => Tenant::localDate($i->issued_at),
+            'due_on' => $i->due_at?->toDateString(),
+            'total' => (float) $i->total,
+            'balance' => $i->balance(),
+            'status' => $i->status,
         ]);
+
+        return [$invoices, $sort, $valid ? $status : ''];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function invoiceDetail(int $id): ?array
+    {
+        $invoice = Invoice::query()->with(['customer:id,first_name,last_name,email', 'charges'])->find($id);
+        if ($invoice === null) {
+            return null;
+        }
+
+        return [
+            'kind' => 'invoice',
+            'id' => $invoice->id,
+            'number' => $invoice->number,
+            'status' => $invoice->status,
+            'customer' => $invoice->customer?->displayName(),
+            'customer_id' => $invoice->getAttribute('customer_id'),
+            'has_email' => filled($invoice->customer?->email),
+            'period_start' => $invoice->period_start?->toDateString(),
+            'period_end' => $invoice->period_end?->toDateString(),
+            'issued_on' => Tenant::localDate($invoice->issued_at),
+            'due_on' => $invoice->due_at?->toDateString(),
+            'subtotal' => (float) $invoice->subtotal,
+            'tax' => (float) $invoice->tax,
+            'total' => (float) $invoice->total,
+            'amount_paid' => (float) $invoice->amount_paid,
+            'balance' => $invoice->balance(),
+            'line_items' => $invoice->charges->map(fn (Charge $c): array => [
+                'description' => $c->description,
+                'amount' => (float) $c->amount,
+            ])->all(),
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function owingDetail(int $customerId, BillingService $billing): ?array
+    {
+        $customer = Customer::query()->find($customerId);
+        if ($customer === null) {
+            return null;
+        }
+
+        return [
+            'kind' => 'owing',
+            'id' => $customer->id,
+            'name' => $customer->displayName(),
+            'photo' => $this->photoUrl($customer->getAttribute('photo_path')),
+            ...$billing->breakdownForCustomer($customer),
+            'invoices' => Invoice::query()
+                ->where('customer_id', $customer->id)
+                ->latest('issued_at')->latest('id')->limit(10)->get()
+                ->map(fn (Invoice $i): array => [
+                    'id' => $i->id,
+                    'number' => $i->number,
+                    'status' => $i->status,
+                    'total' => (float) $i->total,
+                    'balance' => $i->balance(),
+                    'issued_on' => Tenant::localDate($i->issued_at),
+                ])->all(),
+        ];
     }
 
     public function addCharge(StoreManualChargeRequest $request, AddManualCharge $action): RedirectResponse
@@ -216,13 +242,22 @@ class BalanceController extends Controller
         return back()->with('success', $payment !== null ? 'Payment recorded.' : 'Nothing outstanding.');
     }
 
-    public function generateInvoice(Request $request, Customer $customer, GenerateInvoice $action): RedirectResponse
+    /** "Invoice now": bill what isn't on an invoice yet and email it, like the monthly run. */
+    public function generateInvoice(Request $request, Customer $customer, GenerateInvoice $generate, SendInvoice $send): RedirectResponse
     {
         $this->authorizeAdmin($request);
 
-        $invoice = $action->handle($customer);
+        $invoice = $generate->handle($customer);
+        if ($invoice === null) {
+            return back()->with('error', 'Everything this customer owes is already on an invoice.');
+        }
+        AuditLog::record($request->user(), 'invoice.created', $invoice, ['customer_id' => $customer->id, 'total' => (float) $invoice->total]);
 
-        return back()->with('success', $invoice !== null ? "Invoice {$invoice->number} created." : 'Nothing to invoice.');
+        $email = $send->handle($invoice);
+
+        return back()->with('success', $email !== null
+            ? "Invoice {$invoice->number} emailed to {$email}."
+            : "Invoice {$invoice->number} created. There's no email address on file, so it's a draft. Download the PDF to send it.");
     }
 
     /** QuickBooks-friendly CSV of every invoice (tenant-scoped). */

@@ -46,7 +46,7 @@ test('a paid invoice cannot be voided', function () {
     $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/pay", ['method' => 'cash'])->assertRedirect();
     expect($invoice->fresh()->status)->toBe('paid');
 
-    $this->actingAs($this->admin)->post("/invoices/{$invoice->id}/void")->assertStatus(422);
+    $this->actingAs($this->admin)->post("/invoices/{$invoice->id}/void")->assertSessionHas('error');
     expect($invoice->fresh()->status)->toBe('paid');
 });
 

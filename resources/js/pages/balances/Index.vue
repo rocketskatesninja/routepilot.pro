@@ -65,6 +65,7 @@ interface InvoiceDetail {
     status: string;
     customer: string | null;
     customer_id: number | null;
+    has_email: boolean;
     period_start: string | null;
     period_end: string | null;
     issued_on: string | null;
@@ -143,14 +144,16 @@ const invoiceLine = (inv: OwingDetail['invoices'][number]) => {
     const on = inv.issued_on ? formatDay(inv.issued_on) : '';
     return inv.status === 'sent' && on ? `Sent ${on}` : `${cap(inv.status)}${on ? `, issued ${on}` : ''}`;
 };
-/** "Issued Thu, Oct 1, due Sat, Oct 31." */
+/** "Issued Thu, Oct 1, due Sat, Oct 31." — plus why a draft hasn't gone out. */
 const invoiceSummary = (i: InvoiceDetail) =>
     [
         i.issued_on ? `Issued ${formatDay(i.issued_on)}` : 'Not sent yet',
         i.due_on && i.status !== 'paid' && i.status !== 'void' ? `due ${formatDay(i.due_on)}` : '',
     ]
         .filter(Boolean)
-        .join(', ') + '.';
+        .join(', ') +
+    '.' +
+    (i.status === 'draft' ? (i.has_email ? ' Not emailed yet.' : ' Not emailed: there’s no email address on file.') : '');
 
 // --- owing-view actions ---
 function recordPayment() {
@@ -386,7 +389,11 @@ function closePane() {
                                 <Button as-child size="sm" variant="outline">
                                     <a :href="`/invoices/${invoice.id}/pdf`" target="_blank"><Download class="mr-1 size-3.5" /> PDF</a>
                                 </Button>
-                                <Button v-if="props.canManage" size="sm" variant="outline" @click="emailInvoice(invoice.id)"
+                                <Button
+                                    v-if="props.canManage && invoice.has_email && invoice.status !== 'void'"
+                                    size="sm"
+                                    variant="outline"
+                                    @click="emailInvoice(invoice.id)"
                                     ><Mail class="mr-1 size-3.5" /> Email</Button
                                 >
                                 <Button
@@ -478,8 +485,12 @@ function closePane() {
                                     <option v-for="(label, key) in PAY_METHODS" :key="key" :value="key">{{ label }}</option>
                                 </select>
                                 <Button size="sm" @click="recordPayment">Mark paid {{ formatMoney(owing.total) }}</Button>
-                                <Button size="sm" variant="outline" @click="generateInvoice"
-                                    ><FileText class="mr-1 size-3.5" /> Make an invoice</Button
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="Put everything not yet billed on an invoice and email it"
+                                    @click="generateInvoice"
+                                    ><FileText class="mr-1 size-3.5" /> Invoice now</Button
                                 >
                             </div>
                         </PaneSection>
@@ -509,7 +520,7 @@ function closePane() {
                                 <PaneItem v-for="inv in owing.invoices" :key="inv.id" :title="inv.number" :sub="invoiceLine(inv)">
                                     <div class="mt-1 flex gap-4">
                                         <PaneAction :href="`/invoices/${inv.id}/pdf`" new-tab>PDF</PaneAction>
-                                        <PaneAction v-if="props.canManage" @click="emailInvoice(inv.id)">Email</PaneAction>
+                                        <PaneAction v-if="props.canManage && inv.status !== 'void'" @click="emailInvoice(inv.id)">Email</PaneAction>
                                     </div>
                                     <template #trailing>
                                         <p class="tabular-nums">{{ formatMoney(inv.total) }}</p>

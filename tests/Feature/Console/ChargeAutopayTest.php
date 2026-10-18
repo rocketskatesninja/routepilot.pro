@@ -12,6 +12,7 @@ use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
@@ -64,7 +65,9 @@ test('a declined autopay charge duns the customer', function () {
 });
 
 test('retry recharges a recently-declined customer and recovers', function () {
-    Payment::create(['customer_id' => $this->customer->id, 'amount' => 50, 'status' => 'failed', 'method' => 'card', 'failure_reason' => 'x']);
+    Carbon::setTestNow('2026-10-03 06:00:00'); // the day after the monthly charge
+    Payment::create(['customer_id' => $this->customer->id, 'amount' => 50, 'status' => 'failed', 'method' => 'card', 'failure_reason' => 'x'])
+        ->forceFill(['created_at' => '2026-10-02 05:00:00'])->save();
     Http::fake(['api.stripe.com/v1/payment_intents' => Http::response(['id' => 'pi_retry', 'status' => 'succeeded'], 200)]);
 
     $this->artisan('app:retry-autopay')->assertSuccessful();

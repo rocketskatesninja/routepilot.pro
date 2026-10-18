@@ -6,25 +6,31 @@ namespace App\Actions;
 
 use App\Mail\PaymentFailedMail;
 use App\Models\Customer;
-use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Notifications\AutopayDeclined;
 use App\Services\BillingService;
 use App\Services\StripeService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 /**
  * Charge one autopay customer's saved card off-session. On success, settle (via
- * RecordPayment). On decline, run dunning: record a failed Payment, flag open
- * invoices overdue, and — on the FIRST recent failure only (no spam on retries)
- * — email the customer a pay link and alert the tenant admins.
+ * RecordPayment). On decline, run dunning: record a failed Payment and — on the
+ * month's FIRST decline only (no spam on retries) — email the customer a pay
+ * link and alert the tenant admins. (Whether a bill is overdue is about its due
+ * date, not the card, so invoices are left alone.)
+ *
+ * The dunning cycle is the calendar month: one charge on the 2nd, then
+ * app:retry-autopay tries again daily until MAX_ATTEMPTS declines.
  */
 class ChargeAutopayCustomer
 {
+    public const MAX_ATTEMPTS = 3;
+
     public function __construct(
         private BillingService $billing,
         private StripeService $stripe,
@@ -70,13 +76,24 @@ class ChargeAutopayCustomer
         return 'declined';
     }
 
-    private function dun(Customer $customer, float $amount, ?string $paymentIntentId): void
+    /**
+     * This month's declined autopay attempts for the customer, newest first.
+     *
+     * @return Collection<int, Payment>
+     */
+    public function declinesThisMonth(Customer $customer): Collection
     {
-        $firstFailure = Payment::query()
+        return Payment::query()
             ->where('customer_id', $customer->id)
             ->where('status', 'failed')
-            ->where('created_at', '>=', now()->subDays(5))
-            ->doesntExist();
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->latest()->latest('id')
+            ->get();
+    }
+
+    private function dun(Customer $customer, float $amount, ?string $paymentIntentId): void
+    {
+        $firstFailure = $this->declinesThisMonth($customer)->isEmpty();
 
         Payment::create([
             'customer_id' => $customer->id,
@@ -87,13 +104,8 @@ class ChargeAutopayCustomer
             'failure_reason' => 'Autopay charge declined',
         ]);
 
-        Invoice::query()
-            ->where('customer_id', $customer->id)
-            ->whereIn('status', ['draft', 'sent'])
-            ->update(['status' => 'overdue']);
-
         if (! $firstFailure) {
-            return; // already alerted this cycle — don't spam on retries
+            return; // already alerted this month — don't spam on retries
         }
 
         $email = $customer->email;

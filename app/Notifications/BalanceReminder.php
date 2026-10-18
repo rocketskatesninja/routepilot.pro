@@ -9,9 +9,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 /**
- * In-app reminder to a homeowner who has service visits unpaid for 30+ days.
- * Built by DailyOpsChecks; respects the customer's `billing` notification
- * preference.
+ * In-app reminder to a homeowner who has a bill past its due date — at most
+ * once a week. Built by DailyOpsChecks; respects the customer's `billing`
+ * notification preference.
  */
 class BalanceReminder extends Notification
 {
@@ -28,7 +28,7 @@ class BalanceReminder extends Notification
     {
         return [
             'title' => 'Balance overdue',
-            'body' => 'You have service visits unpaid for over 30 days. Please arrange payment.',
+            'body' => 'You have a bill past its due date. Please arrange payment.',
             'url' => '/balance',
             'icon' => 'Banknote',
         ];

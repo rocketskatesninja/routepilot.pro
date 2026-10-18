@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\MarkInvoicePaid;
+use App\Actions\RecordPayment;
+use App\Actions\SendInvoice;
 use App\Actions\VoidInvoice;
-use App\Mail\InvoiceMail;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -14,8 +14,6 @@ use App\Models\Tenant;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\URL;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -49,28 +47,20 @@ class InvoiceController extends Controller
     }
 
     /** Email the invoice (branded PDF + signed pay link) to the customer. */
-    public function email(Request $request, Invoice $invoice): RedirectResponse
+    public function email(Request $request, Invoice $invoice, SendInvoice $send): RedirectResponse
     {
         $this->authorizeAdmin($request);
 
-        $invoice->load('customer');
-        $email = $invoice->customer->email;
-        if (! is_string($email) || $email === '') {
-            return back()->with('error', 'This customer has no email address on file.');
+        $email = $send->handle($invoice);
+        if ($email === null) {
+            return back()->with('error', $invoice->status === 'void' ? 'A voided invoice can’t be sent.' : 'This customer has no email address on file.');
         }
 
-        $payUrl = URL::signedRoute('pay.link', ['customer' => $invoice->getAttribute('customer_id')]);
-        Mail::to($email)->queue(new InvoiceMail($invoice, $payUrl));
-
-        if ($invoice->status === 'draft') {
-            $invoice->update(['status' => 'sent']);
-        }
-
-        return back()->with('success', 'Invoice emailed to '.$email.'.');
+        return back()->with('success', "Invoice {$invoice->number} emailed to {$email}.");
     }
 
-    /** Record an off-platform payment that settles this invoice in full. */
-    public function markPaid(Request $request, Invoice $invoice, MarkInvoicePaid $action): RedirectResponse
+    /** Record an off-platform payment for what's left on this invoice. */
+    public function markPaid(Request $request, Invoice $invoice, RecordPayment $record): RedirectResponse
     {
         $this->authorizeAdmin($request);
 
@@ -79,8 +69,11 @@ class InvoiceController extends Controller
             $method = 'other';
         }
 
-        $action->handle($invoice, $method, $request->user()->id);
-        AuditLog::record($request->user(), 'invoice.marked_paid', $invoice, ['method' => $method, 'total' => (float) $invoice->total]);
+        $payment = $record->handle($invoice->customer()->firstOrFail(), $method, $request->user()->id, invoice: $invoice);
+        if ($payment === null) {
+            return back()->with('error', "Nothing is left to pay on invoice {$invoice->number}.");
+        }
+        AuditLog::record($request->user(), 'invoice.marked_paid', $invoice, ['method' => $method, 'amount' => (float) $payment->amount]);
 
         return back()->with('success', "Invoice {$invoice->number} marked paid.");
     }
@@ -90,7 +83,9 @@ class InvoiceController extends Controller
     {
         $this->authorizeAdmin($request);
 
-        $action->handle($invoice, $request->user());
+        if (! $action->handle($invoice, $request->user())) {
+            return back()->with('error', "Invoice {$invoice->number} has payments on it, so it can’t be voided.");
+        }
         AuditLog::record($request->user(), 'invoice.voided', $invoice, ['total' => (float) $invoice->total]);
 
         return back()->with('success', "Invoice {$invoice->number} voided.");

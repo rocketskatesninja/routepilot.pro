@@ -68,7 +68,7 @@ class TenantContext
             $warnings .= "⚠ {$unassigned} active subscriptions have no assigned agent\n";
         }
         if ($overdue > 0) {
-            $warnings .= "⚠ {$overdue} completed visits are unpaid (30+ days)\n";
+            $warnings .= "⚠ {$overdue} invoices are past their due date and unpaid\n";
         }
 
         $data = "BUSINESS DATA for {$tenantName} (as of ".Tenant::localToday()->format('l, F j, Y')."):\n\n"

@@ -14,17 +14,19 @@ use Illuminate\Support\Facades\DB;
  * Cancel a bill: the invoice becomes void and its charges are voided with it,
  * so the customer no longer owes them. Nothing is recorded as paid, and the
  * charges stay in the history marked voided. A bill with money paid against it
- * can't be voided (undo the payment first); voiding twice is a no-op.
+ * can't be voided (returns false); voiding twice is a no-op.
  */
 class VoidInvoice
 {
     public function __construct(private BillingService $billing) {}
 
-    public function handle(Invoice $invoice, ?User $by = null): void
+    public function handle(Invoice $invoice, ?User $by = null): bool
     {
-        abort_if((float) $invoice->amount_paid > 0 || $invoice->status === 'paid', 422, 'This invoice has payments on it — undo those first.');
         if ($invoice->status === 'void') {
-            return;
+            return true;
+        }
+        if ((float) $invoice->amount_paid > 0 || $invoice->status === 'paid') {
+            return false;
         }
 
         DB::transaction(function () use ($invoice, $by): void {
@@ -36,5 +38,7 @@ class VoidInvoice
             $invoice->update(['status' => 'void']);
             $this->billing->refreshInvoices($invoice->customer()->firstOrFail());
         });
+
+        return true;
     }
 }
