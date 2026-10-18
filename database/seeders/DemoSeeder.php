@@ -150,7 +150,7 @@ class DemoSeeder extends Seeder
             ]);
 
             // The plan's last two visit days, each completed through its route stop
-            // with a reading, for history/health.
+            // with its checklist ticked off and a reading, for history/health.
             $days = app(SubscriptionMaterializer::class)->projectDates($plan, $tenant->today()->subWeeks(2), $tenant->today()->subDay());
             foreach (array_slice($days, -2) as $day) {
                 $at = Carbon::parse($day->toDateString().' 09:00', $tenant->timezone)->addMinutes(35 * ($i % 3))->utc();
@@ -168,6 +168,9 @@ class DemoSeeder extends Seeder
                     'agent_id' => $agent->id, 'status' => 'completed',
                     'visited_at' => $at, 'completed_at' => $at,
                 ]);
+                foreach ($weekly->tasks ?? [] as $task) {
+                    $visit->tasks()->create(['task_name' => $task, 'is_completed' => true]);
+                }
                 $visit->chemicalReading()->create([
                     'tenant_id' => $tenant->id,
                     'free_chlorine' => 1.5 + ($i % 3) * 0.6, 'ph' => 7.3 + ($i % 4) * 0.15,

@@ -21,7 +21,7 @@ beforeEach(function () {
 });
 
 test('every demo visit sits on its plan\'s day and closes that day\'s stop', function () {
-    $visits = ServiceVisit::query()->with(['routeStop.route', 'serviceSubscription'])->get();
+    $visits = ServiceVisit::query()->with(['routeStop.route', 'serviceSubscription.serviceType', 'tasks'])->get();
     expect($visits)->toHaveCount(16); // 8 pools × 2 visits
 
     foreach ($visits as $visit) {
@@ -30,6 +30,10 @@ test('every demo visit sits on its plan\'s day and closes that day\'s stop', fun
             ->and($stop?->status)->toBe('completed')
             ->and($stop?->pool_id)->toBe($visit->pool_id)
             ->and($stop?->service_subscription_id)->toBe($visit->service_subscription_id);
+
+        // Its report lists the plan's checklist, ticked off.
+        expect($visit->tasks->pluck('task_name')->all())->toBe($visit->serviceSubscription?->serviceType?->tasks)
+            ->and($visit->tasks->every->is_completed)->toBeTrue();
 
         $day = $visit->completed_at?->copy()->setTimezone($this->tenant->timezone);
         expect($day?->toDateString())->toBe($stop?->route?->scheduled_date->toDateString())
