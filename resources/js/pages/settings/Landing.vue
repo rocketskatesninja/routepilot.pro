@@ -49,10 +49,7 @@ const props = defineProps<{
     recentPhotos: RecentPhoto[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Company', href: '/company' },
-    { title: 'Landing page', href: '/company/landing' },
-];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Landing page', href: '/company/landing' }];
 
 const sections = ref<SectionConfig[]>(clone(props.config.sections));
 const seo = ref({ title: props.config.seo.title ?? '', description: props.config.seo.description ?? '', og_image: props.config.seo.og_image });
