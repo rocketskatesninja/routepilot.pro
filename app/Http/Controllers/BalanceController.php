@@ -259,17 +259,22 @@ class BalanceController extends Controller
         return back()->with('success', 'Charge added.');
     }
 
-    public function recordPayment(RecordPaymentRequest $request, Customer $customer, RecordPayment $action): RedirectResponse
+    public function recordPayment(RecordPaymentRequest $request, Customer $customer, RecordPayment $action, BillingService $billing): RedirectResponse
     {
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $payment = $action->handle($customer, (string) $request->validated()['method'], (int) $user->id);
-        if ($payment !== null) {
-            AuditLog::record($user, 'payment.recorded', $payment, ['customer_id' => $customer->id, 'amount' => (float) $payment->amount, 'method' => (string) $payment->method]);
+        $amount = $request->validated()['amount'] ?? null;
+        $payment = $action->handle($customer, (string) $request->validated()['method'], (int) $user->id, null, $amount !== null ? (float) $amount : null);
+        if ($payment === null) {
+            return back()->with('error', 'Nothing is owed.');
         }
+        AuditLog::record($user, 'payment.recorded', $payment, ['customer_id' => $customer->id, 'amount' => (float) $payment->amount, 'method' => (string) $payment->method]);
 
-        return back()->with('success', $payment !== null ? 'Payment recorded.' : 'Nothing outstanding.');
+        $left = $billing->outstandingForCustomer($customer);
+
+        return back()->with('success', 'Payment of $'.number_format((float) $payment->amount, 2).' recorded. '
+            .($left > 0 ? '$'.number_format($left, 2).' is still owed.' : 'They’re all paid up.'));
     }
 
     /** "Invoice now": bill what isn't on an invoice yet and email it, like the monthly run. */

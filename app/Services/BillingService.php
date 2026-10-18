@@ -79,9 +79,10 @@ class BillingService
     }
 
     /**
-     * What makes up a customer's balance: the unpaid part of each charge.
+     * What makes up a customer's balance: the unpaid part of each charge (and
+     * what the charge was, for one that's partly paid).
      *
-     * @return array{visits: list<array{service: string, pool: string, date: string, price: float}>, charges: list<array{description: string, amount: float}>, total: float}
+     * @return array{visits: list<array{service: string, pool: string, date: string, price: float, charged: float}>, charges: list<array{description: string, amount: float, charged: float}>, total: float}
      */
     public function breakdownForCustomer(Customer $customer): array
     {
@@ -94,10 +95,12 @@ class BillingService
             'pool' => $c->pool?->getAttribute('name') ?? $c->description,
             'date' => $c->occurred_on->toDateString(),
             'price' => $unpaid[$c->id],
+            'charged' => $c->total(),
         ])->values()->all();
         $charges = $open->where('kind', '!=', 'visit')->map(fn (Charge $c): array => [
             'description' => $c->description,
             'amount' => $unpaid[$c->id],
+            'charged' => $c->total(),
         ])->values()->all();
 
         return ['visits' => $visits, 'charges' => $charges, 'total' => $this->outstandingForCustomer($customer)];

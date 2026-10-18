@@ -108,3 +108,56 @@ test('a paid-up customer\'s panel still shows their payment history', function (
             ->where('selected.total', 0)
             ->has('selected.payments', 1));
 });
+
+// --- partial payments ------------------------------------------------------------
+
+test('the office can record part of what a customer owes', function () {
+    billOn($this->customer, '2026-09-01', 100);
+
+    $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/pay", ['method' => 'check', 'amount' => '40'])
+        ->assertSessionHas('success', fn (string $m): bool => str_contains($m, '$60.00 is still owed'));
+
+    expect((float) Payment::query()->sole()->amount)->toBe(40.0)
+        ->and(app(BillingService::class)->outstandingForCustomer($this->customer))->toBe(60.0);
+});
+
+test('part of an invoice can be paid, and it stays open for the rest', function () {
+    $invoice = billOn($this->customer, '2026-09-01', 100);
+
+    $this->actingAs($this->admin)->post("/invoices/{$invoice->id}/mark-paid", ['method' => 'cash', 'amount' => '25.50'])
+        ->assertSessionHas('success');
+
+    expect((float) $invoice->fresh()?->amount_paid)->toBe(25.5)
+        ->and($invoice->fresh()?->balance())->toBe(74.5)
+        ->and($invoice->fresh()?->status)->not->toBe('paid')
+        ->and(Payment::query()->sole()->getAttribute('invoice_id'))->toBe($invoice->id);
+});
+
+test('a payment can\'t be more than is owed', function () {
+    $invoice = billOn($this->customer, '2026-09-01', 100);
+
+    $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/pay", ['method' => 'cash', 'amount' => '100.01'])->assertInvalid('amount');
+    $this->actingAs($this->admin)->post("/invoices/{$invoice->id}/mark-paid", ['method' => 'cash', 'amount' => '150'])->assertInvalid('amount');
+    $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/pay", ['method' => 'cash', 'amount' => '0'])->assertInvalid('amount');
+
+    expect(Payment::query()->count())->toBe(0);
+});
+
+test('with no amount given, the payment covers everything owed', function () {
+    billOn($this->customer, '2026-09-01', 100);
+
+    $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/pay", ['method' => 'cash'])
+        ->assertSessionHas('success', fn (string $m): bool => str_contains($m, 'all paid up'));
+
+    expect(app(BillingService::class)->outstandingForCustomer($this->customer))->toBe(0.0);
+});
+
+test('a partly paid charge shows what\'s left and what it was', function () {
+    billOn($this->customer, '2026-09-01', 100);
+    app(RecordPayment::class)->handle($this->customer, 'cash', $this->admin->id, null, 30.0);
+
+    $this->actingAs($this->admin)->get("/balances?selected={$this->customer->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.charges.0.amount', 70)
+            ->where('selected.charges.0.charged', 100));
+});

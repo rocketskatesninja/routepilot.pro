@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Actions\RecordPayment;
 use App\Actions\SendInvoice;
 use App\Actions\VoidInvoice;
+use App\Http\Requests\RecordPaymentRequest;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -59,23 +60,23 @@ class InvoiceController extends Controller
         return back()->with('success', "Invoice {$invoice->number} emailed to {$email}.");
     }
 
-    /** Record an off-platform payment for what's left on this invoice. */
-    public function markPaid(Request $request, Invoice $invoice, RecordPayment $record): RedirectResponse
+    /** Record an off-platform payment against this invoice — all that's left on it, or part. */
+    public function markPaid(RecordPaymentRequest $request, Invoice $invoice, RecordPayment $record): RedirectResponse
     {
-        $this->authorizeAdmin($request);
+        $method = (string) $request->validated()['method'];
+        $amount = $request->validated()['amount'] ?? null;
 
-        $method = (string) $request->string('method');
-        if (! in_array($method, ['cash', 'check', 'card', 'ach', 'other'], true)) {
-            $method = 'other';
-        }
-
-        $payment = $record->handle($invoice->customer()->firstOrFail(), $method, $request->user()->id, invoice: $invoice);
+        $payment = $record->handle($invoice->customer()->firstOrFail(), $method, $request->user()->id, null, $amount !== null ? (float) $amount : null, $invoice);
         if ($payment === null) {
             return back()->with('error', "Nothing is left to pay on invoice {$invoice->number}.");
         }
-        AuditLog::record($request->user(), 'invoice.marked_paid', $invoice, ['method' => $method, 'amount' => (float) $payment->amount]);
+        AuditLog::record($request->user(), 'payment.recorded', $payment, ['invoice' => $invoice->number, 'amount' => (float) $payment->amount, 'method' => $method]);
 
-        return back()->with('success', "Invoice {$invoice->number} marked paid.");
+        $left = $invoice->refresh()->balance();
+
+        return back()->with('success', $left > 0
+            ? 'Payment of $'.number_format((float) $payment->amount, 2)." recorded on {$invoice->number}. \$".number_format($left, 2).' is left on it.'
+            : "Invoice {$invoice->number} is paid in full.");
     }
 
     /** Cancel a bill — the invoice and its charges are voided, so they're no longer owed. */

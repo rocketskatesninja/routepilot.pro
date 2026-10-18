@@ -3,6 +3,7 @@ import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
+import RecordPaymentForm from '@/components/RecordPaymentForm.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
@@ -68,8 +69,8 @@ interface OwingDetail {
     id: number;
     name: string;
     photo: string | null;
-    visits: { service: string; pool: string; date: string; price: number }[];
-    charges: { description: string; amount: number }[];
+    visits: { service: string; pool: string; date: string; price: number; charged: number }[];
+    charges: { description: string; amount: number; charged: number }[];
     total: number;
     payments: PaymentRow[];
     invoices: { id: number; number: string; status: string; total: number; balance: number; issued_on: string | null }[];
@@ -144,7 +145,6 @@ const statusClass = (s: string): string =>
         void: 'bg-muted text-muted-foreground line-through',
     })[s] ?? 'bg-muted text-muted-foreground';
 
-const payMethod = ref('cash');
 const PAY_METHODS: Record<string, string> = { cash: 'Cash', check: 'Check', card: 'Card', ach: 'Bank transfer', other: 'Other' };
 
 // --- the side panel: an invoice, or what a customer owes ---
@@ -158,6 +158,8 @@ const invoiceTone: Record<string, 'good' | 'warn' | 'info' | 'bad' | 'muted'> = 
     void: 'muted',
 };
 /** "Sent Thu, Oct 1" / "Paid, issued Thu, Oct 1" / "Draft". */
+/** ", $30.00 of $35.00 paid" for a charge that's only partly paid. */
+const partlyPaid = (left: number, charged: number) => (left < charged ? `, ${formatMoney(charged - left)} of ${formatMoney(charged)} paid` : '');
 /** "Card" / "Card declined". */
 const paymentTitle = (p: PaymentRow) => `${PAY_METHODS[p.method] ?? 'Payment'}${p.declined ? ' declined' : ''}`;
 /** "Fri, Oct 2, paid online" / "Mon, Oct 5, recorded by Sarah, for INV-00001". */
@@ -190,10 +192,6 @@ const invoiceSummary = (i: InvoiceDetail) =>
     (i.status === 'draft' ? (i.has_email ? ' Not emailed yet.' : ' Not emailed: there’s no email address on file.') : '');
 
 // --- owing-view actions ---
-function recordPayment() {
-    if (props.selected?.kind !== 'owing') return;
-    router.post(`/balances/${props.selected.id}/pay`, { method: payMethod.value }, { preserveScroll: true, onSuccess: () => closeDrawer() });
-}
 function generateInvoice() {
     if (props.selected?.kind !== 'owing') return;
     router.post(`/balances/${props.selected.id}/invoice`, {}, { preserveScroll: true });
@@ -208,12 +206,6 @@ function voidInvoice(id: number) {
     )
         return;
     router.post(`/invoices/${id}/void`, {}, { preserveScroll: true });
-}
-
-// --- invoice-view actions ---
-function markInvoicePaid() {
-    if (props.selected?.kind !== 'invoice') return;
-    router.post(`/invoices/${props.selected.id}/mark-paid`, { method: payMethod.value }, { preserveScroll: true });
 }
 
 // --- add manual charge ---
@@ -498,16 +490,7 @@ function closePane() {
                         </PaneSection>
 
                         <PaneSection v-if="props.canManage && invoice.status !== 'paid' && invoice.status !== 'void'" title="Record a payment">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <select
-                                    v-model="payMethod"
-                                    aria-label="Paid by"
-                                    class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
-                                >
-                                    <option v-for="(label, key) in PAY_METHODS" :key="key" :value="key">{{ label }}</option>
-                                </select>
-                                <Button size="sm" @click="markInvoicePaid">Mark paid {{ formatMoney(invoice.balance) }}</Button>
-                            </div>
+                            <RecordPaymentForm :url="`/invoices/${invoice.id}/mark-paid`" :owed="invoice.balance" />
                         </PaneSection>
                     </div>
 
@@ -526,18 +509,7 @@ function closePane() {
                                 class="text-primary mt-2 inline-block text-sm font-medium underline-offset-4 hover:underline"
                                 >Open customer</Link
                             >
-                        </PaneHeader>
-
-                        <PaneSection v-if="props.canManage && owing.total > 0" title="Record a payment">
-                            <div class="flex flex-wrap items-center gap-2">
-                                <select
-                                    v-model="payMethod"
-                                    aria-label="Paid by"
-                                    class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
-                                >
-                                    <option v-for="(label, key) in PAY_METHODS" :key="key" :value="key">{{ label }}</option>
-                                </select>
-                                <Button size="sm" @click="recordPayment">Mark paid {{ formatMoney(owing.total) }}</Button>
+                            <template v-if="props.canManage && owing.total > 0" #actions>
                                 <Button
                                     size="sm"
                                     variant="outline"
@@ -545,17 +517,31 @@ function closePane() {
                                     @click="generateInvoice"
                                     ><FileText class="mr-1 size-3.5" /> Invoice now</Button
                                 >
-                            </div>
+                            </template>
+                        </PaneHeader>
+
+                        <PaneSection v-if="props.canManage && owing.total > 0" title="Record a payment">
+                            <RecordPaymentForm :url="`/balances/${owing.id}/pay`" :owed="owing.total" />
                         </PaneSection>
 
                         <PaneSection v-if="owing.visits.length || owing.charges.length" title="What they owe for">
                             <PaneList>
-                                <PaneItem v-for="(v, i) in owing.visits" :key="`v${i}`" :title="v.service" :sub="`${formatDay(v.date)}, ${v.pool}`">
+                                <PaneItem
+                                    v-for="(v, i) in owing.visits"
+                                    :key="`v${i}`"
+                                    :title="v.service"
+                                    :sub="`${formatDay(v.date)}, ${v.pool}${partlyPaid(v.price, v.charged)}`"
+                                >
                                     <template #trailing
                                         ><span class="tabular-nums">{{ formatMoney(v.price) }}</span></template
                                     >
                                 </PaneItem>
-                                <PaneItem v-for="(c, i) in owing.charges" :key="`c${i}`" :title="c.description">
+                                <PaneItem
+                                    v-for="(c, i) in owing.charges"
+                                    :key="`c${i}`"
+                                    :title="c.description"
+                                    :sub="partlyPaid(c.amount, c.charged).slice(2)"
+                                >
                                     <template #trailing
                                         ><span class="tabular-nums">{{ formatMoney(c.amount) }}</span></template
                                     >
