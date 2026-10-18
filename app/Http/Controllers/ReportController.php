@@ -47,6 +47,8 @@ class ReportController extends Controller
             ),
             'agent' => fn ($q, $dir) => $q->orderBy(User::query()->select('first_name')->whereColumn('users.id', 'service_visits.agent_id'), $dir),
         ], 'date', 'desc');
+        // Visits that tie (same pool, customer or agent) read newest first.
+        $query->orderByDesc('completed_at')->orderByDesc('id');
 
         $visits = $query
             ->paginate($this->perPage($request))

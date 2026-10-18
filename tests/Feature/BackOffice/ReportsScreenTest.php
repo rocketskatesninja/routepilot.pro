@@ -35,6 +35,24 @@ test('lists completed visits, newest first, tenant-scoped', function () {
         ->assertInertia(fn (Assert $page) => $page->component('reports/Index')->has('visits.data', 1));
 });
 
+test('sorted by pool, a pool\'s visits read newest first', function () {
+    // Created out of date order, like a plan's visits recorded after another plan's.
+    foreach (['2026-10-12', '2026-10-05', '2026-10-14', '2026-10-07'] as $day) {
+        ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create([
+            'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => $day.' 15:00:00',
+        ]);
+    }
+
+    $this->actingAs($this->admin)
+        ->get('/reports?sort=pool&dir=asc')
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('visits.data.0.completed_on', '2026-10-14')
+            ->where('visits.data.1.completed_on', '2026-10-12')
+            ->where('visits.data.2.completed_on', '2026-10-07')
+            ->where('visits.data.3.completed_on', '2026-10-05')
+        );
+});
+
 test('the drawer carries the reading and treatments', function () {
     $visit = ServiceVisit::factory()->for($this->tenant)->for($this->pool)->create([
         'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(), 'notes' => 'All good',
