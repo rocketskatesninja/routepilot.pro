@@ -16,6 +16,8 @@ use Illuminate\Support\Carbon;
  * @property string $amount
  * @property string $status
  * @property string $method
+ * @property string|null $reference a check number or transfer reference the office noted
+ * @property string|null $stripe_payment_intent_id Stripe's id for a card payment
  * @property int|null $invoice_id
  * @property Carbon|null $paid_at
  */
@@ -25,7 +27,7 @@ class Payment extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'customer_id', 'invoice_id', 'amount', 'status', 'method',
+        'customer_id', 'invoice_id', 'amount', 'status', 'method', 'reference',
         'stripe_payment_intent_id', 'failure_reason', 'paid_at', 'recorded_by',
     ];
 

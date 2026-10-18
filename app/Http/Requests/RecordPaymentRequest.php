@@ -13,7 +13,7 @@ use Illuminate\Validation\Validator;
 /**
  * A payment the office records — on a customer's account or against one
  * invoice. Any amount up to what's owed (partial payments are fine); with no
- * amount, all of it.
+ * amount, all of it. An optional reference notes a check number or the like.
  */
 class RecordPaymentRequest extends FormRequest
 {
@@ -28,6 +28,7 @@ class RecordPaymentRequest extends FormRequest
         return [
             'method' => ['required', 'in:card,cash,check,ach,other'],
             'amount' => ['nullable', 'numeric', 'min:0.01'],
+            'reference' => ['nullable', 'string', 'max:100'],
         ];
     }
 
@@ -41,6 +42,14 @@ class RecordPaymentRequest extends FormRequest
                 $validator->errors()->add('amount', 'That’s more than is owed ($'.number_format($owed, 2).').');
             }
         }];
+    }
+
+    /** The office's reference (a check number), if one was typed. */
+    public function reference(): ?string
+    {
+        $ref = trim((string) $this->validated('reference'));
+
+        return $ref === '' ? null : $ref;
     }
 
     /** What the payment can cover: the invoice's balance, or the customer's. */

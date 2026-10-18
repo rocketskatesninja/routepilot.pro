@@ -63,10 +63,11 @@ class InvoiceController extends Controller
     /** Record an off-platform payment against this invoice — all that's left on it, or part. */
     public function markPaid(RecordPaymentRequest $request, Invoice $invoice, RecordPayment $record): RedirectResponse
     {
-        $method = (string) $request->validated()['method'];
-        $amount = $request->validated()['amount'] ?? null;
+        $data = $request->validated();
+        $method = (string) $data['method'];
 
-        $payment = $record->handle($invoice->customer()->firstOrFail(), $method, $request->user()->id, null, $amount !== null ? (float) $amount : null, $invoice);
+        $payment = $record->handle($invoice->customer()->firstOrFail(), $method, $request->user()->id,
+            amount: isset($data['amount']) ? (float) $data['amount'] : null, invoice: $invoice, reference: $request->reference());
         if ($payment === null) {
             return back()->with('error', "Nothing is left to pay on invoice {$invoice->number}.");
         }

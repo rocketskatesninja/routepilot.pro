@@ -213,6 +213,8 @@ class BalanceController extends Controller
             'declined' => $p->status === 'failed',
             'by' => $p->recorder?->firstName(),
             'invoice' => $p->invoice?->number,
+            'reference' => $p->reference,
+            'stripe_id' => $p->stripe_payment_intent_id,
         ];
     }
 
@@ -264,8 +266,9 @@ class BalanceController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $amount = $request->validated()['amount'] ?? null;
-        $payment = $action->handle($customer, (string) $request->validated()['method'], (int) $user->id, null, $amount !== null ? (float) $amount : null);
+        $data = $request->validated();
+        $payment = $action->handle($customer, (string) $data['method'], (int) $user->id,
+            amount: isset($data['amount']) ? (float) $data['amount'] : null, reference: $request->reference());
         if ($payment === null) {
             return back()->with('error', 'Nothing is owed.');
         }

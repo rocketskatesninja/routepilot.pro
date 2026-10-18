@@ -7,27 +7,30 @@ import { computed, watch } from 'vue';
 
 /**
  * Record a payment the office took (cash, a check…): any amount up to what's
- * owed, filled in with all of it. Posts to `url`; the panel then shows the new
- * balance and the payment in its history.
+ * owed, filled in with all of it, plus an optional reference (a check
+ * number). Posts to `url`; the panel then shows the new balance and the
+ * payment in its history.
  */
 const props = defineProps<{ url: string; owed: number }>();
 
 const METHODS: Record<string, string> = { cash: 'Cash', check: 'Check', card: 'Card', ach: 'Bank transfer', other: 'Other' };
-const form = useForm({ method: 'cash', amount: props.owed.toFixed(2) });
+const form = useForm({ method: 'cash', amount: props.owed.toFixed(2), reference: '' });
 
 // Another customer or invoice, or a new balance after a payment: start from the full amount again.
 watch(
     () => [props.url, props.owed],
     () => {
         form.amount = props.owed.toFixed(2);
+        form.reference = '';
         form.clearErrors();
     },
 );
 
 const amount = computed(() => Number(form.amount));
 const isPartial = computed(() => amount.value > 0 && amount.value < props.owed - 0.005);
+const tooMuch = computed(() => amount.value > props.owed + 0.005);
 const label = computed(() =>
-    !(amount.value > 0) ? 'Record payment' : isPartial.value ? `Record ${formatMoney(amount.value)}` : 'Mark paid in full',
+    !(amount.value > 0) || tooMuch.value ? 'Record payment' : isPartial.value ? `Record ${formatMoney(amount.value)}` : 'Mark paid in full',
 );
 const submit = () => form.post(props.url, { preserveScroll: true });
 </script>
@@ -35,7 +38,7 @@ const submit = () => form.post(props.url, { preserveScroll: true });
 <template>
     <form class="space-y-1.5" @submit.prevent="submit">
         <div class="flex flex-wrap items-center gap-2">
-            <select v-model="form.method" aria-label="Paid by" class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm">
+            <select v-model="form.method" aria-label="Paid by" class="border-input bg-background h-9 w-32 rounded-md border px-2 text-sm">
                 <option v-for="(name, key) in METHODS" :key="key" :value="key">{{ name }}</option>
             </select>
             <div class="relative">
@@ -51,9 +54,13 @@ const submit = () => form.post(props.url, { preserveScroll: true });
                     class="h-9 w-28 pl-6 tabular-nums"
                 />
             </div>
-            <Button type="submit" size="sm" :disabled="form.processing || !(amount > 0)">{{ label }}</Button>
+            <Input v-model="form.reference" maxlength="100" aria-label="Reference" placeholder="Check # or ref." class="h-9 w-36" />
+            <Button type="submit" size="sm" :disabled="form.processing || !(amount > 0) || tooMuch">{{ label }}</Button>
         </div>
-        <p v-if="form.errors.amount" class="text-xs text-red-600 dark:text-red-400">{{ form.errors.amount }}</p>
+        <p v-if="form.errors.amount || form.errors.reference" class="text-xs text-red-600 dark:text-red-400">
+            {{ form.errors.amount ?? form.errors.reference }}
+        </p>
+        <p v-else-if="tooMuch" class="text-xs text-red-600 dark:text-red-400">That’s more than is owed ({{ formatMoney(owed) }}).</p>
         <p v-else-if="isPartial" class="text-muted-foreground text-xs">{{ formatMoney(owed - amount) }} will still be owed.</p>
     </form>
 </template>

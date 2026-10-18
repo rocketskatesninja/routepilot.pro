@@ -20,18 +20,19 @@ use Illuminate\Support\Facades\Mail;
  * an invoice, what's left on that invoice. A payment against an invoice pays
  * that invoice first; any other pays the oldest charges first, and the invoices
  * update to match. Card payments pass the amount the card was actually charged,
- * never a re-computed balance. A receipt is emailed.
+ * never a re-computed balance, and Stripe's id; the office can note its own
+ * reference (a check number). A receipt with the reference is emailed.
  */
 class RecordPayment
 {
     public function __construct(private BillingService $billing) {}
 
-    public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null, ?float $amount = null, ?Invoice $invoice = null): ?Payment
+    public function handle(Customer $customer, string $method, ?int $userId, ?string $stripePaymentIntentId = null, ?float $amount = null, ?Invoice $invoice = null, ?string $reference = null): ?Payment
     {
         // One payment at a time per customer, so a double-click — or the webhook
         // and the reconciler settling the same checkout at once — can't record
         // the same money twice.
-        $payment = Cache::lock("billing:customer:{$customer->id}", 30)->block(10, fn (): ?Payment => DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId, $amount, $invoice): ?Payment {
+        $payment = Cache::lock("billing:customer:{$customer->id}", 30)->block(10, fn (): ?Payment => DB::transaction(function () use ($customer, $method, $userId, $stripePaymentIntentId, $amount, $invoice, $reference): ?Payment {
             if ($stripePaymentIntentId !== null && Payment::query()->where('stripe_payment_intent_id', $stripePaymentIntentId)->where('status', 'succeeded')->exists()) {
                 return null; // this card payment is already on the books
             }
@@ -47,6 +48,7 @@ class RecordPayment
                 'amount' => $amount,
                 'status' => 'succeeded',
                 'method' => $method,
+                'reference' => $reference,
                 'stripe_payment_intent_id' => $stripePaymentIntentId,
                 'paid_at' => now(),
                 'recorded_by' => $userId,
@@ -65,6 +67,7 @@ class RecordPayment
                 $customer->tenant->name,
                 $customer->tenant->today()->toFormattedDateString(),
                 $customer->tenant,
+                $reference ?? $stripePaymentIntentId,
             ));
         }
 

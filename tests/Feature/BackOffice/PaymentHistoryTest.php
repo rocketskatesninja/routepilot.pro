@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\GenerateInvoice;
 use App\Actions\RecordPayment;
+use App\Mail\PaymentReceiptMail;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -11,6 +12,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -160,4 +162,41 @@ test('a partly paid charge shows what\'s left and what it was', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('selected.charges.0.amount', 70)
             ->where('selected.charges.0.charged', 100));
+});
+
+// --- references ----------------------------------------------------------------
+
+test('the office can note a check number, and it shows on the payment and the receipt', function () {
+    Mail::fake();
+    $this->customer->update(['email' => 'robert@anderson.test']);
+    $invoice = billOn($this->customer, '2026-09-01', 100);
+
+    $this->actingAs($this->admin)->post("/invoices/{$invoice->id}/mark-paid", ['method' => 'check', 'amount' => '40', 'reference' => ' 1042 '])
+        ->assertSessionHas('success');
+
+    expect(Payment::query()->sole()->reference)->toBe('1042');
+    Mail::assertQueued(PaymentReceiptMail::class, fn (PaymentReceiptMail $m): bool => $m->reference === '1042' && str_contains($m->render(), '1042'));
+    $this->actingAs($this->admin)->get("/balances?selected={$this->customer->id}")
+        ->assertInertia(fn (Assert $page) => $page->where('selected.payments.0.reference', '1042'));
+});
+
+test('a card payment the customer made shows Stripe\'s id, on the panels and the receipt', function () {
+    Mail::fake();
+    $this->customer->update(['email' => 'robert@anderson.test']);
+    $invoice = billOn($this->customer, '2026-09-01', 100);
+
+    app(RecordPayment::class)->handle($this->customer, 'card', null, 'pi_3QxYz12AbC', 100.0);
+
+    Mail::assertQueued(PaymentReceiptMail::class, fn (PaymentReceiptMail $m): bool => $m->reference === 'pi_3QxYz12AbC');
+    $this->actingAs($this->admin)->get("/balances?view=invoices&selected={$invoice->id}")
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.paid_by.0.stripe_id', 'pi_3QxYz12AbC')
+            ->where('selected.paid_by.0.reference', null));
+});
+
+test('a reference can\'t be longer than 100 characters', function () {
+    billOn($this->customer, '2026-09-01', 100);
+
+    $this->actingAs($this->admin)->post("/balances/{$this->customer->id}/pay", ['method' => 'check', 'reference' => str_repeat('x', 101)])
+        ->assertInvalid('reference');
 });

@@ -56,6 +56,8 @@ interface PaymentRow {
     declined: boolean;
     by: string | null;
     invoice: string | null;
+    reference: string | null;
+    stripe_id: string | null;
 }
 interface CreditRow {
     kind: 'credit';
@@ -162,11 +164,12 @@ const invoiceTone: Record<string, 'good' | 'warn' | 'info' | 'bad' | 'muted'> = 
 const partlyPaid = (left: number, charged: number) => (left < charged ? `, ${formatMoney(charged - left)} of ${formatMoney(charged)} paid` : '');
 /** "Card" / "Card declined". */
 const paymentTitle = (p: PaymentRow) => `${PAY_METHODS[p.method] ?? 'Payment'}${p.declined ? ' declined' : ''}`;
-/** "Fri, Oct 2, paid online" / "Mon, Oct 5, recorded by Sarah, for INV-00001". */
+/** "Fri, Oct 2, paid online, Stripe pi_3Qx…" / "Mon, Oct 5, recorded by Sarah, ref 1042, for INV-00001". */
 const paymentSub = (p: PaymentRow, withInvoice = true) =>
     [
         p.on ? formatDay(p.on) : '',
         p.declined ? 'autopay' : p.by ? `recorded by ${p.by}` : 'paid online',
+        p.reference ? `ref ${p.reference}` : p.stripe_id ? `Stripe ${p.stripe_id}` : '',
         withInvoice && p.invoice ? `for ${p.invoice}` : '',
     ]
         .filter(Boolean)

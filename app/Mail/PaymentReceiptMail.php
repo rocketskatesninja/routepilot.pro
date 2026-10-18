@@ -27,6 +27,8 @@ class PaymentReceiptMail extends Mailable
         public string $paidOn,
         /** The company whose colours and logo the email wears (null = RoutePilot's own). */
         public ?Tenant $tenant = null,
+        /** The payment's reference: Stripe's id for a card payment, or the office's (a check number). */
+        public ?string $reference = null,
     ) {}
 
     public function envelope(): Envelope
