@@ -7,12 +7,13 @@ import PaneSection from '@/components/pane/PaneSection.vue';
 import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
-import { type FieldStop } from '@/lib/field/store';
+import { shrinkPhoto } from '@/lib/field/photo';
+import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
 import { ChevronLeft, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
 const emit = defineEmits<{ (e: 'done', stopId: number): void; (e: 'close'): void }>();
@@ -43,6 +44,76 @@ const notes = ref('');
 const photos = ref<File[]>([]);
 const analysis = ref<FullAnalysis | null>(null);
 const submitting = ref(false);
+
+// The visit so far is kept on the phone as it's filled in, so a refresh (or the
+// browser reloading the page behind the camera) picks up where the tech left off.
+let restored = false;
+let finished = false;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
+onMounted(async () => {
+    try {
+        const { draft, photos: saved } = await getDraft(props.stop.id);
+        if (draft) {
+            for (const f of readingFields) reading[f.key] = draft.reading[f.key] ?? '';
+            tasks.forEach((t, i) => {
+                if (draft.tasks[i]?.name === t.name) t.done = draft.tasks[i].done;
+            });
+            treatments.splice(0, treatments.length, ...draft.treatments);
+            notes.value = draft.notes;
+            if (draft.analyzed) analyze();
+        }
+        if (saved.length) photos.value = saved;
+    } catch (e) {
+        console.error('Could not restore the unfinished visit:', e);
+    }
+    await nextTick(); // let the restore's own watcher runs pass before saving starts
+    restored = true;
+});
+
+function persist() {
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+    if (finished) return;
+    saveDraft({
+        stop_id: props.stop.id,
+        reading: { ...reading },
+        tasks: tasks.map((t) => ({ name: t.name, done: t.done })),
+        treatments: treatments.map((t) => ({ ...t })),
+        notes: notes.value,
+        analyzed: analysis.value !== null,
+        updated_at: Date.now(),
+    }).catch((e) => console.error('Could not save the visit on the phone:', e));
+}
+
+watch(
+    [reading, tasks, treatments, notes, () => analysis.value !== null],
+    () => {
+        if (!restored || finished) return;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(persist, 300);
+    },
+    { deep: true },
+);
+watch(photos, (files) => {
+    if (!restored || finished) return;
+    saveDraftPhotos(props.stop.id, files).catch((e) => console.error('Could not save the photos on the phone:', e));
+});
+// Going back to the route keeps the draft; write any pending keystrokes first.
+onBeforeUnmount(() => {
+    if (saveTimer !== undefined) persist();
+});
+
+/** New photos are shrunk on the phone; removing one just drops it. Finish waits for it. */
+const shrinking = ref(false);
+async function setPhotos(files: File[]) {
+    shrinking.value = true;
+    try {
+        photos.value = await Promise.all(files.map((f) => (photos.value.includes(f) ? f : shrinkPhoto(f))));
+    } finally {
+        shrinking.value = false;
+    }
+}
 
 /** Build a numeric reading for the chemistry engine (water_temperature → temperature). */
 function numericReading(): Reading {
@@ -121,6 +192,10 @@ async function complete() {
         payload.completed_lng = loc.lng;
     }
     await queueCompletion(props.stop.id, pool.value?.name ?? 'Pool', payload, show.photos ? photos.value : []);
+    // It's in the sync queue now, so the draft has done its job.
+    finished = true;
+    clearTimeout(saveTimer);
+    await deleteDraft(props.stop.id).catch((e) => console.error('Could not clear the finished visit’s draft:', e));
     submitting.value = false;
     emit('done', props.stop.id);
 }
@@ -283,7 +358,7 @@ async function complete() {
 
             <!-- photos -->
             <PaneSection v-if="show.photos" title="Photos">
-                <MultiImageUpload :model-value="photos" capture="environment" @update:model-value="(f) => (photos = f)" />
+                <MultiImageUpload :model-value="photos" capture="environment" :max="6" @update:model-value="setPhotos" />
             </PaneSection>
 
             <!-- a note for the office and the homeowner, just before finishing -->
@@ -300,7 +375,7 @@ async function complete() {
 
         <!-- complete -->
         <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4">
-            <Button class="h-12 w-full rounded-xl text-base" :disabled="submitting" @click="complete">
+            <Button class="h-12 w-full rounded-xl text-base" :disabled="submitting || shrinking" @click="complete">
                 {{ online ? 'Finish visit' : 'Finish visit (sends when you’re back online)' }}
             </Button>
         </footer>

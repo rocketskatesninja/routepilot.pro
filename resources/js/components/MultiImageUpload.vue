@@ -10,9 +10,11 @@ import { onBeforeUnmount, ref, watch } from 'vue';
 // `capture` opts the file input into a device camera (e.g. 'environment' = rear
 // camera) so mobile opens the camera directly instead of the picker; omit for the
 // normal picker (camera + library choice).
-const props = withDefaults(defineProps<{ modelValue: File[]; capture?: 'environment' | 'user' }>(), {
+// `max` caps how many photos can be added (the Add tile hides once it's reached).
+const props = withDefaults(defineProps<{ modelValue: File[]; capture?: 'environment' | 'user'; max?: number }>(), {
     modelValue: () => [],
     capture: undefined,
+    max: undefined,
 });
 const emit = defineEmits<{ 'update:modelValue': [File[]] }>();
 
@@ -32,7 +34,10 @@ onBeforeUnmount(() => previews.value.forEach((p) => URL.revokeObjectURL(p.url)))
 const pick = () => fileInput.value?.click();
 
 function onFiles(e: Event) {
-    const picked = Array.from((e.target as HTMLInputElement).files ?? []);
+    const picked = Array.from((e.target as HTMLInputElement).files ?? []).slice(
+        0,
+        props.max === undefined ? undefined : props.max - props.modelValue.length,
+    );
     if (picked.length) emit('update:modelValue', [...props.modelValue, ...picked]);
     if (fileInput.value) fileInput.value.value = '';
 }
@@ -60,6 +65,7 @@ function removeAt(i: number) {
                 </button>
             </div>
             <button
+                v-if="props.max === undefined || modelValue.length < props.max"
                 type="button"
                 class="border-border text-muted-foreground hover:bg-muted/40 flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed"
                 @click="pick"

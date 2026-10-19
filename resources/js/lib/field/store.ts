@@ -50,18 +50,38 @@ export interface QueuedVisit {
     created_at: number;
 }
 
+/** A visit the tech has started but not finished — kept so a page reload doesn't lose it. */
+export interface VisitDraft {
+    stop_id: number;
+    reading: Record<string, string>;
+    tasks: { name: string; done: boolean }[];
+    treatments: { name: string; amount: string; unit: string }[];
+    notes: string;
+    analyzed: boolean;
+    updated_at: number;
+}
+
 interface FieldDB extends DBSchema {
     bundles: { key: string; value: { date: string; data: TodayBundle; cached_at: number } };
     queue: { key: string; value: QueuedVisit };
+    // Photos live apart from the typed-in fields so saving a keystroke never rewrites the images.
+    drafts: { key: number; value: VisitDraft };
+    draft_photos: { key: number; value: { stop_id: number; photos: File[]; updated_at: number } };
 }
 
 let dbPromise: Promise<IDBPDatabase<FieldDB>> | null = null;
 
 function db(): Promise<IDBPDatabase<FieldDB>> {
-    dbPromise ??= openDB<FieldDB>('routepilot-field', 1, {
-        upgrade(database) {
-            database.createObjectStore('bundles', { keyPath: 'date' });
-            database.createObjectStore('queue', { keyPath: 'idempotency_key' });
+    dbPromise ??= openDB<FieldDB>('routepilot-field', 2, {
+        upgrade(database, oldVersion) {
+            if (oldVersion < 1) {
+                database.createObjectStore('bundles', { keyPath: 'date' });
+                database.createObjectStore('queue', { keyPath: 'idempotency_key' });
+            }
+            if (oldVersion < 2) {
+                database.createObjectStore('drafts', { keyPath: 'stop_id' });
+                database.createObjectStore('draft_photos', { keyPath: 'stop_id' });
+            }
         },
     });
     return dbPromise;
@@ -106,4 +126,42 @@ export async function patchQueued(key: string, patch: Partial<QueuedVisit>): Pro
     const database = await db();
     const existing = await database.get('queue', key);
     if (existing) await database.put('queue', { ...existing, ...patch });
+}
+
+export async function getDraft(stopId: number): Promise<{ draft: VisitDraft | null; photos: File[] }> {
+    const database = await db();
+    const [draft, photos] = await Promise.all([database.get('drafts', stopId), database.get('draft_photos', stopId)]);
+    return { draft: draft ?? null, photos: photos?.photos ?? [] };
+}
+
+export async function saveDraft(draft: VisitDraft): Promise<void> {
+    const database = await db();
+    // Built from Vue-reactive form state — see saveBundle() on why the JSON round trip.
+    await database.put('drafts', JSON.parse(JSON.stringify(draft)));
+}
+
+export async function saveDraftPhotos(stopId: number, photos: File[]): Promise<void> {
+    const database = await db();
+    await database.put('draft_photos', { stop_id: stopId, photos: Array.from(photos), updated_at: Date.now() });
+}
+
+export async function deleteDraft(stopId: number): Promise<void> {
+    const database = await db();
+    const tx = database.transaction(['drafts', 'draft_photos'], 'readwrite');
+    await Promise.all([tx.objectStore('drafts').delete(stopId), tx.objectStore('draft_photos').delete(stopId), tx.done]);
+}
+
+/** Drop drafts nobody has touched in `maxAgeMs` — stops from days already over. */
+export async function pruneDrafts(maxAgeMs: number): Promise<void> {
+    const database = await db();
+    const cutoff = Date.now() - maxAgeMs;
+    const tx = database.transaction(['drafts', 'draft_photos'], 'readwrite');
+    for (const name of ['drafts', 'draft_photos'] as const) {
+        let cursor = await tx.objectStore(name).openCursor();
+        while (cursor) {
+            if (cursor.value.updated_at < cutoff) await cursor.delete();
+            cursor = await cursor.continue();
+        }
+    }
+    await tx.done;
 }

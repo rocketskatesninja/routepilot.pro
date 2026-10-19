@@ -2,12 +2,12 @@
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import FieldVisit from '@/components/field/FieldVisit.vue';
 import { useAgentTracking } from '@/composables/useAgentTracking';
-import { saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
+import { pruneDrafts, saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
 import { QUEUE_SYNCED, failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
 import { formatDay } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/vue3';
 import { Check, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const { sharing: sharingLocation, toggle: toggleLocation, restore: restoreLocation } = useAgentTracking();
 
@@ -18,6 +18,25 @@ const online = ref(true);
 const queued = ref(0);
 const failed = ref(0);
 const selected = ref<FieldStop | null>(null);
+
+// The open stop is remembered for this tab, so a refresh lands back on the visit
+// (whose entries FieldVisit restores) instead of the list.
+const OPEN_STOP = 'field-open-stop';
+watch(selected, (stop) => {
+    try {
+        if (stop) sessionStorage.setItem(OPEN_STOP, String(stop.id));
+        else sessionStorage.removeItem(OPEN_STOP);
+    } catch {
+        // Storage blocked — a refresh just lands on the list; the visit's entries are still kept.
+    }
+});
+function rememberedStop(): number {
+    try {
+        return Number(sessionStorage.getItem(OPEN_STOP));
+    } catch {
+        return 0;
+    }
+}
 
 async function refreshCounts() {
     queued.value = await queuedCount();
@@ -79,13 +98,16 @@ onMounted(async () => {
     window.addEventListener('offline', onOffline);
     await load();
     restoreLocation();
+    pruneDrafts(2 * 24 * 60 * 60 * 1000).catch(() => {});
     // Deep-link: /field?stop=<id> opens that stop directly (e.g. from the dashboard
-    // route widget), then strips the param so a refresh lands on the list.
-    const stopId = Number(new URLSearchParams(window.location.search).get('stop'));
+    // route widget), then strips the param; otherwise reopen the stop that was open
+    // before a refresh.
+    const linked = Number(new URLSearchParams(window.location.search).get('stop'));
+    if (linked) window.history.replaceState({}, '', '/field');
+    const stopId = linked || rememberedStop();
     if (stopId) {
         const target = stops.value.find((s) => s.id === stopId);
         if (target) open(target);
-        window.history.replaceState({}, '', '/field');
     }
 });
 onBeforeUnmount(() => {
