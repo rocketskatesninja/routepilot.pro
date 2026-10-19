@@ -19,8 +19,8 @@ beforeEach(function () {
     $this->agent = User::factory()->agent()->for($this->tenant)->create();
 });
 
-/** Soft-delete a customer and backdate the deletion by $days. */
-function erasedCustomer(Tenant $tenant, int $days): Customer
+/** Soft-delete (archive) a customer and backdate the archiving by $days. */
+function archivedCustomer(Tenant $tenant, int $days): Customer
 {
     $customer = Customer::factory()->for($tenant)->create();
     $customer->delete();
@@ -29,33 +29,41 @@ function erasedCustomer(Tenant $tenant, int $days): Customer
     return $customer;
 }
 
-test('a customer past the retention window is hard-deleted with their PII cascade', function () {
-    Storage::fake('public');
+/** A read notification for the agent, $ageDays old. */
+function oldReadNotification(User $user, int $ageDays): void
+{
+    DB::table('notifications')->insert([
+        'id' => (string) Str::uuid(), 'type' => 'App\\Notifications\\Test',
+        'notifiable_type' => User::class, 'notifiable_id' => $user->id, 'data' => '{}',
+        'read_at' => now()->subDays($ageDays), 'created_at' => now()->subDays($ageDays), 'updated_at' => now()->subDays($ageDays),
+    ]);
+}
 
-    $customer = erasedCustomer($this->tenant, 400);
+test('an archived customer is never deleted by the clean-up, however long ago', function () {
+    Storage::fake('public');
+    $customer = archivedCustomer($this->tenant, 2000);
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
     $visit = ServiceVisit::factory()->for($this->tenant)->for($pool)->create([
-        'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now(),
+        'agent_id' => $this->agent->id, 'status' => 'completed', 'completed_at' => now()->subYears(5),
     ]);
     Storage::disk('public')->put('visits/p.jpg', 'binary');
-    $photo = VisitPhoto::query()->create(['service_visit_id' => $visit->id, 'photo_path' => 'visits/p.jpg']);
+    VisitPhoto::query()->create(['service_visit_id' => $visit->id, 'photo_path' => 'visits/p.jpg']);
+    $charge = manualCharge($customer, 50);
 
     $this->artisan('app:purge-retention')->assertSuccessful();
 
-    expect(Customer::withTrashed()->find($customer->id))->toBeNull()
-        ->and(Pool::withTrashed()->find($pool->id))->toBeNull()
-        ->and(ServiceVisit::query()->find($visit->id))->toBeNull()
-        ->and(VisitPhoto::query()->find($photo->id))->toBeNull()
-        ->and(Storage::disk('public')->exists('visits/p.jpg'))->toBeFalse()
-        ->and(AuditLog::query()->where('action', 'retention.purged')->count())->toBe(1);
+    expect(Customer::withTrashed()->find($customer->id))->not->toBeNull()
+        ->and(ServiceVisit::query()->find($visit->id))->not->toBeNull()
+        ->and($charge->fresh())->not->toBeNull()
+        ->and(Storage::disk('public')->exists('visits/p.jpg'))->toBeTrue();
 });
 
-test('a recently soft-deleted customer is left alone', function () {
-    $customer = erasedCustomer($this->tenant, 10);
+test('a run that prunes something is audited', function () {
+    oldReadNotification($this->agent, 100);
 
     $this->artisan('app:purge-retention')->assertSuccessful();
 
-    expect(Customer::withTrashed()->find($customer->id))->not->toBeNull();
+    expect(AuditLog::query()->where('action', 'retention.purged')->count())->toBe(1);
 });
 
 test('old read notifications are pruned, recent and unread are kept', function () {
@@ -93,10 +101,10 @@ test('stale agent locations are pruned', function () {
 });
 
 test('a dry run deletes nothing', function () {
-    $customer = erasedCustomer($this->tenant, 400);
+    oldReadNotification($this->agent, 100);
 
     $this->artisan('app:purge-retention --dry')->assertSuccessful();
 
-    expect(Customer::withTrashed()->find($customer->id))->not->toBeNull()
+    expect(DB::table('notifications')->count())->toBe(1)
         ->and(AuditLog::query()->where('action', 'retention.purged')->count())->toBe(0);
 });

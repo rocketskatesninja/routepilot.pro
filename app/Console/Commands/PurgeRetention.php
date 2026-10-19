@@ -9,15 +9,15 @@ use App\Services\DataRetention;
 use Illuminate\Console\Command;
 
 /**
- * Platform-wide data-retention sweep: finalize expired customer erasures
- * (GDPR right-to-be-forgotten) and prune stale read notifications. Pass --dry
- * to preview the counts without deleting anything.
+ * Weekly housekeeping: prune old read notifications and techs' stale last-known
+ * positions. Never deletes customers, reports or billing records. Pass --dry to
+ * preview the counts without deleting anything.
  */
 class PurgeRetention extends Command
 {
     protected $signature = 'app:purge-retention {--dry : Preview the counts without deleting}';
 
-    protected $description = 'Hard-delete expired soft-deleted customer PII (GDPR erasure) and prune old read notifications.';
+    protected $description = 'Prune old read notifications and stale tech positions.';
 
     public function handle(DataRetention $retention): int
     {
@@ -25,10 +25,8 @@ class PurgeRetention extends Command
         $counts = $retention->purge($apply);
 
         $this->info(sprintf(
-            '%sRetention: %d customer(s), %d photo file(s), %d notification(s), %d location(s).',
+            '%sRetention: %d notification(s), %d location(s).',
             $apply ? '' : '[dry-run] would purge — ',
-            $counts['customers_purged'],
-            $counts['photo_files_deleted'],
             $counts['notifications_pruned'],
             $counts['agent_locations_pruned'],
         ));
