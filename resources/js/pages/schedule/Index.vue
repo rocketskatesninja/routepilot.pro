@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ScheduleMap from '@/components/schedule/ScheduleMap.vue';
+import StopRow from '@/components/schedule/StopRow.vue';
 import { Button } from '@/components/ui/button';
 import { subscribeTenantSchedule } from '@/echo';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { visitStatusClass } from '@/lib/statusColors';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, GripVertical, Inbox, SkipForward, Sparkles, Undo2, Wand2 } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, Inbox, Sparkles, Wand2 } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -339,33 +339,14 @@ const prettyDate = computed(() =>
                         @change="persist"
                     >
                         <template #item="{ element: stop, index }">
-                            <li
-                                class="flex cursor-pointer items-center justify-between gap-2 px-4 py-2 transition-colors"
-                                :class="focusId === stop.id ? 'bg-primary/10 ring-primary/40 ring-1 ring-inset' : 'hover:bg-muted/40'"
+                            <StopRow
+                                :stop="stop"
+                                :number="index + 1"
+                                :focused="focusId === stop.id"
+                                :movable="props.canManage"
+                                :skippable="false"
                                 @click="focusStop(stop)"
-                            >
-                                <span class="flex min-w-0 items-center gap-2 truncate">
-                                    <GripVertical
-                                        v-if="props.canManage && stop.status === 'pending'"
-                                        class="drag-handle text-muted-foreground size-4 shrink-0 cursor-grab active:cursor-grabbing"
-                                    />
-                                    <span v-else class="size-4 shrink-0" aria-hidden="true" />
-                                    <span class="text-muted-foreground">{{ index + 1 }}.</span>
-                                    <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
-                                    <span class="truncate"
-                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span
-                                        ><span v-if="stop.service" class="text-muted-foreground block text-xs">{{ stop.service }}</span></span
-                                    >
-                                </span>
-                                <div class="flex shrink-0 items-center gap-1.5">
-                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-muted-foreground text-xs tabular-nums">{{
-                                        stop.eta
-                                    }}</span>
-                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
-                                        stop.status.replace('_', ' ')
-                                    }}</span>
-                                </div>
-                            </li>
+                            />
                         </template>
                     </draggable>
                     <p v-if="localUnassigned.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">
@@ -423,49 +404,16 @@ const prettyDate = computed(() =>
                         @change="persist"
                     >
                         <template #item="{ element: stop, index }">
-                            <li
-                                class="flex cursor-pointer items-center justify-between gap-2 px-4 py-2 transition-colors"
-                                :class="focusId === stop.id ? 'bg-primary/10 ring-primary/40 ring-1 ring-inset' : 'hover:bg-muted/40'"
+                            <StopRow
+                                :stop="stop"
+                                :number="index + 1"
+                                :focused="focusId === stop.id"
+                                :movable="canManageRoute(route)"
+                                :skippable="canManageRoute(route)"
                                 @click="focusStop(stop)"
-                            >
-                                <span class="flex min-w-0 items-center gap-2 truncate">
-                                    <GripVertical
-                                        v-if="canManageRoute(route) && stop.status === 'pending'"
-                                        class="drag-handle text-muted-foreground size-4 shrink-0 cursor-grab active:cursor-grabbing"
-                                    />
-                                    <span v-else class="size-4 shrink-0" aria-hidden="true" />
-                                    <span class="text-muted-foreground">{{ index + 1 }}.</span>
-                                    <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
-                                    <span class="truncate"
-                                        >{{ stop.pool }} <span class="text-muted-foreground text-xs">· {{ stop.customer }}</span
-                                        ><span v-if="stop.service" class="text-muted-foreground block text-xs">{{ stop.service }}</span></span
-                                    >
-                                </span>
-                                <div class="flex shrink-0 items-center gap-1.5">
-                                    <span v-if="stop.eta && stop.status === 'pending'" class="text-muted-foreground text-xs tabular-nums">{{
-                                        stop.eta
-                                    }}</span>
-                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
-                                        stop.status.replace('_', ' ')
-                                    }}</span>
-                                    <button
-                                        v-if="canManageRoute(route) && stop.status === 'pending'"
-                                        class="text-muted-foreground hover:bg-muted rounded p-1 hover:text-amber-600"
-                                        title="Skip stop"
-                                        @click.stop="skipStop(stop.id)"
-                                    >
-                                        <SkipForward class="size-3.5" />
-                                    </button>
-                                    <button
-                                        v-if="canManageRoute(route) && stop.status === 'skipped'"
-                                        class="text-muted-foreground hover:bg-muted rounded p-1 hover:text-emerald-600"
-                                        title="Unskip stop"
-                                        @click.stop="unskipStop(stop.id)"
-                                    >
-                                        <Undo2 class="size-3.5" />
-                                    </button>
-                                </div>
-                            </li>
+                                @skip="skipStop(stop.id)"
+                                @unskip="unskipStop(stop.id)"
+                            />
                         </template>
                     </draggable>
                     <p v-if="route.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">No stops — drag one here.</p>
