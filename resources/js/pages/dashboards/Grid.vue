@@ -198,9 +198,17 @@ onBeforeUnmount(() => {
                     </button>
                 </div>
             </div>
-            <Button size="sm" :variant="editing ? 'default' : 'outline'" @click="toggleEdit">
-                <component :is="editing ? Check : Pencil" class="mr-1 size-4" />
-                {{ editing ? 'Done' : 'Customize' }}
+            <!-- Icon only on a phone (like the other page buttons); "Done" always keeps its word, it's the way out. -->
+            <Button
+                size="sm"
+                :variant="editing ? 'default' : 'outline'"
+                :title="editing ? undefined : 'Customize'"
+                :aria-label="editing ? undefined : 'Customize'"
+                @click="toggleEdit"
+            >
+                <component :is="editing ? Check : Pencil" class="size-4" :class="editing ? 'mr-1' : 'sm:mr-1'" />
+                <span v-if="editing">Done</span>
+                <span v-else class="hidden sm:inline">Customize</span>
             </Button>
         </template>
 
