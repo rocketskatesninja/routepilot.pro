@@ -147,23 +147,26 @@ async function onCompleted(stopId: number) {
                     <Wifi v-if="online" class="size-3.5" /><WifiOff v-else class="size-3.5" />
                     {{ online ? 'Online' : 'Offline' }}
                 </span>
-                <button
-                    class="grid size-10 place-items-center rounded-xl"
-                    :class="sharingLocation ? 'text-primary bg-[hsl(var(--brand)/0.12)]' : 'text-muted-foreground hover:bg-muted'"
-                    :title="sharingLocation ? 'Sharing your location. Tap to stop.' : 'Share your location with the office'"
-                    :aria-label="sharingLocation ? 'Stop sharing your location' : 'Share your location with the office'"
-                    @click="toggleLocation"
-                >
-                    <MapPin class="size-5" :class="sharingLocation ? 'animate-pulse' : ''" />
-                </button>
-                <button
-                    class="hover:bg-muted grid size-10 place-items-center rounded-xl"
-                    :disabled="loading"
-                    aria-label="Sync and refresh"
-                    @click="refresh"
-                >
-                    <RefreshCw class="size-5" :class="loading ? 'animate-spin' : ''" />
-                </button>
+                <!-- Location + refresh sit together, no gap: the 40px tap targets already space the icons. -->
+                <div class="flex items-center">
+                    <button
+                        class="grid size-10 place-items-center rounded-xl"
+                        :class="sharingLocation ? 'text-primary bg-[hsl(var(--brand)/0.12)]' : 'text-muted-foreground hover:bg-muted'"
+                        :title="sharingLocation ? 'Sharing your location. Tap to stop.' : 'Share your location with the office'"
+                        :aria-label="sharingLocation ? 'Stop sharing your location' : 'Share your location with the office'"
+                        @click="toggleLocation"
+                    >
+                        <MapPin class="size-5" :class="sharingLocation ? 'animate-pulse' : ''" />
+                    </button>
+                    <button
+                        class="hover:bg-muted grid size-10 place-items-center rounded-xl"
+                        :disabled="loading"
+                        aria-label="Sync and refresh"
+                        @click="refresh"
+                    >
+                        <RefreshCw class="size-5" :class="loading ? 'animate-spin' : ''" />
+                    </button>
+                </div>
             </div>
             <div v-if="queued > 0" class="flex items-center gap-1.5 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-700 dark:text-sky-300">
                 <CloudOff class="size-4" /> {{ queued }} visit{{ queued === 1 ? '' : 's' }} waiting to sync{{
