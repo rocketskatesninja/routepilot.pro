@@ -38,12 +38,12 @@
             <td style="padding: 14px 18px; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                     <tr>
-                        <td style="font-size: 15px; font-weight: 600; color: #0f172a;">{{ $c['name'] }}</td>
-                        <td align="right" style="font-size: 15px; font-weight: 600; color: #0f172a; white-space: nowrap;">{{ $c['reads'] }}</td>
+                        <td style="font-size: 13px; font-weight: 600; color: #0f172a;">{{ $c['name'] }}</td>
+                        <td align="right" style="font-size: 13px; font-weight: 600; color: #0f172a; white-space: nowrap;">{{ $c['reads'] }}</td>
                     </tr>
                     <tr>
-                        <td style="font-size: 13px; color: #64748b;">Healthy: {{ $c['range'] }}</td>
-                        <td align="right" style="font-size: 13px; font-weight: 500; white-space: nowrap; color: {{ $c['status'] === 'good' ? '#047857' : '#b45309' }};">
+                        <td style="font-size: 11px; color: #64748b;">Healthy: {{ $c['range'] }}</td>
+                        <td align="right" style="font-size: 11px; font-weight: 500; white-space: nowrap; color: {{ $c['status'] === 'good' ? '#047857' : '#b45309' }};">
                             {{ $c['status'] === 'good' ? '✓' : ($c['status'] === 'low' ? '↓' : '↑') }} {{ $c['label'] }}
                         </td>
                     </tr>

@@ -16,17 +16,17 @@
                 @foreach ($tasks->chunk(2) as $pair)
                     <tr>
                         @foreach ($pair as $t)
-                            <td class="rp-col" width="50%" style="padding: 3px 0; font-size: 15px; color: {{ $t->is_completed ? '#0f172a' : '#64748b' }};">
+                            <td class="rp-col" width="50%" style="padding: 3px 0; font-size: 13px; color: {{ $t->is_completed ? '#0f172a' : '#64748b' }};">
                                 <span style="color: {{ $t->is_completed ? $brand['color'] : '#94a3b8' }}; font-weight: 600;">{{ $t->is_completed ? '✓' : '–' }}</span>&nbsp; {{ $t->task_name }}{{ $t->is_completed ? '' : ' (skipped)' }}
                             </td>
                         @endforeach
                     </tr>
                 @endforeach
                 @if (count($checks))
-                    <tr><td colspan="2" style="padding: 3px 0; font-size: 15px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; Water tested</td></tr>
+                    <tr><td colspan="2" style="padding: 3px 0; font-size: 13px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; Water tested</td></tr>
                 @endif
                 @if ($treatments->count())
-                    <tr><td colspan="2" style="padding: 3px 0; font-size: 15px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; {{ $treatments->count() }} chemical{{ $treatments->count() === 1 ? '' : 's' }} added</td></tr>
+                    <tr><td colspan="2" style="padding: 3px 0; font-size: 13px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; {{ $treatments->count() }} chemical{{ $treatments->count() === 1 ? '' : 's' }} added</td></tr>
                 @endif
             </table>
         </x-email.section>
@@ -40,7 +40,7 @@
     {{-- the water test, against this pool's own targets --}}
     @if (count($checks))
         <x-email.section title="Your water">
-            <p style="margin: 0 0 12px; font-size: 15px; color: #475569;">{{ $waterSummary }}</p>
+            <p style="margin: 0 0 12px; font-size: 13px; color: #475569;">{{ $waterSummary }}</p>
             <x-email.water :brand="$brand" :checks="$checks" />
         </x-email.section>
     @endif
@@ -51,8 +51,8 @@
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 16px; border-collapse: separate;">
                 @foreach ($treatments as $i => $t)
                     <tr>
-                        <td style="padding: 12px 18px; font-size: 15px; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $t->chemical_name }}</td>
-                        <td align="right" style="padding: 12px 18px; font-size: 15px; color: #475569; white-space: nowrap; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $amount($t) }}</td>
+                        <td style="padding: 12px 18px; font-size: 13px; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $t->chemical_name }}</td>
+                        <td align="right" style="padding: 12px 18px; font-size: 13px; color: #475569; white-space: nowrap; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $amount($t) }}</td>
                     </tr>
                 @endforeach
             </table>
@@ -71,7 +71,7 @@
     {{-- what they owe --}}
     @if ($balance > 0)
         <x-email.section title="Your balance">
-            <p style="margin: 0; font-size: 15px;">You owe <strong>${{ number_format($balance, 2) }}</strong>.</p>
+            <p style="margin: 0; font-size: 13px;">You owe <strong>${{ number_format($balance, 2) }}</strong>.</p>
             @if ($payUrl)
                 <x-email.button :brand="$brand" :href="$payUrl">Pay ${{ number_format($balance, 2) }}</x-email.button>
             @endif

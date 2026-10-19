@@ -21,7 +21,7 @@
     <style>
         @media (max-width: 600px) {
             .rp-pad { padding-left: 20px !important; padding-right: 20px !important; }
-            .rp-title { font-size: 24px !important; }
+            .rp-title { font-size: 22px !important; }
             .rp-col { display: block !important; width: 100% !important; }
         }
     </style>
@@ -40,7 +40,7 @@
                             @if ($brand['logo'])
                                 <img src="{{ $brand['logo'] }}" alt="{{ $brand['name'] }}" height="40" style="height: 40px; max-width: 200px; border: 0; display: block;">
                             @else
-                                <span style="font-family: {{ $display }}; font-size: 18px; font-weight: 600; color: #0f172a;">{{ $brand['name'] }}</span>
+                                <span style="font-family: {{ $display }}; font-size: 16px; font-weight: 600; color: #0f172a;">{{ $brand['name'] }}</span>
                             @endif
                         </td>
                     </tr>
@@ -51,11 +51,11 @@
                                 <tr>
                                     <td class="rp-pad" style="background: {{ $brand['tint'] }}; padding: 28px 32px 26px;">
                                         @if ($greeting)
-                                            <p style="margin: 0 0 8px; font-size: 15px; color: #475569;">{{ $greeting }}</p>
+                                            <p style="margin: 0 0 8px; font-size: 13px; color: #475569;">{{ $greeting }}</p>
                                         @endif
-                                        <h1 class="rp-title" style="margin: 0; font-family: {{ $display }}; font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; color: #0f172a;">{{ $title }}</h1>
+                                        <h1 class="rp-title" style="margin: 0; font-family: {{ $display }}; font-size: 26px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; color: #0f172a;">{{ $title }}</h1>
                                         @if ($sub)
-                                            <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.5; color: #475569;">{{ $sub }}</p>
+                                            <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: #475569;">{{ $sub }}</p>
                                         @endif
                                     </td>
                                 </tr>
@@ -73,7 +73,7 @@
                             {{-- the body --}}
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
-                                    <td class="rp-pad" style="padding: 8px 32px 32px; font-size: 15px; line-height: 1.55; color: #0f172a;">
+                                    <td class="rp-pad" style="padding: 8px 32px 32px; font-size: 13px; line-height: 1.55; color: #0f172a;">
                                         {{ $slot }}
                                     </td>
                                 </tr>
@@ -82,7 +82,7 @@
                     </tr>
                     {{-- footer --}}
                     <tr>
-                        <td style="padding: 18px 8px 0; font-size: 13px; line-height: 1.5; color: #64748b; text-align: center;">
+                        <td style="padding: 18px 8px 0; font-size: 11px; line-height: 1.5; color: #64748b; text-align: center;">
                             {{ $footer ?? '' }}
                             <p style="margin: 6px 0 0;">{{ $brand['name'] }}@if ($brand['address'])<br>{{ $brand['address'] }}@endif</p>
                         </td>
