@@ -16,3 +16,17 @@ test('the field app renders for an agent', function () {
 test('the field app requires authentication', function () {
     $this->get('/field')->assertRedirect('/login');
 });
+
+test('the field app renders for an office admin too (for owners who run a route)', function () {
+    $admin = User::factory()->for(Tenant::factory())->create();
+
+    $this->actingAs($admin)->get('/field')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->component('field/Index'));
+});
+
+test('customers can\'t open the field app', function () {
+    $customer = User::factory()->customer()->for(Tenant::factory())->create();
+
+    $this->actingAs($customer)->get('/field')->assertForbidden();
+});

@@ -4,7 +4,7 @@ import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import type { BreadcrumbItemType, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Bell, Search } from 'lucide-vue-next';
+import { Bell, Search, Smartphone } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 defineProps<{
@@ -17,6 +17,8 @@ const { isMobile } = useSidebar();
 const { open: openCommand } = useCommandPalette();
 const unread = computed(() => page.props.auth.unread ?? 0);
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
+// Anyone who works routes — techs, and office admins who run one themselves — can open the field app.
+const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.auth.role ?? ''));
 </script>
 
 <template>
@@ -50,9 +52,19 @@ const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes
             <span v-if="meta" class="text-muted-foreground truncate text-sm">{{ meta }}</span>
         </div>
 
-        <!-- Search + notifications: the top row's right on a phone, after the page
-             actions on desktop. -->
+        <!-- Field app, search + notifications: the top row's right on a phone, after
+             the page actions on desktop. -->
         <div class="flex items-center gap-1 md:order-last">
+            <Link
+                v-if="canField"
+                href="/field"
+                class="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-2 transition-colors"
+                :class="{ 'bg-muted text-foreground': page.url.startsWith('/field') }"
+                title="Field app"
+                aria-label="Field app"
+            >
+                <Smartphone class="size-5" />
+            </Link>
             <button
                 v-if="isStaff"
                 type="button"
