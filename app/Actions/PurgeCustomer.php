@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\Storage;
  * disk (DB rows cascade), then hard-delete the customer. The database's
  * ON DELETE CASCADE foreign keys clear the whole tree — pools, locations,
  * subscriptions, visits, readings, treatments, photos, invoices, payments,
- * charges — trashed or not. Irreversible (the retention purge does the same
- * after 365 days; this is the on-demand version).
+ * charges — trashed or not. Irreversible, and only ever done by hand. (To keep
+ * the billing records, AnonymizeCustomer removes just the personal details.)
  */
 class PurgeCustomer
 {

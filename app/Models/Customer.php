@@ -51,6 +51,7 @@ class Customer extends Model
             'lng' => 'float',
             'bill_chemicals' => 'boolean',
             'onboarded_at' => 'datetime',
+            'anonymized_at' => 'datetime',
             'email_visit_reports' => 'boolean',
             'email_reminders' => 'boolean',
             'email_news' => 'boolean',

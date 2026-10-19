@@ -27,7 +27,7 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Download, FileSpreadsheet, FileText, HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users, Waves } from 'lucide-vue-next';
+import { Download, FileSpreadsheet, FileText, HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users, UserX, Waves } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -74,6 +74,7 @@ interface CustomerDetail {
     emails: Record<string, boolean>;
     archived: boolean;
     archived_on: string | null;
+    anonymized_on: string | null;
     summary: { pools: number; visits: number; invoices: number; charges: number } | null;
     pools: { id: number; name: string; type: string; volume: number | null; services: string[] }[];
     recent_visits: { id: number; pool: string | null; service: string | null; agent: string | null; completed_on: string | null }[];
@@ -369,6 +370,14 @@ function destroyCustomer() {
 function restoreCustomer() {
     if (!props.selected || props.selected.type !== 'customer') return;
     router.post(`/customers/${props.selected.id}/restore`, {}, { preserveScroll: true, onSuccess: () => closeDrawer() });
+}
+function anonymizeCustomer() {
+    if (!props.selected || props.selected.type !== 'customer') return;
+    const ok = confirm(
+        'Remove this customer’s personal details? Their name, contact details, addresses, notes, photos, portal login and AI conversations are erased. ' +
+            'Invoices, payments and visit records stay, under “Former customer”. This cannot be undone.',
+    );
+    if (ok) router.post(`/customers/${props.selected.id}/anonymize`, {}, { preserveScroll: true });
 }
 function purgeCustomer() {
     if (!props.selected || props.selected.type !== 'customer') return;
@@ -851,12 +860,20 @@ function destroyAgent() {
                         <!-- archived: restore or permanently delete -->
                         <div v-if="customer.archived && props.canManage" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
                             <p class="font-medium">Archived{{ customer.archived_on ? ` on ${formatDay(customer.archived_on)}` : '' }}.</p>
+                            <p v-if="customer.anonymized_on" class="text-muted-foreground mt-0.5">
+                                Personal details removed on {{ formatDay(customer.anonymized_on) }}. Their billing records are kept.
+                            </p>
                             <p v-if="customer.summary" class="text-muted-foreground mt-0.5">
                                 Still holds {{ customer.summary.pools }} pool(s), {{ customer.summary.visits }} visit(s),
                                 {{ customer.summary.invoices }} invoice(s) and {{ customer.summary.charges }} charge(s).
                             </p>
                             <div class="mt-3 flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" @click="restoreCustomer"><RotateCcw class="mr-1 size-3.5" /> Restore</Button>
+                                <Button v-if="!customer.anonymized_on" size="sm" variant="outline" @click="restoreCustomer"
+                                    ><RotateCcw class="mr-1 size-3.5" /> Restore</Button
+                                >
+                                <Button v-if="!customer.anonymized_on" size="sm" variant="outline" @click="anonymizeCustomer"
+                                    ><UserX class="mr-1 size-3.5" /> Remove personal details</Button
+                                >
                                 <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="purgeCustomer"
                                     ><Trash2 class="mr-1 size-3.5" /> Delete permanently</Button
                                 >

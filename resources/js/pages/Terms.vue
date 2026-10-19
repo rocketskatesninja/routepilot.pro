@@ -26,7 +26,7 @@ const toc = [
     <LegalShell
         title="Terms of Service"
         subtitle="Please read these terms carefully before using the RoutePilot platform."
-        updated="Last updated: April 17, 2026 · Effective: April 17, 2026"
+        updated="Last updated: October 19, 2026 · Effective: October 19, 2026"
         :toc="toc"
     >
         <div class="border-primary/25 bg-primary/10 text-foreground rounded-xl border p-4 text-sm">
@@ -152,8 +152,8 @@ const toc = [
                 pay applicable fees, or engage in conduct that harms other users or the platform.
             </p>
             <p>
-                Upon termination, your data is retained for 90 days and then permanently deleted. You may request an export of your data before
-                termination.
+                After your account closes, your data is kept until you ask us to delete it, so you can come back without losing anything. You may
+                request an export of your data before it closes, and its deletion at any time.
             </p>
         </LegalSection>
 

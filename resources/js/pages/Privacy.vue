@@ -24,7 +24,7 @@ const toc = [
     <LegalShell
         title="Privacy Policy"
         subtitle="We respect your privacy and are committed to protecting your personal data."
-        updated="Last updated: April 17, 2026 · Effective: April 17, 2026"
+        updated="Last updated: October 19, 2026 · Effective: October 19, 2026"
         :toc="toc"
     >
         <div class="border-primary/25 bg-primary/10 text-foreground rounded-xl border p-4 text-sm">
@@ -149,12 +149,13 @@ const toc = [
 
         <LegalSection :n="7" id="retention" title="Data Retention">
             <p>
-                We retain your data for as long as your account is active. If you cancel your subscription, your data is retained for 90 days in case
-                you reactivate, then permanently deleted.
+                We keep your data for as long as your account is open. If you cancel, we keep it until you ask us to delete it, so nothing is lost if
+                you come back.
             </p>
             <p>
-                You may request immediate deletion of your data at any time by contacting us. AI conversation history is retained for 24 hours per
-                session and limited to the last 200 messages.
+                Your data is deleted on request: ask at any time at <a href="mailto:privacy@punchlistlabs.com">privacy@punchlistlabs.com</a>. Where
+                business records such as invoices and payments must be kept, we remove the personal details from them instead, so they no longer
+                identify anyone. Conversations with the AI assistant are kept with your account and are deleted on request too.
             </p>
         </LegalSection>
 

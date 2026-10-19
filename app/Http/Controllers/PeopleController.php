@@ -288,6 +288,7 @@ class PeopleController extends Controller
             'emails' => EmailPreferences::for($customer),
             'archived' => $customer->trashed(),
             'archived_on' => $customer->deleted_at?->toDateString(),
+            'anonymized_on' => Tenant::localDate($customer->getAttribute('anonymized_at')),
             // What a permanent delete would remove — shown on the archived panel.
             'summary' => $archived ? [
                 'pools' => $poolIds->count(),

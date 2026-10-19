@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\AnonymizeCustomer;
 use App\Actions\ArchiveCustomer;
 use App\Actions\CreateCustomer;
 use App\Actions\GrantPortalAccess;
@@ -79,6 +80,19 @@ class CustomerController extends Controller
         $action->handle($customer);
 
         return back()->with('success', 'Customer permanently deleted.');
+    }
+
+    /** On request: remove an archived customer's personal details, keeping their billing records (irreversible). */
+    public function anonymize(Request $request, Customer $customer, AnonymizeCustomer $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        if (! $action->handle($customer)) {
+            return back()->with('error', $customer->trashed() ? 'Their personal details were already removed.' : 'Archive the customer first.');
+        }
+        $this->audit($request, 'customer.anonymized', $customer);
+
+        return back()->with('success', "Personal details removed. Their billing records stay, as {$customer->fresh()?->displayName()}.");
     }
 
     /** GDPR/CCPA — download all of a customer's data as JSON (audited). */
