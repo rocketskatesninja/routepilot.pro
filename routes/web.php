@@ -202,10 +202,14 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     // Broadcast email — tenant_admin (own tenant) or super_admin (platform-wide).
     Route::post('people/email', [MailController::class, 'send'])->middleware('role:tenant_admin,super_admin')->name('people.email');
 
+    // Service History is also where the visit email's "See the full report" link
+    // lands; staff who open it (e.g. the owner testing the email) are sent on to
+    // the office copy of that report.
+    Route::get('history', [PortalController::class, 'history'])->middleware('role:customer,agent,tenant_admin')->name('portal.history');
+
     // ---- Customer portal (customer) ----
     Route::middleware('role:customer')->group(function () {
         Route::get('my-pools', [PortalController::class, 'pools'])->name('portal.pools');
-        Route::get('history', [PortalController::class, 'history'])->name('portal.history');
         Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
         Route::post('requests', [RequestController::class, 'store'])->name('requests.store');
         Route::get('balance', [PortalController::class, 'balance'])->name('portal.balance');

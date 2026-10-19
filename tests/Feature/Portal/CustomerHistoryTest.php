@@ -46,14 +46,30 @@ test('another customer\'s visits never appear', function () {
         ->assertInertia(fn (Assert $page) => $page->has('visits.data', 1)->where('visits.data.0.id', $this->visit->id));
 });
 
-test('staff cannot use the customer history endpoint', function () {
+test('staff never get the customer history page itself', function () {
     $agent = User::factory()->agent()->for($this->tenant)->create();
 
-    $this->actingAs($agent)->get('/history')->assertForbidden();
+    $this->actingAs($agent)->get('/history')->assertRedirect('/reports');
 });
 
 test('a portal user with no customer record gets a 404', function () {
     $orphan = User::factory()->customer()->for($this->tenant)->create();
 
     $this->actingAs($orphan)->get('/history')->assertNotFound();
+});
+
+test('staff who open a customer\'s report link from the email land on the office copy of it', function () {
+    $admin = User::factory()->for($this->tenant)->create();
+
+    $this->actingAs($admin)
+        ->get("/history?selected={$this->visit->id}")
+        ->assertRedirect("/reports?selected={$this->visit->id}");
+
+    $this->actingAs($this->agent)
+        ->get("/history?selected={$this->visit->id}")
+        ->assertRedirect("/reports?selected={$this->visit->id}");
+});
+
+test('a platform admin still can\'t open the portal history', function () {
+    $this->actingAs(User::factory()->superAdmin()->create())->get('/history')->assertForbidden();
 });

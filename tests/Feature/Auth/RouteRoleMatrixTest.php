@@ -35,7 +35,9 @@ test('agents cannot reach tenant_admin writes or the platform console', function
 
 test('staff cannot reach the customer portal', function () {
     $this->actingAs($this->agent)->get('/balance')->assertForbidden();
-    $this->actingAs($this->admin)->get('/history')->assertForbidden();
+    $this->actingAs($this->admin)->get('/my-pools')->assertForbidden();
+    // Service History (the visit email's report link) sends staff to the office report instead.
+    $this->actingAs($this->admin)->get('/history')->assertRedirect('/reports');
 });
 
 test('only super-admins reach the platform console', function () {

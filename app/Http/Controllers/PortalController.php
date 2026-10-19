@@ -31,8 +31,13 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  */
 class PortalController extends Controller
 {
-    public function history(Request $request): Response
+    public function history(Request $request): Response|RedirectResponse
     {
+        // Staff following a customer's report link get the office copy of it.
+        if ($request->user()?->isStaff()) {
+            return redirect()->route('reports.index', array_filter(['selected' => $request->integer('selected')]));
+        }
+
         $customer = $this->resolveCustomer($request);
 
         $visits = ServiceVisit::query()
