@@ -141,18 +141,18 @@ test('a pool due tomorrow reminds the portal customer in-app and by email', func
     Mail::assertQueued(ServiceReminderMail::class);
 });
 
-test('the service reminder email carries the softened arrival window', function () {
-    app()->instance('tenant', $this->tenant); // as the nightly command binds it: windows read on the company's clock
+test('the service reminder email names the day, never a time of arrival', function () {
     poolDueTomorrow();
-    RouteStop::query()
-        ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', today()->addDay()))
-        ->update(['estimated_arrival' => $this->tenant->today()->addDay()->setTime(9, 15)->utc()]); // 9:15 on the company's clock
     Notification::fake();
     Mail::fake();
 
     app(DailyOpsChecks::class)->run($this->tenant->id);
 
-    Mail::assertQueued(ServiceReminderMail::class, fn (ServiceReminderMail $m): bool => $m->arrivalWindow === '9:00 – 10:00 AM');
+    Mail::assertQueued(ServiceReminderMail::class, function (ServiceReminderMail $m): bool {
+        $text = strip_tags($m->render());
+
+        return str_contains($text, 'is coming tomorrow') && preg_match('/\b\d{1,2}:\d{2}\b|expected/i', $text) === 0;
+    });
 });
 
 test('the service reminder gives the customer the technician\'s first name only — never the surname', function () {

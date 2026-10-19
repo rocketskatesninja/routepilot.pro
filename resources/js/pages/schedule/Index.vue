@@ -20,7 +20,6 @@ interface Stop {
     customer: string | null;
     service: string | null;
     status: string;
-    eta: string | null;
 }
 
 interface RouteCard {

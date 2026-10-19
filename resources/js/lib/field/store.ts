@@ -10,7 +10,6 @@ export interface FieldStop {
     order: number;
     status: string;
     completed: boolean;
-    eta: string | null;
     pool: {
         id: number;
         name: string;

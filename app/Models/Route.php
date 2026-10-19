@@ -25,7 +25,7 @@ class Route extends Model
     use BelongsToTenant, HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['agent_id', 'scheduled_date', 'start_time', 'status', 'notes'];
+    protected $fillable = ['agent_id', 'scheduled_date', 'status', 'notes'];
 
     /** @return array<string, string> */
     protected function casts(): array

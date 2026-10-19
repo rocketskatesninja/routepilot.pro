@@ -479,7 +479,7 @@ function destroyService() {
                             <p v-if="form.errors.estimated_duration_minutes" class="text-xs text-red-600">
                                 {{ form.errors.estimated_duration_minutes }}
                             </p>
-                            <p v-else class="text-muted-foreground text-xs">Used to plan routes and arrival times.</p>
+                            <p v-else class="text-muted-foreground text-xs">Customers see it as how long a visit takes.</p>
                         </section>
 
                         <section class="space-y-2">

@@ -199,10 +199,7 @@ async function onCompleted(stopId: number) {
                     <p v-if="!stops.length && source === 'none'" class="text-muted-foreground mt-1 text-[15px]">
                         Connect to the internet to load it.
                     </p>
-                    <p v-else-if="next" class="text-muted-foreground mt-1 text-[15px]">
-                        Next up: {{ next.pool?.name ?? 'Pool' }}<template v-if="next.eta">, around {{ next.eta }}</template
-                        >.
-                    </p>
+                    <p v-else-if="next" class="text-muted-foreground mt-1 text-[15px]">Next up: {{ next.pool?.name ?? 'Pool' }}.</p>
                     <template v-if="stops.length">
                         <div
                             class="mt-3 h-2 overflow-hidden rounded-full bg-[hsl(var(--brand)/0.15)]"
@@ -223,8 +220,8 @@ async function onCompleted(stopId: number) {
 
                 <!-- the stops, in order -->
                 <ol v-if="stops.length" class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
-                    <!-- Pool name on its own line; the customer shares the next with when the
-                         tech's due (or Done / Skipped), which never shrinks; then the service. -->
+                    <!-- Pool name on its own line; the customer shares the next with Done /
+                         Skipped, which never shrinks; then the service. -->
                     <li
                         v-for="(stop, i) in stops"
                         :key="stop.id"
@@ -247,9 +244,6 @@ async function onCompleted(stopId: number) {
                                 <span class="text-muted-foreground min-w-0 flex-1 truncate">{{ stop.pool?.customer }}</span>
                                 <span v-if="isDone(stop)" class="shrink-0 font-medium">Done</span>
                                 <span v-else-if="stop.status === 'skipped'" class="text-muted-foreground shrink-0 font-medium">Skipped</span>
-                                <span v-else-if="stop.eta" class="text-primary shrink-0 font-medium whitespace-nowrap"
-                                    ><span class="hidden min-[380px]:inline">around </span>{{ stop.eta }}</span
-                                >
                             </div>
                             <p class="text-muted-foreground truncate text-sm">{{ stop.service.name ?? 'Service visit' }}</p>
                         </div>

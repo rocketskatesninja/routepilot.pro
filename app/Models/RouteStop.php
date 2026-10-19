@@ -16,7 +16,6 @@ use Illuminate\Support\Carbon;
  * through the parent Route (no tenant_id column of its own). A null
  * service_subscription_id marks an impromptu (one-off) visit.
  *
- * @property Carbon|null $estimated_arrival
  * @property Carbon|null $actual_arrival
  * @property Carbon|null $completed_at
  */
@@ -28,14 +27,13 @@ class RouteStop extends Model
     /** @var list<string> */
     protected $fillable = [
         'route_id', 'pool_id', 'service_subscription_id', 'stop_order',
-        'status', 'estimated_arrival', 'actual_arrival', 'completed_at', 'skip_reason',
+        'status', 'actual_arrival', 'completed_at', 'skip_reason',
     ];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
         return [
-            'estimated_arrival' => 'datetime',
             'actual_arrival' => 'datetime',
             'completed_at' => 'datetime',
         ];

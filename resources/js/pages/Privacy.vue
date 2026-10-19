@@ -83,7 +83,7 @@ const toc = [
             <p>We use your information to:</p>
             <ul>
                 <li>Provide, maintain, and improve the RoutePilot platform</li>
-                <li>Optimize service routes and calculate arrival estimates</li>
+                <li>Optimize service routes</li>
                 <li>Perform water chemistry analysis and generate treatment recommendations</li>
                 <li>Send service notifications, invoices, and system emails on your behalf</li>
                 <li>Fetch weather data relevant to your service locations</li>

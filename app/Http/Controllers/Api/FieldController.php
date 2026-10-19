@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Actions\CompleteVisit;
-use App\Actions\ReanchorEtas;
 use App\Actions\SendVisitFollowups;
 use App\Events\AgentLocationUpdated;
 use App\Http\Controllers\Controller;
@@ -80,7 +79,7 @@ class FieldController extends Controller
      * the agent has an active route today; otherwise tell the app to stop
      * sharing (tracking:false). Upserts the last-known position + broadcasts it.
      */
-    public function ping(Request $request, ReanchorEtas $reanchor): JsonResponse
+    public function ping(Request $request): JsonResponse
     {
         $agent = $request->user();
         abort_unless($agent instanceof User && $agent->isStaff(), 403);
@@ -122,9 +121,6 @@ class FieldController extends Controller
             now()->toIso8601String(),
         ));
 
-        // Re-time the remaining route from here + push the next customer's window.
-        $reanchor->handle($route, (float) $validated['lat'], (float) $validated['lng']);
-
         return response()->json(['tracking' => true]);
     }
 
@@ -149,7 +145,6 @@ class FieldController extends Controller
             'order' => $stop->stop_order,
             'status' => $stop->status,
             'completed' => $stop->serviceVisit !== null,
-            'eta' => Tenant::localTime($stop->estimated_arrival),
             'pool' => $pool === null ? null : [
                 'id' => $pool->id,
                 'name' => $pool->name,

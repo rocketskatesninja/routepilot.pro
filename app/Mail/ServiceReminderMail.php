@@ -28,7 +28,6 @@ class ServiceReminderMail extends Mailable
         public string $poolName,
         public string $date,
         public ?string $agentName,
-        public ?string $arrivalWindow = null,
         /** The company whose colours and logo the email wears (null = RoutePilot's own). */
         public ?Tenant $tenant = null,
         /** Who it's for, so the email can offer to stop reminders (null = no link). */
@@ -55,7 +54,6 @@ class ServiceReminderMail extends Mailable
             'pool' => $this->poolName,
             'date' => $this->date,
             'agentName' => $this->agentName,
-            'arrivalWindow' => $this->arrivalWindow,
         ]);
     }
 }

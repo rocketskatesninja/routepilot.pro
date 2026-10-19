@@ -13,7 +13,6 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Services\BillingService;
 use App\Services\StripeService;
-use App\Support\EtaWindow;
 use App\Support\PortalVisit;
 
 /**
@@ -38,7 +37,6 @@ class AssemblePortalHome
 
         return [
             'firstName' => $customer->first_name,
-            'customerId' => $customer->id,
             // With more than one pool, the page says which pool each thing is about.
             'poolCount' => $pools->count(),
             'upcoming' => $this->upcoming($poolIds->all()),
@@ -83,7 +81,6 @@ class AssemblePortalHome
                 return [
                     'date' => $date,
                     'agent' => $first?->route?->agent?->firstName(),
-                    'window' => EtaWindow::for($first?->estimated_arrival),
                     'services' => $day->map(fn (RouteStop $s): string => $s->serviceSubscription->serviceType->name ?? 'a service visit')->unique()->values()->all(),
                     'pools' => $day->map(fn (RouteStop $s): ?string => $s->pool?->getAttribute('name'))->filter()->unique()->values()->all(),
                 ];

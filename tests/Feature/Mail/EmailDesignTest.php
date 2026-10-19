@@ -65,7 +65,7 @@ test('the visit email is the visit report: the water bars, the tech\'s note, in 
 
 test('every email renders in the shared layout with the company\'s name', function () {
     $mails = [
-        new ServiceReminderMail('Robert', 'Blue Lagoon Pools', 'Backyard Pool', 'Monday, October 19', 'Marcus', '9:00 – 10:00 AM', $this->tenant),
+        new ServiceReminderMail('Robert', 'Blue Lagoon Pools', 'Backyard Pool', 'Monday, October 19', 'Marcus', $this->tenant),
         new PaymentReceiptMail('Robert', 40.0, 'Blue Lagoon Pools', 'Oct 2, 2026', $this->tenant),
         new PaymentFailedMail('Robert', 40.0, 'Blue Lagoon Pools', 'https://example.test/pay', $this->tenant),
         new EmailChangeVerificationMail('Robert', 'new@example.test', 'https://example.test/confirm', $this->tenant),

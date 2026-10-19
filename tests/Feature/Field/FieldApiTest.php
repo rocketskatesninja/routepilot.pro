@@ -32,12 +32,10 @@ test('today returns the agent\'s route bundle with stops and inventory', functio
         ->assertJsonStructure(['stops' => [['id', 'order', 'status', 'pool' => ['name', 'volume_gallons'], 'service', 'last_reading']], 'inventory']);
 });
 
-test('today exposes each stop\'s estimated arrival', function () {
-    // Stored as a real moment: 8:05 on the company's clock.
-    $this->stop->forceFill(['estimated_arrival' => $this->tenant->today()->setTime(8, 5)->utc()])->save();
-
+test('today gives the tech no arrival estimates', function () {
     $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()
-        ->assertJsonPath('stops.0.eta', '8:05 AM');
+        ->assertJsonPath('stops.0.id', $this->stop->id)
+        ->assertJsonMissingPath('stops.0.eta');
 });
 
 test('today only returns the acting agent\'s own stops', function () {

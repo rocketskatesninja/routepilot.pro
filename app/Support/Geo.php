@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-/** Distance between two [lat, lng] points, shared by the route optimizer and the ETA estimate. */
+/** Distance between two [lat, lng] points, for the route optimizer. */
 final class Geo
 {
     /**

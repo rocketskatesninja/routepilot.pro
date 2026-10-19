@@ -18,9 +18,7 @@ test('scheduling code never reads the server clock to decide a day', function ()
         'app/Actions/SkipStop.php',
         'app/Actions/UnskipStop.php',
         'app/Actions/UnassignAgentPlans.php',
-        'app/Actions/EstimateArrivals.php',
         'app/Console/Commands/MaterializeSchedules.php',
-        'app/Console/Commands/EstimateArrivals.php',
         ...array_map(fn (string $f): string => 'app/Services/Chat/Tools/'.basename($f), glob($root.'/app/Services/Chat/Tools/*.php') ?: []),
     ];
 

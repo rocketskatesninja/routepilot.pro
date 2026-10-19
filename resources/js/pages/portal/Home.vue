@@ -3,19 +3,17 @@ import NoteBubble from '@/components/NoteBubble.vue';
 import DashboardStyleToggle from '@/components/dashboard/DashboardStyleToggle.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
-import { subscribeCustomerEta } from '@/echo';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { andList, cap, checkWater, longDay, waterSummary, when, type WaterReading, type WaterTargets } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { Banknote, Check, Droplets, Inbox } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 
 interface Upcoming {
     date: string;
     agent: string | null;
-    window: string | null;
     services: string[];
     pools: string[];
 }
@@ -37,7 +35,6 @@ interface Visit {
 
 const props = defineProps<{
     firstName: string;
-    customerId: number;
     poolCount: number;
     upcoming: Upcoming[];
     hasService: boolean;
@@ -60,17 +57,6 @@ const then = computed(() => props.upcoming[1] ?? null);
 // With more than one pool, say which pool a visit is for.
 const manyPools = computed(() => props.poolCount > 1);
 const at = (pools: string[]) => (manyPools.value && pools.length ? ` at ${andList(pools)}` : '');
-
-// Live "on the way": the arrival window updates in place as the tech drives.
-const liveWindow = ref<string | null>(null);
-let unsubscribe: (() => void) | null = null;
-onMounted(() => {
-    unsubscribe = subscribeCustomerEta(props.customerId, (e) => {
-        if (e.window) liveWindow.value = e.window;
-    });
-});
-onBeforeUnmount(() => unsubscribe?.());
-const arriving = computed(() => liveWindow.value ?? (next.value && next.value.date === props.today ? next.value.window : null));
 
 // The water, one sentence per pool: "Beach House Pool: the water was in good shape on Thu, Oct 15."
 const waterLines = computed(() =>
@@ -101,8 +87,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
         <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-6">
             <!-- when someone is coming next -->
             <PortalHero :greeting="`Hi ${props.firstName}, here’s your pool service with ${company}.`">
-                <template v-if="next && liveWindow">{{ next.agent ?? 'Your technician' }} is on the way.</template>
-                <template v-else-if="next">
+                <template v-if="next">
                     {{ next.agent ?? 'Your technician' }} is coming {{ when(next.date, props.today) }} for your {{ andList(next.services)
                     }}{{ at(next.pools) }}.
                 </template>
@@ -110,7 +95,6 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                 <template v-else>You don’t have regular service yet.</template>
 
                 <template #sub>
-                    <p v-if="arriving">Expected between {{ arriving.replace('–', 'and') }}.</p>
                     <p v-if="then">Then {{ andList(then.services) }}{{ at(then.pools) }} {{ when(then.date, props.today) }}.</p>
                     <p v-if="!next && !props.hasService">Pick a service and {{ company }} will set it up.</p>
                 </template>

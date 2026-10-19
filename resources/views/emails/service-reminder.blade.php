@@ -2,7 +2,7 @@
     :brand="$brand"
     :greeting="'Hi '.$customerName.','"
     :title="($agentName ?? 'Your technician').' is coming tomorrow.'"
-    :sub="$date.' at '.$pool.($arrivalWindow ? ', expected between '.str_replace('–', 'and', $arrivalWindow) : '').'.'"
+    :sub="$date.' at '.$pool.'.'"
     :preheader="'Pool service tomorrow, '.$date.'.'"
 >
     <x-email.section title="Before we get there">

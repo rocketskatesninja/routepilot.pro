@@ -166,7 +166,7 @@ class Tenant extends Model
 
     /**
      * Where the company's day starts: its geocoded address (set from Company
-     * settings), or null when it has none. Route ETAs and the optimizer start here.
+     * settings), or null when it has none. The route optimizer starts here.
      *
      * @return array{0: float, 1: float}|null
      */
@@ -193,12 +193,6 @@ class Tenant extends Model
     public static function localDate(?CarbonInterface $at): ?string
     {
         return $at === null ? null : self::local($at)->toDateString();
-    }
-
-    /** A stored UTC moment as the request-bound tenant's clock time, e.g. "9:05 AM". */
-    public static function localTime(?CarbonInterface $at): ?string
-    {
-        return $at === null ? null : self::local($at)->format('g:i A');
     }
 
     /** A stored UTC moment in the request-bound tenant's time zone. */

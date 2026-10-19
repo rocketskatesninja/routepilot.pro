@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\EstimateArrivals;
 use App\Actions\SkipStop;
 use App\Actions\UnskipStop;
 use App\Events\RouteUpdated;
@@ -149,12 +148,11 @@ class ScheduleController extends Controller
     }
 
     /** Re-order a route's pending stops (nearest-neighbour + 2-opt). */
-    public function optimize(Request $request, Route $route, RouteOptimizer $optimizer, EstimateArrivals $arrivals): RedirectResponse
+    public function optimize(Request $request, Route $route, RouteOptimizer $optimizer): RedirectResponse
     {
         abort_unless($this->canManageRoute($request->user(), $route), 403);
 
         $result = $optimizer->optimize($route);
-        $arrivals->handle($route);
         event(RouteUpdated::for($route));
 
         return back()->with('success', "Optimized {$result['optimized']} stops · {$result['total_distance_km']} km.");
@@ -191,7 +189,7 @@ class ScheduleController extends Controller
      * tech) or into the unassigned bucket, which is sent without an id until it
      * first holds a stop. An Agent+ only reorders their own route.
      */
-    public function arrange(Request $request, EstimateArrivals $arrivals): RedirectResponse
+    public function arrange(Request $request): RedirectResponse
     {
         $user = $request->user();
         abort_unless($this->canManage($user) || $user?->isAgentPlus(), 403);
@@ -243,9 +241,8 @@ class ScheduleController extends Controller
             return $touched;
         });
 
-        // Re-time and refresh every route whose order may have changed.
+        // Refresh every route whose order may have changed.
         foreach ($touched as $route) {
-            $arrivals->handle($route);
             event(RouteUpdated::for($route));
         }
 
@@ -278,7 +275,6 @@ class ScheduleController extends Controller
                 'customer' => $s->pool?->customer?->displayName(),
                 'service' => $s->serviceSubscription?->serviceType?->name,
                 'status' => $s->status,
-                'eta' => Tenant::localTime($s->estimated_arrival),
             ])->values()->all(),
         ];
     }

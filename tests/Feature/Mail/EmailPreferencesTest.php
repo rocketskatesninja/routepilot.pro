@@ -71,7 +71,7 @@ test('optional emails carry the inbox unsubscribe header and a stop link; requir
         ->and($recap->headers()->text['List-Unsubscribe-Post'])->toBe('List-Unsubscribe=One-Click')
         ->and($recap->render())->toContain('Stop visit reports');
 
-    $reminder = new ServiceReminderMail('Robert', 'Blue Lagoon Pools', 'Backyard Pool', 'Monday', null, null, $this->tenant, $this->customer->id);
+    $reminder = new ServiceReminderMail('Robert', 'Blue Lagoon Pools', 'Backyard Pool', 'Monday', null, $this->tenant, $this->customer->id);
     expect($reminder->headers()->text['List-Unsubscribe'])->toContain('/one-click/reminders')
         ->and($reminder->render())->toContain('Stop reminders');
 
