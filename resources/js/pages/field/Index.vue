@@ -6,7 +6,7 @@ import { saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store'
 import { QUEUE_SYNCED, failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
 import { formatDay } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/vue3';
-import { Check, ChevronRight, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
+import { Check, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const { sharing: sharingLocation, toggle: toggleLocation, restore: restoreLocation } = useAgentTracking();
@@ -223,8 +223,10 @@ async function onCompleted(stopId: number) {
 
                 <!-- the stops, in order -->
                 <ol v-if="stops.length" class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
+                    <!-- Pool name on its own line; the customer shares the next with when the
+                         tech's due (or Done / Skipped), which never shrinks; then the service. -->
                     <li
-                        v-for="stop in stops"
+                        v-for="(stop, i) in stops"
                         :key="stop.id"
                         class="flex items-center gap-3 p-4"
                         :class="isDone(stop) ? 'text-muted-foreground' : 'active:bg-muted/60 cursor-pointer'"
@@ -235,38 +237,33 @@ async function onCompleted(stopId: number) {
                             :class="isDone(stop) ? 'bg-emerald-600 text-white dark:bg-emerald-500' : 'text-primary bg-[hsl(var(--brand)/0.12)]'"
                         >
                             <Check v-if="isDone(stop)" class="size-5" />
-                            <template v-else>{{ stop.order }}</template>
+                            <template v-else>{{ i + 1 }}</template>
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-[17px] font-semibold" :class="isDone(stop) ? '' : 'text-foreground'">
                                 {{ stop.pool?.name ?? 'Pool' }}
                             </p>
-                            <p class="text-muted-foreground truncate text-sm">{{ stop.pool?.customer }}</p>
-                            <p class="text-muted-foreground truncate text-sm">
-                                {{ stop.service.name ?? 'Service visit'
-                                }}<template v-if="!isDone(stop) && (stop.eta || stop.status === 'skipped')"
-                                    >,
-                                    <span class="text-primary font-medium">{{
-                                        stop.status === 'skipped' ? 'skipped' : `around ${stop.eta}`
-                                    }}</span></template
+                            <div class="flex items-baseline gap-2 text-sm">
+                                <span class="text-muted-foreground min-w-0 flex-1 truncate">{{ stop.pool?.customer }}</span>
+                                <span v-if="isDone(stop)" class="shrink-0 font-medium">Done</span>
+                                <span v-else-if="stop.status === 'skipped'" class="text-muted-foreground shrink-0 font-medium">Skipped</span>
+                                <span v-else-if="stop.eta" class="text-primary shrink-0 font-medium whitespace-nowrap"
+                                    ><span class="hidden min-[380px]:inline">around </span>{{ stop.eta }}</span
                                 >
-                            </p>
+                            </div>
+                            <p class="text-muted-foreground truncate text-sm">{{ stop.service.name ?? 'Service visit' }}</p>
                         </div>
-                        <span v-if="isDone(stop)" class="text-sm font-medium">Done</span>
-                        <template v-else>
-                            <a
-                                v-if="navUrl(stop)"
-                                :href="navUrl(stop) ?? undefined"
-                                target="_blank"
-                                rel="noopener"
-                                class="text-primary grid size-11 shrink-0 place-items-center rounded-xl bg-[hsl(var(--brand)/0.1)]"
-                                :aria-label="`Directions to ${stop.pool?.name ?? 'the pool'}`"
-                                @click.stop
-                            >
-                                <Navigation class="size-5" />
-                            </a>
-                            <ChevronRight class="text-muted-foreground/60 size-5 shrink-0" />
-                        </template>
+                        <a
+                            v-if="!isDone(stop) && navUrl(stop)"
+                            :href="navUrl(stop) ?? undefined"
+                            target="_blank"
+                            rel="noopener"
+                            class="text-primary grid size-11 shrink-0 place-items-center rounded-xl bg-[hsl(var(--brand)/0.1)]"
+                            :aria-label="`Directions to ${stop.pool?.name ?? 'the pool'}`"
+                            @click.stop
+                        >
+                            <Navigation class="size-5" />
+                        </a>
                     </li>
                 </ol>
             </template>
