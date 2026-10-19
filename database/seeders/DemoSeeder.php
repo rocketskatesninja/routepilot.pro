@@ -21,6 +21,7 @@ use App\Services\SubscriptionMaterializer;
 use App\Support\LandingConfig;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * Demo data for kicking the tyres: one tenant (Demo Company) with the
@@ -30,21 +31,30 @@ use Illuminate\Support\Carbon;
  * plan's own days and are finished through their route stops, the way the
  * field app records them, so a pool's history always matches its plan.
  *
- * Logins (all password "password"):
+ * Logins:
  *   admin@routepilot.pro      super_admin (platform)
  *   tenant@routepilot.pro     tenant_admin
  *   agent@routepilot.pro      agent
  *   customer@routepilot.pro   customer (portal)
  *
+ * Their password is "password" on a dev box, or whatever DEMO_PASSWORD sets
+ * (staging sets it). On a production box without DEMO_PASSWORD each login gets
+ * a random password, shown once when the seed finishes — the well-known demo
+ * password must never open the live site.
+ *
  * Run: php artisan db:seed --class=DemoSeeder
  */
 class DemoSeeder extends Seeder
 {
+    /** @var array<string, array{role: string, password: string}> logins given a random password this run */
+    private array $generated = [];
+
     public function run(): void
     {
         // Platform super-admin (no tenant).
         User::factory()->superAdmin()->create([
             'first_name' => 'Platform', 'last_name' => 'Admin', 'email' => 'admin@routepilot.pro',
+            'password' => $this->passwordFor('admin@routepilot.pro', 'super_admin'),
         ]);
 
         $tenant = Tenant::factory()->create([
@@ -60,13 +70,16 @@ class DemoSeeder extends Seeder
 
         $admin = User::factory()->for($tenant)->create([
             'first_name' => 'Sarah', 'last_name' => 'Owner', 'email' => 'tenant@routepilot.pro',
+            'password' => $this->passwordFor('tenant@routepilot.pro', 'tenant_admin'),
         ]);
 
         $marcus = User::factory()->agent()->for($tenant)->create([
             'first_name' => 'Marcus', 'last_name' => 'Bennett', 'email' => 'agent@routepilot.pro', 'map_color' => '#0ea5e9',
+            'password' => $this->passwordFor('agent@routepilot.pro', 'agent'),
         ]);
         $ashley = User::factory()->agent()->for($tenant)->create([
             'first_name' => 'Ashley', 'last_name' => 'Nguyen', 'email' => 'ashley@sunshine.test', 'map_color' => '#f97316',
+            'password' => $this->passwordFor('ashley@sunshine.test', 'agent'),
         ]);
         $agents = [$marcus, $ashley];
 
@@ -120,6 +133,7 @@ class DemoSeeder extends Seeder
             if ($i === 0) {
                 $portalUser = User::factory()->customer()->for($tenant)->create([
                     'first_name' => $first, 'last_name' => $last, 'email' => 'customer@routepilot.pro',
+                    'password' => $this->passwordFor('customer@routepilot.pro', 'customer'),
                 ]);
                 // Login and contact email are one and the same for a customer.
                 $customer->forceFill(['user_id' => $portalUser->id, 'email' => 'customer@routepilot.pro'])->save();
@@ -184,8 +198,45 @@ class DemoSeeder extends Seeder
         // Materialize the upcoming schedule from the subscriptions.
         app(SubscriptionMaterializer::class)->run($tenant->id, Carbon::now()->addWeeks(2)->toDateString());
 
-        $this->command->info('Demo tenant "Demo Company" seeded. Logins (password "password"): '
-            .'admin@routepilot.pro, tenant@routepilot.pro, agent@routepilot.pro, customer@routepilot.pro');
+        if ($this->generated === []) {
+            $this->command->info('Demo tenant "Demo Company" seeded. Logins (password "'.$this->knownPassword().'"): '
+                .'admin@routepilot.pro, tenant@routepilot.pro, agent@routepilot.pro, customer@routepilot.pro');
+
+            return;
+        }
+        $this->command->info('Demo tenant "Demo Company" seeded. This is a production box, so each login got a random password.');
+        $this->command->warn('Save these now — they are shown once and stored nowhere else:');
+        $this->command->table(['Login', 'Role', 'Password'], array_map(
+            fn (string $email, array $login): array => [$email, $login['role'], $login['password']],
+            array_keys($this->generated), $this->generated,
+        ));
+    }
+
+    /**
+     * A demo login's password: the known one (see knownPassword), or — on a
+     * production box with no DEMO_PASSWORD — a random one, remembered for the
+     * end-of-run table.
+     */
+    private function passwordFor(string $email, string $role): string
+    {
+        if (! app()->isProduction() || $this->configuredPassword() !== null) {
+            return $this->knownPassword();
+        }
+
+        return ($this->generated[$email] = ['role' => $role, 'password' => Str::password(24, symbols: false)])['password'];
+    }
+
+    /** DEMO_PASSWORD if a box sets one (staging does), else "password". */
+    private function knownPassword(): string
+    {
+        return $this->configuredPassword() ?? 'password';
+    }
+
+    private function configuredPassword(): ?string
+    {
+        $set = config('app.demo_password');
+
+        return is_string($set) && $set !== '' ? $set : null;
     }
 
     /**

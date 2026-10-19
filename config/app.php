@@ -42,6 +42,13 @@ return [
     'debug' => (bool) env('APP_DEBUG', false),
 
     /*
+    | The password DemoSeeder gives the demo logins. Unset on the live site, so a
+    | production seed hands out random ones instead of a well-known password;
+    | staging sets it so its demo logins stay easy to share.
+    */
+    'demo_password' => env('DEMO_PASSWORD'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
