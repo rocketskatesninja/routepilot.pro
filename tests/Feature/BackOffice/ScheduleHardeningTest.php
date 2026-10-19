@@ -145,8 +145,8 @@ test('a past day still shows an archived pool and a removed tech by name', funct
 
     $this->actingAs($this->admin)->get("/schedule?date={$date}")->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('routes.0.agent', 'Marcus Bennett')
-            ->where('routes.0.stops.0.pool', 'Anderson Pool'));
+            ->where('routes.1.agent', 'Marcus Bennett') // after the admin's own card
+            ->where('routes.1.stops.0.pool', 'Anderson Pool'));
 });
 
 test('the database keeps one visit per stop and one route per tech per day', function () {

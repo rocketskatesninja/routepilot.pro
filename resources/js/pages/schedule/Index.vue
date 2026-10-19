@@ -23,7 +23,7 @@ interface Stop {
 }
 
 interface RouteCard {
-    id: number | null; // null: the day's unassigned bucket before it has ever held a stop
+    id: number | null; // null: the unassigned bucket, or an admin's own route, before it has ever held a stop
     agent: string | null;
     agent_id: number | null;
     agent_photo: string | null;
@@ -130,6 +130,7 @@ onBeforeUnmount(() => {
 });
 
 const isToday = computed(() => props.date === props.today);
+const routeCount = computed(() => props.routes.filter((r) => r.total > 0).length);
 const totalStops = computed(() => props.routes.reduce((n, r) => n + r.total, 0));
 const completedStops = computed(() => props.routes.reduce((n, r) => n + r.completed, 0));
 const doneCount = (stops: Stop[]) => stops.filter((s) => s.status === 'completed').length;
@@ -169,9 +170,10 @@ let persistTimer: ReturnType<typeof setTimeout> | undefined;
 function persist() {
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
-        const routes = localRoutes.value.map((r) => ({ id: r.id, stop_ids: r.stops.map((s) => s.id) }));
+        // agent_id lets the server save an admin's own card the first time a stop lands on it.
+        const routes = localRoutes.value.map((r) => ({ id: r.id, agent_id: r.agent_id, stop_ids: r.stops.map((s) => s.id) }));
         if (localUnassigned.value) {
-            routes.push({ id: localUnassigned.value.id, stop_ids: localUnassigned.value.stops.map((s) => s.id) });
+            routes.push({ id: localUnassigned.value.id, agent_id: null, stop_ids: localUnassigned.value.stops.map((s) => s.id) });
         }
         router.post('/schedule/arrange', { date: props.date, routes }, { preserveScroll: true, preserveState: true });
     }, 120);
@@ -355,7 +357,7 @@ const prettyDate = computed(() =>
 
                 <div
                     v-for="route in localRoutes"
-                    :key="route.id"
+                    :key="route.id ?? `agent-${route.agent_id}`"
                     class="border-border overflow-hidden rounded-xl border border-l-[3px]"
                     :style="{ borderLeftColor: route.color }"
                 >
@@ -423,7 +425,7 @@ const prettyDate = computed(() =>
             <aside class="hidden min-h-0 flex-1 flex-col gap-4 lg:flex">
                 <div class="grid grid-cols-3 gap-3">
                     <div class="border-border rounded-xl border p-3 text-center">
-                        <div class="text-xl font-semibold">{{ localRoutes.length }}</div>
+                        <div class="text-xl font-semibold">{{ routeCount }}</div>
                         <div class="text-muted-foreground text-xs">Routes</div>
                     </div>
                     <div class="border-border rounded-xl border p-3 text-center">

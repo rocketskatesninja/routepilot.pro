@@ -31,7 +31,8 @@ test('the day view surfaces the unassigned bucket with its stops', function () {
             ->where('unassigned.agent', null)
             ->where('unassigned.total', 1)
             ->where('unassigned.stops.0.pool', 'Lonely Pool')
-            ->has('routes', 0)
+            ->has('routes', 1) // just the admin's own empty card
+            ->where('routes.0.id', null)
         );
 });
 

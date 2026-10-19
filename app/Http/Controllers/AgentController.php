@@ -75,12 +75,13 @@ class AgentController extends Controller
     /**
      * Set an agent's route colour from the schedule map (inline swatch). A
      * single sanitized hex field; the redirect refreshes the day's marker
-     * colours. Tenant-scoped via authorizeAgent.
+     * colours. Tenant-scoped; any tech's or admin's route.
      */
     public function updateColor(Request $request, User $agent): RedirectResponse
     {
         $this->authorizeAdmin($request);
-        $this->authorizeAgent($request, $agent);
+        // Admins who run stops have a route colour too.
+        abort_unless($agent->tenant_id === $request->user()?->tenant_id && in_array($agent->role, ['agent', 'tenant_admin'], true), 404);
 
         $validated = $request->validate([
             'map_color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],

@@ -28,10 +28,10 @@ test('the day view groups stops under their route/agent', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('schedule/Index')
             ->where('date', today()->toDateString())
-            ->has('routes', 1)
-            ->where('routes.0.total', 1)
-            ->where('routes.0.stops.0.pool', 'Smith Pool')
-            ->missing('routes.0.stops.0.eta') // no arrival estimates, anywhere
+            ->has('routes', 2) // the admin's own (empty) card leads
+            ->where('routes.1.total', 1)
+            ->where('routes.1.stops.0.pool', 'Smith Pool')
+            ->missing('routes.1.stops.0.eta') // no arrival estimates, anywhere
         );
 });
 
@@ -40,7 +40,7 @@ test('a different date shows no routes', function () {
 
     $this->actingAs($this->admin)
         ->get('/schedule?date='.today()->addDays(3)->toDateString())
-        ->assertInertia(fn (Assert $page) => $page->has('routes', 0));
+        ->assertInertia(fn (Assert $page) => $page->has('routes', 1)->where('routes.0.id', null)); // only the admin's own empty card
 });
 
 test('customers are denied the Schedule screen', function () {

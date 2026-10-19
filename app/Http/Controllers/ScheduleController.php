@@ -34,8 +34,9 @@ class ScheduleController extends Controller
     {
         $this->authorizeStaff($request);
 
+        $user = $request->user();
         $date = $this->resolveDate((string) $request->string('date'));
-        $canManage = $this->canManage($request->user());
+        $canManage = $this->canManage($user);
 
         // Past days stay readable after a pool is archived or a tech removed.
         $stopLoad = fn ($q) => $q->orderBy('stop_order')->with([
@@ -60,8 +61,17 @@ class ScheduleController extends Controller
             ->with(['stops' => $stopLoad])
             ->first();
 
+        // An admin who runs stops too always gets their own card to drop visits into,
+        // saved the first time one lands there (like the unassigned bucket). The
+        // viewer's own route leads the list.
+        $routes = $routeModels->map(fn (Route $route): array => $this->presentRoute($route));
+        if ($canManage && ! $routes->contains('agent_id', $user->id)) {
+            $routes->push($this->emptyRoute($user));
+        }
+        [$mine, $others] = $routes->partition(fn (array $r): bool => $r['agent_id'] === $user?->id);
+
         $browserKey = config('services.google.browser_maps_key');
-        $tenant = $request->user()?->tenant;
+        $tenant = $user?->tenant;
         $hq = $tenant !== null && $tenant->lat !== null && $tenant->lng !== null
             ? ['lat' => (float) $tenant->lat, 'lng' => (float) $tenant->lng, 'label' => $tenant->formattedAddress()]
             : null;
@@ -69,12 +79,12 @@ class ScheduleController extends Controller
         return Inertia::render('schedule/Index', [
             'date' => $date,
             'today' => Tenant::localToday()->toDateString(),
-            'routes' => $routeModels->map(fn (Route $route): array => $this->presentRoute($route))->all(),
+            'routes' => $mine->concat($others)->values()->all(),
             // Admins always get the bucket as a drop target; it's saved the first time a stop lands in it.
-            'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : ($canManage ? $this->emptyBucket() : null),
+            'unassigned' => $unassignedRoute !== null ? $this->presentRoute($unassignedRoute) : ($canManage ? $this->emptyRoute() : null),
             'canManage' => $canManage,
             // An Agent+ may manage only their own route card; the UI matches this id.
-            'manageAgentId' => $request->user()?->isAgentPlus() ? $request->user()->id : null,
+            'manageAgentId' => $user?->isAgentPlus() ? $user->id : null,
             'coords' => $this->buildCoords($routeModels, $unassignedRoute),
             'hq' => $hq,
             'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
@@ -186,8 +196,9 @@ class ScheduleController extends Controller
      * Save a drag-and-drop rearrangement of one day: each route's ordered stop
      * ids. Only that day's routes and stops are touched. An admin may move a
      * still-due stop onto another tech's route (that day only; the plan keeps its
-     * tech) or into the unassigned bucket, which is sent without an id until it
-     * first holds a stop. An Agent+ only reorders their own route.
+     * tech), into the unassigned bucket, or onto their own route; those last two
+     * are sent without an id until they first hold a stop. An Agent+ only
+     * reorders their own route.
      */
     public function arrange(Request $request): RedirectResponse
     {
@@ -198,6 +209,7 @@ class ScheduleController extends Controller
             'date' => ['required', 'date'],
             'routes' => ['array'],
             'routes.*.id' => ['nullable', 'integer'],
+            'routes.*.agent_id' => ['nullable', 'integer'],
             'routes.*.stop_ids' => ['array'],
             'routes.*.stop_ids.*' => ['integer'],
         ]);
@@ -209,9 +221,11 @@ class ScheduleController extends Controller
             $touched = [];
             foreach ($validated['routes'] ?? [] as $r) {
                 $stopIds = array_map('intval', array_values($r['stop_ids'] ?? []));
+                // An unsaved card is either the unassigned bucket or the admin's own route — never someone else's.
+                $agentId = isset($r['agent_id']) ? (int) $r['agent_id'] : null;
                 $route = isset($r['id'])
                     ? Route::query()->find((int) $r['id'])
-                    : ($isAdmin && $stopIds !== [] ? Route::forDay((int) $user->tenant_id, null, $date) : null);
+                    : ($isAdmin && $stopIds !== [] && in_array($agentId, [null, $user->id], true) ? Route::forDay((int) $user->tenant_id, $agentId, $date) : null);
                 if ($route === null || $route->scheduled_date->toDateString() !== $date) {
                     continue;
                 }
@@ -334,13 +348,23 @@ class ScheduleController extends Controller
     }
 
     /**
-     * The unassigned bucket for a day that has no unassigned route yet.
+     * A card for a route the day doesn't have yet: the unassigned bucket, or an
+     * admin's own route.
      *
      * @return array<string, mixed>
      */
-    private function emptyBucket(): array
+    private function emptyRoute(?User $agent = null): array
     {
-        return ['id' => null, 'agent' => null, 'agent_id' => null, 'agent_photo' => null, 'color' => $this->agentColor(null), 'completed' => 0, 'total' => 0, 'stops' => []];
+        return [
+            'id' => null,
+            'agent' => $agent?->displayName(),
+            'agent_id' => $agent?->id,
+            'agent_photo' => $this->photoUrl($agent?->getAttribute('avatar_path')),
+            'color' => $this->agentColor($agent),
+            'completed' => 0,
+            'total' => 0,
+            'stops' => [],
+        ];
     }
 
     private function resolveDate(string $input): string
