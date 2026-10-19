@@ -34,7 +34,7 @@ class CompleteVisit
         'cyanuric_acid', 'salt', 'tds', 'phosphates', 'water_temperature',
     ];
 
-    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing) {}
+    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing, private ReverseVisitInventory $reverseInventory) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -68,7 +68,7 @@ class CompleteVisit
             } else {
                 // Editing an existing visit: reverse its inventory deductions and
                 // wipe replaceable children before re-applying the fresh submission.
-                $this->reverseInventory($visit);
+                $this->reverseInventory->handle($visit);
                 $visit->treatments()->delete();
                 $visit->tasks()->delete();
                 $visit->chemicalReading()->delete();
@@ -158,28 +158,6 @@ class CompleteVisit
         }
 
         return array_values(array_filter($value, 'is_array'));
-    }
-
-    /**
-     * Reverse a visit's prior usage deductions: restore each affected item's
-     * stock by the deducted amount and remove the usage transactions. Symmetric
-     * to deductInventory(), so re-applying the submitted treatments is net-fresh.
-     */
-    private function reverseInventory(ServiceVisit $visit): void
-    {
-        $usages = InventoryTransaction::query()
-            ->where('service_visit_id', $visit->id)
-            ->where('type', 'usage')
-            ->get();
-
-        foreach ($usages as $usage) {
-            $item = $usage->inventory()->first();
-            if ($item !== null) {
-                // quantity was stored negative (e.g. -32); subtracting it restores stock.
-                $item->update(['current_stock' => (float) $item->current_stock - (float) $usage->quantity]);
-            }
-            $usage->delete();
-        }
     }
 
     /** Deduct a treatment from matching inventory (same unit) and log it. */

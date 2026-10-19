@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\DeleteReport;
 use App\Actions\UpdateReport;
 use App\Http\Requests\UpdateReportRequest;
+use App\Models\AuditLog;
+use App\Models\Charge;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,10 +20,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Back-office Reports screen — completed service visits, read-only, on the
- * table+drawer pattern. The drawer is the full visit report: readings,
- * treatments, tasks, and notes. The office and Agent+ agents see every
- * report; other agents see only their own.
+ * Back-office Reports screen — completed service visits on the table+drawer
+ * pattern. The drawer is the full visit report: readings, treatments, tasks,
+ * and notes. The office and Agent+ agents see every report; other agents see
+ * only their own. Admins edit or delete any report, agents edit their own.
  */
 class ReportController extends Controller
 {
@@ -76,9 +80,13 @@ class ReportController extends Controller
                 ->find($selectedId);
             if ($visit !== null) {
                 $selected = $this->toDetail($visit);
-                // Admins may edit any report; an agent only their own.
+                // Admins may edit any report; an agent only their own. Only admins delete.
                 $selected['can_edit'] = $this->canManage($request->user())
                     || (int) $visit->getAttribute('agent_id') === $request->user()?->id;
+                $selected['can_delete'] = $this->canManage($request->user());
+                // What deleting it would cancel on the bill, for the confirm prompt.
+                $charge = Charge::query()->active()->where('service_visit_id', $visit->id)->with('invoice:id,number')->first();
+                $selected['charge'] = $charge === null ? null : ['amount' => $charge->total(), 'invoice' => $charge->invoice?->number];
                 // Recent chlorine/pH for this pool → the drawer's chemistry trend.
                 $trendVisits = ServiceVisit::query()
                     ->where('pool_id', $visit->getAttribute('pool_id'))
@@ -102,6 +110,22 @@ class ReportController extends Controller
         $action->handle($visit, $request->validated());
 
         return back()->with('success', 'Report updated.');
+    }
+
+    /** Delete a report and undo what it did — see DeleteReport. Admins only. */
+    public function destroy(Request $request, ServiceVisit $visit, DeleteReport $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+
+        $summary = [
+            'pool' => $visit->pool()->withTrashed()->value('name'),
+            'completed_on' => Tenant::localDate($visit->completed_at),
+            'agent_id' => $visit->getAttribute('agent_id'),
+        ];
+        $charge = $action->handle($visit, $request->user());
+        AuditLog::record($request->user(), 'report.deleted', $visit, [...$summary, 'charge_cancelled' => $charge?->total()]);
+
+        return back()->with('success', 'Report deleted.'.($charge !== null ? ' Its charge was cancelled.' : ''));
     }
 
     /** @return array<string, mixed> */

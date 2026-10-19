@@ -130,6 +130,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     // ---- Back-office writes + admin screens (tenant_admin) ----
     Route::middleware('role:tenant_admin')->group(function () {
         Route::get('people/export', PeopleExportController::class)->name('people.export'); // the list as CSV/PDF
+        Route::delete('reports/{visit}', [ReportController::class, 'destroy'])->name('reports.destroy');
         Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
         Route::post('photos/{photo}/showcase', [VisitController::class, 'toggleShowcase'])->name('photos.showcase');
 

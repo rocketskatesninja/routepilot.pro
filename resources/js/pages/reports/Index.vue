@@ -20,11 +20,11 @@ import { targetsFor } from '@/lib/chemistry';
 import { agentLink, customerLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
-import { formatDay } from '@/lib/utils';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Check, FileText, Minus, Pencil, Plus, X } from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Check, FileText, Minus, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface VisitRow {
@@ -67,6 +67,8 @@ interface VisitDetail {
     photos: string[];
     trend: { chlorine: number[]; ph: number[]; dates: string[] };
     can_edit?: boolean;
+    can_delete?: boolean;
+    charge?: { amount: number; invoice: string | null } | null;
 }
 
 const props = defineProps<{
@@ -141,6 +143,19 @@ function openEdit() {
     form.tasks = s.tasks.map((t) => ({ ...t }));
     form.clearErrors();
     editing.value = true;
+}
+
+/** Delete the report after saying exactly what goes with it (its charge, stock, the stop). */
+function deleteReport() {
+    const v = props.selected;
+    if (!v) return;
+    const charge = v.charge
+        ? ` Its ${formatMoney(v.charge.amount)} charge is cancelled${v.charge.invoice ? ` and ${v.charge.invoice} updates` : ''}.`
+        : '';
+    const ok = confirm(
+        `Delete this report?${charge} Its readings, photos and notes are removed, chemicals it used go back into inventory, and the stop opens again. This can't be undone.`,
+    );
+    if (ok) router.delete(`/reports/${v.id}`, { preserveScroll: true });
 }
 
 function submitEdit() {
@@ -224,8 +239,18 @@ function submitEdit() {
                                     }}</Link></template
                                 >
                             </p>
-                            <template v-if="visit.can_edit && !editing" #actions>
-                                <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
+                            <template v-if="(visit.can_edit || visit.can_delete) && !editing" #actions>
+                                <Button v-if="visit.can_edit" size="sm" variant="outline" @click="openEdit"
+                                    ><Pencil class="mr-1 size-3.5" /> Edit</Button
+                                >
+                                <Button
+                                    v-if="visit.can_delete"
+                                    size="sm"
+                                    variant="outline"
+                                    class="text-red-600 hover:text-red-600 dark:text-red-400"
+                                    @click="deleteReport"
+                                    ><Trash2 class="mr-1 size-3.5" /> Delete</Button
+                                >
                             </template>
                         </PaneHeader>
 
