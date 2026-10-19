@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\DeleteSubscription;
 use App\Events\RouteUpdated;
 use App\Models\Customer;
 use App\Models\Pool;
@@ -141,4 +142,36 @@ test('the database keeps one visit per stop and one route per tech per day', fun
     expect(Route::forDay($this->tenant->id, $this->agent->id, $day)->id)->toBe(Route::forDay($this->tenant->id, $this->agent->id, $day)->id)
         ->and(fn () => Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => $day]))
         ->toThrow(UniqueConstraintViolationException::class);
+});
+
+test('deleting a plan added by mistake takes its past stops with it, leaving no missed stops with no plan', function () {
+    $real = hardeningPlan();
+    $duplicate = ServiceSubscription::factory()->for($this->tenant)->for($this->pool)->for(ServiceType::factory()->for($this->tenant))->create([
+        'assigned_agent_id' => $this->agent->id, 'frequency' => 'weekly', 'status' => 'active',
+        'preferred_day' => $real->preferred_day,
+    ]);
+    // Both plans had a stop on past days nobody worked, like Jan Harris's.
+    foreach ([14, 7] as $daysAgo) {
+        $route = Route::forDay($this->tenant->id, $this->agent->id, $this->tenant->today()->subDays($daysAgo)->toDateString());
+        RouteStop::factory()->for($route)->for($this->pool)->create(['service_subscription_id' => $real->id, 'status' => 'missed']);
+        RouteStop::factory()->for($route)->for($this->pool)->create(['service_subscription_id' => $duplicate->id, 'status' => 'missed']);
+    }
+    app(SubscriptionMaterializer::class)->run($this->tenant->id);
+    $realStops = RouteStop::query()->where('service_subscription_id', $real->id)->count();
+
+    expect(app(DeleteSubscription::class)->handle($duplicate, $this->admin))->toBeTrue();
+
+    expect(RouteStop::query()->whereNull('service_subscription_id')->exists())->toBeFalse()
+        ->and(RouteStop::query()->where('service_subscription_id', $duplicate->id)->exists())->toBeFalse()
+        ->and(RouteStop::query()->where('service_subscription_id', $real->id)->count())->toBe($realStops);
+});
+
+test('a plan\'s last stop going takes its now-empty route with it', function () {
+    $plan = hardeningPlan();
+    $route = Route::forDay($this->tenant->id, $this->agent->id, $this->tenant->today()->subDays(3)->toDateString());
+    RouteStop::factory()->for($route)->for($this->pool)->create(['service_subscription_id' => $plan->id, 'status' => 'missed']);
+
+    app(DeleteSubscription::class)->handle($plan, $this->admin);
+
+    expect(Route::query()->whereKey($route->id)->exists())->toBeFalse();
 });
