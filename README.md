@@ -1,151 +1,133 @@
-# RoutePilot
+<h1 align="center">RoutePilot</h1>
 
-**All-in-one pool service management software.** Route optimization, AI-assisted chemistry
-tracking, automated billing, an offline field app for technicians, and a branded customer website
-+ portal — for pool cleaning businesses that have outgrown spreadsheets and text threads.
+<p align="center"><strong>Run your whole pool business — plus your own website.</strong></p>
 
-[![CI](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/tests.yml/badge.svg)](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/tests.yml)
-[![Lint](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/lint.yml/badge.svg)](https://github.com/rocketskatesninja/routepilot.pro/actions/workflows/lint.yml)
-[![License](https://img.shields.io/badge/license-proprietary-lightgrey)](LICENSE)
+<p align="center">
+All-in-one software for pool service companies: route optimization, AI-assisted chemistry,
+automated billing, an offline field app for technicians, and a branded customer website and
+portal — for businesses that have outgrown spreadsheets and text threads.
+</p>
 
-Built with **Laravel 12 · Inertia v2 · Vue 3 (TypeScript) · Tailwind**.
+![RoutePilot](public/assets/images/screenshots/marketing-home.png)
 
-![RoutePilot public landing page](public/assets/images/screenshots/demo-landing.jpg)
+<p align="center"><a href="https://routepilot.pro/t/demo"><strong>View the live demo →</strong></a></p>
 
-## What it does
+---
 
-- **A branded customer portal** — homeowners see when their tech is coming, how their water
-  looked on the last visit (each reading checked against their pool's own targets), photos,
-  their bill, and the services they get. They can add, pause, or stop a service themselves.
-- **AI chemistry that thinks for your techs** — reads 12-visit trends and the 7-day forecast and
-  tells the tech exactly what to add, on-device, even offline.
-- **Smart routing + live operations** — pack more stops into fewer miles, then watch the day
-  unfold live: pending, in-progress, and completed stops across every truck on one map.
-- **A field app that works offline** — the water test is checked as it's typed, doses are worked
-  out on the phone, and finished visits queue until there's signal again.
-- **Emails customers want to open** — a visit report with the water-test bars and photos after
-  every visit, reminders the day before, invoices and receipts, all in the company's colors.
-  Customers choose which ones they get, and every optional email has a one-click unsubscribe.
+## What it is
 
-## Screenshots
+RoutePilot is a Laravel app that runs a pool service company end to end. The office plans
+routes, bills customers, and watches the day unfold from one back office; technicians work from
+an installable field app that keeps going without signal; and every company gets its own
+customer website and portal, in its own colors, live the day it signs up. Four surfaces, one
+codebase, with each company's data kept strictly to itself.
 
-All from the seeded demo company ("Demo Company"), no real customer data. The full tour (every
-back-office page in light + dark, the complete field-app flow in both themes, and every customer
-portal page on a phone, the main ones on a desktop — 51 screens in all) lives in
-[`public/assets/images/screenshots/tour/`](public/assets/images/screenshots/tour/), and
-`npm run screenshots:tour` re-shoots it.
+## Features
 
-**Back office** (tenant admin)
+- **A customer website and portal per company** — a branded public site built from a
+  live-preview page builder, plus a portal where homeowners see when their tech is coming, how
+  their water looked on the last visit, photos, their bill, and the services they get. They can
+  add, pause, or stop a service themselves.
+- **Smart routing and live operations** — pack more stops into fewer miles, then watch the day
+  live: pending, in-progress, and completed stops across every truck on one map. Drag a stop to
+  hand it to another tech.
+- **AI chemistry** — reads 12-visit trends and the 7-day forecast and tells the tech exactly what
+  to add, worked out on the phone, even offline.
+- **An offline field app** — the water test is checked against the pool's own targets as it's
+  typed, doses are worked out on the device, and finished visits queue until there's signal.
+- **Billing that runs itself** — every visit charged at its plan's price, monthly invoices
+  emailed with a pay-online link, card-on-file autopay with retries, partial payments, and a
+  full payment history with Stripe references.
+- **Emails customers want to open** — a visit report with the water test and photos after every
+  visit, reminders the day before, invoices and receipts, all in the company's colors, with
+  one-click unsubscribe on every optional email.
+- **Inventory** — chemical usage deducts automatically from every service visit.
+- **Build-your-own dashboard** — drag-to-arrange widgets for stops, the map, weather, and
+  billing.
+- **AI assistant** — ask about a customer, a route, or pool chemistry in plain English.
+- **Insights** — revenue, visits, receivables aging, and top techs at a glance.
+- **Security built in** — per-company data isolation, optional two-factor sign-in, signed
+  payment and unsubscribe links, and an audit log of billing, permission, delete, and
+  impersonation actions.
 
-| Dashboard | Route map |
-|---|---|
-| ![Dashboard](public/assets/images/screenshots/tour/tenant/dashboard.png) | ![Route map](public/assets/images/screenshots/tour/tenant/schedule.png) |
+## The public site
 
-| Pools (master-detail) | Customer requests |
-|---|---|
-| ![Pools](public/assets/images/screenshots/tour/tenant/pools.png) | ![Customer requests](public/assets/images/screenshots/tour/tenant/requests.png) |
+Every company gets a customer-facing website out of the box.
 
-<sub>Dark theme: [dashboard](public/assets/images/screenshots/tour/tenant/dark/dashboard.png) ·
-[schedule](public/assets/images/screenshots/tour/tenant/dark/schedule.png) ·
-[pools](public/assets/images/screenshots/tour/tenant/dark/pools.png) ·
-[insights](public/assets/images/screenshots/tour/tenant/dark/insights.png)</sub>
+![Demo company website](public/assets/images/screenshots/demo-landing.jpg)
+<p align="center"><sub>A company's public site — built and branded from the back office, rendered server-side.</sub></p>
 
-**Agent field app** (offline-resilient PWA)
+## The customer portal
 
-<img src="public/assets/images/screenshots/tour/agent/day.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/visit-water.png" width="240"> <img src="public/assets/images/screenshots/tour/agent/visit-analysis.png" width="240">
-
-Today's route, the water test checked against the pool's targets as it's typed, and the on-device
-chemistry engine's doses — worked out on the phone, no round trip to a server. Offline, the route
-keeps working from the phone's copy and finished visits wait to sync
-([offline](public/assets/images/screenshots/tour/agent/day-offline.png) ·
-[queued](public/assets/images/screenshots/tour/agent/day-queued.png)).
-
-**Customer portal**
+Homeowners sign in to see their service, their water, and their bill.
 
 ![Customer portal home](public/assets/images/screenshots/tour/customer/desktop/home.png)
 
-<img src="public/assets/images/screenshots/tour/customer/pools.png" width="240"> <img src="public/assets/images/screenshots/tour/customer/history.png" width="240"> <img src="public/assets/images/screenshots/tour/customer/services.png" width="240">
+<table>
+<tr>
+<td width="33%"><img src="public/assets/images/screenshots/tour/customer/pools.png" alt="My Pools"><br><sub>My Pools — each pool's last water test</sub></td>
+<td width="33%"><img src="public/assets/images/screenshots/tour/customer/history.png" alt="Service history"><br><sub>History — every visit, with photos</sub></td>
+<td width="33%"><img src="public/assets/images/screenshots/tour/customer/services.png" alt="Services"><br><sub>Services — add, pause, or stop a service</sub></td>
+</tr>
+</table>
 
-Home leads with the next visit, in plain words. My Pools shows each pool's last water test,
-Service History every visit with its photos, and Services lets the homeowner add, pause, or stop
-a service. Home can be this simple page or a drag-and-drop widget grid (the default), whichever
-the customer prefers.
+## The back office
 
-The public landing page (hero image above) is the fourth surface — same tenant, same data,
-rendered SSR with per-tenant branding.
+Plan, dispatch, and bill from one place.
 
-## Feature grid
+![Back-office dashboard](public/assets/images/screenshots/tour/tenant/dashboard.png)
 
-| | | |
-|---|---|---|
-| **Live route status** — real-time per-stop badges and live map colors across every agent | **Automated billing & autopay** — invoices, receipts, and card-on-file autopay run themselves | **Inventory management** — chemical usage auto-deducts from every service visit |
-| **Visit reports** — photos, checklist, and the water test emailed after every visit | **Build-your-own dashboard** — drag-to-reorder widgets for stops, map, weather, and billing | **AI assistant** — ask about a customer, a route, or pool chemistry in plain English |
-| **Drag-to-reassign** — hand a day's stop to another tech or back to the unassigned pile; the plan form changes a pool's tech for good | **Customer requests inbox** — add, pause, and stop requests from the portal, answered in one click | **Insights** — revenue, visits, receivables aging, and top techs at a glance |
-| **⌘K search** — jump to any customer, pool, agent, or page | **Email preferences** — customers pick their emails; signed one-click unsubscribe (RFC 8058) | **Role-aware access** — techs see their own reports unless the office grants Agent+ |
+<table>
+<tr>
+<td width="50%"><img src="public/assets/images/screenshots/tour/tenant/schedule.png" alt="Route map"><br><sub>Schedule — every route on one live map</sub></td>
+<td width="50%"><img src="public/assets/images/screenshots/tour/tenant/pools.png" alt="Pools"><br><sub>Pools — the list, with each pool's latest water test</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="public/assets/images/screenshots/tour/tenant/insights.png" alt="Insights"><br><sub>Insights — revenue, visits, and receivables at a glance</sub></td>
+<td width="50%"><img src="public/assets/images/screenshots/tour/tenant/requests.png" alt="Customer requests"><br><sub>Requests — portal requests, answered in one click</sub></td>
+</tr>
+</table>
 
-## Architecture
+## The field app
 
-Four surfaces, one codebase:
+An installable app for technicians that keeps working without signal.
 
-1. **Back-office** (tenant admin) — light + dark "ops" themes, customizable dashboards.
-2. **Agent field PWA** — offline-resilient, installable, light + dark.
-3. **Customer portal** — lightweight, online-only.
-4. **Public landing** — SSR, section-based page builder, per-tenant branding.
+<table>
+<tr>
+<td width="33%"><img src="public/assets/images/screenshots/tour/agent/day.png" alt="Today's route"><br><sub>Today — the route, stop by stop</sub></td>
+<td width="33%"><img src="public/assets/images/screenshots/tour/agent/visit-water.png" alt="Water test"><br><sub>Water test — checked as it's typed</sub></td>
+<td width="33%"><img src="public/assets/images/screenshots/tour/agent/visit-analysis.png" alt="Chemistry analysis"><br><sub>Doses — worked out on the phone</sub></td>
+</tr>
+</table>
 
-- **Multi-tenant:** shared schema + `tenant_id` scoping (`BelongsToTenant` concern +
-  `TenantScope`); tenant resolved from session (staff) or custom domain/subdomain (public).
-- **Conventions:** thin controllers → Form Requests → single-purpose Action classes; Eloquent
-  relationships and query scopes over raw SQL; `declare(strict_types=1)` everywhere.
-- **Security:** privilege/identity fields (`role`, `tenant_id`, `is_active`) are never
-  mass-assignable — set only via `forceFill()` at controlled call sites; route-model bindings
-  resolve after the tenant is bound, so another company's ids simply 404; Google OAuth requires a
-  verified email and a linked `google_id`, never an email-match login; optional TOTP two-factor
-  with recovery codes; secrets are `encrypted` at rest; unsubscribe and payment links are signed;
-  policies/gates on every sensitive action with audit logging on billing, permissions, deletes,
-  and impersonation.
-- **Theming:** CSS-variable design tokens (`resources/css/app.css`), daylight + dark "ops" themes,
-  per-tenant brand color overlay at runtime.
+<p align="center"><sub>Every screen, light and dark, is in <a href="public/assets/images/screenshots/tour/">the full tour</a> (51 screens).</sub></p>
 
-See `CLAUDE.md` for the full engineering charter.
+## Pricing
 
-## Quality gates
-
-```bash
-./vendor/bin/pest                 # tests
-./vendor/bin/pint --test          # PHP code style (PSR-12 via Pint)
-./vendor/bin/phpstan analyse      # static analysis (Larastan, level 6)
-npm run lint && npm run format:check
-```
-
-CI runs Pest tests, Larastan (PHPStan level 6) static analysis, Pint style checks,
-ESLint/Prettier, and `composer audit` / `npm audit` security scans on every push and PR.
-
-## Local setup
-
-```bash
-composer install
-npm install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-php artisan db:seed --class=DemoSeeder   # optional: seeds a demo tenant + sample data
-npm run dev        # or: npm run build
-php artisan serve
-```
-
-By default the app uses SQLite (`database/database.sqlite`); configure MySQL in `.env` for a
-production-like setup.
-
-The `DemoSeeder` creates a "Demo Company" tenant with one login per role, all password `password`:
-
-| Role | Email |
+| | RoutePilot |
 |---|---|
-| Super admin (platform) | `admin@routepilot.pro` |
-| Tenant admin | `tenant@routepilot.pro` |
-| Agent (field app) | `agent@routepilot.pro` |
-| Customer (portal) | `customer@routepilot.pro` |
+| **Price** | $34.99/mo |
+| Pools | 50 included, then $0.50/mo each |
+| Technicians | 2 included, then $10/mo each |
+| Back office, field app & customer portal | ✓ |
+| Branded public website | ✓ |
+| AI chemistry & assistant | ✓ |
+| Online payments & autopay | ✓ |
+
+14-day free trial, no credit card required.
+
+## Built with
+
+Laravel · Inertia · Vue 3 (TypeScript) · Tailwind CSS · MySQL/MariaDB · Laravel Cashier
+(Stripe) · Laravel Reverb · Google Maps · Anthropic & OpenAI
 
 ## License
 
-Source-available for portfolio and review purposes — see [LICENSE](LICENSE). Not open source; no
-reuse or redistribution rights are granted.
+**All rights reserved.** This repository is public for demonstration and
+reference purposes only — it is not open source. You may not copy, reuse,
+redeploy, or redistribute this code, in whole or in part, without prior
+written permission. See [LICENSE](LICENSE) for the full terms.
+
+---
+
+<p align="center"><sub>© 2026 Punchlist Labs. All rights reserved.</sub></p>

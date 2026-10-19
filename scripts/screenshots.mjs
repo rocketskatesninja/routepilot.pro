@@ -5,6 +5,8 @@
  * driving a headless Chrome through the live demo tenant:
  *   - the login-page showcase carousel  → AuthLayout.vue   (desktop + phone, light/dark)
  *   - the landing hero demo-site preview → Welcome.vue      (light/dark)
+ *   - the README hero, RoutePilot's own homepage → README.md (1600×1000, the
+ *     same frame as the sibling Punchlist Labs repos' READMEs)
  *
  * It writes straight into public/assets/images/screenshots, so a run replaces
  * the committed assets in place — review the diff, then commit.
@@ -13,6 +15,7 @@
  *   npm run screenshots             # everything (app carousel + landing)
  *   npm run screenshots app         # just the login-page carousel shots
  *   npm run screenshots landing     # just the demo-tenant landing hero
+ *   npm run screenshots marketing   # just the README hero (the homepage)
  *
  * Env overrides:
  *   SCREENSHOT_BASE   base URL              (default https://routepilot.pro)
@@ -55,6 +58,7 @@ const PHONE_CLIP = { x: 0, y: 0, width: 390, height: 640 }; // trim trailing whi
 const which = (process.argv[2] ?? 'all').toLowerCase();
 const wantApp = which === 'all' || which === 'app';
 const wantLanding = which === 'all' || which === 'landing';
+const wantMarketing = which === 'all' || which === 'marketing';
 
 /** Log in and land on the dashboard, returning the page. */
 async function login(ctx, email) {
@@ -143,6 +147,17 @@ async function landing(browser) {
     console.log('landing done');
 }
 
+/** README hero — RoutePilot's own homepage, at the size the sibling repos' READMEs use. */
+async function marketing(browser) {
+    const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1, ignoreHTTPSErrors: INSECURE });
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3500); // let the hero's entrance settle
+    await page.screenshot({ path: `${OUT}/marketing-home.png` });
+    console.log('  ✓ marketing-home.png');
+    await ctx.close();
+}
+
 const browser = await chromium.launch({ executablePath: CHROME, args: ['--no-sandbox', ...HOST_RULES] });
 try {
     console.log(`Capturing from ${BASE} → ${OUT}`);
@@ -154,6 +169,9 @@ try {
     }
     if (wantLanding) {
         await landing(browser);
+    }
+    if (wantMarketing) {
+        await marketing(browser);
     }
     console.log('ALL DONE');
 } finally {
