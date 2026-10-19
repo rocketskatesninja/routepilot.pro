@@ -22,12 +22,14 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
 </script>
 
 <template>
-    <!-- Wraps to multiple rows on a phone (page actions get their own full-width row);
-         a single fixed-height row on md+ where there's room. -->
+    <!-- On a phone the page actions share the title's row when they fit and drop to a
+         full-width row of their own when they don't (the title takes nearly all the
+         spare room — grow-999 — so actions that fit stay compact at the row's end);
+         a single fixed-height row on md+. -->
     <header
         class="border-sidebar-border/70 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b px-4 py-2.5 transition-[width,height] ease-linear md:h-16 md:flex-nowrap md:py-0 group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12"
     >
-        <div class="flex min-w-0 flex-1 items-center gap-2 md:flex-none">
+        <div class="flex min-w-0 grow-[999] items-center gap-2 md:flex-none">
             <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->
             <SidebarTrigger v-if="isMobile" class="-ml-1" />
             <template v-if="breadcrumbs.length > 0">
@@ -97,8 +99,8 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
             <slot name="filters" />
         </div>
 
-        <!-- Page actions: full-width wrapping row on mobile, inline on the right on desktop. -->
-        <div v-if="$slots.actions" class="flex w-full flex-wrap items-center gap-2 md:ml-auto md:w-auto md:flex-nowrap">
+        <!-- Page actions: on the title's row if they fit, else a full-width row (mobile); inline on the right on desktop. -->
+        <div v-if="$slots.actions" class="flex grow flex-wrap items-center gap-2 md:ml-auto md:grow-0 md:flex-nowrap">
             <slot name="actions" />
         </div>
     </header>

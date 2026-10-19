@@ -21,8 +21,8 @@ withDefaults(defineProps<Props>(), {
         <AppSidebar />
         <AppContent variant="sidebar" class="rp-page-content">
             <AppSidebarHeader :breadcrumbs="breadcrumbs" :meta="meta">
-                <template #actions><slot name="actions" /></template>
-                <template #filters><slot name="filters" /></template>
+                <template v-if="$slots.actions" #actions><slot name="actions" /></template>
+                <template v-if="$slots.filters" #filters><slot name="filters" /></template>
             </AppSidebarHeader>
             <slot />
         </AppContent>

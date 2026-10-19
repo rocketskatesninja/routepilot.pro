@@ -17,8 +17,11 @@ withDefaults(defineProps<Props>(), {
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs" :meta="meta">
-        <template #actions><slot name="actions" /></template>
-        <template #filters><slot name="filters" /></template>
+        <!-- Forward the header slots only when the page fills them: an empty #filters
+             would still render the header's full-width tabs row and push the actions
+             off the title's row on a phone. -->
+        <template v-if="$slots.actions" #actions><slot name="actions" /></template>
+        <template v-if="$slots.filters" #filters><slot name="filters" /></template>
         <ImpersonationBanner />
         <BillingBanner />
         <slot />
