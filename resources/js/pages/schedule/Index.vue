@@ -301,7 +301,7 @@ const prettyDate = computed(() =>
 
         <div class="flex h-full flex-1 gap-4 p-4">
             <!-- Left: the day's routes as a vertical, drag-and-drop list -->
-            <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[26rem] lg:shrink-0">
+            <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[30rem] lg:shrink-0">
                 <div
                     v-if="localRoutes.length === 0 && !localUnassigned"
                     class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center"
