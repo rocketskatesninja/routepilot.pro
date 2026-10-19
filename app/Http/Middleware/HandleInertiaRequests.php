@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Models\Tenant;
 use App\Services\BillingMeter;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -92,10 +93,12 @@ class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-            ],
+            // Always sent, partial reloads included: a reload that left it out would keep
+            // the last message on the page and FlashToast would show it a second time.
+            'flash' => Inertia::always(fn (): array => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ]),
         ];
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\DeleteSubscription;
 use App\Events\RouteUpdated;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
@@ -69,6 +70,23 @@ test('putting back a skipped stop from a past day marks it missed, from today on
 
     expect($past->fresh()?->status)->toBe('missed')
         ->and($today->fresh()?->status)->toBe('pending');
+});
+
+test('a skip\'s message shows once: the board\'s live refresh after it carries no message', function () {
+    $stop = hardeningStop($this->tenant->today()->toDateString());
+    $this->actingAs($this->admin)->post("/stops/{$stop->id}/skip");
+    $this->get('/schedule')->assertInertia(fn (Assert $page) => $page->where('flash.success', 'Stop skipped.'));
+
+    // The refresh the skip's own broadcast triggers reloads only the board's data. It must still
+    // send flash (now empty), or the page keeps "Stop skipped." and shows it a second time.
+    $this->get('/schedule', [
+        'X-Inertia' => 'true',
+        'X-Inertia-Version' => (string) app(HandleInertiaRequests::class)->version(request()),
+        'X-Inertia-Partial-Component' => 'schedule/Index',
+        'X-Inertia-Partial-Data' => 'routes,unassigned,coords,agentLocations',
+    ])->assertOk()
+        ->assertJsonMissingPath('props.today')
+        ->assertJsonPath('props.flash', ['success' => null, 'error' => null]);
 });
 
 test('the assistant\'s skip refreshes the live schedule board, like the board\'s own', function () {
