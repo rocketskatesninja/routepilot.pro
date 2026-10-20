@@ -4,6 +4,7 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import NoteBubble from '@/components/NoteBubble.vue';
+import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
 import PaneFacts from '@/components/pane/PaneFacts.vue';
 import PaneHeader from '@/components/pane/PaneHeader.vue';
@@ -24,7 +25,7 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Check, FileText, Minus, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { Check, FileText, Lock, Minus, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface VisitRow {
@@ -61,6 +62,8 @@ interface VisitDetail {
     agent_id: number | null;
     completed_on: string | null;
     notes: string | null;
+    office_notes: string | null;
+    work_order: { id: number; title: string; details: string | null; urgent: boolean; status: string } | null;
     reading: Reading | null;
     treatments: { name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
@@ -122,12 +125,14 @@ const editing = ref(false);
 const form = useForm<{
     completed_on: string;
     notes: string;
+    office_notes: string;
     reading: Record<string, number | string | null>;
     treatments: { name: string; amount: number | string; unit: string }[];
     tasks: { name: string; done: boolean }[];
 }>({
     completed_on: '',
     notes: '',
+    office_notes: '',
     reading: {},
     treatments: [],
     tasks: [],
@@ -138,6 +143,7 @@ function openEdit() {
     if (!s) return;
     form.completed_on = s.completed_on ?? '';
     form.notes = s.notes ?? '';
+    form.office_notes = s.office_notes ?? '';
     form.reading = Object.fromEntries(editReadingKeys.map((k) => [k, s.reading?.[k] ?? null]));
     form.treatments = s.treatments.map((t) => ({ ...t }));
     form.tasks = s.tasks.map((t) => ({ ...t }));
@@ -310,10 +316,21 @@ function submitEdit() {
                                 </div>
                             </div>
                             <div class="grid gap-1.5">
-                                <Label for="r_notes">Notes</Label>
+                                <Label for="r_notes">Note to the homeowner</Label>
                                 <textarea
                                     id="r_notes"
                                     v-model="form.notes"
+                                    rows="3"
+                                    class="border-input bg-background rounded-md border px-3 py-2 text-sm"
+                                ></textarea>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="r_office_notes"
+                                    >Office note <span class="text-muted-foreground font-normal">(only your team sees this)</span></Label
+                                >
+                                <textarea
+                                    id="r_office_notes"
+                                    v-model="form.office_notes"
                                     rows="3"
                                     class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                                 ></textarea>
@@ -366,7 +383,33 @@ function submitEdit() {
                                 </PaneList>
                             </PaneSection>
 
-                            <NoteBubble v-if="visit.notes" :author="`${firstWord(visit.agent) ?? 'The tech'} wrote`">{{ visit.notes }}</NoteBubble>
+                            <PaneSection v-if="visit.notes" title="Note to the homeowner">
+                                <NoteBubble :author="`${firstWord(visit.agent) ?? 'The tech'} wrote`">{{ visit.notes }}</NoteBubble>
+                            </PaneSection>
+
+                            <PaneSection v-if="visit.office_notes" title="Office note">
+                                <template #action>
+                                    <span class="text-muted-foreground flex items-center gap-1 text-sm"
+                                        ><Lock class="size-3.5" /> Only your team sees this</span
+                                    >
+                                </template>
+                                <NoteBubble :author="`${firstWord(visit.agent) ?? 'The tech'} wrote`">{{ visit.office_notes }}</NoteBubble>
+                            </PaneSection>
+
+                            <PaneSection v-if="visit.work_order" title="Work order">
+                                <template #action>
+                                    <span class="flex items-center gap-1.5">
+                                        <Chip v-if="visit.work_order.urgent" tone="bad">Urgent</Chip>
+                                        <Chip :tone="visit.work_order.status === 'done' ? 'good' : 'warn'">{{
+                                            visit.work_order.status === 'done' ? 'Done' : 'Open'
+                                        }}</Chip>
+                                    </span>
+                                </template>
+                                <p class="font-medium">{{ visit.work_order.title }}</p>
+                                <p v-if="visit.work_order.details" class="text-muted-foreground mt-1 text-sm whitespace-pre-line">
+                                    {{ visit.work_order.details }}
+                                </p>
+                            </PaneSection>
 
                             <PaneSection v-if="visit.photos.length" title="Photos">
                                 <div class="grid grid-cols-3 gap-2">

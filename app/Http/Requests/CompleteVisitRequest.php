@@ -35,6 +35,11 @@ class CompleteVisitRequest extends FormRequest
             'treatments.*.amount' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'treatments.*.unit' => ['nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            // For the company only; the homeowner never sees it.
+            'office_notes' => ['nullable', 'string', 'max:2000'],
+            // Something that needs doing later; becomes a work order on the company's list.
+            'work_order' => ['nullable', 'string', 'max:2000'],
+            'work_order_urgent' => ['boolean'],
             'photos' => ['nullable', 'array', 'max:6'],
             'photos.*' => ['image', 'max:5120'],
             // Best-effort GPS proof-of-presence from the field app; idempotency key for offline replays.

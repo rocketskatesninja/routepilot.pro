@@ -26,6 +26,7 @@ class UpdateReport
             $visit->update([
                 'completed_at' => $data['completed_on'] ?? $visit->getAttribute('completed_at'),
                 'notes' => $data['notes'] ?? null,
+                'office_notes' => $data['office_notes'] ?? null,
             ]);
 
             /** @var array<string, mixed> $reading */

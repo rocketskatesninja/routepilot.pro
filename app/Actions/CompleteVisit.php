@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Complete (or re-complete) a route stop: upsert the ServiceVisit + its
  * chemical reading (LSI computed by the engine), treatments (deducting matching
- * inventory), task checklist, and mark the stop done — all in one transaction.
+ * inventory), task checklist, any work order the tech raised, and mark the stop
+ * done — all in one transaction.
  *
  * Re-submitting an already-completed stop UPDATES the existing visit rather than
  * creating a second one: the reading/tasks/treatments are replaced and any newly
@@ -34,7 +35,7 @@ class CompleteVisit
         'cyanuric_acid', 'salt', 'tds', 'phosphates', 'water_temperature',
     ];
 
-    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing, private ReverseVisitInventory $reverseInventory) {}
+    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing, private ReverseVisitInventory $reverseInventory, private CreateWorkOrder $workOrders) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -63,6 +64,7 @@ class CompleteVisit
                     'completed_at' => now(),
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
+                    'office_notes' => $data['office_notes'] ?? null,
                     ...$gps,
                 ]);
             } else {
@@ -77,6 +79,7 @@ class CompleteVisit
                     'completed_at' => now(),
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
+                    'office_notes' => $data['office_notes'] ?? null,
                     ...$gps,
                 ]);
             }
@@ -113,6 +116,17 @@ class CompleteVisit
 
             foreach ($photos as $photo) {
                 $visit->photos()->create(['photo_path' => $this->photos->store($photo, 'visit-photos/'.$visit->id)]);
+            }
+
+            // A work order the tech raised here: one per visit, so a second sync never adds another.
+            $workOrder = trim(is_string($data['work_order'] ?? null) ? $data['work_order'] : '');
+            if ($workOrder !== '' && ! $visit->workOrder()->exists()) {
+                $this->workOrders->handle([
+                    ...CreateWorkOrder::fromText($workOrder),
+                    'urgent' => (bool) ($data['work_order_urgent'] ?? false),
+                    'pool_id' => $visit->getAttribute('pool_id'),
+                    'service_visit_id' => $visit->id,
+                ], $agent);
             }
 
             $stop->update(['status' => 'completed', 'completed_at' => now()]);

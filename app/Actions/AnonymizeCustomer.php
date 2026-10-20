@@ -29,7 +29,7 @@ use Illuminate\Support\Str;
  * Removed: name, email, phone, address, notes and security code; every photo
  * (theirs, their pools', their service addresses' and their visits'); pool
  * names and notes (pools become "Pool 1", "Pool 2"…), service addresses, gate
- * codes and access notes; visit notes and GPS points; request messages and
+ * codes and access notes; visit notes (both kinds) and GPS points; request messages and
  * replies; invoice notes; saved cards and the Stripe link; the website leads
  * they came from; their address in email-campaign logs; and their portal login
  * with its AI conversations, notifications and sessions. Charge descriptions
@@ -84,7 +84,7 @@ class AnonymizeCustomer
             $photos = VisitPhoto::query()->whereIn('service_visit_id', $visitIds);
             array_push($files, ...$photos->pluck('photo_path')->all());
             $photos->delete();
-            ServiceVisit::query()->whereKey($visitIds)->update(['notes' => null, 'completed_lat' => null, 'completed_lng' => null]);
+            ServiceVisit::query()->whereKey($visitIds)->update(['notes' => null, 'office_notes' => null, 'completed_lat' => null, 'completed_lng' => null]);
 
             ServiceRequest::query()->where('customer_id', $id)->update(['message' => null, 'reply' => null]);
             Invoice::query()->where('customer_id', $id)->update(['notes' => null]);

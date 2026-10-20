@@ -12,7 +12,7 @@ import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop } fro
 import { queueCompletion } from '@/lib/field/sync';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
-import { ChevronLeft, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
+import { ChevronLeft, Lock, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
@@ -41,6 +41,9 @@ const reading = reactive<Record<string, string>>(Object.fromEntries(readingField
 const tasks = reactive((props.stop.service.tasks ?? []).map((name) => ({ name, done: false })));
 const treatments = reactive<{ name: string; amount: string; unit: string }[]>([]);
 const notes = ref('');
+const officeNotes = ref(''); // for the company only; the homeowner never sees it
+const workOrder = ref(''); // something to do later: becomes a work order on the company's list
+const workOrderUrgent = ref(false);
 const photos = ref<File[]>([]);
 const analysis = ref<FullAnalysis | null>(null);
 const submitting = ref(false);
@@ -61,6 +64,9 @@ onMounted(async () => {
             });
             treatments.splice(0, treatments.length, ...draft.treatments);
             notes.value = draft.notes;
+            officeNotes.value = draft.office_notes ?? '';
+            workOrder.value = draft.work_order ?? '';
+            workOrderUrgent.value = draft.work_order_urgent ?? false;
             if (draft.analyzed) analyze();
         }
         if (saved.length) photos.value = saved;
@@ -81,13 +87,16 @@ function persist() {
         tasks: tasks.map((t) => ({ name: t.name, done: t.done })),
         treatments: treatments.map((t) => ({ ...t })),
         notes: notes.value,
+        office_notes: officeNotes.value,
+        work_order: workOrder.value,
+        work_order_urgent: workOrderUrgent.value,
         analyzed: analysis.value !== null,
         updated_at: Date.now(),
     }).catch((e) => console.error('Could not save the visit on the phone:', e));
 }
 
 watch(
-    [reading, tasks, treatments, notes, () => analysis.value !== null],
+    [reading, tasks, treatments, notes, officeNotes, workOrder, workOrderUrgent, () => analysis.value !== null],
     () => {
         if (!restored || finished) return;
         clearTimeout(saveTimer);
@@ -180,6 +189,9 @@ async function complete() {
             ? treatments.filter((t) => t.name !== '').map((t) => ({ name: t.name, amount: t.amount === '' ? null : Number(t.amount), unit: t.unit }))
             : [],
         notes: notes.value || null,
+        office_notes: officeNotes.value || null,
+        work_order: workOrder.value.trim() || null,
+        work_order_urgent: workOrder.value.trim() !== '' && workOrderUrgent.value,
     };
     if (show.chemistry) {
         for (const f of readingFields) {
@@ -361,15 +373,46 @@ async function complete() {
                 <MultiImageUpload :model-value="photos" capture="environment" :max="6" @update:model-value="setPhotos" />
             </PaneSection>
 
-            <!-- a note for the office and the homeowner, just before finishing -->
-            <PaneSection title="Note">
+            <!-- two notes just before finishing: one the homeowner reads, one only the company sees -->
+            <PaneSection title="Note to the homeowner">
                 <textarea
                     v-model="notes"
                     rows="3"
-                    aria-label="Note"
+                    aria-label="Note to the homeowner"
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
-                    placeholder="Anything the office or the homeowner should know. The homeowner sees this in their report."
+                    placeholder="The homeowner sees this in their report and email."
                 ></textarea>
+            </PaneSection>
+
+            <PaneSection title="Office note">
+                <template #action>
+                    <span class="text-muted-foreground flex items-center gap-1 text-sm"><Lock class="size-3.5" /> Only your team sees this</span>
+                </template>
+                <textarea
+                    v-model="officeNotes"
+                    rows="3"
+                    aria-label="Office note"
+                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
+                    placeholder="Anything the office should know: repairs, access trouble, a word about the customer."
+                ></textarea>
+            </PaneSection>
+
+            <!-- a job for later, apart from the note: it lands on the company's work orders list -->
+            <PaneSection title="Work order">
+                <template #action>
+                    <span class="text-muted-foreground flex items-center gap-1 text-sm"><Lock class="size-3.5" /> Goes on your team’s list</span>
+                </template>
+                <textarea
+                    v-model="workOrder"
+                    rows="2"
+                    aria-label="Work order"
+                    class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
+                    placeholder="Something that needs doing later: a part to order, a repair to book."
+                ></textarea>
+                <label v-if="workOrder.trim()" class="mt-2 flex cursor-pointer items-center gap-3 py-1">
+                    <input v-model="workOrderUrgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
+                    <span class="text-[15px]">Urgent</span>
+                </label>
             </PaneSection>
         </div>
 

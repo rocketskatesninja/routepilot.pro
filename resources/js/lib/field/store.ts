@@ -57,6 +57,9 @@ export interface VisitDraft {
     tasks: { name: string; done: boolean }[];
     treatments: { name: string; amount: string; unit: string }[];
     notes: string;
+    office_notes?: string; // absent on drafts saved before the office note existed
+    work_order?: string; // likewise, before the work order section
+    work_order_urgent?: boolean;
     analyzed: boolean;
     updated_at: number;
 }

@@ -76,6 +76,7 @@ class ReportController extends Controller
                 ->with([
                     'pool:id,name,customer_id,custom_target_ranges', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name',
                     'serviceSubscription.serviceType:id,name', 'chemicalReading', 'treatments', 'tasks', 'photos',
+                    'workOrder:id,service_visit_id,title,details,urgent,status',
                 ])
                 ->find($selectedId);
             if ($visit !== null) {
@@ -145,6 +146,9 @@ class ReportController extends Controller
             'agent_id' => $visit->agent?->getKey(),
             'completed_on' => $visit->completed_at?->toDateString(),
             'notes' => $visit->notes,
+            'office_notes' => $visit->office_notes,
+            // The work order the tech raised on this visit, if any.
+            'work_order' => $visit->workOrder === null ? null : $visit->workOrder->only(['id', 'title', 'details', 'urgent', 'status']),
             'reading' => $reading !== null ? [
                 'free_chlorine' => $reading->free_chlorine,
                 'total_chlorine' => $reading->total_chlorine,

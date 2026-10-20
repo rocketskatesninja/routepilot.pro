@@ -33,6 +33,7 @@ class UpdateReportRequest extends FormRequest
         return [
             'completed_on' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'office_notes' => ['nullable', 'string', 'max:5000'],
             'reading' => ['array'],
             'reading.free_chlorine' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'reading.total_chlorine' => ['nullable', 'numeric', 'min:0', 'max:100'],

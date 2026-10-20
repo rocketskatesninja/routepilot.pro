@@ -21,6 +21,7 @@ use Illuminate\Support\Collection;
  *
  * @property string $status
  * @property string|null $notes
+ * @property string|null $office_notes office-only; the homeowner never sees it
  * @property Carbon|null $visited_at
  * @property Carbon|null $completed_at
  */
@@ -32,9 +33,12 @@ class ServiceVisit extends Model
     /** @var list<string> */
     protected $fillable = [
         'route_stop_id', 'pool_id', 'service_subscription_id', 'agent_id', 'visited_at',
-        'completed_at', 'status', 'signature_path', 'notes',
+        'completed_at', 'status', 'signature_path', 'notes', 'office_notes',
         'completed_lat', 'completed_lng',
     ];
+
+    /** Never serialized wholesale: staff screens read the office note by name; customers never get it. */
+    protected $hidden = ['office_notes'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -93,6 +97,16 @@ class ServiceVisit extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(ServiceTask::class);
+    }
+
+    /**
+     * The work order the tech raised on this visit, if any (one per visit).
+     *
+     * @return HasOne<WorkOrder, $this>
+     */
+    public function workOrder(): HasOne
+    {
+        return $this->hasOne(WorkOrder::class);
     }
 
     /** @return HasMany<VisitPhoto, $this> */
