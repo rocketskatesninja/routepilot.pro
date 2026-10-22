@@ -17,6 +17,9 @@ const loading = ref(true);
 const online = ref(true);
 const queued = ref(0);
 const failed = ref(0);
+// A short "it went through" after finishing a visit that raised a work order (no bell for your own).
+const notice = ref<string | null>(null);
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 const selected = ref<FieldStop | null>(null);
 
 // The open stop is remembered for this tab, so a refresh lands back on the visit
@@ -114,6 +117,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('online', onOnline);
     window.removeEventListener(QUEUE_SYNCED, refreshCounts);
     window.removeEventListener('offline', onOffline);
+    clearTimeout(noticeTimer);
 });
 
 function open(stop: FieldStop) {
@@ -121,7 +125,14 @@ function open(stop: FieldStop) {
     selected.value = stop;
 }
 
-async function onCompleted(stopId: number) {
+async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
+    if (raisedWorkOrder) {
+        notice.value = online.value
+            ? 'Work order sent to your team’s list.'
+            : 'Work order saved. It goes to your team’s list when you’re back online.';
+        clearTimeout(noticeTimer);
+        noticeTimer = setTimeout(() => (notice.value = null), 6000);
+    }
     // Optimistic: mark done locally and persist so a reload (even offline) keeps it.
     const stop = stops.value.find((s) => s.id === stopId);
     if (stop) {
@@ -189,6 +200,13 @@ async function onCompleted(stopId: number) {
                         <RefreshCw class="size-5" :class="loading ? 'animate-spin' : ''" />
                     </button>
                 </div>
+            </div>
+            <div
+                v-if="notice"
+                role="status"
+                class="flex items-center gap-1.5 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400"
+            >
+                <Check class="size-4" /> {{ notice }}
             </div>
             <div v-if="queued > 0" class="flex items-center gap-1.5 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-700 dark:text-sky-300">
                 <CloudOff class="size-4" /> {{ queued }} visit{{ queued === 1 ? '' : 's' }} waiting to sync{{

@@ -37,8 +37,7 @@ function finishWith(array $data): void
 }
 
 test('a work order raised on a visit lands on the company list, once', function () {
-    $text = "Skimmer lid is cracked\nOrder a new one from the supplier";
-    $visit = ['office_notes' => 'Gate code changed', 'work_order' => $text, 'work_order_urgent' => true];
+    $visit = ['office_notes' => 'Gate code changed', 'work_order_title' => 'Skimmer lid is cracked', 'work_order_details' => 'Order a new one from the supplier', 'work_order_urgent' => true];
     finishWith($visit);
     finishWith($visit); // the same visit sent again (a replay from the phone)
 
@@ -55,10 +54,23 @@ test('a work order raised on a visit lands on the company list, once', function 
         ->and($visit->office_notes)->toBe('Gate code changed'); // the office note stays its own thing
 });
 
-test('a visit with nothing in the work order box raises none', function () {
-    finishWith(['office_notes' => 'All good', 'work_order' => "  \n ", 'work_order_urgent' => true]);
+test('a visit with nothing in the work order boxes raises none', function () {
+    finishWith(['office_notes' => 'All good', 'work_order_title' => '  ', 'work_order_details' => "  \n ", 'work_order_urgent' => true]);
 
     expect(WorkOrder::query()->count())->toBe(0);
+});
+
+test('details with no title lend it their first line', function () {
+    finishWith(['work_order_details' => "Heater won't light\nPilot assembly, probably"]);
+
+    expect(WorkOrder::query()->sole()->only(['title', 'details']))->toBe(['title' => "Heater won't light", 'details' => 'Pilot assembly, probably']);
+});
+
+test('a phone still on the single box (an older copy of the app, or a queued visit) still raises it', function () {
+    finishWith(['work_order' => "Skimmer lid is cracked\nOrder a new one from the supplier", 'work_order_urgent' => true]);
+
+    expect(WorkOrder::query()->sole()->only(['title', 'details', 'urgent']))
+        ->toBe(['title' => 'Skimmer lid is cracked', 'details' => 'Order a new one from the supplier', 'urgent' => true]);
 });
 
 test('the office hears about it: admins and Agent+, not the tech who raised it, other techs or other companies', function () {
@@ -70,7 +82,7 @@ test('the office hears about it: admins and Agent+, not the tech who raised it, 
     $elsewhere = User::factory()->for(Tenant::factory())->create();
     Notification::fake();
 
-    finishWith(['work_order' => 'Pump is making a grinding noise', 'work_order_urgent' => true]);
+    finishWith(['work_order_title' => 'Pump is making a grinding noise', 'work_order_urgent' => true]);
 
     Notification::assertSentTo([$this->admin, $agentPlus], WorkOrderRaised::class, function (WorkOrderRaised $n, array $channels, object $to): bool {
         $alert = $n->toArray($to);
@@ -94,7 +106,7 @@ test('a long first line is cut to fit the title, and then the details keep the w
 });
 
 test('the report shows the work order its visit raised, and deleting the report keeps the work order', function () {
-    finishWith(['work_order' => 'Order a new skimmer basket']);
+    finishWith(['work_order_title' => 'Order a new skimmer basket']);
     $visit = ServiceVisit::query()->where('route_stop_id', $this->stop->id)->sole();
 
     $this->actingAs($this->admin)

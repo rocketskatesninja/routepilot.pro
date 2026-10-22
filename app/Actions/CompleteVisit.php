@@ -119,10 +119,10 @@ class CompleteVisit
             }
 
             // A work order the tech raised here: one per visit, so a second sync never adds another.
-            $workOrder = trim(is_string($data['work_order'] ?? null) ? $data['work_order'] : '');
-            if ($workOrder !== '' && ! $visit->workOrder()->exists()) {
+            $workOrder = $this->workOrderFrom($data);
+            if ($workOrder !== null && ! $visit->workOrder()->exists()) {
                 $this->workOrders->handle([
-                    ...CreateWorkOrder::fromText($workOrder),
+                    ...$workOrder,
                     'urgent' => (bool) ($data['work_order_urgent'] ?? false),
                     'pool_id' => $visit->getAttribute('pool_id'),
                     'service_visit_id' => $visit->id,
@@ -196,5 +196,25 @@ class CompleteVisit
             'pool_id' => $visit->getAttribute('pool_id'),
             'created_by' => $agent->id,
         ]);
+    }
+
+    /**
+     * The work order typed on the visit: its title and details, or the one box an older copy
+     * of the app sends, split by CreateWorkOrder::fromText. Details with no title lend it their
+     * first line, so nothing a tech wrote is dropped.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{title: string, details: string|null}|null
+     */
+    private function workOrderFrom(array $data): ?array
+    {
+        $text = fn (string $key): string => trim(is_string($data[$key] ?? null) ? $data[$key] : '');
+        [$title, $details] = [$text('work_order_title'), $text('work_order_details')];
+        if ($title !== '') {
+            return ['title' => $title, 'details' => $details !== '' ? $details : null];
+        }
+        $single = $details !== '' ? $details : $text('work_order');
+
+        return $single !== '' ? CreateWorkOrder::fromText($single) : null;
     }
 }

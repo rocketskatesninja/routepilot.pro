@@ -70,7 +70,9 @@ export interface VisitDraft {
     treatments: { name: string; amount: string; unit: string }[];
     notes: string;
     office_notes?: string; // absent on drafts saved before the office note existed
-    work_order?: string; // likewise, before the work order section
+    work_order?: string; // likewise, before the work order section; then its single box (before Title + Details)
+    work_order_title?: string;
+    work_order_details?: string;
     work_order_urgent?: boolean;
     analyzed: boolean;
     updated_at: number;

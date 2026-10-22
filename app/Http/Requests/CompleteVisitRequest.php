@@ -38,8 +38,11 @@ class CompleteVisitRequest extends FormRequest
             // For the company only; the homeowner never sees it.
             'office_notes' => ['nullable', 'string', 'max:2000'],
             // Something that needs doing later; becomes a work order on the company's list.
-            'work_order' => ['nullable', 'string', 'max:2000'],
+            'work_order_title' => ['nullable', 'string', 'max:160'],
+            'work_order_details' => ['nullable', 'string', 'max:5000'],
             'work_order_urgent' => ['boolean'],
+            // The single box older copies of the app still send (split by CreateWorkOrder::fromText).
+            'work_order' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:6'],
             'photos.*' => ['image', 'max:5120'],
             // Best-effort GPS proof-of-presence from the field app; idempotency key for offline replays.

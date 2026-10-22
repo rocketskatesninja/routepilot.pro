@@ -17,7 +17,7 @@ import { ChevronLeft, Lock, Navigation, Plus, Sparkles, X } from 'lucide-vue-nex
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 const props = defineProps<{ stop: FieldStop; online: boolean }>();
-const emit = defineEmits<{ (e: 'done', stopId: number): void; (e: 'close'): void }>();
+const emit = defineEmits<{ (e: 'done', stopId: number, raisedWorkOrder: boolean): void; (e: 'close'): void }>();
 
 const pool = computed(() => props.stop.pool);
 
@@ -48,8 +48,11 @@ const tasks = reactive((props.stop.service.tasks ?? []).map((name) => ({ name, d
 const treatments = reactive<{ name: string; amount: string; unit: string }[]>([]);
 const notes = ref('');
 const officeNotes = ref(''); // for the company only; the homeowner never sees it
-const workOrder = ref(''); // something to do later: becomes a work order on the company's list
+// Something to do later: becomes a work order on the company's list.
+const workOrderTitle = ref('');
+const workOrderDetails = ref('');
 const workOrderUrgent = ref(false);
+const raisesWorkOrder = computed(() => workOrderTitle.value.trim() !== '' || workOrderDetails.value.trim() !== '');
 const photos = ref<File[]>([]);
 const analysis = ref<FullAnalysis | null>(null);
 const submitting = ref(false);
@@ -71,7 +74,9 @@ onMounted(async () => {
             treatments.splice(0, treatments.length, ...draft.treatments);
             notes.value = draft.notes;
             officeNotes.value = draft.office_notes ?? '';
-            workOrder.value = draft.work_order ?? '';
+            workOrderTitle.value = draft.work_order_title ?? '';
+            // A draft from the single box goes into Details; the server titles it from its first line.
+            workOrderDetails.value = draft.work_order_details ?? draft.work_order ?? '';
             workOrderUrgent.value = draft.work_order_urgent ?? false;
             if (draft.analyzed) analyze();
         }
@@ -94,7 +99,8 @@ function persist() {
         treatments: treatments.map((t) => ({ ...t })),
         notes: notes.value,
         office_notes: officeNotes.value,
-        work_order: workOrder.value,
+        work_order_title: workOrderTitle.value,
+        work_order_details: workOrderDetails.value,
         work_order_urgent: workOrderUrgent.value,
         analyzed: analysis.value !== null,
         updated_at: Date.now(),
@@ -102,7 +108,7 @@ function persist() {
 }
 
 watch(
-    [reading, tasks, treatments, notes, officeNotes, workOrder, workOrderUrgent, () => analysis.value !== null],
+    [reading, tasks, treatments, notes, officeNotes, workOrderTitle, workOrderDetails, workOrderUrgent, () => analysis.value !== null],
     () => {
         if (!restored || finished) return;
         clearTimeout(saveTimer);
@@ -196,8 +202,9 @@ async function complete() {
             : [],
         notes: notes.value || null,
         office_notes: officeNotes.value || null,
-        work_order: workOrder.value.trim() || null,
-        work_order_urgent: workOrder.value.trim() !== '' && workOrderUrgent.value,
+        work_order_title: workOrderTitle.value.trim() || null,
+        work_order_details: workOrderDetails.value.trim() || null,
+        work_order_urgent: raisesWorkOrder.value && workOrderUrgent.value,
     };
     if (show.chemistry) {
         for (const f of readingFields) {
@@ -215,7 +222,7 @@ async function complete() {
     clearTimeout(saveTimer);
     await deleteDraft(props.stop.id).catch((e) => console.error('Could not clear the finished visit’s draft:', e));
     submitting.value = false;
-    emit('done', props.stop.id);
+    emit('done', props.stop.id, raisesWorkOrder.value);
 }
 </script>
 
@@ -423,14 +430,22 @@ async function complete() {
                 <template #action>
                     <span class="text-muted-foreground flex items-center gap-1 text-sm"><Lock class="size-3.5" /> Goes on your team’s list</span>
                 </template>
-                <textarea
-                    v-model="workOrder"
-                    rows="2"
-                    aria-label="Work order"
+                <input
+                    v-model="workOrderTitle"
+                    type="text"
+                    maxlength="160"
+                    aria-label="Work order title"
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
-                    placeholder="Something that needs doing later: a part to order, a repair to book."
+                    placeholder="Title: what needs doing, e.g. Replace the skimmer lid"
+                />
+                <textarea
+                    v-model="workOrderDetails"
+                    rows="3"
+                    aria-label="Work order details"
+                    class="border-input bg-background text-foreground placeholder:text-muted-foreground mt-2 w-full rounded-xl border px-3 py-2.5 text-base"
+                    placeholder="Details (optional): part size, where it is, anything that helps."
                 ></textarea>
-                <label v-if="workOrder.trim()" class="mt-2 flex cursor-pointer items-center gap-3 py-1">
+                <label v-if="raisesWorkOrder" class="mt-2 flex cursor-pointer items-center gap-3 py-1">
                     <input v-model="workOrderUrgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
                     <span class="text-[15px]">Urgent</span>
                 </label>
