@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * re-derived. A charge is never deleted once a customer could have seen it —
  * it's voided, with a reason. invoice_id is set once it's been billed.
  *
+ * @property int|null $work_order_id the work order it billed
  * @property string $kind
  * @property string $description
  * @property string $amount
@@ -32,7 +33,7 @@ class Charge extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'customer_id', 'pool_id', 'service_visit_id', 'kind', 'description', 'amount',
+        'customer_id', 'pool_id', 'service_visit_id', 'work_order_id', 'kind', 'description', 'amount',
         'taxable', 'tax', 'occurred_on', 'invoice_id', 'created_by',
     ];
 
@@ -80,6 +81,12 @@ class Charge extends Model
     public function serviceVisit(): BelongsTo
     {
         return $this->belongsTo(ServiceVisit::class);
+    }
+
+    /** @return BelongsTo<WorkOrder, $this> */
+    public function workOrder(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class);
     }
 
     /** @return BelongsTo<Invoice, $this> */

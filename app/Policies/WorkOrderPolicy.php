@@ -51,6 +51,12 @@ class WorkOrderPolicy
     }
 
     /** Admins and Agent+ see and work every work order. */
+    /** Putting it on a customer's balance: whoever may add charges (admins). */
+    public function bill(User $user, WorkOrder $order): bool
+    {
+        return $this->ours($user, $order) && $user->role === 'tenant_admin';
+    }
+
     public static function runsTheList(User $user): bool
     {
         return $user->role === 'tenant_admin' || $user->isAgentPlus();

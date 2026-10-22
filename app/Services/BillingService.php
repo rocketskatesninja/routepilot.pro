@@ -133,13 +133,14 @@ class BillingService
     }
 
     /** Add a one-off charge (or a credit, with a negative amount), taxed at today's rate. */
-    public function addCharge(Customer $customer, string $kind, string $description, float $amount, bool $taxable, ?string $occurredOn, ?int $userId, ?int $poolId = null): Charge
+    public function addCharge(Customer $customer, string $kind, string $description, float $amount, bool $taxable, ?string $occurredOn, ?int $userId, ?int $poolId = null, ?int $workOrderId = null): Charge
     {
         $rate = (float) ($customer->tenant?->getAttribute('tax_rate') ?? 0);
 
         $charge = new Charge([
             'customer_id' => $customer->id,
             'pool_id' => $poolId,
+            'work_order_id' => $workOrderId,
             'kind' => $kind,
             'description' => $description,
             'amount' => round($amount, 2),

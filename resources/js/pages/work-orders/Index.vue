@@ -13,11 +13,11 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { customerLink, poolLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
-import { formatDay } from '@/lib/utils';
+import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Check, Pencil, Plus, RotateCcw, Trash2, Wrench } from 'lucide-vue-next';
+import { Check, Pencil, Plus, Receipt, RotateCcw, Trash2, Wrench } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface OrderRow {
@@ -37,6 +37,7 @@ interface OrderFields {
     details: string | null;
     urgent: boolean;
     due_on: string | null;
+    price: string | null;
     assigned_to: number | null;
     pool_id: number | null;
 }
@@ -49,6 +50,8 @@ interface OrderDetail {
     urgent: boolean;
     overdue: boolean;
     due_on: string | null;
+    price: string | null;
+    billed: { amount: number; on: string } | null; // the charge that put it on the customer's balance
     pool: string | null;
     pool_id: number | null;
     customer: string | null;
@@ -62,7 +65,7 @@ interface OrderDetail {
     done_on: string | null;
     comments: { id: number; author: string; on: string | null; body: string }[];
     fields: OrderFields;
-    can: { update: boolean; complete: boolean; comment: boolean; delete: boolean };
+    can: { update: boolean; complete: boolean; comment: boolean; delete: boolean; bill: boolean };
 }
 
 const props = defineProps<{
@@ -97,11 +100,20 @@ function closePane() {
 // --- add / edit ---
 const formOpen = ref(false);
 const formMode = ref<'create' | 'edit'>('create');
-const form = useForm<{ title: string; details: string; urgent: boolean; due_on: string; assigned_to: number | string; pool_id: number | string }>({
+const form = useForm<{
+    title: string;
+    details: string;
+    urgent: boolean;
+    due_on: string;
+    price: string;
+    assigned_to: number | string;
+    pool_id: number | string;
+}>({
     title: '',
     details: '',
     urgent: false,
     due_on: '',
+    price: '',
     assigned_to: '',
     pool_id: '',
 });
@@ -120,6 +132,7 @@ function openEdit() {
     form.details = f.details ?? '';
     form.urgent = f.urgent;
     form.due_on = f.due_on ?? '';
+    form.price = f.price ?? '';
     form.assigned_to = f.assigned_to ?? '';
     form.pool_id = f.pool_id ?? '';
     form.clearErrors();
@@ -133,8 +146,18 @@ function submitForm() {
     else if (props.selected) form.patch(`/work-orders/${props.selected.id}`, done);
 }
 
-const setDone = (done: boolean) =>
-    props.selected && router.post(`/work-orders/${props.selected.id}/${done ? 'done' : 'reopen'}`, {}, { preserveScroll: true });
+// Marking one done that could go on a customer's balance asks, once, whether to bill it.
+const billPrompt = ref<number | null>(null);
+function setDone(done: boolean) {
+    if (!props.selected) return;
+    const id = props.selected.id;
+    router.post(
+        `/work-orders/${id}/${done ? 'done' : 'reopen'}`,
+        {},
+        { preserveScroll: true, onSuccess: () => (billPrompt.value = done && props.selected?.id === id && props.selected.can.bill ? id : null) },
+    );
+}
+const billLink = (id: number) => `/balances?work_order=${id}`;
 
 function destroy() {
     if (!props.selected || !confirm('Delete this work order?')) return;
@@ -265,6 +288,11 @@ function addNote() {
                                 <Label for="wo_due">Due</Label>
                                 <Input id="wo_due" v-model="form.due_on" type="date" class="w-40" />
                             </div>
+                            <div class="grid gap-1.5">
+                                <Label for="wo_price">Price</Label>
+                                <Input id="wo_price" v-model="form.price" type="number" min="0" step="0.01" placeholder="Optional" class="w-32" />
+                                <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
+                            </div>
                         </div>
                         <label class="flex items-center gap-2"
                             ><input v-model="form.urgent" type="checkbox" class="accent-primary size-4" /> Urgent</label
@@ -284,7 +312,7 @@ function addNote() {
                                     <Chip :tone="order.status === 'done' ? 'good' : 'info'">{{ order.status === 'done' ? 'Done' : 'Open' }}</Chip>
                                 </span>
                             </template>
-                            <template v-if="order.can.complete || order.can.update || order.can.delete" #actions>
+                            <template v-if="order.can.complete || order.can.update || order.can.delete || order.can.bill" #actions>
                                 <template v-if="order.can.complete">
                                     <Button v-if="order.status === 'open'" size="sm" @click="setDone(true)"
                                         ><Check class="mr-1 size-3.5" /> Mark done</Button
@@ -293,6 +321,9 @@ function addNote() {
                                         ><RotateCcw class="mr-1 size-3.5" /> Reopen</Button
                                     >
                                 </template>
+                                <Button v-if="order.can.bill && billPrompt !== order.id" as-child size="sm" variant="outline">
+                                    <Link :href="billLink(order.id)"><Receipt class="mr-1 size-3.5" /> Bill</Link>
+                                </Button>
                                 <Button v-if="order.can.update" size="sm" variant="outline" @click="openEdit"
                                     ><Pencil class="mr-1 size-3.5" /> Edit</Button
                                 >
@@ -307,6 +338,18 @@ function addNote() {
                             </template>
                         </PaneHeader>
 
+                        <!-- just marked done: offer to put it on the customer's balance -->
+                        <div v-if="billPrompt === order.id && order.can.bill" class="rounded-xl border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
+                            <p class="font-medium">Bill {{ order.customer }} for this?</p>
+                            <p class="text-muted-foreground mt-0.5">
+                                It goes on their balance and their next invoice{{ order.price ? `, at ${formatMoney(order.price)}` : '' }}.
+                            </p>
+                            <div class="mt-3 flex gap-2">
+                                <Button as-child size="sm"><Link :href="billLink(order.id)">Add a charge</Link></Button>
+                                <Button size="sm" variant="outline" @click="billPrompt = null">No thanks</Button>
+                            </div>
+                        </div>
+
                         <PaneSection v-if="order.details" title="Details">
                             <p class="text-sm whitespace-pre-line">{{ order.details }}</p>
                         </PaneSection>
@@ -316,6 +359,11 @@ function addNote() {
                                 :facts="[
                                     { label: 'Assigned to', value: order.assignee ?? 'Nobody yet' },
                                     { label: 'Due', value: order.due_on ? `${formatDay(order.due_on)}${order.overdue ? ', overdue' : ''}` : null },
+                                    { label: 'Price', value: order.price ? formatMoney(order.price) : null },
+                                    {
+                                        label: 'Billed',
+                                        value: order.billed ? `${formatMoney(order.billed.amount)}, ${formatDay(order.billed.on)}` : null,
+                                    },
                                     { label: 'Raised', value: [order.raised_by, formatDay(order.raised_on)].filter(Boolean).join(', ') || null },
                                     {
                                         label: 'Done',

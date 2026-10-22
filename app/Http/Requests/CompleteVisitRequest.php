@@ -41,6 +41,7 @@ class CompleteVisitRequest extends FormRequest
             'work_order_title' => ['nullable', 'string', 'max:160'],
             'work_order_details' => ['nullable', 'string', 'max:5000'],
             'work_order_urgent' => ['boolean'],
+            'work_order_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             // The single box older copies of the app still send (split by CreateWorkOrder::fromText).
             'work_order' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:6'],

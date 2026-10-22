@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property string $status open | done
  * @property bool $urgent
  * @property Carbon|null $due_on
+ * @property string|null $price what to charge for it (decimal string)
  * @property int|null $assigned_to
  * @property int|null $pool_id
  * @property int|null $service_visit_id
@@ -42,7 +43,7 @@ class WorkOrder extends Model
     use BelongsToTenant, HasFactory;
 
     /** @var list<string> */
-    protected $fillable = ['title', 'details', 'urgent', 'due_on', 'assigned_to', 'pool_id', 'service_visit_id'];
+    protected $fillable = ['title', 'details', 'urgent', 'due_on', 'price', 'assigned_to', 'pool_id', 'service_visit_id'];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -50,6 +51,7 @@ class WorkOrder extends Model
         return [
             'urgent' => 'boolean',
             'due_on' => 'date',
+            'price' => 'decimal:2',
             'completed_at' => 'datetime',
         ];
     }
@@ -121,6 +123,26 @@ class WorkOrder extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(WorkOrderComment::class)->oldest('id');
+    }
+
+    /** @return HasMany<Charge, $this> */
+    public function charges(): HasMany
+    {
+        return $this->hasMany(Charge::class);
+    }
+
+    /** The charge that billed it, unless that was cancelled. */
+    public function billedCharge(): ?Charge
+    {
+        return $this->charges()->active()->latest('id')->first();
+    }
+
+    /** Whose balance it would go on: its pool's customer (not archived), while it's not billed yet. */
+    public function customerToBill(): ?Customer
+    {
+        $customer = $this->pool?->customer;
+
+        return $customer !== null && $this->billedCharge() === null ? $customer : null;
     }
 
     /** Still open and past its due date, on the company's own calendar. */

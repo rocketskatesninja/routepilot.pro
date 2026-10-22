@@ -52,6 +52,7 @@ const officeNotes = ref(''); // for the company only; the homeowner never sees i
 const workOrderTitle = ref('');
 const workOrderDetails = ref('');
 const workOrderUrgent = ref(false);
+const workOrderPrice = ref(''); // what to charge for it, if the tech knows
 const raisesWorkOrder = computed(() => workOrderTitle.value.trim() !== '' || workOrderDetails.value.trim() !== '');
 const photos = ref<File[]>([]);
 const analysis = ref<FullAnalysis | null>(null);
@@ -78,6 +79,7 @@ onMounted(async () => {
             // A draft from the single box goes into Details; the server titles it from its first line.
             workOrderDetails.value = draft.work_order_details ?? draft.work_order ?? '';
             workOrderUrgent.value = draft.work_order_urgent ?? false;
+            workOrderPrice.value = draft.work_order_price ?? '';
             if (draft.analyzed) analyze();
         }
         if (saved.length) photos.value = saved;
@@ -102,13 +104,25 @@ function persist() {
         work_order_title: workOrderTitle.value,
         work_order_details: workOrderDetails.value,
         work_order_urgent: workOrderUrgent.value,
+        work_order_price: workOrderPrice.value,
         analyzed: analysis.value !== null,
         updated_at: Date.now(),
     }).catch((e) => console.error('Could not save the visit on the phone:', e));
 }
 
 watch(
-    [reading, tasks, treatments, notes, officeNotes, workOrderTitle, workOrderDetails, workOrderUrgent, () => analysis.value !== null],
+    [
+        reading,
+        tasks,
+        treatments,
+        notes,
+        officeNotes,
+        workOrderTitle,
+        workOrderDetails,
+        workOrderUrgent,
+        workOrderPrice,
+        () => analysis.value !== null,
+    ],
     () => {
         if (!restored || finished) return;
         clearTimeout(saveTimer);
@@ -205,6 +219,7 @@ async function complete() {
         work_order_title: workOrderTitle.value.trim() || null,
         work_order_details: workOrderDetails.value.trim() || null,
         work_order_urgent: raisesWorkOrder.value && workOrderUrgent.value,
+        work_order_price: raisesWorkOrder.value && workOrderPrice.value !== '' ? Number(workOrderPrice.value) : null,
     };
     if (show.chemistry) {
         for (const f of readingFields) {
@@ -445,10 +460,25 @@ async function complete() {
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground mt-2 w-full rounded-xl border px-3 py-2.5 text-base"
                     placeholder="Details (optional): part size, where it is, anything that helps."
                 ></textarea>
-                <label v-if="raisesWorkOrder" class="mt-2 flex cursor-pointer items-center gap-3 py-1">
-                    <input v-model="workOrderUrgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
-                    <span class="text-[15px]">Urgent</span>
-                </label>
+                <div v-if="raisesWorkOrder" class="mt-2 flex flex-wrap items-center justify-between gap-3">
+                    <label class="flex cursor-pointer items-center gap-3 py-1">
+                        <input v-model="workOrderUrgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
+                        <span class="text-[15px]">Urgent</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-[15px]">
+                        Price $
+                        <input
+                            v-model="workOrderPrice"
+                            type="number"
+                            inputmode="decimal"
+                            min="0"
+                            step="0.01"
+                            placeholder="Optional"
+                            aria-label="Work order price"
+                            class="border-input bg-background text-foreground placeholder:text-muted-foreground w-28 rounded-xl border px-3 py-2 text-base"
+                        />
+                    </label>
+                </div>
             </PaneSection>
         </div>
 

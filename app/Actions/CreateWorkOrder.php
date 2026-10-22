@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  */
 class CreateWorkOrder
 {
-    /** @param array{title: string, details?: string|null, urgent?: bool, due_on?: string|null, assigned_to?: int|null, pool_id?: int|null, service_visit_id?: int|null} $data */
+    /** @param array{title: string, details?: string|null, urgent?: bool, due_on?: string|null, price?: float|string|null, assigned_to?: int|null, pool_id?: int|null, service_visit_id?: int|null} $data */
     public function handle(array $data, User $by): WorkOrder
     {
         $order = new WorkOrder($data);

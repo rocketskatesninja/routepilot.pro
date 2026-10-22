@@ -32,6 +32,7 @@ class WorkOrderRequest extends FormRequest
             'details' => ['nullable', 'string', 'max:5000'],
             'urgent' => ['boolean'],
             'due_on' => ['nullable', 'date'],
+            'price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'assigned_to' => ['nullable', 'integer', Rule::exists('users', 'id')->where('tenant_id', $tenantId)->whereIn('role', ['agent', 'tenant_admin'])->where('is_active', true)->whereNull('deleted_at')],
             'pool_id' => ['nullable', 'integer', Rule::exists('pools', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at')],
         ];

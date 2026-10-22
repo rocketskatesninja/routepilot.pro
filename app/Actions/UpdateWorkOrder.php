@@ -13,7 +13,7 @@ use App\Models\WorkOrder;
  */
 class UpdateWorkOrder
 {
-    /** @param array{title: string, details?: string|null, urgent?: bool, due_on?: string|null, assigned_to?: int|null, pool_id?: int|null} $data */
+    /** @param array{title: string, details?: string|null, urgent?: bool, due_on?: string|null, price?: float|string|null, assigned_to?: int|null, pool_id?: int|null} $data */
     public function handle(WorkOrder $order, array $data, User $by): void
     {
         $order->fill($data);

@@ -124,6 +124,7 @@ class CompleteVisit
                 $this->workOrders->handle([
                     ...$workOrder,
                     'urgent' => (bool) ($data['work_order_urgent'] ?? false),
+                    'price' => is_numeric($data['work_order_price'] ?? null) ? (float) $data['work_order_price'] : null,
                     'pool_id' => $visit->getAttribute('pool_id'),
                     'service_visit_id' => $visit->id,
                 ], $agent);

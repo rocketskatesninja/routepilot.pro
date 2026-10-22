@@ -151,6 +151,7 @@ class WorkOrderController extends Controller
             'creator:id,first_name,last_name', 'completer:id,first_name,last_name', 'visit:id,completed_at',
             'comments.author:id,first_name,last_name',
         ]);
+        $billed = $order->billedCharge();
 
         return [
             'id' => $order->id,
@@ -160,6 +161,8 @@ class WorkOrderController extends Controller
             'urgent' => $order->urgent,
             'overdue' => $order->isOverdue(),
             'due_on' => $order->due_on?->toDateString(),
+            'price' => $order->price,
+            'billed' => $billed === null ? null : ['amount' => $billed->total(), 'on' => $billed->occurred_on->toDateString()],
             'pool' => $order->pool?->name,
             'pool_id' => $order->pool?->getKey(),
             'customer' => $order->pool?->customer?->displayName(),
@@ -183,6 +186,7 @@ class WorkOrderController extends Controller
                 'details' => $order->details,
                 'urgent' => $order->urgent,
                 'due_on' => $order->due_on?->toDateString(),
+                'price' => $order->price,
                 'assigned_to' => $order->assigned_to,
                 'pool_id' => $order->pool_id,
             ],
@@ -191,6 +195,8 @@ class WorkOrderController extends Controller
                 'complete' => $user->can('complete', $order),
                 'comment' => $user->can('comment', $order),
                 'delete' => $user->can('delete', $order),
+                // Finished, on a customer's pool and not billed yet: offer to put it on their balance.
+                'bill' => $order->status === 'done' && $billed === null && $user->can('bill', $order) && $order->pool?->customer !== null,
             ],
         ];
     }

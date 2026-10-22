@@ -17,6 +17,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Tenant;
+use App\Models\WorkOrder;
 use App\Services\BillingService;
 use App\Support\OptionLists;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -24,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -68,7 +70,35 @@ class BalanceController extends Controller
             'invoiceStatus' => $invoiceStatus,
             'canManage' => $this->canManage($request->user()),
             'customers' => OptionLists::customers(),
+            'chargePrefill' => $this->chargePrefill($request),
         ]);
+    }
+
+    /**
+     * The add-charge form filled in from a work order (?work_order=id, from its "Bill"
+     * prompt): its customer, "title — pool" and its price. Null when there's nothing to bill.
+     *
+     * @return array{work_order_id: int, work_order: string, customer_id: int, description: string, amount: string|null}|null
+     */
+    private function chargePrefill(Request $request): ?array
+    {
+        $id = $request->integer('work_order');
+        if ($id <= 0 || ! $this->canManage($request->user())) {
+            return null;
+        }
+        $order = WorkOrder::query()->find($id);
+        $customer = $order?->customerToBill();
+        if ($order === null || $customer === null) {
+            return null;
+        }
+
+        return [
+            'work_order_id' => $order->id,
+            'work_order' => $order->title,
+            'customer_id' => (int) $customer->id,
+            'description' => Str::limit($order->title.' — '.$order->pool?->name, 255),
+            'amount' => $order->price,
+        ];
     }
 
     /**
@@ -256,7 +286,13 @@ class BalanceController extends Controller
         abort_if($user === null, 403);
 
         $charge = $action->handle($request->validated(), (int) $user->id);
-        AuditLog::record($user, 'charge.created', $charge, ['amount' => (float) $charge->amount, 'customer_id' => $charge->customer_id]);
+        AuditLog::record($user, 'charge.created', $charge, ['amount' => (float) $charge->amount, 'customer_id' => $charge->customer_id, 'work_order_id' => $charge->work_order_id]);
+
+        // Billed from a work order: back to it, where it now shows as billed.
+        if ($charge->work_order_id !== null) {
+            return redirect()->route('work-orders.index', ['status' => $charge->workOrder?->status === 'done' ? 'done' : null, 'selected' => $charge->work_order_id])
+                ->with('success', 'Charge added to '.$charge->customer?->displayName().'’s balance.');
+        }
 
         return back()->with('success', 'Charge added.');
     }

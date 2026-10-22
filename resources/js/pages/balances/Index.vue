@@ -110,6 +110,8 @@ const props = defineProps<{
     canManage: boolean;
     customers: { id: number; name: string }[];
     sort: { key: string; dir: string };
+    // Arriving from a work order's "Bill": the add-charge form, filled in from it.
+    chargePrefill: { work_order_id: number; work_order: string; customer_id: number; description: string; amount: string | null } | null;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Balances', href: '/balances' }];
@@ -213,12 +215,19 @@ function voidInvoice(id: number) {
 
 // --- add manual charge ---
 const chargeOpen = ref(false);
-const chargeForm = useForm<{ customer_id: number | string; description: string; amount: string; taxable: boolean }>({
+const chargeForm = useForm<{ customer_id: number | string; description: string; amount: string; taxable: boolean; work_order_id: number | null }>({
     customer_id: '',
     description: '',
     amount: '',
     taxable: true,
+    work_order_id: null,
 });
+// Filled in after creation, so "Charge" (which resets the form) still starts blank.
+if (props.chargePrefill) {
+    const p = props.chargePrefill;
+    Object.assign(chargeForm, { customer_id: p.customer_id, description: p.description, amount: p.amount ?? '', work_order_id: p.work_order_id });
+    chargeOpen.value = true;
+}
 function openCharge() {
     chargeForm.reset();
     chargeForm.clearErrors();
@@ -380,6 +389,10 @@ function closePane() {
                     <!-- add-charge form: hosted in the docked pane, not an overlay -->
                     <form v-if="chargeOpen" class="space-y-4 text-sm" @submit.prevent="submitCharge">
                         <PaneHeader title="Add a charge" summary="A one-off charge, like a part or a repair. It goes on the customer’s balance." />
+                        <p v-if="chargeForm.work_order_id && props.chargePrefill" class="text-muted-foreground">
+                            For the work order “{{ props.chargePrefill.work_order }}”.
+                        </p>
+                        <p v-if="chargeForm.errors.work_order_id" class="text-xs text-red-600">{{ chargeForm.errors.work_order_id }}</p>
                         <div class="grid gap-1.5">
                             <Label for="ch_cust">Customer</Label>
                             <Combobox id="ch_cust" v-model="chargeForm.customer_id" :options="props.customers" placeholder="Search customers…" />

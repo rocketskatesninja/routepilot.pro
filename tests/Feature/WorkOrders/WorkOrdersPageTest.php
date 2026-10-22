@@ -83,7 +83,7 @@ test('a tech can see, note and close their own work order, but not edit, add or 
     $this->actingAs($this->tech)->get("/work-orders?selected={$theirs->id}")
         ->assertInertia(fn (Assert $page) => $page
             ->where('selected.title', 'Replace the skimmer lid')
-            ->where('selected.can', ['update' => false, 'complete' => true, 'comment' => true, 'delete' => false])
+            ->where('selected.can', ['update' => false, 'complete' => true, 'comment' => true, 'delete' => false, 'bill' => false])
             ->where('canCreate', false));
     $this->actingAs($this->tech)->post("/work-orders/{$theirs->id}/comments", ['body' => 'Ordered, arrives Friday'])->assertRedirect();
     $this->actingAs($this->tech)->post("/work-orders/{$theirs->id}/done")->assertRedirect();

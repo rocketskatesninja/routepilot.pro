@@ -74,6 +74,7 @@ export interface VisitDraft {
     work_order_title?: string;
     work_order_details?: string;
     work_order_urgent?: boolean;
+    work_order_price?: string;
     analyzed: boolean;
     updated_at: number;
 }
