@@ -32,6 +32,7 @@ import {
     ShieldCheck,
     Users,
     Waves,
+    Wrench,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLogo from './AppLogo.vue';
@@ -65,6 +66,7 @@ const navByRole: Record<string, NavSection[]> = {
             items: [
                 { title: 'Schedule', href: '/schedule', icon: CalendarDays },
                 { title: 'Reports', href: '/reports', icon: FileText },
+                { title: 'Work orders', href: '/work-orders', icon: Wrench },
                 { title: 'Inventory', href: '/inventory', icon: FlaskConical },
             ],
         },
@@ -95,6 +97,7 @@ const navByRole: Record<string, NavSection[]> = {
                 { title: 'Today', href: '/dashboard', icon: CalendarDays },
                 { title: 'My Route', href: '/schedule', icon: Map },
                 { title: 'Reports', href: '/reports', icon: FileText },
+                { title: 'Work orders', href: '/work-orders', icon: Wrench },
                 { title: 'Assistant', href: '/assistant', icon: Bot },
             ],
         },

@@ -34,8 +34,7 @@ class WorkOrderRaised extends Notification
         return [
             'title' => ($order->urgent ? 'Urgent work order: ' : 'Work order: ').$order->title,
             'body' => trim(($where !== null ? $where.' — ' : '').'raised by '.$this->raisedBy->displayName()),
-            // The visit's report shows it until the work orders list exists.
-            'url' => '/reports?selected='.$order->service_visit_id,
+            'url' => '/work-orders?selected='.$order->id,
         ];
     }
 }

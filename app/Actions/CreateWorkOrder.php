@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Notifications\WorkOrderAssigned;
 use App\Notifications\WorkOrderRaised;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
@@ -13,8 +14,9 @@ use Illuminate\Support\Str;
 
 /**
  * Add a work order to the company's task list. One raised from a visit tells
- * the office (admins and Agent+) once whatever wraps this has saved, so a visit
- * that fails to save never sends an alert for a task that doesn't exist.
+ * the office (admins and Agent+), and whoever it's assigned to hears it's
+ * theirs, once whatever wraps this has saved, so a visit that fails to save
+ * never sends an alert for a task that doesn't exist.
  */
 class CreateWorkOrder
 {
@@ -27,6 +29,7 @@ class CreateWorkOrder
         if ($order->service_visit_id !== null) {
             DB::afterCommit(fn () => $this->tellTheOffice($order, $by));
         }
+        DB::afterCommit(fn () => self::tellTheAssignee($order, $by));
 
         return $order;
     }
@@ -46,6 +49,16 @@ class CreateWorkOrder
         $details = $title === $first ? trim(Str::after($text, $first)) : $text;
 
         return ['title' => $title, 'details' => $details === '' ? null : $details];
+    }
+
+    /** Tell the person it's assigned to, unless they assigned it to themselves. */
+    public static function tellTheAssignee(WorkOrder $order, User $by): void
+    {
+        if ($order->assigned_to === null || $order->assigned_to === $by->id) {
+            return;
+        }
+        $assignee = User::query()->where('tenant_id', $order->tenant_id)->where('is_active', true)->find($order->assigned_to);
+        $assignee?->notify(new WorkOrderAssigned($order, $by));
     }
 
     private function tellTheOffice(WorkOrder $order, User $by): void

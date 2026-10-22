@@ -77,7 +77,8 @@ test('the office hears about it: admins and Agent+, not the tech who raised it, 
 
         return $channels === ['database', 'broadcast']
             && $alert['title'] === 'Urgent work order: Pump is making a grinding noise'
-            && $alert['body'] === 'Anderson Pool — raised by '.$this->agent->displayName();
+            && $alert['body'] === 'Anderson Pool — raised by '.$this->agent->displayName()
+            && $alert['url'] === '/work-orders?selected='.$n->workOrder->id;
     });
     Notification::assertNotSentTo([$this->agent, $otherTech, $inactive, $elsewhere], WorkOrderRaised::class);
 });

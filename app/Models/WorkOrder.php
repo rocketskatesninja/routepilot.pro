@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -27,11 +28,13 @@ use Illuminate\Support\Carbon;
  * @property int|null $pool_id
  * @property int|null $service_visit_id
  * @property int|null $created_by
+ * @property int|null $completed_by
  * @property Carbon|null $completed_at
  * @property-read Pool|null $pool
  * @property-read ServiceVisit|null $visit
  * @property-read User|null $assignee
  * @property-read User|null $creator
+ * @property-read User|null $completer
  */
 class WorkOrder extends Model
 {
@@ -79,5 +82,27 @@ class WorkOrder extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by')->withTrashed();
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function completer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by')->withTrashed();
+    }
+
+    /**
+     * The notes thread, oldest first.
+     *
+     * @return HasMany<WorkOrderComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(WorkOrderComment::class)->oldest('id');
+    }
+
+    /** Still open and past its due date, on the company's own calendar. */
+    public function isOverdue(): bool
+    {
+        return $this->status === 'open' && $this->due_on !== null && $this->due_on->toDateString() < Tenant::localToday()->toDateString();
     }
 }

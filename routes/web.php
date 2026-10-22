@@ -38,6 +38,7 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\VisitController;
+use App\Http\Controllers\WorkOrderController;
 use App\Http\Middleware\EnsureBillingActive;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -125,12 +126,21 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
         Route::get('people', [PeopleController::class, 'index'])->name('people.index'); // super → platform view
         Route::get('search', [SearchController::class, 'index'])->name('search'); // ⌘K command palette
+
+        // Work orders: admins + Agent+ run the list, a tech works theirs (WorkOrderPolicy).
+        Route::get('work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index');
+        Route::post('work-orders', [WorkOrderController::class, 'store'])->name('work-orders.store');
+        Route::patch('work-orders/{workOrder}', [WorkOrderController::class, 'update'])->name('work-orders.update');
+        Route::post('work-orders/{workOrder}/done', [WorkOrderController::class, 'done'])->name('work-orders.done');
+        Route::post('work-orders/{workOrder}/reopen', [WorkOrderController::class, 'reopen'])->name('work-orders.reopen');
+        Route::post('work-orders/{workOrder}/comments', [WorkOrderController::class, 'comment'])->name('work-orders.comment');
     });
 
     // ---- Back-office writes + admin screens (tenant_admin) ----
     Route::middleware('role:tenant_admin')->group(function () {
         Route::get('people/export', PeopleExportController::class)->name('people.export'); // the list as CSV/PDF
         Route::delete('reports/{visit}', [ReportController::class, 'destroy'])->name('reports.destroy');
+        Route::delete('work-orders/{workOrder}', [WorkOrderController::class, 'destroy'])->name('work-orders.destroy');
         Route::post('schedule/materialize', [ScheduleController::class, 'materialize'])->name('schedule.materialize');
         Route::post('photos/{photo}/showcase', [VisitController::class, 'toggleShowcase'])->name('photos.showcase');
 

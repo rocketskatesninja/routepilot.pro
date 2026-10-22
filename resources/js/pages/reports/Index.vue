@@ -400,7 +400,7 @@ function submitEdit() {
                                 <template #action>
                                     <span class="flex items-center gap-1.5">
                                         <Chip v-if="visit.work_order.urgent" tone="bad">Urgent</Chip>
-                                        <Chip :tone="visit.work_order.status === 'done' ? 'good' : 'warn'">{{
+                                        <Chip :tone="visit.work_order.status === 'done' ? 'good' : 'info'">{{
                                             visit.work_order.status === 'done' ? 'Done' : 'Open'
                                         }}</Chip>
                                     </span>
@@ -409,6 +409,11 @@ function submitEdit() {
                                 <p v-if="visit.work_order.details" class="text-muted-foreground mt-1 text-sm whitespace-pre-line">
                                     {{ visit.work_order.details }}
                                 </p>
+                                <Link
+                                    :href="`/work-orders?selected=${visit.work_order.id}`"
+                                    class="text-primary mt-2 inline-block text-sm underline-offset-4 hover:underline"
+                                    >Open the work order</Link
+                                >
                             </PaneSection>
 
                             <PaneSection v-if="visit.photos.length" title="Photos">

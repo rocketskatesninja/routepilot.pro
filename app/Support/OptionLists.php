@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Customer;
+use App\Models\Pool;
 use App\Models\ServiceType;
 use App\Models\User;
 
@@ -34,6 +35,24 @@ final class OptionLists
         return ServiceType::query()
             ->where('is_active', true)->orderBy('name')->get(['id', 'name', 'frequency'])
             ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'frequency' => $t->frequency])
+            ->all();
+    }
+
+    /**
+     * Pools as "Anderson Pool (Robert Anderson)", for tying something to a pool.
+     *
+     * @return array<int, array{id: int, name: string}>
+     */
+    public static function pools(): array
+    {
+        return Pool::query()
+            ->with('customer:id,first_name,last_name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'customer_id'])
+            ->map(fn (Pool $p): array => [
+                'id' => $p->id,
+                'name' => $p->customer !== null ? "{$p->name} ({$p->customer->displayName()})" : (string) $p->name,
+            ])
             ->all();
     }
 
