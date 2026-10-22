@@ -60,6 +60,29 @@ class WorkOrder extends Model
         $query->where('status', 'open');
     }
 
+    /**
+     * Most pressing first: urgent, then by due date (overdue and soonest first, undated
+     * last), then newest.
+     *
+     * @param  Builder<WorkOrder>  $query
+     */
+    public function scopePressingFirst(Builder $query): void
+    {
+        $query->orderByDesc('urgent')->orderByRaw('due_on is null')->orderBy('due_on')->latest('id');
+    }
+
+    /**
+     * About one customer: on one of their pools, or raised from a visit to one.
+     *
+     * @param  Builder<WorkOrder>  $query
+     */
+    public function scopeAboutCustomer(Builder $query, int $customerId): void
+    {
+        $pools = Pool::withTrashed()->where('customer_id', $customerId)->select('id');
+        $query->where(fn (Builder $q) => $q->whereIn('pool_id', $pools)
+            ->orWhereIn('service_visit_id', ServiceVisit::query()->whereIn('pool_id', $pools)->select('id')));
+    }
+
     /** @return BelongsTo<Pool, $this> */
     public function pool(): BelongsTo
     {

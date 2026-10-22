@@ -14,6 +14,7 @@ import {
     ListChecks,
     Map,
     Waves,
+    Wrench,
     X,
     type LucideIcon,
 } from 'lucide-vue-next';
@@ -37,6 +38,7 @@ const ICONS: Record<string, LucideIcon> = {
     CalendarDays,
     Banknote,
     Building2,
+    Wrench,
 };
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>

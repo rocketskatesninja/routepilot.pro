@@ -23,6 +23,8 @@ use App\Models\Invoice;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\User;
+use App\Models\WorkOrder;
+use App\Models\WorkOrderComment;
 use App\Support\EmailPreferences;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -95,7 +97,7 @@ class CustomerController extends Controller
         return back()->with('success', "Personal details removed. Their billing records stay, as {$customer->fresh()?->displayName()}.");
     }
 
-    /** GDPR/CCPA — download all of a customer's data as JSON (audited). */
+    /** GDPR/CCPA — download all of a customer's data as JSON, office notes included (audited). */
     public function export(Request $request, Customer $customer): JsonResponse
     {
         $this->authorizeAdmin($request);
@@ -105,18 +107,32 @@ class CustomerController extends Controller
         $pools = $customer->pools()->with(['visits' => fn ($q) => $q->where('status', 'completed')->with(['chemicalReading', 'treatments'])])->get();
 
         $data = [
-            'customer' => $customer->only(['id', 'first_name', 'last_name', 'email', 'phone', 'address_line1', 'city', 'state', 'zip', 'created_at']),
+            'customer' => [
+                ...$customer->only(['id', 'first_name', 'last_name', 'email', 'phone', 'address_line1', 'city', 'state', 'zip', 'created_at', 'notes']),
+                'office_notes' => $customer->getAttribute('admin_notes'),
+            ],
             'pools' => $pools->map(fn (Pool $p): array => [
                 'name' => $p->name,
                 'type' => $p->type,
+                'notes' => $p->notes,
                 'visits' => $p->visits->map(fn (ServiceVisit $v): array => [
                     'completed_on' => $v->completed_at?->toDateString(),
+                    'notes' => $v->notes,
+                    'office_notes' => $v->office_notes,
                     'reading' => $v->chemicalReading?->only(['free_chlorine', 'ph', 'alkalinity', 'lsi_score']),
                     'treatments' => $v->treatments->map(fn ($t): array => ['chemical' => $t->getAttribute('chemical_name'), 'amount' => (float) $t->amount, 'unit' => $t->getAttribute('unit')])->all(),
                 ])->all(),
             ])->all(),
             'charges' => Charge::query()->where('customer_id', $customer->id)->get()->map(fn (Charge $c): array => ['kind' => $c->kind, 'description' => $c->description, 'amount' => (float) $c->amount, 'tax' => (float) $c->tax, 'on' => $c->occurred_on->toDateString(), 'voided' => $c->voided_at !== null])->all(),
             'invoices' => Invoice::query()->where('customer_id', $customer->id)->get()->map(fn (Invoice $i): array => ['number' => $i->number, 'total' => (float) $i->total, 'status' => $i->status])->all(),
+            'work_orders' => WorkOrder::query()->aboutCustomer((int) $customer->id)->with('comments')->oldest('id')->get()->map(fn (WorkOrder $w): array => [
+                'title' => $w->title,
+                'details' => $w->details,
+                'status' => $w->status,
+                'raised_on' => $w->created_at?->toDateString(),
+                'done_on' => $w->completed_at?->toDateString(),
+                'notes' => $w->comments->map(fn (WorkOrderComment $c): array => ['on' => $c->created_at?->toDateString(), 'note' => $c->body])->all(),
+            ])->all(),
         ];
 
         return response()->json($data, 200, ['Content-Disposition' => 'attachment; filename="customer-'.$customer->id.'-data.json"']);

@@ -22,6 +22,11 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VisitPhoto;
+use App\Models\WorkOrder;
+use App\Models\WorkOrderComment;
+use App\Notifications\LeadSubmitted;
+use App\Notifications\ServiceRequestSubmitted;
+use App\Notifications\WorkOrderRaised;
 use App\Services\BillingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -123,6 +128,35 @@ test('removing personal details keeps the books and erases what identifies them'
         ->and($login->email)->toEndWith('@deleted.invalid')
         ->and(Hash::check('password', $login->password))->toBeFalse()
         ->and(AuditLog::query()->where('action', 'customer.anonymized')->where('model_id', $c->id)->exists())->toBeTrue();
+});
+
+test('work orders on their pools keep the record but lose what was written, bell alerts included', function () {
+    $order = WorkOrder::factory()->for($this->tenant)->create([
+        'pool_id' => $this->pool->id, 'service_visit_id' => $this->visit->id, 'title' => 'Robert wants a new pump', 'details' => 'Call Robert first',
+    ]);
+    $order->forceFill(['status' => 'done', 'completed_by' => $this->admin->id, 'completed_at' => now()])->save();
+    $order->comments()->create(['body' => 'Robert paid cash']);
+    $elsewhere = WorkOrder::factory()->for($this->tenant)->create(['title' => 'Order chlorine tabs']);
+
+    $alert = fn (string $type, string $url): string => tap((string) Str::uuid(), fn (string $id) => DB::table('notifications')->insert([
+        'id' => $id, 'type' => $type, 'notifiable_type' => User::class, 'notifiable_id' => $this->admin->id,
+        'data' => json_encode(['title' => 'About Robert', 'url' => $url]), 'created_at' => now(), 'updated_at' => now(),
+    ]));
+    $theirs = [
+        $alert(WorkOrderRaised::class, '/work-orders?selected='.$order->id),
+        $alert(ServiceRequestSubmitted::class, '/inbox?selected='.ServiceRequest::query()->value('id')),
+        $alert(LeadSubmitted::class, '/inbox?tab=leads&selected='.Lead::query()->value('id')),
+    ];
+    $kept = $alert(WorkOrderRaised::class, '/work-orders?selected='.$elsewhere->id);
+
+    $this->actingAs($this->admin)->post("/customers/{$this->customer->id}/anonymize")->assertSessionHas('success');
+
+    expect($order->fresh()?->only(['title', 'details', 'status', 'completed_by']))
+        ->toBe(['title' => 'Work order (details removed)', 'details' => null, 'status' => 'done', 'completed_by' => $this->admin->id])
+        ->and(WorkOrderComment::query()->exists())->toBeFalse()
+        ->and($elsewhere->fresh()?->title)->toBe('Order chlorine tabs')
+        ->and(DB::table('notifications')->whereIn('id', $theirs)->exists())->toBeFalse()
+        ->and(DB::table('notifications')->where('id', $kept)->exists())->toBeTrue();
 });
 
 test('the archived panel shows it was done, and offers no restore', function () {

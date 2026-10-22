@@ -47,6 +47,11 @@ export function inboxRequestLink(id: number | string): string {
     return `/inbox?selected=${id}`;
 }
 
+/** Back-office: the Work orders page with this one opened. */
+export function workOrderLink(id: number | string): string {
+    return `/work-orders?selected=${id}`;
+}
+
 /** Back-office: the Requests inbox on the website-leads tab with this lead opened. */
 export function inboxLeadLink(id: number | string): string {
     return `/inbox?tab=leads&selected=${id}`;

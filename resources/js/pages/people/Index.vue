@@ -374,7 +374,7 @@ function restoreCustomer() {
 function anonymizeCustomer() {
     if (!props.selected || props.selected.type !== 'customer') return;
     const ok = confirm(
-        'Remove this customer’s personal details? Their name, contact details, addresses, notes, photos, portal login and AI conversations are erased. ' +
+        'Remove this customer’s personal details? Their name, contact details, addresses, notes and work order text, photos, portal login and AI conversations are erased. ' +
             'Invoices, payments and visit records stay, under “Former customer”. This cannot be undone.',
     );
     if (ok) router.post(`/customers/${props.selected.id}/anonymize`, {}, { preserveScroll: true });

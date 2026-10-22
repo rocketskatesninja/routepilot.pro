@@ -27,6 +27,18 @@ export interface FieldStop {
     // `modules` = which visit sections to show (absent on bundles cached before it existed → all on).
     service: { name: string | null; tasks: string[]; modules?: Record<string, boolean> };
     last_reading: Record<string, number | null> | null;
+    // Open work orders on this pool, read-only (absent on bundles cached before it existed).
+    work_orders?: FieldWorkOrder[];
+}
+
+export interface FieldWorkOrder {
+    id: number;
+    title: string;
+    details: string | null;
+    urgent: boolean;
+    overdue: boolean;
+    due_on: string | null;
+    assignee: string | null; // 'you' when it's theirs
 }
 
 export interface TodayBundle {

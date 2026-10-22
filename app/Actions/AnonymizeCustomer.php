@@ -16,6 +16,12 @@ use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Models\VisitPhoto;
+use App\Models\WorkOrder;
+use App\Models\WorkOrderComment;
+use App\Notifications\LeadSubmitted;
+use App\Notifications\ServiceRequestSubmitted;
+use App\Notifications\WorkOrderAssigned;
+use App\Notifications\WorkOrderRaised;
 use App\Services\PhotoService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -29,11 +35,14 @@ use Illuminate\Support\Str;
  * Removed: name, email, phone, address, notes and security code; every photo
  * (theirs, their pools', their service addresses' and their visits'); pool
  * names and notes (pools become "Pool 1", "Pool 2"…), service addresses, gate
- * codes and access notes; visit notes (both kinds) and GPS points; request messages and
- * replies; invoice notes; saved cards and the Stripe link; the website leads
- * they came from; their address in email-campaign logs; and their portal login
- * with its AI conversations, notifications and sessions. Charge descriptions
- * that named a pool are rewritten to the new pool name. Irreversible.
+ * codes and access notes; visit notes (both kinds) and GPS points; the text and
+ * notes of work orders on their pools (the orders stay, as "Work order (details
+ * removed)"); request messages and replies; invoice notes; saved cards and the
+ * Stripe link; the website leads they came from; their address in email-campaign
+ * logs; the office's bell alerts about their requests, leads and work orders; and
+ * their portal login with its AI conversations, notifications and sessions.
+ * Charge descriptions that named a pool are rewritten to the new pool name.
+ * Irreversible.
  */
 class AnonymizeCustomer
 {
@@ -86,10 +95,23 @@ class AnonymizeCustomer
             $photos->delete();
             ServiceVisit::query()->whereKey($visitIds)->update(['notes' => null, 'office_notes' => null, 'completed_lat' => null, 'completed_lng' => null]);
 
-            ServiceRequest::query()->where('customer_id', $id)->update(['message' => null, 'reply' => null]);
+            // Work orders on their pools or raised from their visits: what was written can name
+            // them, so it goes; the order itself stays as a record of the work.
+            $orderIds = WorkOrder::query()->aboutCustomer($id)->pluck('id');
+            WorkOrderComment::query()->whereIn('work_order_id', $orderIds)->delete();
+            WorkOrder::query()->whereKey($orderIds)->update(['title' => 'Work order (details removed)', 'details' => null]);
+
+            $requests = ServiceRequest::query()->where('customer_id', $id);
+            $leads = Lead::query()->where('customer_id', $id);
+            $this->forgetAlerts((int) $customer->getAttribute('tenant_id'), [
+                ...$requests->pluck('id')->map(fn ($r): string => '/inbox?selected='.$r),
+                ...$leads->pluck('id')->map(fn ($l): string => '/inbox?tab=leads&selected='.$l),
+                ...$orderIds->map(fn ($o): string => '/work-orders?selected='.$o),
+            ]);
+            $requests->update(['message' => null, 'reply' => null]);
             Invoice::query()->where('customer_id', $id)->update(['notes' => null]);
             PaymentMethod::query()->where('customer_id', $id)->delete();
-            Lead::query()->where('customer_id', $id)->delete();
+            $leads->delete();
 
             // Their address in email-campaign delivery logs (this company's campaigns only).
             if (is_string($email) && $email !== '') {
@@ -121,6 +143,26 @@ class AnonymizeCustomer
         }
 
         return true;
+    }
+
+    /**
+     * The office's bell alerts that quote them (a request's message, a lead's name and email, a
+     * work order's title), matched by the link each one opens.
+     *
+     * @param  list<string>  $urls
+     */
+    private function forgetAlerts(int $tenantId, array $urls): void
+    {
+        if ($urls === []) {
+            return;
+        }
+        $alerts = DB::table('notifications')
+            ->whereIn('type', [ServiceRequestSubmitted::class, LeadSubmitted::class, WorkOrderRaised::class, WorkOrderAssigned::class])
+            ->where('notifiable_type', User::class)
+            ->whereIn('notifiable_id', User::withTrashed()->where('tenant_id', $tenantId)->select('id'))
+            ->get(['id', 'data']);
+        $ids = $alerts->filter(fn (object $n): bool => in_array(json_decode((string) $n->data, true)['url'] ?? null, $urls, true))->pluck('id');
+        DB::table('notifications')->whereIn('id', $ids)->delete();
     }
 
     /** Their portal login: AI conversations, notifications and sessions gone, the account itself emptied and closed. */

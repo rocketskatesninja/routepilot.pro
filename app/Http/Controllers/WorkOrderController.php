@@ -45,7 +45,7 @@ class WorkOrderController extends Controller
             ->when(! $runsTheList || $mine, fn ($q) => $q->where('assigned_to', $user->id))
             ->when(
                 $status === 'open',
-                fn ($q) => $q->orderByDesc('urgent')->orderByRaw('due_on is null')->orderBy('due_on')->latest('id'),
+                fn ($q) => $q->pressingFirst(),
                 fn ($q) => $q->latest('completed_at')->latest('id'),
             )
             ->paginate($this->perPage($request, 20))

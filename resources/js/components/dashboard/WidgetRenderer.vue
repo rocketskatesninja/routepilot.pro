@@ -14,6 +14,7 @@ import StatsWidget from './widgets/StatsWidget.vue';
 import TodayStopsWidget from './widgets/TodayStopsWidget.vue';
 import WeatherWidget from './widgets/WeatherWidget.vue';
 import WeekStripWidget from './widgets/WeekStripWidget.vue';
+import WorkOrdersWidget from './widgets/WorkOrdersWidget.vue';
 
 const props = defineProps<{ widgetKey: string; data: unknown }>();
 
@@ -29,6 +30,7 @@ const registry: Record<string, Component> = {
     weather: WeatherWidget,
     billing_summary: BillingSummaryWidget,
     notifications: NotificationsWidget,
+    work_orders: WorkOrdersWidget,
     // agent
     agent_stats: StatsWidget,
     agent_route: MyRouteWidget,

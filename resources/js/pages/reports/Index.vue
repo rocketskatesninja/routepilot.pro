@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { targetsFor } from '@/lib/chemistry';
-import { agentLink, customerLink } from '@/lib/links';
+import { agentLink, customerLink, workOrderLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
@@ -410,7 +410,7 @@ function submitEdit() {
                                     {{ visit.work_order.details }}
                                 </p>
                                 <Link
-                                    :href="`/work-orders?selected=${visit.work_order.id}`"
+                                    :href="workOrderLink(visit.work_order.id)"
                                     class="text-primary mt-2 inline-block text-sm underline-offset-4 hover:underline"
                                     >Open the work order</Link
                                 >

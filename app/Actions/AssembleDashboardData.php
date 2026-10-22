@@ -12,6 +12,8 @@ use App\Models\ServiceRequest;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WorkOrder;
+use App\Policies\WorkOrderPolicy;
 use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Services\WeatherService;
@@ -52,6 +54,7 @@ class AssembleDashboardData
             'weather' => fn () => $this->weather($user),
             'billing_summary' => fn () => $this->billing(),
             'notifications' => fn () => $this->notifications($user),
+            'work_orders' => fn () => $this->workOrders($user),
             // agent
             'agent_stats' => fn () => $this->agentStats($user),
             'agent_route' => fn () => $this->agentRoute($user),
@@ -509,6 +512,35 @@ class AssembleDashboardData
                 'preferred_date' => $r->preferred_date?->toDateString(),
                 'on' => Tenant::localDate($r->created_at),
             ])->all();
+    }
+
+    /**
+     * The five most pressing open work orders: the whole list for admins and Agent+,
+     * just their own for a tech (as on the Work orders page).
+     *
+     * @return array{orders: list<array<string, mixed>>, open: int, mine: bool}
+     */
+    private function workOrders(User $user): array
+    {
+        $mine = ! WorkOrderPolicy::runsTheList($user);
+        $open = WorkOrder::query()->open()->when($mine, fn ($q) => $q->where('assigned_to', $user->id));
+
+        return [
+            'orders' => (clone $open)->pressingFirst()->limit(5)
+                ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'assignee:id,first_name,last_name'])
+                ->get()->map(fn (WorkOrder $o): array => [
+                    'id' => $o->id,
+                    'title' => $o->title,
+                    'urgent' => $o->urgent,
+                    'overdue' => $o->isOverdue(),
+                    'due_on' => $o->due_on?->toDateString(),
+                    'pool' => $o->pool?->name,
+                    'customer' => $o->pool?->customer?->displayName(),
+                    'assignee' => $o->assignee?->displayName(),
+                ])->values()->all(),
+            'open' => $open->count(),
+            'mine' => $mine,
+        ];
     }
 
     /**

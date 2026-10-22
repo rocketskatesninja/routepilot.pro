@@ -18,8 +18,10 @@ use App\Models\RouteStop;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WorkOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * Field PWA JSON API (session-authenticated, same-origin). One bundle endpoint
@@ -57,11 +59,17 @@ class FieldController extends Controller
 
         $stops = $route !== null ? $route->stops : collect();
 
+        // Open work orders on today's pools, shown read-only on each visit (so they work offline).
+        $workOrders = WorkOrder::query()->open()
+            ->whereIn('pool_id', $stops->pluck('pool_id')->filter()->unique()->values())
+            ->pressingFirst()->with('assignee:id,first_name,last_name')->get()
+            ->groupBy('pool_id');
+
         return response()->json([
             'date' => $date->toDateString(),
             'generated_at' => now()->toIso8601String(),
             'agent' => ['id' => $user->id, 'name' => $user->displayName()],
-            'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop))->values()->all(),
+            'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop, $workOrders->get($stop->pool_id, collect()), $user))->values()->all(),
             'inventory' => ChemicalInventory::query()
                 ->orderBy('chemical_name')
                 ->get(['id', 'chemical_name', 'unit', 'current_stock'])
@@ -124,8 +132,11 @@ class FieldController extends Controller
         return response()->json(['tracking' => true]);
     }
 
-    /** @return array<string, mixed> */
-    private function stop(RouteStop $stop): array
+    /**
+     * @param  Collection<int, WorkOrder>  $workOrders  the pool's open ones
+     * @return array<string, mixed>
+     */
+    private function stop(RouteStop $stop, Collection $workOrders, User $user): array
     {
         $pool = $stop->pool;
         // The stop's own plan decides what this visit is — a pool can carry two plans
@@ -172,6 +183,15 @@ class FieldController extends Controller
                 'alkalinity' => $last->alkalinity,
                 'lsi_score' => $last->lsi_score,
             ] : null,
+            'work_orders' => $workOrders->map(fn (WorkOrder $o): array => [
+                'id' => $o->id,
+                'title' => $o->title,
+                'details' => $o->details,
+                'urgent' => $o->urgent,
+                'overdue' => $o->isOverdue(),
+                'due_on' => $o->due_on?->toDateString(),
+                'assignee' => $o->assigned_to === $user->id ? 'you' : $o->assignee?->displayName(),
+            ])->values()->all(),
         ];
     }
 

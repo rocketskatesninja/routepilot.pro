@@ -8,10 +8,11 @@ import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
 import { shrinkPhoto } from '@/lib/field/photo';
-import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop } from '@/lib/field/store';
+import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop, type FieldWorkOrder } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
+import { formatDay } from '@/lib/utils';
 import { ChevronLeft, Lock, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
@@ -19,6 +20,11 @@ const props = defineProps<{ stop: FieldStop; online: boolean }>();
 const emit = defineEmits<{ (e: 'done', stopId: number): void; (e: 'close'): void }>();
 
 const pool = computed(() => props.stop.pool);
+
+const orderLine = (o: FieldWorkOrder): string =>
+    [o.assignee === 'you' ? 'Yours' : o.assignee ? `Assigned to ${o.assignee}` : 'Not assigned yet', o.due_on ? `due ${formatDay(o.due_on)}` : null]
+        .filter(Boolean)
+        .join(' · ');
 
 // Which sections this visit shows — the service type's checkboxes on the Services page.
 const has = (m: string): boolean => props.stop.service.modules?.[m] ?? true;
@@ -250,6 +256,21 @@ async function complete() {
                 />
                 <p v-if="pool?.access_notes" class="text-muted-foreground text-sm">{{ pool.access_notes }}</p>
             </section>
+
+            <!-- what's already waiting on this pool (read-only; from the day bundle, so offline too) -->
+            <PaneSection v-if="stop.work_orders?.length" title="Open work orders">
+                <ul class="space-y-2">
+                    <li v-for="o in stop.work_orders" :key="o.id" class="border-border rounded-2xl border px-4 py-3">
+                        <p class="flex flex-wrap items-center gap-2">
+                            <span class="text-[15px] font-medium">{{ o.title }}</span>
+                            <Chip v-if="o.urgent" tone="bad">Urgent</Chip>
+                            <Chip v-if="o.overdue" tone="warn">Overdue</Chip>
+                        </p>
+                        <p v-if="o.details" class="text-muted-foreground mt-1 text-sm whitespace-pre-line">{{ o.details }}</p>
+                        <p class="text-muted-foreground mt-1 text-xs">{{ orderLine(o) }}</p>
+                    </li>
+                </ul>
+            </PaneSection>
 
             <!-- checklist: the physical work comes first -->
             <PaneSection v-if="show.tasks && tasks.length" title="Checklist">
