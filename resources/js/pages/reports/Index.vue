@@ -100,6 +100,16 @@ const readingLabels: Record<keyof Reading, string> = {
 // --- the side panel ---
 const visit = computed(() => props.selected);
 const waterChecks = computed(() => (visit.value?.reading ? checkWater(visit.value.reading, visit.value.targets) : []));
+// The readings beside the checks. A 0 is a reading; only a box left blank (null) is left out.
+const waterFacts = computed(() => {
+    const r = visit.value?.reading;
+    if (!r) return [];
+    return [
+        { label: 'Water temperature', value: r.water_temperature !== null ? `${r.water_temperature}°F` : null },
+        { label: 'Total chlorine', value: r.total_chlorine !== null ? `${r.total_chlorine} ppm` : null },
+        { label: 'Saturation (LSI)', value: r.lsi_score },
+    ].filter((f) => f.value !== null);
+});
 const firstWord = (name: string | null) => name?.split(' ')[0] ?? null;
 /** "Weekly Pool Service on Thu, Oct 15." */
 const visitSummary = (v: VisitDetail) => `${v.service ?? 'Service visit'}${v.completed_on ? ` on ${formatDay(v.completed_on)}` : ''}.`;
@@ -352,25 +362,15 @@ function submitEdit() {
                                 </ul>
                             </PaneSection>
 
-                            <PaneSection v-if="waterChecks.length" title="Water test">
-                                <p class="text-muted-foreground mb-3 text-sm">{{ waterSummary(waterChecks, false) }}</p>
-                                <div class="border-border rounded-2xl border px-4">
-                                    <WaterChecks :checks="waterChecks" :explain="false" />
-                                </div>
-                                <PaneFacts
-                                    class="mt-3"
-                                    :facts="[
-                                        {
-                                            label: 'Water temperature',
-                                            value: visit.reading?.water_temperature ? `${visit.reading.water_temperature}°F` : null,
-                                        },
-                                        {
-                                            label: 'Total chlorine',
-                                            value: visit.reading?.total_chlorine ? `${visit.reading.total_chlorine} ppm` : null,
-                                        },
-                                        { label: 'Saturation (LSI)', value: visit.reading?.lsi_score },
-                                    ]"
-                                />
+                            <!-- shown when anything was measured, even just the temperature -->
+                            <PaneSection v-if="waterChecks.length || waterFacts.length" title="Water test">
+                                <template v-if="waterChecks.length">
+                                    <p class="text-muted-foreground mb-3 text-sm">{{ waterSummary(waterChecks, false) }}</p>
+                                    <div class="border-border rounded-2xl border px-4">
+                                        <WaterChecks :checks="waterChecks" :explain="false" />
+                                    </div>
+                                </template>
+                                <PaneFacts v-if="waterFacts.length" :class="{ 'mt-3': waterChecks.length }" :facts="waterFacts" />
                             </PaneSection>
 
                             <PaneSection v-if="visit.treatments.length" title="Chemicals added">
