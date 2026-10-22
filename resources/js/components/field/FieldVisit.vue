@@ -291,6 +291,7 @@ async function complete() {
 
             <!-- the water test: what they read, checked against this pool's targets as they type -->
             <PaneSection v-if="show.chemistry" title="Water test">
+                <p class="text-muted-foreground mb-3 text-sm">Leave a box blank to keep that reading off the report.</p>
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <label v-for="f in readingFields" :key="f.key" class="block">
                         <span class="text-muted-foreground mb-1 block text-sm font-medium"

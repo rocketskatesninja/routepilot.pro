@@ -55,8 +55,8 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
         </div>
 
         <!-- Field app, search + notifications: the top row's right on a phone, after
-             the page actions on desktop. -->
-        <div class="flex items-center gap-1 md:order-last">
+             the page actions on desktop (pushed right themselves when a page has none). -->
+        <div class="flex items-center gap-1 md:order-last" :class="{ 'md:ml-auto': !$slots.actions }">
             <Link
                 v-if="canField"
                 href="/field"
