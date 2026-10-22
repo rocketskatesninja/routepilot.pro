@@ -76,26 +76,22 @@ class BalanceController extends Controller
 
     /**
      * The add-charge form filled in from a work order (?work_order=id, from its "Bill"
-     * prompt): its customer, "title — pool" and its price. Null when there's nothing to bill.
+     * prompt): its customer, "title — pool" and its price. Null unless it can be billed.
      *
      * @return array{work_order_id: int, work_order: string, customer_id: int, description: string, amount: string|null}|null
      */
     private function chargePrefill(Request $request): ?array
     {
         $id = $request->integer('work_order');
-        if ($id <= 0 || ! $this->canManage($request->user())) {
-            return null;
-        }
-        $order = WorkOrder::query()->find($id);
-        $customer = $order?->customerToBill();
-        if ($order === null || $customer === null) {
+        $order = $id > 0 ? WorkOrder::query()->find($id) : null;
+        if ($order === null || $request->user()?->can('bill', $order) !== true) {
             return null;
         }
 
         return [
             'work_order_id' => $order->id,
             'work_order' => $order->title,
-            'customer_id' => (int) $customer->id,
+            'customer_id' => (int) $order->pool?->customer_id,
             'description' => Str::limit($order->title.' — '.$order->pool?->name, 255),
             'amount' => $order->price,
         ];
@@ -290,7 +286,7 @@ class BalanceController extends Controller
 
         // Billed from a work order: back to it, where it now shows as billed.
         if ($charge->work_order_id !== null) {
-            return redirect()->route('work-orders.index', ['status' => $charge->workOrder?->status === 'done' ? 'done' : null, 'selected' => $charge->work_order_id])
+            return redirect()->route('work-orders.index', ['status' => 'done', 'selected' => $charge->work_order_id])
                 ->with('success', 'Charge added to '.$charge->customer?->displayName().'’s balance.');
         }
 

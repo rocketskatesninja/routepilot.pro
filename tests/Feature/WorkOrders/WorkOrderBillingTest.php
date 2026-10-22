@@ -88,7 +88,10 @@ test('once it\'s done, an admin is offered to bill it; Agent+ (who can\'t add ch
         ->and(billingDetail($this->admin, $poolless)['can']['bill'])->toBeFalse(); // no customer to bill
 });
 
-test('"Add a charge" opens the Balances form filled in from the work order, for admins only', function () {
+test('"Add a charge" opens the Balances form filled in from a finished work order, for admins only', function () {
+    expect(chargePrefill($this->admin, $this->order->id))->toBeNull(); // still open
+
+    $this->order->forceFill(['status' => 'done', 'completed_at' => now()])->save();
     expect(chargePrefill($this->admin, $this->order->id))->toBe([
         'work_order_id' => $this->order->id,
         'work_order' => 'Replace the skimmer lid',
@@ -115,7 +118,7 @@ test('the charge remembers the work order: back to it, shown as billed, never of
         ->and($detail['can']['bill'])->toBeFalse()
         ->and(chargePrefill($this->admin, $this->order->id))->toBeNull();
 
-    billIt()->assertSessionHasErrors(['work_order_id' => 'That work order has already been billed.']);
+    billIt()->assertSessionHasErrors(['work_order_id' => 'That work order is still open, or has already been billed.']);
     expect(Charge::query()->count())->toBe(1);
 
     // Cancel the charge and it can be billed again.
@@ -123,7 +126,10 @@ test('the charge remembers the work order: back to it, shown as billed, never of
     expect(billingDetail($this->admin, $this->order)['can']['bill'])->toBeTrue();
 });
 
-test('a work order can\'t be billed to someone else, or from another company', function () {
+test('a work order can\'t be billed while open, to someone else, or from another company', function () {
+    billIt()->assertSessionHasErrors(['work_order_id' => 'That work order is still open, or has already been billed.']);
+
+    $this->order->forceFill(['status' => 'done', 'completed_at' => now()])->save();
     $someoneElse = Customer::factory()->for($this->tenant)->create();
     billIt(['customer_id' => $someoneElse->id])->assertSessionHasErrors(['work_order_id' => 'That work order is for a different customer.']);
 

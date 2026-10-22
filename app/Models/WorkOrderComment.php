@@ -23,12 +23,6 @@ class WorkOrderComment extends Model
     /** @var list<string> */
     protected $fillable = ['body'];
 
-    /** @return BelongsTo<WorkOrder, $this> */
-    public function workOrder(): BelongsTo
-    {
-        return $this->belongsTo(WorkOrder::class);
-    }
-
     /** @return BelongsTo<User, $this> */
     public function author(): BelongsTo
     {

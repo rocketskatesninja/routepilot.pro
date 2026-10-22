@@ -42,7 +42,8 @@ class WorkOrderController extends Controller
         $orders = WorkOrder::query()
             ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'assignee:id,first_name,last_name'])
             ->where('status', $status)
-            ->when(! $runsTheList || $mine, fn ($q) => $q->where('assigned_to', $user->id))
+            ->visibleTo($user)
+            ->when($mine, fn ($q) => $q->where('assigned_to', $user->id))
             ->when(
                 $status === 'open',
                 fn ($q) => $q->pressingFirst(),
@@ -164,9 +165,10 @@ class WorkOrderController extends Controller
             'price' => $order->price,
             'billed' => $billed === null ? null : ['amount' => $billed->total(), 'on' => $billed->occurred_on->toDateString()],
             'pool' => $order->pool?->name,
-            'pool_id' => $order->pool?->getKey(),
+            'pool_id' => $order->pool_id,
             'customer' => $order->pool?->customer?->displayName(),
             'customer_id' => $order->pool?->customer?->getKey(),
+            'assigned_to' => $order->assigned_to,
             'assignee' => $order->assignee?->displayName(),
             'raised_by' => $order->creator?->displayName(),
             'raised_on' => Tenant::localDate($order->created_at),
@@ -181,22 +183,12 @@ class WorkOrderController extends Controller
                 'on' => Tenant::localDate($c->created_at),
                 'body' => $c->body,
             ])->all(),
-            'fields' => [
-                'title' => $order->title,
-                'details' => $order->details,
-                'urgent' => $order->urgent,
-                'due_on' => $order->due_on?->toDateString(),
-                'price' => $order->price,
-                'assigned_to' => $order->assigned_to,
-                'pool_id' => $order->pool_id,
-            ],
             'can' => [
                 'update' => $user->can('update', $order),
                 'complete' => $user->can('complete', $order),
                 'comment' => $user->can('comment', $order),
                 'delete' => $user->can('delete', $order),
-                // Finished, on a customer's pool and not billed yet: offer to put it on their balance.
-                'bill' => $order->status === 'done' && $billed === null && $user->can('bill', $order) && $order->pool?->customer !== null,
+                'bill' => $user->can('bill', $order),
             ],
         ];
     }

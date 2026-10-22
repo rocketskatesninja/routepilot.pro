@@ -210,12 +210,12 @@ class CompleteVisit
     private function workOrderFrom(array $data): ?array
     {
         $text = fn (string $key): string => trim(is_string($data[$key] ?? null) ? $data[$key] : '');
-        [$title, $details] = [$text('work_order_title'), $text('work_order_details')];
-        if ($title !== '') {
-            return ['title' => $title, 'details' => $details !== '' ? $details : null];
+        $title = $text('work_order_title');
+        $details = $text('work_order_details') ?: $text('work_order');
+        if ($title === '') {
+            return $details !== '' ? CreateWorkOrder::fromText($details) : null;
         }
-        $single = $details !== '' ? $details : $text('work_order');
 
-        return $single !== '' ? CreateWorkOrder::fromText($single) : null;
+        return ['title' => $title, 'details' => $details ?: null];
     }
 }

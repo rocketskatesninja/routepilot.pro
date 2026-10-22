@@ -8,7 +8,7 @@ import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
 import { shrinkPhoto } from '@/lib/field/photo';
-import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop, type FieldWorkOrder } from '@/lib/field/store';
+import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop, type FieldWorkOrder, type WorkOrderDraft } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
@@ -22,7 +22,7 @@ const emit = defineEmits<{ (e: 'done', stopId: number, raisedWorkOrder: boolean)
 const pool = computed(() => props.stop.pool);
 
 const orderLine = (o: FieldWorkOrder): string =>
-    [o.assignee === 'you' ? 'Yours' : o.assignee ? `Assigned to ${o.assignee}` : 'Not assigned yet', o.due_on ? `due ${formatDay(o.due_on)}` : null]
+    [o.mine ? 'Yours' : o.assignee ? `Assigned to ${o.assignee}` : 'Not assigned yet', o.due_on ? `due ${formatDay(o.due_on)}` : null]
         .filter(Boolean)
         .join(' · ');
 
@@ -49,11 +49,8 @@ const treatments = reactive<{ name: string; amount: string; unit: string }[]>([]
 const notes = ref('');
 const officeNotes = ref(''); // for the company only; the homeowner never sees it
 // Something to do later: becomes a work order on the company's list.
-const workOrderTitle = ref('');
-const workOrderDetails = ref('');
-const workOrderUrgent = ref(false);
-const workOrderPrice = ref(''); // what to charge for it, if the tech knows
-const raisesWorkOrder = computed(() => workOrderTitle.value.trim() !== '' || workOrderDetails.value.trim() !== '');
+const workOrder = reactive<WorkOrderDraft>({ title: '', details: '', urgent: false, price: '' });
+const raisesWorkOrder = computed(() => workOrder.title.trim() !== '' || workOrder.details.trim() !== '');
 const photos = ref<File[]>([]);
 const analysis = ref<FullAnalysis | null>(null);
 const submitting = ref(false);
@@ -75,11 +72,8 @@ onMounted(async () => {
             treatments.splice(0, treatments.length, ...draft.treatments);
             notes.value = draft.notes;
             officeNotes.value = draft.office_notes ?? '';
-            workOrderTitle.value = draft.work_order_title ?? '';
-            // A draft from the single box goes into Details; the server titles it from its first line.
-            workOrderDetails.value = draft.work_order_details ?? draft.work_order ?? '';
-            workOrderUrgent.value = draft.work_order_urgent ?? false;
-            workOrderPrice.value = draft.work_order_price ?? '';
+            // A draft from the single box keeps its text in Details; the server titles it from the first line.
+            Object.assign(workOrder, draft.work_order_form ?? { details: draft.work_order ?? '', urgent: draft.work_order_urgent ?? false });
             if (draft.analyzed) analyze();
         }
         if (saved.length) photos.value = saved;
@@ -101,28 +95,14 @@ function persist() {
         treatments: treatments.map((t) => ({ ...t })),
         notes: notes.value,
         office_notes: officeNotes.value,
-        work_order_title: workOrderTitle.value,
-        work_order_details: workOrderDetails.value,
-        work_order_urgent: workOrderUrgent.value,
-        work_order_price: workOrderPrice.value,
+        work_order_form: { ...workOrder },
         analyzed: analysis.value !== null,
         updated_at: Date.now(),
     }).catch((e) => console.error('Could not save the visit on the phone:', e));
 }
 
 watch(
-    [
-        reading,
-        tasks,
-        treatments,
-        notes,
-        officeNotes,
-        workOrderTitle,
-        workOrderDetails,
-        workOrderUrgent,
-        workOrderPrice,
-        () => analysis.value !== null,
-    ],
+    [reading, tasks, treatments, notes, officeNotes, workOrder, () => analysis.value !== null],
     () => {
         if (!restored || finished) return;
         clearTimeout(saveTimer);
@@ -216,10 +196,10 @@ async function complete() {
             : [],
         notes: notes.value || null,
         office_notes: officeNotes.value || null,
-        work_order_title: workOrderTitle.value.trim() || null,
-        work_order_details: workOrderDetails.value.trim() || null,
-        work_order_urgent: raisesWorkOrder.value && workOrderUrgent.value,
-        work_order_price: raisesWorkOrder.value && workOrderPrice.value !== '' ? Number(workOrderPrice.value) : null,
+        work_order_title: workOrder.title.trim() || null,
+        work_order_details: workOrder.details.trim() || null,
+        work_order_urgent: raisesWorkOrder.value && workOrder.urgent,
+        work_order_price: raisesWorkOrder.value && workOrder.price !== '' ? Number(workOrder.price) : null,
     };
     if (show.chemistry) {
         for (const f of readingFields) {
@@ -446,7 +426,7 @@ async function complete() {
                     <span class="text-muted-foreground flex items-center gap-1 text-sm"><Lock class="size-3.5" /> Goes on your team’s list</span>
                 </template>
                 <input
-                    v-model="workOrderTitle"
+                    v-model="workOrder.title"
                     type="text"
                     maxlength="160"
                     aria-label="Work order title"
@@ -454,7 +434,7 @@ async function complete() {
                     placeholder="Title: what needs doing, e.g. Replace the skimmer lid"
                 />
                 <textarea
-                    v-model="workOrderDetails"
+                    v-model="workOrder.details"
                     rows="3"
                     aria-label="Work order details"
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground mt-2 w-full rounded-xl border px-3 py-2.5 text-base"
@@ -462,13 +442,13 @@ async function complete() {
                 ></textarea>
                 <div v-if="raisesWorkOrder" class="mt-2 flex flex-wrap items-center justify-between gap-3">
                     <label class="flex cursor-pointer items-center gap-3 py-1">
-                        <input v-model="workOrderUrgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
+                        <input v-model="workOrder.urgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
                         <span class="text-[15px]">Urgent</span>
                     </label>
                     <label class="flex items-center gap-2 text-[15px]">
                         Price $
                         <input
-                            v-model="workOrderPrice"
+                            v-model="workOrder.price"
                             type="number"
                             inputmode="decimal"
                             min="0"

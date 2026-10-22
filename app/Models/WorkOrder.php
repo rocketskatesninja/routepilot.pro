@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Policies\WorkOrderPolicy;
 use Database\Factories\WorkOrderFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -60,6 +61,16 @@ class WorkOrder extends Model
     public function scopeOpen(Builder $query): void
     {
         $query->where('status', 'open');
+    }
+
+    /**
+     * The ones a user may see: all of them for admins and Agent+, a tech only theirs.
+     *
+     * @param  Builder<WorkOrder>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        $query->when(! WorkOrderPolicy::runsTheList($user), fn ($q) => $q->where('assigned_to', $user->id));
     }
 
     /**
@@ -135,14 +146,6 @@ class WorkOrder extends Model
     public function billedCharge(): ?Charge
     {
         return $this->charges()->active()->latest('id')->first();
-    }
-
-    /** Whose balance it would go on: its pool's customer (not archived), while it's not billed yet. */
-    public function customerToBill(): ?Customer
-    {
-        $customer = $this->pool?->customer;
-
-        return $customer !== null && $this->billedCharge() === null ? $customer : null;
     }
 
     /** Still open and past its due date, on the company's own calendar. */

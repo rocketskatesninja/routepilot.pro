@@ -50,13 +50,17 @@ class WorkOrderPolicy
         return $this->ours($user, $order) && $user->role === 'tenant_admin';
     }
 
-    /** Admins and Agent+ see and work every work order. */
-    /** Putting it on a customer's balance: whoever may add charges (admins). */
+    /**
+     * Putting it on its customer's balance: admins (who add charges), once it's done, when
+     * it's on a customer's pool, and only once (unless that charge was cancelled).
+     */
     public function bill(User $user, WorkOrder $order): bool
     {
-        return $this->ours($user, $order) && $user->role === 'tenant_admin';
+        return $this->ours($user, $order) && $user->role === 'tenant_admin' && $order->status === 'done'
+            && $order->pool?->customer !== null && $order->billedCharge() === null;
     }
 
+    /** Admins and Agent+ see and work every work order. */
     public static function runsTheList(User $user): bool
     {
         return $user->role === 'tenant_admin' || $user->isAgentPlus();

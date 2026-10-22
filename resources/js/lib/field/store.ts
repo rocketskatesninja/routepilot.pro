@@ -38,7 +38,8 @@ export interface FieldWorkOrder {
     urgent: boolean;
     overdue: boolean;
     due_on: string | null;
-    assignee: string | null; // 'you' when it's theirs
+    assignee: string | null;
+    mine: boolean; // assigned to the tech looking at it
 }
 
 export interface TodayBundle {
@@ -62,6 +63,14 @@ export interface QueuedVisit {
     created_at: number;
 }
 
+/** The visit's "Work order" section: something to do later, for the company's list. */
+export interface WorkOrderDraft {
+    title: string;
+    details: string;
+    urgent: boolean;
+    price: string; // what to charge for it, if the tech knows
+}
+
 /** A visit the tech has started but not finished — kept so a page reload doesn't lose it. */
 export interface VisitDraft {
     stop_id: number;
@@ -70,11 +79,9 @@ export interface VisitDraft {
     treatments: { name: string; amount: string; unit: string }[];
     notes: string;
     office_notes?: string; // absent on drafts saved before the office note existed
-    work_order?: string; // likewise, before the work order section; then its single box (before Title + Details)
-    work_order_title?: string;
-    work_order_details?: string;
+    work_order_form?: WorkOrderDraft; // likewise, before the work order section
+    work_order?: string; // the first version's single box (with work_order_urgent)
     work_order_urgent?: boolean;
-    work_order_price?: string;
     analyzed: boolean;
     updated_at: number;
 }

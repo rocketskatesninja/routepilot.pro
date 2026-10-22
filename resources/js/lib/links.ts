@@ -52,6 +52,11 @@ export function workOrderLink(id: number | string): string {
     return `/work-orders?selected=${id}`;
 }
 
+/** Back-office: Balances with the add-charge form filled in from this (finished) work order. */
+export function billWorkOrderLink(id: number | string): string {
+    return `/balances?work_order=${id}`;
+}
+
 /** Back-office: the Requests inbox on the website-leads tab with this lead opened. */
 export function inboxLeadLink(id: number | string): string {
     return `/inbox?tab=leads&selected=${id}`;

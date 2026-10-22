@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { customerLink, poolLink, reportLink } from '@/lib/links';
+import { billWorkOrderLink, customerLink, poolLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
@@ -32,16 +32,6 @@ interface OrderRow {
     done_on: string | null;
 }
 
-interface OrderFields {
-    title: string;
-    details: string | null;
-    urgent: boolean;
-    due_on: string | null;
-    price: string | null;
-    assigned_to: number | null;
-    pool_id: number | null;
-}
-
 interface OrderDetail {
     id: number;
     title: string;
@@ -56,6 +46,7 @@ interface OrderDetail {
     pool_id: number | null;
     customer: string | null;
     customer_id: number | null;
+    assigned_to: number | null;
     assignee: string | null;
     raised_by: string | null;
     raised_on: string | null;
@@ -64,7 +55,6 @@ interface OrderDetail {
     done_by: string | null;
     done_on: string | null;
     comments: { id: number; author: string; on: string | null; body: string }[];
-    fields: OrderFields;
     can: { update: boolean; complete: boolean; comment: boolean; delete: boolean; bill: boolean };
 }
 
@@ -126,15 +116,17 @@ function openCreate() {
 }
 
 function openEdit() {
-    if (!props.selected) return;
-    const f = props.selected.fields;
-    form.title = f.title;
-    form.details = f.details ?? '';
-    form.urgent = f.urgent;
-    form.due_on = f.due_on ?? '';
-    form.price = f.price ?? '';
-    form.assigned_to = f.assigned_to ?? '';
-    form.pool_id = f.pool_id ?? '';
+    const o = props.selected;
+    if (!o) return;
+    Object.assign(form, {
+        title: o.title,
+        details: o.details ?? '',
+        urgent: o.urgent,
+        due_on: o.due_on ?? '',
+        price: o.price ?? '',
+        assigned_to: o.assigned_to ?? '',
+        pool_id: o.pool_id ?? '',
+    });
     form.clearErrors();
     formMode.value = 'edit';
     formOpen.value = true;
@@ -154,10 +146,9 @@ function setDone(done: boolean) {
     router.post(
         `/work-orders/${id}/${done ? 'done' : 'reopen'}`,
         {},
-        { preserveScroll: true, onSuccess: () => (billPrompt.value = done && props.selected?.id === id && props.selected.can.bill ? id : null) },
+        { preserveScroll: true, onSuccess: () => (billPrompt.value = done && props.selected?.can.bill ? id : null) },
     );
 }
-const billLink = (id: number) => `/balances?work_order=${id}`;
 
 function destroy() {
     if (!props.selected || !confirm('Delete this work order?')) return;
@@ -322,7 +313,7 @@ function addNote() {
                                     >
                                 </template>
                                 <Button v-if="order.can.bill && billPrompt !== order.id" as-child size="sm" variant="outline">
-                                    <Link :href="billLink(order.id)"><Receipt class="mr-1 size-3.5" /> Bill</Link>
+                                    <Link :href="billWorkOrderLink(order.id)"><Receipt class="mr-1 size-3.5" /> Bill</Link>
                                 </Button>
                                 <Button v-if="order.can.update" size="sm" variant="outline" @click="openEdit"
                                     ><Pencil class="mr-1 size-3.5" /> Edit</Button
@@ -345,7 +336,7 @@ function addNote() {
                                 It goes on their balance and their next invoice{{ order.price ? `, at ${formatMoney(order.price)}` : '' }}.
                             </p>
                             <div class="mt-3 flex gap-2">
-                                <Button as-child size="sm"><Link :href="billLink(order.id)">Add a charge</Link></Button>
+                                <Button as-child size="sm"><Link :href="billWorkOrderLink(order.id)">Add a charge</Link></Button>
                                 <Button size="sm" variant="outline" @click="billPrompt = null">No thanks</Button>
                             </div>
                         </div>

@@ -90,8 +90,10 @@ test('the field visit shows the pool\'s open work orders, read-only, in the day 
     $this->actingAs($this->tech)->getJson('/api/field/today')->assertOk()
         ->assertJsonCount(2, 'stops.0.work_orders')
         ->assertJsonPath('stops.0.work_orders.0.title', 'Fix the light') // urgent first
-        ->assertJsonPath('stops.0.work_orders.0.assignee', 'you')
+        ->assertJsonPath('stops.0.work_orders.0.mine', true)
+        ->assertJsonPath('stops.0.work_orders.0.assignee', 'Marcus Bennett')
         ->assertJsonPath('stops.0.work_orders.1.title', 'Order a pump seal')
         ->assertJsonPath('stops.0.work_orders.1.details', 'Two of them')
-        ->assertJsonPath('stops.0.work_orders.1.assignee', $this->agentPlus->displayName());
+        ->assertJsonPath('stops.0.work_orders.1.assignee', $this->agentPlus->displayName())
+        ->assertJsonPath('stops.0.work_orders.1.mine', false);
 });

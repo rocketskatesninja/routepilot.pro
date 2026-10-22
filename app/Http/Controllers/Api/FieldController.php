@@ -190,7 +190,8 @@ class FieldController extends Controller
                 'urgent' => $o->urgent,
                 'overdue' => $o->isOverdue(),
                 'due_on' => $o->due_on?->toDateString(),
-                'assignee' => $o->assigned_to === $user->id ? 'you' : $o->assignee?->displayName(),
+                'assignee' => $o->assignee?->displayName(),
+                'mine' => $o->assigned_to === $user->id,
             ])->values()->all(),
         ];
     }

@@ -83,12 +83,6 @@ class Charge extends Model
         return $this->belongsTo(ServiceVisit::class);
     }
 
-    /** @return BelongsTo<WorkOrder, $this> */
-    public function workOrder(): BelongsTo
-    {
-        return $this->belongsTo(WorkOrder::class);
-    }
-
     /** @return BelongsTo<Invoice, $this> */
     public function invoice(): BelongsTo
     {

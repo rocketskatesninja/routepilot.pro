@@ -523,7 +523,7 @@ class AssembleDashboardData
     private function workOrders(User $user): array
     {
         $mine = ! WorkOrderPolicy::runsTheList($user);
-        $open = WorkOrder::query()->open()->when($mine, fn ($q) => $q->where('assigned_to', $user->id));
+        $open = WorkOrder::query()->open()->visibleTo($user);
 
         return [
             'orders' => (clone $open)->pressingFirst()->limit(5)
