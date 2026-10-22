@@ -73,6 +73,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'agent_plus' => 'boolean',
             'dashboard_layout' => 'array',
             'sidebar_state' => 'array',
+            'reports_seen_at' => 'datetime',
         ];
     }
 

@@ -14,6 +14,7 @@ use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\NavCounts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -32,6 +33,9 @@ class ReportController extends Controller
         $this->authorizeStaff($request);
         $user = $request->user();
         $ownOnly = $user?->role === 'agent' && ! $user->isAgentPlus();
+        if ($user?->role === 'tenant_admin') {
+            NavCounts::sawReports($user); // clears the sidebar's Reports number
+        }
 
         $query = ServiceVisit::query()
             ->where('status', 'completed')

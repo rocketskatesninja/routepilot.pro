@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Tenant;
 use App\Services\BillingMeter;
+use App\Support\NavCounts;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Middleware;
@@ -65,6 +66,9 @@ class HandleInertiaRequests extends Middleware
                     : [],
                 'impersonating' => $request->session()->has('impersonator_id'),
                 'unread' => $user !== null ? $user->unreadNotifications()->count() : 0,
+                // The sidebar's link numbers: under auth, so a live notification refreshes them too;
+                // lazy, so a page that clears one (Reports) shows it cleared.
+                'counts' => fn (): array => NavCounts::for($user),
             ],
             // Lazy: the public /t/{slug} route binds its tenant inside the controller,
             // which runs AFTER share() — so resolve app('tenant') at prop-resolution

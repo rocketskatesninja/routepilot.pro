@@ -12,7 +12,7 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { type NavItem, type SharedData } from '@/types';
+import { type NavCounts, type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import {
     Banknote,
@@ -116,9 +116,16 @@ const navByRole: Record<string, NavSection[]> = {
     ],
 };
 
+// Which links carry a number, and which count it is.
+const countFor: Record<string, keyof NavCounts> = { '/reports': 'reports', '/work-orders': 'work_orders', '/inbox': 'requests' };
+
 const navSections = computed<NavSection[]>(() => {
     const role = page.props.auth.role ?? 'customer';
-    return navByRole[role] ?? navByRole.customer;
+    const counts = page.props.auth.counts ?? {};
+    return (navByRole[role] ?? navByRole.customer).map((section) => ({
+        ...section,
+        items: section.items.map((item) => (countFor[item.href] ? { ...item, badge: counts[countFor[item.href]] } : item)),
+    }));
 });
 
 const isAgent = computed(() => page.props.auth.role === 'agent');

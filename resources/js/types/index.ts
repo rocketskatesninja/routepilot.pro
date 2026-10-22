@@ -6,6 +6,13 @@ export interface Auth {
     permissions?: string[];
     impersonating?: boolean;
     unread?: number;
+    counts?: NavCounts; // the sidebar's link numbers (App\Support\NavCounts)
+}
+
+export interface NavCounts {
+    requests?: number;
+    work_orders?: number;
+    reports?: number;
 }
 
 export interface Tenant {
@@ -27,6 +34,7 @@ export interface NavItem {
     href: string;
     icon?: LucideIcon;
     isActive?: boolean;
+    badge?: number; // a count shown on the link (hidden at 0)
 }
 
 export interface BillingState {
