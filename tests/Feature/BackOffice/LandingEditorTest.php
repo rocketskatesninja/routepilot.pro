@@ -50,3 +50,29 @@ test('saving persists a sanitized config and keeps the full section set', functi
     expect(collect($stored['sections'])->pluck('key')->sort()->values()->all())
         ->toEqual(collect(LandingConfig::SECTION_KEYS)->sort()->values()->all());
 });
+
+test('the editor gets the live counts even with the stats section off, to show beside each box', function () {
+    TenantSetting::setFor($this->tenant->id, 'landing', (string) json_encode(LandingConfig::sanitize([
+        'sections' => [['key' => 'stats', 'enabled' => false]],
+    ])));
+
+    $this->actingAs($this->admin)
+        ->get('/company/landing')
+        ->assertInertia(fn (Assert $page) => $page->has('live.stats', count(LandingConfig::METRICS)));
+});
+
+test('saving keeps picked badges, typed stat numbers, and all stats turned off', function () {
+    $this->actingAs($this->admin)->post('/company/landing', [
+        'sections' => [
+            ['key' => 'hero', 'enabled' => true, 'badges' => ['family_owned', 'free_estimates']],
+            ['key' => 'stats', 'enabled' => true, 'metrics' => [], 'overrides' => ['years_active' => '15']],
+        ],
+    ])->assertRedirect();
+
+    $config = LandingConfig::fromStored(TenantSetting::getFor($this->tenant->id, 'landing'));
+    $stats = collect($config['sections'])->firstWhere('key', 'stats');
+
+    expect(collect($config['sections'])->firstWhere('key', 'hero')['badges'])->toBe(['family_owned', 'free_estimates'])
+        ->and($stats['metrics'])->toBe([])
+        ->and($stats['overrides'])->toBe(['years_active' => 15]);
+});

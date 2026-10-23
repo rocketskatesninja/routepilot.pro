@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Component } from 'vue';
+import { computed, type Component } from 'vue';
 import BookingSection from './sections/BookingSection.vue';
 import ContactSection from './sections/ContactSection.vue';
 import CtaSection from './sections/CtaSection.vue';
@@ -14,12 +14,14 @@ import TeamSection from './sections/TeamSection.vue';
 import TestimonialsSection from './sections/TestimonialsSection.vue';
 import type { BrandContext, LiveData, SectionConfig } from './types';
 
-defineProps<{
+const props = defineProps<{
     sections: SectionConfig[];
     live: LiveData;
     brand: BrandContext;
     editing?: boolean;
 }>();
+
+const onPage = computed(() => props.sections.map((s) => s.key));
 
 // key → component. Unknown keys are skipped by the renderer.
 const registry: Record<string, Component> = {
@@ -40,6 +42,6 @@ const registry: Record<string, Component> = {
 
 <template>
     <template v-for="s in sections" :key="s.key">
-        <component :is="registry[s.key]" v-if="registry[s.key]" :content="s" :live="live" :brand="brand" :editing="editing" />
+        <component :is="registry[s.key]" v-if="registry[s.key]" :content="s" :live="live" :brand="brand" :on-page="onPage" :editing="editing" />
     </template>
 </template>

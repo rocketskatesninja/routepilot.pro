@@ -1,10 +1,14 @@
 <script setup lang="ts">
+import AlignPicker from '@/components/landing/AlignPicker.vue';
+import { HERO_BADGES, MAX_BADGES } from '@/components/landing/badges';
 import FontPicker from '@/components/landing/FontPicker.vue';
 import IconPicker from '@/components/landing/IconPicker.vue';
 import LandingImagePicker from '@/components/landing/LandingImagePicker.vue';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
+import { STAT_METRICS, statOverrides } from '@/components/landing/stats';
 import {
     allTitleFontsHref,
+    siteHeadingVar,
     TITLE_SHADOWS,
     TITLE_SIZES,
     TITLE_TRACKINGS,
@@ -134,15 +138,6 @@ function sectionLabel(s: SectionConfig): string {
     return custom || fallback;
 }
 const taClass = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
-const METRICS: [string, string][] = [
-    ['pools_serviced', 'Pools serviced'],
-    ['visits_completed', 'Visits completed'],
-    ['years_active', 'Years in business'],
-    ['happy_customers', 'Happy customers'],
-    ['water_tests', 'Water tests'],
-    ['gallons_maintained', 'Gallons maintained'],
-    ['technicians', 'Expert technicians'],
-];
 const HERO_PRESETS = [
     'backyard',
     'cityscape',
@@ -176,20 +171,39 @@ function itemsOf(s: SectionConfig): Record<string, unknown>[] {
 const addItem = (s: SectionConfig, blank: Record<string, unknown>) => itemsOf(s).push({ ...blank });
 const removeItem = (s: SectionConfig, i: number) => itemsOf(s).splice(i, 1);
 
-function metricsOf(s: SectionConfig): string[] {
-    if (!Array.isArray(s.metrics)) {
-        s.metrics = [];
+// A picked-keys list on a section (stats `metrics`, hero `badges`): toggling adds to the end or removes.
+function listOf(s: SectionConfig, field: 'metrics' | 'badges'): string[] {
+    if (!Array.isArray(s[field])) {
+        s[field] = [];
     }
-    return s.metrics as string[];
+    return s[field] as string[];
 }
-function toggleMetric(s: SectionConfig, m: string) {
-    const a = metricsOf(s);
-    const i = a.indexOf(m);
+function toggleIn(s: SectionConfig, field: 'metrics' | 'badges', key: string) {
+    const a = listOf(s, field);
+    const i = a.indexOf(key);
     if (i >= 0) {
         a.splice(i, 1);
     } else {
-        a.push(m);
+        a.push(key);
     }
+}
+
+// A stat's own number: blank = the live count; Reset clears it back to that.
+// (An empty overrides map arrives from PHP as [] — swap it for an object so keys stick.)
+function setOverride(s: SectionConfig, key: string, raw: string) {
+    const o = { ...statOverrides(s) };
+    const n = Number.parseInt(raw, 10);
+    if (raw.trim() === '' || Number.isNaN(n) || n < 0) {
+        delete o[key];
+    } else {
+        o[key] = n;
+    }
+    s.overrides = o;
+}
+function resetOverride(s: SectionConfig, key: string) {
+    const o = { ...statOverrides(s) };
+    delete o[key];
+    s.overrides = o;
 }
 
 interface Member {
@@ -478,15 +492,56 @@ function save() {
                                 </button>
                             </div>
 
-                            <div v-show="expanded === s.key" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
+                            <!-- The hero has the most settings, so its groups get more room between them. -->
+                            <div
+                                v-show="expanded === s.key"
+                                class="border-border bg-muted/20 border-t p-4 text-sm"
+                                :class="s.key === 'hero' ? 'space-y-6' : 'space-y-3'"
+                            >
                                 <!-- HERO -->
                                 <template v-if="s.key === 'hero'">
-                                    <div class="grid gap-1"><Label>Headline</Label><Input v-model="s.headline" /></div>
+                                    <div class="grid gap-1">
+                                        <Label>Headline</Label><textarea v-model="s.headline" rows="2" :class="taClass" />
+                                        <p class="text-muted-foreground text-xs">Press Enter to start a new line.</p>
+                                    </div>
                                     <div class="grid gap-1"><Label>Subheadline</Label><textarea v-model="s.subhead" rows="2" :class="taClass" /></div>
+                                    <div class="grid gap-1"><Label>Text alignment</Label><AlignPicker v-model="s.align" /></div>
                                     <div class="grid grid-cols-2 gap-3">
                                         <div class="grid gap-1"><Label>Button text</Label><Input v-model="s.cta_label" /></div>
                                         <div class="grid gap-1">
                                             <Label>Button target</Label><Input v-model="s.cta_anchor" placeholder="contact" />
+                                        </div>
+                                    </div>
+                                    <div class="grid gap-1.5">
+                                        <div class="flex items-baseline justify-between gap-2">
+                                            <Label>Badges · {{ listOf(s, 'badges').length }} of {{ MAX_BADGES }}</Label>
+                                            <button
+                                                v-if="listOf(s, 'badges').length"
+                                                type="button"
+                                                class="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+                                                @click="s.badges = []"
+                                            >
+                                                Turn all off
+                                            </button>
+                                        </div>
+                                        <p class="text-muted-foreground text-xs">Shown under the headline. Only pick what’s true of your business.</p>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            <button
+                                                v-for="b in HERO_BADGES"
+                                                :key="b.key"
+                                                type="button"
+                                                :aria-pressed="listOf(s, 'badges').includes(b.key)"
+                                                :disabled="!listOf(s, 'badges').includes(b.key) && listOf(s, 'badges').length >= MAX_BADGES"
+                                                class="rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40"
+                                                :class="
+                                                    listOf(s, 'badges').includes(b.key)
+                                                        ? 'border-primary bg-primary text-primary-foreground'
+                                                        : 'border-input bg-background hover:bg-muted'
+                                                "
+                                                @click="toggleIn(s, 'badges', b.key)"
+                                            >
+                                                {{ b.label }}
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-3">
@@ -655,14 +710,41 @@ function save() {
 
                                 <!-- STATS -->
                                 <template v-else-if="s.key === 'stats'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div class="grid gap-1.5">
-                                        <Label>Show metrics</Label>
-                                        <label v-for="[mk, ml] in METRICS" :key="mk" class="flex items-center gap-2"
-                                            ><input type="checkbox" :checked="metricsOf(s).includes(mk)" @change="toggleMetric(s, mk)" />
-                                            {{ ml }}</label
-                                        >
-                                    </div>
+                                    <p class="text-muted-foreground text-xs">
+                                        Tick the numbers to show. Each shows your live count unless you type your own; Reset goes back to the live
+                                        count. A number at 0 stays hidden.
+                                    </p>
+                                    <div class="grid gap-1"><Label>Alignment</Label><AlignPicker v-model="s.align" /></div>
+                                    <ul class="grid gap-2">
+                                        <li v-for="m in STAT_METRICS" :key="m.key" class="flex items-center gap-2">
+                                            <label class="flex min-w-0 flex-1 items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    :checked="listOf(s, 'metrics').includes(m.key)"
+                                                    @change="toggleIn(s, 'metrics', m.key)"
+                                                />
+                                                <span class="truncate">{{ m.label }}</span>
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                min="0"
+                                                inputmode="numeric"
+                                                class="h-8 w-28"
+                                                :aria-label="`Your own number for ${m.label}`"
+                                                :placeholder="`${live.stats?.[m.key] ?? 0} live`"
+                                                :model-value="statOverrides(s)[m.key] ?? ''"
+                                                @update:model-value="(v) => setOverride(s, m.key, String(v))"
+                                            />
+                                            <button
+                                                type="button"
+                                                class="text-muted-foreground hover:text-foreground w-10 text-xs disabled:invisible"
+                                                :disabled="statOverrides(s)[m.key] === undefined"
+                                                @click="resetOverride(s, m.key)"
+                                            >
+                                                Reset
+                                            </button>
+                                        </li>
+                                    </ul>
                                 </template>
 
                                 <!-- SERVICES -->
@@ -853,7 +935,7 @@ function save() {
                         </span>
                     </div>
                     <div class="bg-background h-[calc(100vh-9rem)] overflow-y-auto">
-                        <div class="preview-live landing-scale">
+                        <div class="preview-live tenant-site" :style="siteHeadingVar(title)">
                             <SectionRenderer :sections="enabledDraft" :live="live" :brand="brand" editing />
                         </div>
                     </div>

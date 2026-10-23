@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Droplet, Filter, FlaskConical, ShieldCheck, Sparkles, Sun, Thermometer, Waves, Wrench } from 'lucide-vue-next';
 import { computed, type Component } from 'vue';
-import { contentItem, contentRow } from '../gridLayout';
+import { button } from '../layout';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
+import { quoteAnchor } from '../visibility';
 
 const props = defineProps<SectionProps>();
 const c = computed(() => props.content as { heading?: string; items?: { title?: string; body?: string; icon?: string }[] });
@@ -23,31 +24,25 @@ const icons: Record<string, Component> = {
 </script>
 
 <template>
-    <SectionShell
-        v-if="items.length || editing"
-        id="services"
-        tinted
-        :heading="c.heading || 'Our services'"
-        subheading="Professional care tailored to your pool"
-    >
-        <div class="stagger-children reveal" :class="contentRow">
-            <div
-                v-for="(it, i) in items"
-                :key="i"
-                class="card-hover border-border bg-background rounded-xl border p-6 shadow-sm"
-                :class="contentItem(items.length)"
-            >
-                <div class="mb-3 flex items-center gap-3">
-                    <div
-                        class="inline-flex size-11 shrink-0 items-center justify-center rounded-lg"
-                        style="background: color-mix(in srgb, hsl(var(--brand, 199 89% 48%)) 14%, transparent)"
+    <SectionShell id="services" :heading="c.heading || 'Our services'">
+        <template #aside>
+            <a :href="quoteAnchor(onPage)" class="mt-8" :class="button">Get a free quote</a>
+        </template>
+
+        <ul v-if="items.length" class="grid gap-x-12 gap-y-10 @3xl:grid-cols-2">
+            <li v-for="(it, i) in items" :key="i" class="border-border border-t pt-7">
+                <div class="flex items-center gap-4">
+                    <span
+                        class="text-primary inline-flex size-12 shrink-0 items-center justify-center rounded-xl"
+                        style="background: color-mix(in srgb, var(--tenant-primary) 13%, transparent)"
                     >
-                        <component :is="icons[it.icon || 'droplet'] || Droplet" class="text-primary size-5" />
-                    </div>
-                    <h3 class="text-foreground font-bold">{{ it.title }}</h3>
+                        <component :is="icons[it.icon || 'droplet'] || Droplet" class="size-6" />
+                    </span>
+                    <h3 class="text-foreground text-xl font-semibold">{{ it.title }}</h3>
                 </div>
-                <p class="text-muted-foreground text-sm">{{ it.body }}</p>
-            </div>
-        </div>
+                <p class="text-muted-foreground mt-4 leading-relaxed">{{ it.body }}</p>
+            </li>
+        </ul>
+        <p v-else class="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-sm">Add services in the editor.</p>
     </SectionShell>
 </template>

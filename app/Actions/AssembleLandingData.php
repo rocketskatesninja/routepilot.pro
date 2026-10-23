@@ -24,8 +24,10 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Assemble the server-side `live` data each enabled landing section needs —
  * stats, the showcase gallery, the team, and the service-area map inputs — so
- * the SSR page has everything it renders. The heavy queries are cached briefly
- * per tenant (busted on config save + showcase toggle).
+ * the SSR page has everything it renders. The stats come back whether or not
+ * their section is on, so the editor can show each live count beside the box
+ * for typing your own. The heavy queries are cached briefly per tenant (busted
+ * on config save + showcase toggle).
  *
  * Tenant scoping is enforced server-side: the gallery goes THROUGH the
  * tenant-scoped ServiceVisit; the team is filtered by explicit tenant_id (User
@@ -56,10 +58,7 @@ class AssembleLandingData
         ];
 
         $cached = Cache::remember(LandingCache::key((int) $tenant->id), now()->addMinutes(10), function () use ($enabled, $tenant): array {
-            $out = [];
-            if (isset($enabled['stats'])) {
-                $out['stats'] = $this->stats($tenant);
-            }
+            $out = ['stats' => $this->stats($tenant)];
             if (isset($enabled['gallery'])) {
                 $out['gallery'] = $this->gallery((int) ($enabled['gallery']['limit'] ?? 12));
             }

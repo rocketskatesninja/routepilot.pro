@@ -178,3 +178,69 @@ test('sanitize keeps valid social URLs and drops invalid / non-whitelisted ones'
         ->and($clean['social'])->not->toHaveKey('evil')    // non-whitelisted platform dropped
         ->and(array_keys($clean['social']))->toBe(LandingConfig::SOCIAL_PLATFORMS);
 });
+
+/** A section from a sanitized or stored config, by key. */
+function landingSection(array $config, string $key): array
+{
+    return collect($config['sections'])->firstWhere('key', $key);
+}
+
+test('turning every stat off stays off: an empty list is not refilled from the defaults', function () {
+    $stored = LandingConfig::sanitize(['sections' => [['key' => 'stats', 'enabled' => true, 'metrics' => []]]]);
+
+    expect(landingSection(LandingConfig::fromStored(json_encode($stored)), 'stats')['metrics'])->toBe([]);
+});
+
+test('stats keep known metrics once each, in order, and whole-number overrides for known stats', function () {
+    $stats = landingSection(LandingConfig::sanitize(['sections' => [[
+        'key' => 'stats', 'enabled' => true,
+        'metrics' => ['years_active', 'bogus', 'pools_serviced', 'years_active'],
+        'overrides' => ['years_active' => 15, 'pools_serviced' => '120', 'water_tests' => 'lots', 'bogus' => 5, 'technicians' => 5_000_000_000],
+    ]]]), 'stats');
+
+    expect($stats['metrics'])->toBe(['years_active', 'pools_serviced'])
+        ->and($stats['overrides'])->toBe(['pools_serviced' => 120, 'years_active' => 15, 'technicians' => 999_999_999]);
+});
+
+test('older configs get no overrides and the stats they had', function () {
+    $stats = landingSection(LandingConfig::fromStored(json_encode(['sections' => [['key' => 'stats', 'enabled' => true, 'metrics' => ['pools_serviced']]]])), 'stats');
+
+    expect($stats['metrics'])->toBe(['pools_serviced'])->and($stats['overrides'])->toBe([]);
+});
+
+test('hero badges: sites start with the four old ones; picks are whitelisted, deduped and capped at six', function () {
+    expect(landingSection(LandingConfig::fromStored(null), 'hero')['badges'])->toBe(['licensed', 'cpo', 'five_star', 'same_day']);
+    // a config saved before badges existed shows the same four
+    expect(landingSection(LandingConfig::fromStored(json_encode(['sections' => [['key' => 'hero', 'enabled' => true]]])), 'hero')['badges'])
+        ->toBe(['licensed', 'cpo', 'five_star', 'same_day']);
+
+    $hero = fn (array $badges) => landingSection(LandingConfig::sanitize(['sections' => [['key' => 'hero', 'enabled' => true, 'badges' => $badges]]]), 'hero');
+    expect($hero([])['badges'])->toBe([])
+        ->and($hero(['autopay', 'nope', 'autopay', 'spanish'])['badges'])->toBe(['autopay', 'spanish'])
+        ->and($hero(array_slice(LandingConfig::HERO_BADGES, 0, 9))['badges'])->toHaveCount(LandingConfig::MAX_BADGES);
+});
+
+test('the badge and stat keys match the labels the site shows (components/landing)', function () {
+    $keysIn = function (string $file): array {
+        preg_match_all("/key: '([a-z_]+)'/", (string) file_get_contents(__DIR__."/../../resources/js/components/landing/{$file}"), $m);
+
+        return $m[1];
+    };
+
+    expect($keysIn('badges.ts'))->toBe(LandingConfig::HERO_BADGES)
+        ->and(collect($keysIn('stats.ts'))->sort()->values()->all())->toBe(collect(LandingConfig::METRICS)->sort()->values()->all());
+});
+
+test('hero and stats line up left by default; only left, center or right is kept', function () {
+    $defaults = LandingConfig::fromStored(null);
+    expect(landingSection($defaults, 'hero')['align'])->toBe('left')
+        ->and(landingSection($defaults, 'stats')['align'])->toBe('left');
+
+    $clean = LandingConfig::sanitize(['sections' => [
+        ['key' => 'hero', 'enabled' => true, 'align' => 'center', 'headline' => "Crystal-clear water,\nevery week"],
+        ['key' => 'stats', 'enabled' => true, 'align' => 'justify'],
+    ]]);
+    expect(landingSection($clean, 'hero')['align'])->toBe('center')
+        ->and(landingSection($clean, 'hero')['headline'])->toBe("Crystal-clear water,\nevery week") // the line break survives
+        ->and(landingSection($clean, 'stats')['align'])->toBe('left');
+});

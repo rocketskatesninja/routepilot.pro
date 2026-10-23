@@ -19,8 +19,22 @@ class LandingConfig
         'service_area', 'booking', 'testimonials', 'faq', 'cta', 'contact',
     ];
 
-    /** Live metric keys the stats section may surface. */
+    /** Live metric keys the stats section may surface (labels in components/landing/stats.ts). */
     public const METRICS = ['pools_serviced', 'visits_completed', 'years_active', 'happy_customers', 'gallons_maintained', 'water_tests', 'technicians'];
+
+    /** Hero badges a company may pick (labels in components/landing/badges.ts), at most MAX_BADGES. */
+    public const HERO_BADGES = [
+        'licensed', 'cpo', 'five_star', 'same_day', 'free_estimates', 'no_contracts', 'satisfaction', 'locally_owned', 'family_owned',
+        'veteran_owned', 'photo_reports', 'pay_online', 'autopay', 'background_checked', 'eco_friendly', 'salt_systems', 'emergency', 'spanish',
+    ];
+
+    public const MAX_BADGES = 6;
+
+    /** How the hero text and the stats strip line up. */
+    public const ALIGNS = ['left', 'center', 'right'];
+
+    /** Largest number a company may type in place of a live stat. */
+    private const MAX_STAT = 999_999_999;
 
     /** Hero background presets (images in public/assets/images/hero-presets). */
     public const HERO_PRESETS = ['backyard', 'cityscape', 'infinity', 'islands', 'night', 'patio', 'resort', 'skyline', 'sunset', 'tiles', 'underwater', 'water'];
@@ -43,7 +57,7 @@ class LandingConfig
         return [
             'version' => 1,
             'seo' => ['title' => null, 'description' => null, 'og_image' => null],
-            'theme' => ['accent' => 'brand', 'hero_style' => 'image-right', 'show_logo' => true, 'chatbot' => false],
+            'theme' => ['chatbot' => false],
             // Header company-title styling. `text` null = the tenant name; `color` null = inherited
             // foreground (so an un-customized title looks exactly like today).
             'title' => [
@@ -66,8 +80,8 @@ class LandingConfig
             // Footer social links — each platform holds a profile URL or null (hidden when empty).
             'social' => array_fill_keys(self::SOCIAL_PLATFORMS, null),
             'sections' => [
-                ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
-                ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => ['pools_serviced', 'happy_customers', 'visits_completed', 'water_tests', 'gallons_maintained', 'years_active']],
+                ['key' => 'hero', 'enabled' => true, 'headline' => 'Crystal-clear water, every single week', 'subhead' => 'Reliable, professional pool care so you can skip the chemistry and just enjoy the swim.', 'cta_label' => 'Get a free quote', 'cta_anchor' => 'contact', 'bg_type' => 'preset', 'preset' => 'backyard', 'image_path' => null, 'gradient_start' => '#0f172a', 'gradient_end' => '#0369a1', 'headline_size' => 'lg', 'headline_max_width' => 56, 'align' => 'left', 'badges' => ['licensed', 'cpo', 'five_star', 'same_day'], 'effects' => ['dark_overlay' => true, 'overlay_opacity' => 40, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true]],
+                ['key' => 'stats', 'enabled' => true, 'metrics' => ['pools_serviced', 'happy_customers', 'visits_completed', 'water_tests', 'gallons_maintained', 'years_active'], 'overrides' => [], 'align' => 'left'],
                 ['key' => 'services', 'enabled' => true, 'heading' => 'What we do', 'items' => [
                     ['title' => 'Weekly maintenance', 'body' => 'Full chemical balancing, skimming, and equipment checks on a dependable schedule.', 'icon' => 'droplet'],
                     ['title' => 'Repairs & equipment', 'body' => 'Pumps, filters, heaters, and automation — diagnosed and fixed right the first time.', 'icon' => 'wrench'],
@@ -81,7 +95,7 @@ class LandingConfig
                 ['key' => 'testimonials', 'enabled' => true, 'heading' => 'Loved by homeowners', 'items' => []],
                 ['key' => 'faq', 'enabled' => true, 'heading' => 'Common questions', 'items' => []],
                 ['key' => 'cta', 'enabled' => true, 'headline' => 'Ready for a worry-free pool?', 'button_label' => 'Get started', 'button_anchor' => 'contact'],
-                ['key' => 'contact', 'enabled' => true, 'heading' => 'Get in touch', 'blurb' => 'Tell us about your pool and we’ll get right back to you.', 'show_phone' => true],
+                ['key' => 'contact', 'enabled' => true, 'heading' => 'Get in touch', 'blurb' => 'Tell us about your pool and we’ll get right back to you.'],
             ],
         ];
     }
@@ -178,9 +192,6 @@ class LandingConfig
                 'og_image' => self::imagePath($seo['og_image'] ?? null),
             ],
             'theme' => [
-                'accent' => self::str($theme['accent'] ?? null, 20) ?? 'brand',
-                'hero_style' => in_array($theme['hero_style'] ?? null, ['image-right', 'image-left', 'centered'], true) ? $theme['hero_style'] : 'image-right',
-                'show_logo' => (bool) ($theme['show_logo'] ?? true),
                 'chatbot' => (bool) ($theme['chatbot'] ?? false),
             ],
             'title' => [
@@ -265,14 +276,14 @@ class LandingConfig
                 'gradient_end' => self::hex($raw['gradient_end'] ?? null, '#0369a1'),
                 'headline_size' => in_array($raw['headline_size'] ?? null, ['sm', 'md', 'lg', 'xl'], true) ? $raw['headline_size'] : 'lg',
                 'headline_max_width' => self::int($raw['headline_max_width'] ?? null, 32, 80, 56),
+                'align' => self::align($raw['align'] ?? null),
+                'badges' => self::pick($raw['badges'] ?? null, self::HERO_BADGES, self::MAX_BADGES),
                 'effects' => self::effects($raw['effects'] ?? null),
             ],
             'stats' => $base + [
-                'heading' => $heading,
-                'metrics' => array_values(array_filter(
-                    is_array($raw['metrics'] ?? null) ? $raw['metrics'] : [],
-                    static fn ($m): bool => in_array($m, self::METRICS, true),
-                )),
+                'metrics' => self::pick($raw['metrics'] ?? null, self::METRICS, count(self::METRICS)),
+                'overrides' => self::statOverrides($raw['overrides'] ?? null),
+                'align' => self::align($raw['align'] ?? null),
             ],
             'services' => $base + ['heading' => $heading, 'items' => self::items($raw['items'] ?? null, ['title' => 80, 'body' => 280, 'icon' => 40], self::CAP['items'])],
             'quote', 'booking' => $base + ['heading' => $heading, 'blurb' => self::str($raw['blurb'] ?? null, 240)],
@@ -286,7 +297,7 @@ class LandingConfig
                 'button_label' => self::str($raw['button_label'] ?? null, 40),
                 'button_anchor' => self::str($raw['button_anchor'] ?? null, 40),
             ],
-            'contact' => $base + ['heading' => $heading, 'blurb' => self::str($raw['blurb'] ?? null, 240), 'show_phone' => (bool) ($raw['show_phone'] ?? true)],
+            'contact' => $base + ['heading' => $heading, 'blurb' => self::str($raw['blurb'] ?? null, 240)],
             default => $base,
         };
     }
@@ -358,6 +369,47 @@ class LandingConfig
         $v = trim($v);
 
         return $v === '' ? null : mb_substr($v, 0, $max);
+    }
+
+    /**
+     * The allowed keys from a picked list, in the order given, each once, at most $max.
+     * An empty list stays empty (the company turned them all off).
+     *
+     * @param  list<string>  $allowed
+     * @return list<string>
+     */
+    private static function pick(mixed $raw, array $allowed, int $max): array
+    {
+        $picked = array_values(array_unique(array_filter(
+            is_array($raw) ? $raw : [],
+            static fn ($k): bool => in_array($k, $allowed, true),
+        )));
+
+        return array_slice($picked, 0, $max);
+    }
+
+    /**
+     * Numbers a company typed in place of live stats: whole numbers for known
+     * stats only. A stat left out shows its live count.
+     *
+     * @return array<string, int>
+     */
+    private static function statOverrides(mixed $raw): array
+    {
+        $out = [];
+        foreach (self::METRICS as $m) {
+            $v = is_array($raw) ? ($raw[$m] ?? null) : null;
+            if (is_int($v) || (is_string($v) && ctype_digit($v))) {
+                $out[$m] = max(0, min(self::MAX_STAT, (int) $v));
+            }
+        }
+
+        return $out;
+    }
+
+    private static function align(mixed $v): string
+    {
+        return is_string($v) && in_array($v, self::ALIGNS, true) ? $v : 'left';
     }
 
     private static function int(mixed $v, int $min, int $max, int $default): int

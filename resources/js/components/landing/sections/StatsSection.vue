@@ -1,79 +1,79 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { contentItem, contentRow } from '../gridLayout';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { frame } from '../layout';
+import { statItems } from '../stats';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { metrics?: string[] });
+const items = computed(() => statItems(props.content, props.live));
 
-const LABELS: Record<string, string> = {
-    pools_serviced: 'Pools serviced',
-    visits_completed: 'Visits completed',
-    years_active: 'Years in business',
-    happy_customers: 'Happy customers',
-    gallons_maintained: 'Gallons maintained',
-    water_tests: 'Water tests',
-    technicians: 'Expert technicians',
+// How each number sits in its column (the company's pick; left by default).
+const ALIGN: Record<string, string> = {
+    left: '@5xl:first:pl-0',
+    center: 'items-center text-center',
+    right: 'items-end text-right @5xl:last:pr-0',
 };
+const align = computed(() => ALIGN[String(props.content.align ?? 'left')] ?? ALIGN.left);
 
-const items = computed(() => {
-    const s = props.live.stats;
-    if (!s) {
-        return [];
-    }
-    const metrics = c.value.metrics?.length ? c.value.metrics : ['pools_serviced', 'visits_completed', 'years_active'];
-    return metrics.filter((m) => m in s).map((m) => ({ key: m, label: LABELS[m] ?? m, value: (s as Record<string, number>)[m] }));
-});
-
-// Render final values for SSR/SEO; animate from 0 on scroll-in (client only).
-const displayed = ref<number[]>([]);
+// Count up once as the strip scrolls into view. One 0→1 progress drives every
+// number, so a number edited in the editor's preview (which never animates)
+// shows straight away. SSR renders the final numbers.
+const progress = ref(1);
 const root = ref<HTMLElement | null>(null);
-const show = (i: number, fallback: number): number => displayed.value[i] ?? fallback;
+let observer: IntersectionObserver | null = null;
+const shown = (value: number) => Math.round(progress.value * value).toLocaleString('en-US');
 
 onMounted(() => {
-    displayed.value = items.value.map((it) => it.value);
-    if (typeof window === 'undefined' || !('IntersectionObserver' in window) || !root.value) {
+    if (props.editing || !root.value || !('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         return;
     }
-    const io = new IntersectionObserver(
+    observer = new IntersectionObserver(
         (entries) => {
             if (entries.some((e) => e.isIntersecting)) {
-                io.disconnect();
-                animate();
+                observer?.disconnect();
+                countUp();
             }
         },
         { threshold: 0.4 },
     );
-    io.observe(root.value);
+    observer.observe(root.value);
 });
+onBeforeUnmount(() => observer?.disconnect());
 
-function animate() {
-    const targets = items.value.map((it) => it.value);
-    const dur = 1400;
+function countUp() {
     const start = performance.now();
     const tick = (now: number) => {
-        const p = Math.min((now - start) / dur, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        displayed.value = targets.map((t) => Math.round(ease * t));
-        if (p < 1) {
-            requestAnimationFrame(tick);
-        } else {
-            displayed.value = targets;
-        }
+        const t = Math.min((now - start) / 1400, 1);
+        progress.value = 1 - Math.pow(1 - t, 3);
+        if (t < 1) requestAnimationFrame(tick);
     };
+    progress.value = 0;
     requestAnimationFrame(tick);
 }
 </script>
 
 <template>
-    <section v-if="items.length || editing" id="stats" class="border-border bg-muted/40 border-y px-4 py-16 sm:px-6">
-        <div ref="root" class="mx-auto max-w-4xl text-center" :class="contentRow">
-            <div v-for="(it, i) in items" :key="it.key" :class="contentItem(items.length)">
-                <p class="stat-value text-primary text-4xl font-extrabold sm:text-5xl">
-                    {{ show(i, it.value).toLocaleString() }}<span v-if="it.key !== 'years_active'">+</span>
-                </p>
-                <p class="text-muted-foreground mt-1 text-sm font-medium">{{ it.label }}</p>
-            </div>
+    <!-- Sits on the waterline: one strip of numbers, live from the company's records unless they typed their own. -->
+    <section id="stats" class="border-border border-b">
+        <div ref="root" :class="frame">
+            <dl
+                v-if="items.length"
+                class="grid grid-cols-2 gap-x-8 @3xl:grid-cols-3 @5xl:grid-cols-[repeat(var(--n),minmax(0,1fr))] @5xl:gap-x-0"
+                :style="{ '--n': items.length }"
+            >
+                <div
+                    v-for="it in items"
+                    :key="it.key"
+                    class="border-border flex flex-col-reverse py-8 @5xl:border-l @5xl:px-8 @5xl:py-12 @5xl:first:border-l-0"
+                    :class="align"
+                >
+                    <dt class="text-muted-foreground mt-1 text-base">{{ it.label }}</dt>
+                    <dd class="site-font text-primary text-[2.5rem] leading-none font-bold tracking-tight tabular-nums @5xl:text-5xl">
+                        {{ shown(it.value) }}<span v-if="it.plus">+</span>
+                    </dd>
+                </div>
+            </dl>
+            <p v-else class="text-muted-foreground py-10 text-sm">No numbers to show. Pick some in the editor, or type your own.</p>
         </div>
     </section>
 </template>

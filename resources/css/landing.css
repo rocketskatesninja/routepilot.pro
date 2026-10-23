@@ -1,28 +1,15 @@
 /*
- * RoutePilot public landing — shared section effects, ported from the legacy
- * tenant site so the new Vue/Tailwind page keeps the same character. The brand
- * color flows through --tenant-primary = hsl(var(--brand)) (injected per tenant
- * server-side in app.blade.php; falls back to sky).
+ * Public marketing pages: RoutePilot's own homepage (pages/Welcome.vue) and each
+ * company's site (pages/public/Landing.vue + components/landing). The brand color
+ * flows through --tenant-primary = hsl(var(--brand)) (injected per tenant
+ * server-side in app.blade.php; falls back to the default brand).
  */
 :root {
-    --tenant-primary: hsl(var(--brand, 199 89% 48%));
+    --tenant-primary: hsl(var(--brand));
 }
 
-/* Whole landing scaled up for impact (legacy used 125%). */
-.landing-scale {
-    font-size: 112.5%;
-}
+/* ---------- Shared: hero entrance, CTA glow, dot-matrix overlay ---------- */
 
-/* Editor live preview: force scroll-reveal / entrance content visible (no
-   IntersectionObserver runs inside the preview panel). */
-.preview-live .reveal,
-.preview-live .stagger-children > *,
-.preview-live .hero-animate {
-    opacity: 1 !important;
-    transform: none !important;
-}
-
-/* Hero entrance */
 @keyframes rp-hero-in {
     from {
         opacity: 0;
@@ -53,9 +40,27 @@
     animation-delay: 0.65s;
 }
 
-/* Hero brand mark — the header's Route glyph at size, rendered as a glowing
-   object (warm glow + inset top highlight + floor shadow) with a slow drift,
-   not a flat swatch. Same mark as the logo. */
+@keyframes rp-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+    50% {
+        box-shadow: 0 0 22px 6px rgba(255, 255, 255, 0.18);
+    }
+}
+.btn-glow {
+    animation: rp-glow 2.8s 1.3s ease-in-out infinite;
+}
+
+.hero-dots {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+/* ---------- RoutePilot homepage only ---------- */
+
+/* Brand mark — the header's Route glyph at size, as a glowing object with a slow drift. */
 .rp-mark {
     display: grid;
     place-items: center;
@@ -87,7 +92,6 @@
     }
 }
 
-/* Ambient drifting blobs */
 @keyframes rp-blob {
     0% {
         transform: translate(0, 0) scale(1);
@@ -114,7 +118,8 @@
     animation-delay: -7s;
 }
 
-/* Scroll reveal */
+/* Scroll reveal (driven by composables/useReveal). Only put it on content that
+   exists at page load: the observer never sees elements rendered later. */
 .reveal {
     opacity: 0;
     transform: translateY(28px);
@@ -126,147 +131,58 @@
     opacity: 1;
     transform: none;
 }
-.stagger-children > * {
-    opacity: 0;
-    transform: translateY(20px);
-    transition:
-        opacity 0.5s ease,
-        transform 0.5s ease;
+
+/* ---------- A company's site ---------- */
+
+/* The site root (also the editor's live preview). Sections lay out by container
+   queries against it, so the narrower preview shows the layout that width gets.
+   --site-heading is the company's chosen title font, carried into every heading.
+   These rules sit outside Tailwind's layers, so they win over utilities: set
+   color (and anything else per-use) on the element, not here. */
+.tenant-site {
+    container-type: inline-size;
+    font-size: 1.125rem;
 }
-.stagger-children.is-visible > * {
-    opacity: 1;
-    transform: none;
+.site-heading {
+    font-family: var(--site-heading, inherit);
+    font-weight: 700;
+    font-size: clamp(2rem, 1.25rem + 2.4cqi, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
 }
-.stagger-children.is-visible > *:nth-child(1) {
-    transition-delay: 0s;
+/* Just the company's font, for display text that isn't a section heading (stat numbers). */
+.site-font {
+    font-family: var(--site-heading, inherit);
 }
-.stagger-children.is-visible > *:nth-child(2) {
-    transition-delay: 0.08s;
-}
-.stagger-children.is-visible > *:nth-child(3) {
-    transition-delay: 0.16s;
-}
-.stagger-children.is-visible > *:nth-child(4) {
-    transition-delay: 0.24s;
-}
-.stagger-children.is-visible > *:nth-child(5) {
-    transition-delay: 0.32s;
-}
-.stagger-children.is-visible > *:nth-child(6) {
-    transition-delay: 0.4s;
+.site-tint {
+    background: color-mix(in srgb, var(--tenant-primary) 6%, hsl(var(--background)));
 }
 
-/* Gradient accent underline under section headings */
-.section-heading {
-    position: relative;
-    padding-bottom: 0.75rem;
-}
-.section-heading::after {
-    content: '';
-    display: block;
-    width: 3rem;
-    height: 3px;
-    border-radius: 2px;
-    margin: 0.5rem auto 0;
-    background: var(--tenant-primary);
-}
-
-/* Card hover lift */
-.card-hover {
-    transition:
-        transform 0.25s ease,
-        box-shadow 0.25s ease;
-}
-.card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+/* The waterline: a band of pool tile where the hero (the water) meets the page
+   (the deck). The site's one signature detail — used once, under the hero. */
+.waterline {
+    --tile: 1.1rem;
+    --grout: rgba(255, 255, 255, 0.85);
+    --tile-a: color-mix(in srgb, var(--tenant-primary) 72%, #0b2a3c);
+    --tile-b: color-mix(in srgb, var(--tenant-primary) 55%, #ffffff);
+    height: calc(var(--tile) * 2);
+    background:
+        linear-gradient(90deg, var(--grout) 2px, transparent 0) 0 0 / var(--tile) var(--tile),
+        linear-gradient(var(--grout) 2px, transparent 0) 0 0 / var(--tile) var(--tile),
+        repeating-conic-gradient(var(--tile-a) 0 25%, var(--tile-b) 0 50%) 0 0 / calc(var(--tile) * 2) calc(var(--tile) * 2);
+    border-bottom: 2px solid var(--grout);
 }
 
-/* Glassmorphism trust badges */
+/* Hero trust badges: frosted pills over the photo. */
 .trust-badge {
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    transition:
-        transform 0.2s ease,
-        background 0.2s ease;
-}
-.trust-badge:hover {
-    transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.2);
 }
 
-/* CTA button shimmer + hover */
-@keyframes rp-shimmer {
-    0% {
-        background-position: -200% center;
-    }
-    100% {
-        background-position: 200% center;
-    }
-}
-.btn-cta {
-    position: relative;
-    overflow: hidden;
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-}
-.btn-cta:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-.btn-cta::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent 30%, rgba(255, 255, 255, 0.2) 50%, transparent 70%);
-    background-size: 200% 100%;
-    animation: rp-shimmer 3s ease-in-out infinite;
-}
-
-/* CTA glow pulse */
-@keyframes rp-glow {
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-    }
-    50% {
-        box-shadow: 0 0 22px 6px rgba(255, 255, 255, 0.18);
-    }
-}
-.btn-glow {
-    animation: rp-glow 2.8s 1.3s ease-in-out infinite;
-}
-
-/* Stat value glow */
-.stat-value {
-    text-shadow: 0 0 24px color-mix(in srgb, var(--tenant-primary) 35%, transparent);
-}
-
-/* Testimonial quote mark */
-.testimonial-card::before {
-    content: '\201C';
-    position: absolute;
-    top: -0.5rem;
-    left: 1rem;
-    font-size: 4rem;
-    font-weight: 800;
-    line-height: 1;
-    opacity: 0.08;
-    color: var(--tenant-primary);
-}
-
-/* Team card hover */
-.team-card {
-    transition: transform 0.25s ease;
-}
-.team-card:hover {
-    transform: translateY(-4px) scale(1.03);
-}
-
-/* Ken Burns slow zoom for hero images */
+/* Hero effects the company can switch on in the editor. */
 @keyframes rp-ken {
     0% {
         transform: scale(1);
@@ -281,19 +197,9 @@
 .ken-burns {
     animation: rp-ken 20s ease-in-out infinite;
 }
-
-/* Dot-matrix pattern overlay */
-.hero-dots {
-    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
-    background-size: 24px 24px;
-}
-
-/* Vignette — darkened edges for cinematic depth */
 .hero-vignette {
     background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
 }
-
-/* Scroll cue bounce */
 @keyframes rp-bounce {
     0%,
     100% {
@@ -309,18 +215,23 @@
         rp-bounce 2s 1.4s ease-in-out infinite;
 }
 
+/* Editor live preview: the hero entrance re-runs on every edit, so show it settled. */
+.preview-live .hero-animate {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .hero-animate,
     .rp-mark,
     .blob,
     .blob-2,
     .blob-3,
-    .btn-cta::after,
     .btn-glow,
     .ken-burns,
     .scroll-cue,
-    .reveal,
-    .stagger-children > * {
+    .reveal {
         animation: none !important;
         transition: none !important;
         opacity: 1 !important;

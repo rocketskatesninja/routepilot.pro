@@ -75,6 +75,11 @@ export function titleFontHref(t: TitleConfig): string | null {
     return `https://fonts.bunny.net/css?family=${f.slug}:400,500,600,700,800`;
 }
 
+/** The site's heading font: the company's title font, carried into every section heading. */
+export function siteHeadingVar(t: TitleConfig): string {
+    return `--site-heading: ${fontStack(t.font)}`;
+}
+
 /** Inline CSS string for the title (Vue `:style` accepts a string). */
 export function titleStyle(t: TitleConfig): string {
     const parts: string[] = [

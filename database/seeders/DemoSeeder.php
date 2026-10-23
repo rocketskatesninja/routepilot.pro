@@ -262,7 +262,6 @@ class DemoSeeder extends Seeder
                 'description' => 'Weekly pool maintenance, expert water chemistry, and fast equipment repairs. Crystal-clear water all season — get a free quote today.',
                 'og_image' => null,
             ],
-            'theme' => ['accent' => 'brand', 'hero_style' => 'image-right', 'show_logo' => true],
             'sections' => [
                 ['key' => 'hero', 'enabled' => true,
                     'headline' => 'Your pool, perfectly maintained — all year long',
@@ -273,7 +272,7 @@ class DemoSeeder extends Seeder
                     'headline_size' => 'lg', 'headline_max_width' => 56,
                     'effects' => ['dark_overlay' => true, 'overlay_opacity' => 45, 'cta_glow' => true, 'scroll_cue' => true, 'ken_burns' => true, 'dot_matrix' => false, 'vignette' => true],
                 ],
-                ['key' => 'stats', 'enabled' => true, 'heading' => 'By the numbers', 'metrics' => ['pools_serviced', 'visits_completed', 'years_active']],
+                ['key' => 'stats', 'enabled' => true, 'metrics' => ['pools_serviced', 'visits_completed', 'years_active']],
                 ['key' => 'services', 'enabled' => true, 'heading' => 'What we do', 'items' => [
                     ['title' => 'Weekly Maintenance', 'body' => 'Skimming, brushing, vacuuming, basket cleaning, and a full chemical balance — on a dependable schedule, every week.', 'icon' => 'droplet'],
                     ['title' => 'Water Chemistry', 'body' => 'Precise testing and dosing for chlorine, pH, alkalinity, and more — water that is safe, clear, and easy on your equipment.', 'icon' => 'waves'],
@@ -297,7 +296,7 @@ class DemoSeeder extends Seeder
                     ['q' => 'Are you licensed and insured?', 'a' => 'Yes. We are fully licensed and insured, and our technicians are trained in water chemistry and pool equipment.'],
                 ]],
                 ['key' => 'cta', 'enabled' => true, 'headline' => 'Ready for a worry-free pool?', 'button_label' => 'Get a free quote', 'button_anchor' => 'contact'],
-                ['key' => 'contact', 'enabled' => true, 'heading' => 'Get in touch', 'blurb' => 'Tell us about your pool and we will get back to you within one business day.', 'show_phone' => true],
+                ['key' => 'contact', 'enabled' => true, 'heading' => 'Get in touch', 'blurb' => 'Tell us about your pool and we will get back to you within one business day.'],
             ],
         ];
     }

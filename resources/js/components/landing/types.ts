@@ -1,5 +1,5 @@
-// Shared contract for landing section components — used by both the public SSR
-// page and (later) the editor's live preview.
+// Shared contract for a company site's section components — used by both the
+// public SSR page and the editor's live preview.
 
 export interface BrandContext {
     name: string;
@@ -17,7 +17,8 @@ export interface LandingService {
 }
 
 export interface LiveData {
-    stats?: { pools_serviced: number; visits_completed: number; years_active: number };
+    /** Live counts by stat key (see stats.ts STAT_METRICS). */
+    stats?: Record<string, number>;
     gallery?: { url: string; caption: string | null }[];
     team?: { user_id: number; name: string; title: string | null; bio: string | null; avatar: string | null }[];
     serviceArea?: { lat: number | null; lng: number | null; formattedAddress: string | null; radiusLabel: string | null };
@@ -57,5 +58,7 @@ export interface SectionProps {
     content: SectionConfig;
     live: LiveData;
     brand: BrandContext;
+    /** Keys of the sections on the page, so a section can link to another only when it's there. */
+    onPage: string[];
     editing?: boolean;
 }
