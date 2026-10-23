@@ -47,6 +47,18 @@ test('a ping without a route today is refused (tracking:false, nothing stored)',
     Event::assertNotDispatched(AgentLocationUpdated::class);
 });
 
+test('a super-admin signed in as the agent never posts a location', function () {
+    Event::fake([AgentLocationUpdated::class]);
+    routeToday($this->tenant, $this->agent);
+
+    $this->actingAs($this->agent)->withSession(['impersonator_id' => 999])
+        ->postJson('/api/field/ping', ['lat' => 31.2, 'lng' => -81.5])
+        ->assertOk()->assertJsonPath('tracking', false);
+
+    expect(AgentLocation::query()->count())->toBe(0);
+    Event::assertNotDispatched(AgentLocationUpdated::class);
+});
+
 test('repeated pings upsert a single row', function () {
     routeToday($this->tenant, $this->agent);
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\AuditLog;
+use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -87,8 +88,117 @@ test('a super-admin can impersonate a tenant and return', function () {
     $this->assertAuthenticatedAs($admin);
     expect(AuditLog::query()->where('action', 'impersonate.start')->exists())->toBeTrue();
 
-    $this->post('/impersonate/stop')->assertRedirect('/people');
+    $this->post('/impersonate/stop')->assertRedirect("/people?type=tenants&selected={$tenant->id}&selected_type=tenant");
     $this->assertAuthenticatedAs($this->super);
+});
+
+test('a super-admin can impersonate an agent and return to their row', function () {
+    $agent = User::factory()->for(Tenant::factory())->create();
+    $agent->forceFill(['role' => 'agent'])->save();
+
+    $this->actingAs($this->super)
+        ->post("/users/{$agent->id}/impersonate")
+        ->assertRedirect('/dashboard')
+        ->assertSessionHas('impersonator_id', $this->super->id);
+
+    $this->assertAuthenticatedAs($agent);
+    expect(AuditLog::query()->where('action', 'impersonate.start')->where('model_id', $agent->id)->exists())->toBeTrue();
+
+    $this->post('/impersonate/stop')->assertRedirect("/people?type=agents&selected={$agent->id}&selected_type=agent");
+    $this->assertAuthenticatedAs($this->super);
+});
+
+test('a super-admin can impersonate a customer through their portal login', function () {
+    $tenant = Tenant::factory()->create();
+    $login = User::factory()->for($tenant)->create();
+    $login->forceFill(['role' => 'customer'])->save();
+    $customer = Customer::factory()->for($tenant)->create();
+    $customer->forceFill(['user_id' => $login->id])->save();
+
+    $this->actingAs($this->super)
+        ->get("/people?type=customers&selected={$customer->id}&selected_type=customer")
+        ->assertInertia(fn (Assert $page) => $page->where('selected.login_id', $login->id)->where('people.data.0.portal', true));
+
+    $this->post("/users/{$login->id}/impersonate")->assertRedirect('/dashboard');
+    $this->assertAuthenticatedAs($login);
+
+    $this->post('/impersonate/stop')->assertRedirect("/people?type=customers&selected={$customer->id}&selected_type=customer");
+    $this->assertAuthenticatedAs($this->super);
+});
+
+test('a customer without a portal login has nobody to sign in as', function () {
+    $customer = Customer::factory()->for(Tenant::factory())->create();
+
+    $this->actingAs($this->super)
+        ->get("/people?type=customers&selected={$customer->id}&selected_type=customer")
+        ->assertInertia(fn (Assert $page) => $page->where('selected.login_id', null)->where('people.data.0.portal', false));
+});
+
+test('another super-admin cannot be impersonated', function () {
+    $other = User::factory()->create();
+    $other->forceFill(['role' => 'super_admin', 'tenant_id' => null])->save();
+
+    $this->actingAs($this->super)->post("/users/{$other->id}/impersonate")->assertForbidden();
+    $this->assertAuthenticatedAs($this->super);
+    expect(AuditLog::query()->where('action', 'impersonate.start')->exists())->toBeFalse();
+});
+
+test('only a super-admin can impersonate a person', function () {
+    $tenant = Tenant::factory()->create();
+    $admin = User::factory()->for($tenant)->create();
+    $agent = User::factory()->for($tenant)->create();
+    $agent->forceFill(['role' => 'agent'])->save();
+
+    $this->actingAs($admin)->post("/users/{$agent->id}/impersonate")->assertForbidden();
+    $this->assertAuthenticatedAs($admin);
+});
+
+test('an audited action while impersonating names the super-admin behind it', function () {
+    $tenant = Tenant::factory()->create();
+    $admin = User::factory()->for($tenant)->create();
+    $customer = Customer::factory()->for($tenant)->create();
+
+    $this->actingAs($this->super)->post("/tenants/{$tenant->id}/impersonate");
+    app()->forgetInstance('tenant_id');
+    app()->forgetInstance('tenant');
+    $this->get("/customers/{$customer->id}/export")->assertOk();
+
+    $row = AuditLog::query()->withoutGlobalScopes()->where('action', 'customer.exported')->firstOrFail();
+    expect($row->user_id)->toBe($admin->id)
+        ->and($row->getAttribute('impersonator_id'))->toBe($this->super->id);
+});
+
+test('an action outside impersonation has no impersonator', function () {
+    $tenant = Tenant::factory()->create();
+    $admin = User::factory()->for($tenant)->create();
+    $customer = Customer::factory()->for($tenant)->create();
+
+    $this->actingAs($admin)->get("/customers/{$customer->id}/export")->assertOk();
+
+    expect(AuditLog::query()->withoutGlobalScopes()->where('action', 'customer.exported')->value('impersonator_id'))->toBeNull();
+});
+
+test('stopping after the super-admin account is gone signs out instead of staying in as them', function () {
+    $tenant = Tenant::factory()->create();
+    $admin = User::factory()->for($tenant)->create();
+
+    $this->actingAs($this->super)->post("/tenants/{$tenant->id}/impersonate");
+    $this->super->delete();
+
+    $this->post('/impersonate/stop')->assertRedirect(route('login'));
+    $this->assertGuest();
+});
+
+test('logging out while impersonating signs everyone out and leaves their "remember me" alone', function () {
+    $agent = User::factory()->agent()->for(Tenant::factory())->create();
+    $agent->forceFill(['remember_token' => 'agent-remember'])->save();
+
+    $this->actingAs($this->super)->post("/users/{$agent->id}/impersonate");
+    $this->post('/logout')->assertRedirect('/');
+
+    $this->assertGuest();
+    expect($agent->fresh()?->getRememberToken())->toBe('agent-remember')
+        ->and(AuditLog::query()->withoutGlobalScopes()->where('action', 'impersonate.stop')->value('user_id'))->toBe($this->super->id);
 });
 
 test('staff cannot create tenants or reach the AI console', function () {

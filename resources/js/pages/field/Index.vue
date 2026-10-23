@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import FieldVisit from '@/components/field/FieldVisit.vue';
+import ImpersonationBanner from '@/components/ImpersonationBanner.vue';
 import { useAgentTracking } from '@/composables/useAgentTracking';
 import { pruneDrafts, saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
 import { QUEUE_SYNCED, failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
@@ -159,6 +160,7 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
     <div class="bg-background text-foreground min-h-svh">
         <!-- top bar -->
         <header class="border-border bg-background sticky top-0 z-10 border-b">
+            <ImpersonationBanner />
             <div class="flex items-center gap-2 px-4 py-2.5">
                 <Link
                     href="/dashboard"

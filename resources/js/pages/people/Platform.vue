@@ -27,6 +27,7 @@ interface Row {
     name: string;
     sub: string | null;
     meta: string | null;
+    portal?: boolean; // customers: has a portal login to sign in as
 }
 
 interface TenantDetail {
@@ -50,6 +51,7 @@ interface PersonDetail {
     tenant: string | null;
     photo_url: string | null;
     is_active?: boolean;
+    login_id: number | null; // the user to sign in as; null = a customer with no portal login
 }
 
 interface Audience {
@@ -203,6 +205,10 @@ function impersonate(t: TenantDetail) {
     if (!confirm(`Sign in as ${t.name}'s admin? This is logged.`)) return;
     router.post(`/tenants/${t.id}/impersonate`);
 }
+function impersonatePerson(p: PersonDetail) {
+    if (p.login_id === null || !confirm(`Sign in as ${p.name}? This is logged.`)) return;
+    router.post(`/users/${p.login_id}/impersonate`);
+}
 
 // --- per-tenant AI (auto-save to the platform endpoint) ---
 const aiForm = reactive<{ enabled: boolean; allow_override: boolean; quota: number | string | null }>({
@@ -334,6 +340,7 @@ function closePane() {
                                                 :shape="row.type === 'tenant' ? 'square' : 'circle'"
                                             />
                                             <span class="font-medium">{{ row.name }}</span>
+                                            <Chip v-if="row.portal" tone="info" title="Has a portal login you can sign in as">Portal</Chip>
                                         </div>
                                     </td>
                                     <td class="text-muted-foreground hidden px-4 py-2.5 capitalize md:table-cell">{{ row.sub ?? '—' }}</td>
@@ -543,6 +550,14 @@ function closePane() {
                             </template>
                             <template v-if="person.type === 'agent'" #badge>
                                 <Chip :tone="person.is_active ? 'good' : 'muted'">{{ person.is_active ? 'Active' : 'Inactive' }}</Chip>
+                            </template>
+                            <p v-if="person.login_id === null" class="text-muted-foreground mt-2 text-sm">
+                                No portal login yet, so there's no account to sign in as.
+                            </p>
+                            <template v-if="person.login_id !== null" #actions>
+                                <Button size="sm" variant="outline" @click="impersonatePerson(person)"
+                                    ><LogIn class="mr-1 size-3.5" /> Sign in as them</Button
+                                >
                             </template>
                         </PaneHeader>
                         <PaneSection title="Contact">

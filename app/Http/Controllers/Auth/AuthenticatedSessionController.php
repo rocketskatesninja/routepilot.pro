@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,7 +49,16 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        // Logging out while impersonating signs the super-admin out too (it never
+        // drops them back into their own account), and only on this browser: a
+        // full logout() would reset the impersonated person's "remember me".
+        $impersonatorId = $request->session()->get('impersonator_id');
+        if ($impersonatorId !== null) {
+            AuditLog::record(User::find($impersonatorId), 'impersonate.stop', $request->user());
+            Auth::logoutCurrentDevice(); // the default (web) guard
+        } else {
+            Auth::guard('web')->logout();
+        }
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

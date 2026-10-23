@@ -11,7 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * AuditLog — an append-only record of a sensitive action (billing,
  * permissions, deletes, impersonation, exports). tenant_id is null for
- * platform-level (super-admin) actions.
+ * platform-level (super-admin) actions. impersonator_id is the super-admin
+ * behind an action taken while signed in as someone else.
  *
  * @property array<string, mixed>|null $changes
  */
@@ -23,7 +24,7 @@ class AuditLog extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'user_id', 'action', 'model_type', 'model_id', 'changes', 'ip_address',
+        'user_id', 'impersonator_id', 'action', 'model_type', 'model_id', 'changes', 'ip_address',
     ];
 
     /** @return array<string, string> */
@@ -48,6 +49,7 @@ class AuditLog extends Model
     {
         return self::create([
             'user_id' => $user?->id,
+            'impersonator_id' => request()->hasSession() ? request()->session()->get('impersonator_id') : null,
             'action' => $action,
             'model_type' => $model !== null ? $model::class : null,
             'model_id' => $model?->getKey(),

@@ -163,10 +163,11 @@ class PeopleController extends Controller
                 'tenant' => $u->tenant?->name,
                 'photo_url' => $this->photoUrl($u->getAttribute('avatar_path')),
                 'is_active' => (bool) $u->getAttribute('is_active'),
+                'login_id' => $u->id,
             ];
         }
 
-        $c = Customer::query()->with('tenant:id,name')->find($id);
+        $c = Customer::query()->with(['tenant:id,name', 'user:id,role'])->find($id);
         if ($c === null) {
             return null;
         }
@@ -179,6 +180,8 @@ class PeopleController extends Controller
             'phone' => $c->getAttribute('phone'),
             'tenant' => $c->tenant?->name,
             'photo_url' => $this->photoUrl($c->getAttribute('photo_path')),
+            // Their portal login to sign in as (null = no portal access yet).
+            'login_id' => $c->user?->role === 'customer' ? $c->user->id : null,
         ];
     }
 
@@ -199,11 +202,12 @@ class PeopleController extends Controller
                 ->orderBy('first_name')->orderBy('last_name')
                 ->paginate(25)->withQueryString()
                 ->through(fn (User $u): array => ['key' => 'agent:'.$u->id, 'id' => $u->id, 'type' => 'agent', 'name' => $u->displayName(), 'sub' => $u->getAttribute('email'), 'meta' => $u->tenant?->name]),
-            'customers' => Customer::query()->with('tenant:id,name')
+            'customers' => Customer::query()->with(['tenant:id,name', 'user:id,role'])
                 ->when($search !== '', $nameSearch)
                 ->orderBy('first_name')->orderBy('last_name')
                 ->paginate(25)->withQueryString()
-                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'id' => $c->id, 'type' => 'customer', 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name]),
+                // portal = has a login the super-admin can sign in as
+                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'id' => $c->id, 'type' => 'customer', 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name, 'portal' => $c->user?->role === 'customer']),
             default => Tenant::query()
                 ->when($search !== '', fn ($q) => $q->where('name', 'like', $like))
                 ->orderBy('name')

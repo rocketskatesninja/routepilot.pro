@@ -242,6 +242,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('tenants', [TenantController::class, 'store'])->name('tenants.store');
         Route::patch('tenants/{tenant}', [TenantController::class, 'update'])->name('tenants.update');
         Route::post('tenants/{tenant}/impersonate', [ImpersonationController::class, 'start'])->name('tenants.impersonate');
+        Route::post('users/{user}/impersonate', [ImpersonationController::class, 'user'])->name('users.impersonate');
     });
 });
 

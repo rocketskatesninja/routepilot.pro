@@ -92,6 +92,12 @@ class FieldController extends Controller
         $agent = $request->user();
         abort_unless($agent instanceof User && $agent->isStaff(), 403);
 
+        // A super-admin signed in as this agent is somewhere else: never post their
+        // position as the agent's (tracking:false also turns sharing off in the browser).
+        if ($request->session()->has('impersonator_id')) {
+            return response()->json(['tracking' => false]);
+        }
+
         $validated = $request->validate([
             'lat' => ['required', 'numeric', 'between:-90,90'],
             'lng' => ['required', 'numeric', 'between:-180,180'],
