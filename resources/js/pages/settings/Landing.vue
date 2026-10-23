@@ -30,8 +30,8 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, GripVertical, Loader2, Lock, RotateCw, Star } from 'lucide-vue-next';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Lock, RotateCw, Star } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -69,6 +69,10 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Landing page', href: '/company/landing' }];
 const brand = useSiteBrand();
+
+// The company's site (opened from the header) and the host its preview's address bar shows.
+const host = new URL((usePage().props.ziggy as { url: string }).url).host;
+const siteUrl = computed(() => `/t/${brand.value.slug}`);
 
 const sections = ref<SectionConfig[]>(clone(props.config.sections));
 const seo = ref(clone(props.config.seo));
@@ -161,18 +165,20 @@ function save() {
     </Head>
 
     <AppLayout :breadcrumbs="breadcrumbs">
+        <template #actions>
+            <span v-if="saved" class="flex items-center gap-1 text-sm text-emerald-600"><Check class="size-4" /> Saved</span>
+            <Button as="a" :href="siteUrl" target="_blank" rel="noopener" variant="outline"
+                ><ExternalLink class="mr-1 size-4" /> View your site</Button
+            >
+            <Button :disabled="saving" @click="save"><Loader2 v-if="saving" class="mr-1 size-4 animate-spin" /> Save</Button>
+        </template>
+
         <div class="flex h-full flex-1 gap-4 p-4">
             <!-- Editor -->
             <div class="flex w-full flex-col gap-3 overflow-y-auto xl:w-[30rem] xl:shrink-0">
-                <div class="flex items-center justify-between gap-2">
-                    <div>
-                        <h1 class="text-lg font-semibold">Landing page</h1>
-                        <p class="text-muted-foreground text-xs">Edits preview live · saving keeps your place</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span v-if="saved" class="flex items-center gap-1 text-sm text-emerald-600"><Check class="size-4" /> Saved</span>
-                        <Button :disabled="saving" @click="save"><Loader2 v-if="saving" class="mr-1 size-4 animate-spin" /> Save</Button>
-                    </div>
+                <div>
+                    <h1 class="text-lg font-semibold">Landing page</h1>
+                    <p class="text-muted-foreground text-xs">Edits preview live · saving keeps your place</p>
                 </div>
 
                 <EditorPanel title="SEO & social sharing" data-panel="seo" :open="open === '__seo'" @toggle="toggle('__seo')">
@@ -577,7 +583,7 @@ function save() {
                         <ArrowRight class="size-3.5 opacity-40" />
                         <RotateCw class="size-3.5" />
                         <span class="bg-background ml-1 flex flex-1 items-center gap-1.5 truncate rounded-full px-3 py-1">
-                            <Lock class="size-3 text-emerald-600" /> routepilot.pro/t/{{ brand.slug }}
+                            <Lock class="size-3 text-emerald-600" /> {{ host }}/t/{{ brand.slug }}
                         </span>
                     </div>
                     <div class="bg-background h-[calc(100vh-9rem)] overflow-y-auto">
