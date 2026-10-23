@@ -1,30 +1,18 @@
 <script setup lang="ts">
-import { Droplet, Filter, FlaskConical, ShieldCheck, Sparkles, Sun, Thermometer, Waves, Wrench } from 'lucide-vue-next';
-import { computed, type Component } from 'vue';
+import { Droplet } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { landingIcon } from '../icons';
 import { button } from '../layout';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 import { quoteAnchor } from '../visibility';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string; items?: { title?: string; body?: string; icon?: string }[] });
-const items = computed(() => c.value.items ?? []);
-
-const icons: Record<string, Component> = {
-    droplet: Droplet,
-    wrench: Wrench,
-    sparkles: Sparkles,
-    shield: ShieldCheck,
-    waves: Waves,
-    sun: Sun,
-    flask: FlaskConical,
-    thermometer: Thermometer,
-    filter: Filter,
-};
+const items = computed(() => (props.content.items ?? []) as { title?: string; body?: string; icon?: string }[]);
 </script>
 
 <template>
-    <SectionShell id="services" :heading="c.heading || 'Our services'">
+    <SectionShell :section="content">
         <template #aside>
             <a :href="quoteAnchor(onPage)" class="mt-8" :class="button">Get a free quote</a>
         </template>
@@ -36,7 +24,7 @@ const icons: Record<string, Component> = {
                         class="text-primary inline-flex size-12 shrink-0 items-center justify-center rounded-xl"
                         style="background: color-mix(in srgb, var(--tenant-primary) 13%, transparent)"
                     >
-                        <component :is="icons[it.icon || 'droplet'] || Droplet" class="size-6" />
+                        <component :is="landingIcon(it.icon) ?? Droplet" class="size-6" />
                     </span>
                     <h3 class="text-foreground text-xl font-semibold">{{ it.title }}</h3>
                 </div>

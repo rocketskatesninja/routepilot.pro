@@ -5,12 +5,11 @@ import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string; items?: { quote?: string; author?: string; location?: string }[] });
-const items = computed(() => c.value.items ?? []);
+const items = computed(() => (props.content.items ?? []) as { quote?: string; author?: string; location?: string }[]);
 </script>
 
 <template>
-    <SectionShell id="testimonials" layout="stack" :heading="c.heading || 'What our customers say'">
+    <SectionShell :section="content" layout="stack">
         <ul v-if="items.length" class="gap-6" :class="balancedGrid(items.length, 3)">
             <li v-for="(t, i) in items" :key="i">
                 <figure class="site-tint flex h-full flex-col rounded-2xl p-8">

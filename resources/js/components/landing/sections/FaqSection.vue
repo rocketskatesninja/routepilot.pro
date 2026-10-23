@@ -5,8 +5,7 @@ import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string; items?: { q?: string; a?: string }[] });
-const items = computed(() => c.value.items ?? []);
+const items = computed(() => (props.content.items ?? []) as { q?: string; a?: string }[]);
 
 // Answers stay in the DOM (v-show) so they're crawlable.
 const open = ref<number | null>(null);
@@ -14,7 +13,7 @@ const toggle = (i: number) => (open.value = open.value === i ? null : i);
 </script>
 
 <template>
-    <SectionShell id="faq" tinted :heading="c.heading || 'Frequently asked questions'">
+    <SectionShell :section="content" tinted>
         <template v-if="onPage.includes('contact')" #aside>
             <p class="text-muted-foreground mt-6 text-lg">
                 Don’t see your question?

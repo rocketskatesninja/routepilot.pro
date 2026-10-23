@@ -3,16 +3,15 @@ import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoo
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { frame } from '../layout';
+import { sectionHeading } from '../meta';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string; radius_label?: string });
 const area = computed(() => props.live.serviceArea);
 const mapsKey = computed(() => props.live.mapsKey ?? null);
 
-const heading = computed(() => c.value.heading || 'Where we serve');
-const coverage = computed(() => area.value?.radiusLabel || c.value.radius_label || 'Proudly serving your neighborhood');
+const coverage = computed(() => (props.content.radius_label as string | null) || 'Proudly serving your neighborhood');
 const canMap = computed(() => typeof area.value?.lat === 'number' && typeof area.value?.lng === 'number' && !!mapsKey.value);
 
 const mapEl = ref<HTMLElement | null>(null);
@@ -51,7 +50,7 @@ onMounted(async () => {
             <div
                 class="border-border bg-background relative -mt-10 rounded-2xl border p-8 shadow-xl @5xl:pointer-events-auto @5xl:mt-0 @5xl:max-w-md"
             >
-                <h2 class="site-heading text-foreground">{{ heading }}</h2>
+                <h2 class="site-heading text-foreground">{{ sectionHeading(content) }}</h2>
                 <p v-if="area?.formattedAddress" class="text-foreground mt-5 flex items-start gap-2 text-lg font-medium">
                     <MapPin class="text-primary mt-1 size-5 shrink-0" /> {{ area.formattedAddress }}
                 </p>
@@ -61,7 +60,7 @@ onMounted(async () => {
     </section>
 
     <!-- No map (no coordinates or no Maps key): just where they are. -->
-    <SectionShell v-else id="service_area" tinted :heading="heading">
+    <SectionShell v-else :section="content" tinted>
         <p v-if="area?.formattedAddress" class="text-foreground flex items-start gap-2 text-xl font-medium">
             <MapPin class="text-primary mt-1 size-5 shrink-0" /> {{ area.formattedAddress }}
         </p>

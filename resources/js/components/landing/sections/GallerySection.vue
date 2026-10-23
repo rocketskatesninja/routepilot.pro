@@ -6,7 +6,6 @@ import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string });
 const photos = computed(() => props.live.gallery ?? []);
 const cols = computed(() => balancedCols(photos.value.length, 4));
 
@@ -18,7 +17,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
 </script>
 
 <template>
-    <SectionShell id="gallery" layout="stack" :heading="c.heading || 'Recent work'">
+    <SectionShell :section="content" layout="stack">
         <ul
             v-if="photos.length"
             class="grid grid-cols-2 gap-2 @3xl:grid-cols-[repeat(var(--cols),minmax(0,1fr))] @3xl:gap-3"

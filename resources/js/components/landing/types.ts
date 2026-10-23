@@ -21,7 +21,7 @@ export interface LiveData {
     stats?: Record<string, number>;
     gallery?: { url: string; caption: string | null }[];
     team?: { user_id: number; name: string; title: string | null; bio: string | null; avatar: string | null }[];
-    serviceArea?: { lat: number | null; lng: number | null; formattedAddress: string | null; radiusLabel: string | null };
+    serviceArea?: { lat: number | null; lng: number | null; formattedAddress: string | null };
     services?: LandingService[];
     mapsKey?: string | null;
     contactAction?: string;
@@ -52,6 +52,10 @@ export interface TitleConfig {
     outline_color: string;
     outline_width: number;
     shadow: string;
+    /** Beside the name: 'logo' (the uploaded company logo), an icon key (icons.ts), or null for nothing. */
+    icon: string | null;
+    /** What the header shows: the mark and the name, the name alone, or the mark alone. */
+    display: 'icon_title' | 'title' | 'icon';
 }
 
 export interface SectionProps {

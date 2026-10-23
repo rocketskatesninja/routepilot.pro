@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { getCookie } from '@/lib/http';
+import { postForm } from '@/lib/http';
 import { ImagePlus, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -21,12 +21,7 @@ async function onPick(e: Event) {
     try {
         const fd = new FormData();
         fd.append('image', file);
-        const res = await fetch('/company/landing/image', {
-            method: 'POST',
-            headers: { 'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'), 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
-            credentials: 'same-origin',
-            body: fd,
-        });
+        const res = await postForm('/company/landing/image', fd);
         if (!res.ok) {
             throw new Error('upload failed');
         }

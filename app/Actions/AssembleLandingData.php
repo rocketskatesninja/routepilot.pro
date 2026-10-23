@@ -41,13 +41,8 @@ class AssembleLandingData
      */
     public function handle(Tenant $tenant, array $config): array
     {
-        $enabled = [];
-        foreach (LandingConfig::enabledOrdered($config) as $section) {
-            $key = $section['key'] ?? null;
-            if (is_string($key)) {
-                $enabled[$key] = $section;
-            }
-        }
+        // Data only for the sections that are on, so a hidden one (say, the team) isn't in the page's source.
+        $enabled = array_column(LandingConfig::enabledOrdered($config), null, 'key');
 
         $browserKey = config('services.google.browser_maps_key');
         $live = [
@@ -60,11 +55,10 @@ class AssembleLandingData
         $cached = Cache::remember(LandingCache::key((int) $tenant->id), now()->addMinutes(10), function () use ($enabled, $tenant): array {
             $out = ['stats' => $this->stats($tenant)];
             if (isset($enabled['gallery'])) {
-                $out['gallery'] = $this->gallery((int) ($enabled['gallery']['limit'] ?? 12));
+                $out['gallery'] = $this->gallery((int) $enabled['gallery']['limit']);
             }
             if (isset($enabled['team'])) {
-                $members = is_array($enabled['team']['members'] ?? null) ? $enabled['team']['members'] : [];
-                $out['team'] = $this->team($tenant, $members);
+                $out['team'] = $this->team($tenant, (array) $enabled['team']['members']);
             }
             if (isset($enabled['quote']) || isset($enabled['booking'])) {
                 $out['services'] = $this->services();
@@ -74,33 +68,27 @@ class AssembleLandingData
         });
 
         $live = array_merge($live, $cached);
-
-        // Service-area centers on the company address, unless the tenant entered a ZIP override.
         if (isset($enabled['service_area'])) {
-            $sa = $enabled['service_area'];
-            $radius = $sa['radius_label'] ?? null;
-            $center = $this->serviceAreaCenter($tenant, is_string($sa['zip'] ?? null) ? trim($sa['zip']) : '');
-            $live['serviceArea'] = [
-                'lat' => $center['lat'],
-                'lng' => $center['lng'],
-                'formattedAddress' => $center['label'],
-                'radiusLabel' => is_string($radius) ? $radius : null,
-            ];
+            $live['serviceArea'] = $this->serviceArea($tenant, $enabled['service_area']);
         }
 
         return $live;
     }
 
     /**
-     * Where-we-serve center: a tenant-entered ZIP (geocoded, cached like the weather —
-     * success 30d, failure 6h so a valid ZIP isn't blocked by a transient error) overrides
-     * the company address. Falls back to the company coords on an empty/failed geocode.
+     * Where the map centers and the place the card names: the company address,
+     * unless the company entered a ZIP (geocoded and cached: 30 days, or 6 hours
+     * after a failure so a good ZIP isn't stuck behind a blip). The caption comes
+     * from the section's own settings, so the editor's preview follows typing.
      *
-     * @return array{lat: mixed, lng: mixed, label: string|null}
+     * @param  array<string, mixed>  $section  the sanitized service_area section
+     * @return array{lat: mixed, lng: mixed, formattedAddress: string|null}
      */
-    private function serviceAreaCenter(Tenant $tenant, string $zip): array
+    private function serviceArea(Tenant $tenant, array $section): array
     {
-        if ($zip !== '') {
+        $zip = is_string($section['zip']) ? $section['zip'] : null;
+
+        if ($zip !== null) {
             $key = 'geocode_zip:'.$zip;
             $coords = Cache::get($key);
             if ($coords === null) {
@@ -109,11 +97,11 @@ class AssembleLandingData
                 Cache::put($key, $coords ?? false, $coords !== null ? now()->addDays(30) : now()->addHours(6));
             }
             if (is_array($coords) && isset($coords['lat'], $coords['lng'])) {
-                return ['lat' => $coords['lat'], 'lng' => $coords['lng'], 'label' => $zip];
+                return ['lat' => $coords['lat'], 'lng' => $coords['lng'], 'formattedAddress' => $zip];
             }
         }
 
-        return ['lat' => $tenant->lat, 'lng' => $tenant->lng, 'label' => $tenant->formattedAddress()];
+        return ['lat' => $tenant->lat, 'lng' => $tenant->lng, 'formattedAddress' => $tenant->formattedAddress()];
     }
 
     /** @return array<string, int> */
@@ -173,7 +161,7 @@ class AssembleLandingData
             ->where('is_showcase', true)
             ->whereHas('serviceVisit') // forces the tenant-scoped join — only this tenant's visits
             ->latest('id')
-            ->limit(max(1, min(24, $limit)))
+            ->limit($limit)
             ->get(['id', 'photo_path', 'caption'])
             ->map(fn (VisitPhoto $p): array => [
                 'url' => Storage::disk('public')->url((string) $p->getAttribute('photo_path')),
@@ -188,41 +176,20 @@ class AssembleLandingData
      */
     private function team(Tenant $tenant, array $members): array
     {
-        $ids = [];
-        foreach ($members as $m) {
-            if (is_array($m) && is_int($m['user_id'] ?? null)) {
-                $ids[] = $m['user_id'];
-            }
-        }
-        if ($ids === []) {
-            return [];
-        }
-
-        // User is NOT globally tenant-scoped → filter explicitly + drop foreign ids.
+        // User isn't tenant-scoped: filter by company, so someone who left (or another company's id) drops out.
         $users = User::query()
             ->where('tenant_id', $tenant->id)
-            ->whereIn('id', $ids)
             ->where('is_active', true)
+            ->whereIn('id', array_column($members, 'user_id'))
             ->get()
             ->keyBy('id');
 
         $out = [];
         foreach ($members as $m) {
-            if (! is_array($m)) {
-                continue;
+            $user = is_array($m) && is_int($m['user_id']) ? $users->get($m['user_id']) : null;
+            if ($user instanceof User) {
+                $out[] = ['user_id' => $user->id, 'name' => $user->public_name, 'title' => $m['title'], 'bio' => $m['bio'], 'avatar' => $user->avatar];
             }
-            $uid = $m['user_id'] ?? null;
-            $user = is_int($uid) ? $users->get($uid) : null;
-            if (! $user instanceof User) {
-                continue;
-            }
-            $out[] = [
-                'user_id' => $user->id,
-                'name' => $user->public_name,
-                'title' => is_string($m['title'] ?? null) ? $m['title'] : null,
-                'bio' => is_string($m['bio'] ?? null) ? $m['bio'] : null,
-                'avatar' => $user->avatar,
-            ];
         }
 
         return $out;

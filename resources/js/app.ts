@@ -13,6 +13,7 @@ import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { initializeTheme } from './composables/useAppearance';
 import { applyBrand } from './composables/useBrand';
 import { ensureUserSubscription } from './echo';
+import { pageTitle } from './lib/pageTitle';
 import type { Tenant } from './types';
 
 // Extend ImportMeta interface for Vite...
@@ -29,12 +30,15 @@ declare module 'vite/client' {
 }
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+// The page on screen, for pageTitle(): set before its <Head> renders, kept current on navigation.
+let component: string | undefined;
 
 createInertiaApp({
-    title: (title) => `${title} - ${appName}`,
+    title: (title) => pageTitle(title, component, appName),
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
         // Overlay the tenant's brand color (if any) on top of the theme.
+        component = props.initialPage.component;
         const tenant = props.initialPage.props.tenant as Tenant | null;
         applyBrand(tenant?.brand_color);
 
@@ -70,6 +74,7 @@ function syncNotificationSubscription(userId: number | null): void {
 // impersonation start/stop and cross-tenant navigation. Only act when the
 // shared tenant prop is present (skip partial reloads that omit it).
 router.on('navigate', (event) => {
+    component = event.detail.page.component;
     const props = event.detail.page.props as { tenant?: Tenant | null; auth?: { user?: { id?: number } } };
     if ('tenant' in props) {
         applyBrand(props.tenant?.brand_color);

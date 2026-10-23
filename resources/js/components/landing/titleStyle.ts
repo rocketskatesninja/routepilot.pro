@@ -1,6 +1,8 @@
 // Shared styling for the landing header company title — used by both the public
 // page (resources/js/pages/public/Landing.vue) and the builder's live preview
 // (resources/js/pages/settings/Landing.vue) so they never drift.
+import type { Component } from 'vue';
+import { landingIcon } from './icons';
 import type { TitleConfig } from './types';
 
 type FontDef = { name: string; slug: string; stack: string };
@@ -73,6 +75,33 @@ export function titleFontHref(t: TitleConfig): string | null {
     const f = TITLE_FONTS.find((x) => x.name === t.font);
     if (!f) return null;
     return `https://fonts.bunny.net/css?family=${f.slug}:400,500,600,700,800`;
+}
+
+export const TITLE_DISPLAYS = [
+    { value: 'icon_title', label: 'Icon + name' },
+    { value: 'title', label: 'Name only' },
+    { value: 'icon', label: 'Icon only' },
+] as const;
+
+export interface TitleMark {
+    /** The company logo's URL, when that's the mark. */
+    logo: string | null;
+    /** The picked icon, when that's the mark. */
+    icon: Component | null;
+    /** Whether the name shows (it always does when there's no mark to stand in for it). */
+    text: boolean;
+    /** Mark size, scaled to the title size. */
+    px: number;
+}
+
+/** What the header shows for the company: its logo or picked icon beside the name, or either alone. */
+export function titleMark(t: TitleConfig, logoUrl: string | null): TitleMark {
+    const display = t.display ?? 'icon_title';
+    const logo = display !== 'title' && t.icon === 'logo' ? logoUrl : null;
+    const icon = display !== 'title' && t.icon !== 'logo' ? landingIcon(t.icon) : null;
+    const px = Math.round(parseInt(SIZE_PX[t.size] ?? SIZE_PX.md, 10) * 1.3);
+
+    return { logo, icon, text: display !== 'icon' || (!logo && !icon), px };
 }
 
 /** The site's heading font: the company's title font, carried into every section heading. */

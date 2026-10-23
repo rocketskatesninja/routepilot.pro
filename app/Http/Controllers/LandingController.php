@@ -8,7 +8,6 @@ use App\Actions\AssembleLandingData;
 use App\Actions\SaveLandingConfig;
 use App\Http\Requests\UpdateLandingRequest;
 use App\Models\Tenant;
-use App\Models\TenantSetting;
 use App\Models\User;
 use App\Models\VisitPhoto;
 use App\Services\PhotoService;
@@ -32,26 +31,12 @@ class LandingController extends Controller
     public function edit(Request $request, AssembleLandingData $assemble): Response
     {
         $tenant = $this->tenant($request);
-        $config = LandingConfig::fromStored(TenantSetting::getFor($tenant->id, 'landing'));
-
-        // Add image_url to each section for display (image_path is kept for save).
-        $sections = [];
-        foreach (is_array($config['sections'] ?? null) ? $config['sections'] : [] as $s) {
-            if (! is_array($s)) {
-                continue;
-            }
-            if (array_key_exists('image_path', $s)) {
-                $s['image_url'] = $this->url($s['image_path']);
-            }
-            $sections[] = $s;
-        }
-        $config['sections'] = $sections;
-
-        $ogPath = is_array($config['seo'] ?? null) ? ($config['seo']['og_image'] ?? null) : null;
+        $config = LandingConfig::forTenant($tenant->id);
+        $config['sections'] = LandingConfig::withImageUrls($config['sections']);
 
         return Inertia::render('settings/Landing', [
             'config' => $config,
-            'ogImageUrl' => $this->url($ogPath),
+            'ogImageUrl' => $this->url($config['seo']['og_image']),
             'live' => $assemble->handle($tenant, $config),
             'agents' => User::query()
                 ->where('tenant_id', $tenant->id)
@@ -79,13 +64,7 @@ class LandingController extends Controller
     {
         $tenant = $this->tenant($request);
 
-        $save->handle($tenant, [
-            'sections' => $request->input('sections', []),
-            'seo' => $request->input('seo', []),
-            'theme' => $request->input('theme', []),
-            'title' => $request->input('title', []),
-            'social' => $request->input('social', []),
-        ]);
+        $save->handle($tenant, $request->only(['sections', 'seo', 'theme', 'title', 'social']));
 
         return back()->with('success', 'Landing page saved.');
     }

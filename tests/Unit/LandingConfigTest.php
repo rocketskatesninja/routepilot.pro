@@ -199,13 +199,13 @@ test('stats keep known metrics once each, in order, and whole-number overrides f
     ]]]), 'stats');
 
     expect($stats['metrics'])->toBe(['years_active', 'pools_serviced'])
-        ->and($stats['overrides'])->toBe(['pools_serviced' => 120, 'years_active' => 15, 'technicians' => 999_999_999]);
+        ->and((array) $stats['overrides'])->toBe(['pools_serviced' => 120, 'years_active' => 15, 'technicians' => 999_999_999]);
 });
 
 test('older configs get no overrides and the stats they had', function () {
     $stats = landingSection(LandingConfig::fromStored(json_encode(['sections' => [['key' => 'stats', 'enabled' => true, 'metrics' => ['pools_serviced']]]])), 'stats');
 
-    expect($stats['metrics'])->toBe(['pools_serviced'])->and($stats['overrides'])->toBe([]);
+    expect($stats['metrics'])->toBe(['pools_serviced'])->and($stats['overrides'])->toEqual(new stdClass); // {} on the page, not []
 });
 
 test('hero badges: sites start with the four old ones; picks are whitelisted, deduped and capped at six', function () {
@@ -220,15 +220,29 @@ test('hero badges: sites start with the four old ones; picks are whitelisted, de
         ->and($hero(array_slice(LandingConfig::HERO_BADGES, 0, 9))['badges'])->toHaveCount(LandingConfig::MAX_BADGES);
 });
 
-test('the badge and stat keys match the labels the site shows (components/landing)', function () {
-    $keysIn = function (string $file): array {
-        preg_match_all("/key: '([a-z_]+)'/", (string) file_get_contents(__DIR__."/../../resources/js/components/landing/{$file}"), $m);
+test('the lists in components/landing match LandingConfig (keys, presets, effects, social, default headings)', function () {
+    // The quoted values of `field: '...'` inside `export const NAME ... ];` in a components/landing file.
+    $list = function (string $file, string $const, string $field = 'key'): array {
+        $src = (string) file_get_contents(__DIR__."/../../resources/js/components/landing/{$file}");
+        preg_match('/export const '.$const.'\b.*?\n\];?/s', $src, $block);
+        preg_match_all($field === '' ? "/'([a-z_]+)'/" : "/{$field}: '([^']+)'/", $block[0] ?? '', $m);
 
         return $m[1];
     };
+    $sorted = fn (array $a): array => collect($a)->sort()->values()->all();
 
-    expect($keysIn('badges.ts'))->toBe(LandingConfig::HERO_BADGES)
-        ->and(collect($keysIn('stats.ts'))->sort()->values()->all())->toBe(collect(LandingConfig::METRICS)->sort()->values()->all());
+    expect($list('badges.ts', 'HERO_BADGES'))->toBe(LandingConfig::HERO_BADGES)
+        ->and($list('icons.ts', 'LANDING_ICONS'))->toBe(LandingConfig::ICONS)
+        ->and($sorted($list('stats.ts', 'STAT_METRICS')))->toBe($sorted(LandingConfig::METRICS))
+        ->and($list('meta.ts', 'HERO_PRESETS', ''))->toBe(LandingConfig::HERO_PRESETS)
+        ->and($list('meta.ts', 'HERO_EFFECTS', 'value'))->toBe(LandingConfig::HERO_EFFECTS)
+        ->and($list('meta.ts', 'SOCIAL_LINKS', 'value'))->toBe(LandingConfig::SOCIAL_PLATFORMS);
+
+    // A blank heading falls back to the same text a new site starts with.
+    $defaults = collect(LandingConfig::defaults()['sections'])
+        ->mapWithKeys(fn (array $s): array => [$s['key'] => $s['heading'] ?? $s['headline'] ?? null])
+        ->except(['hero'])->filter()->all();
+    expect(collect($list('meta.ts', 'SECTION_META', 'heading'))->values()->all())->toBe(array_values($defaults));
 });
 
 test('hero and stats line up left by default; only left, center or right is kept', function () {
@@ -243,4 +257,33 @@ test('hero and stats line up left by default; only left, center or right is kept
     expect(landingSection($clean, 'hero')['align'])->toBe('center')
         ->and(landingSection($clean, 'hero')['headline'])->toBe("Crystal-clear water,\nevery week") // the line break survives
         ->and(landingSection($clean, 'stats')['align'])->toBe('left');
+});
+
+test('the header shows the logo beside the name by default, including for configs saved before this setting', function () {
+    expect(LandingConfig::fromStored(null)['title'])->toMatchArray(['icon' => 'logo', 'display' => 'icon_title'])
+        ->and(LandingConfig::fromStored(json_encode(['title' => ['font' => 'Poppins']]))['title'])->toMatchArray(['icon' => 'logo', 'display' => 'icon_title']);
+});
+
+test('the title keeps a known icon, the logo or none, and one of three displays', function () {
+    $title = fn (array $t) => LandingConfig::sanitize(['title' => $t])['title'];
+
+    expect($title(['icon' => 'palmtree', 'display' => 'icon']))->toMatchArray(['icon' => 'palmtree', 'display' => 'icon'])
+        ->and($title(['icon' => 'logo'])['icon'])->toBe('logo')
+        ->and($title(['icon' => null])['icon'])->toBeNull()
+        ->and($title(['icon' => '<svg onload=x>'])['icon'])->toBeNull()
+        ->and($title([])['icon'])->toBe('logo')
+        ->and($title(['display' => 'huge'])['display'])->toBe('icon_title');
+});
+
+test('reading a stored config cleans every block, not just the sections', function () {
+    $config = LandingConfig::fromStored(json_encode([
+        'title' => ['font' => '</style><script>', 'color' => 'red', 'evil' => 1],
+        'seo' => ['title' => str_repeat('x', 500), 'og_image' => '../../.env'],
+        'social' => ['facebook' => 'javascript:alert(1)', 'myspace' => 'https://myspace.com/x'],
+    ]));
+
+    expect($config['title'])->toMatchArray(['font' => 'Inter', 'color' => null])->not->toHaveKey('evil')
+        ->and(mb_strlen((string) $config['seo']['title']))->toBe(70)
+        ->and($config['seo']['og_image'])->toBeNull()
+        ->and($config['social'])->toBe(array_fill_keys(LandingConfig::SOCIAL_PLATFORMS, null));
 });

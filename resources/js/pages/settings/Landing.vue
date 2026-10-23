@@ -1,30 +1,37 @@
 <script setup lang="ts">
-import AlignPicker from '@/components/landing/AlignPicker.vue';
 import { HERO_BADGES, MAX_BADGES } from '@/components/landing/badges';
+import { useSiteBrand } from '@/components/landing/brand';
+import { choice } from '@/components/landing/editor/choice';
+import EditorField from '@/components/landing/editor/EditorField.vue';
+import EditorItems from '@/components/landing/editor/EditorItems.vue';
+import EditorPanel from '@/components/landing/editor/EditorPanel.vue';
+import Segmented from '@/components/landing/editor/Segmented.vue';
 import FontPicker from '@/components/landing/FontPicker.vue';
 import IconPicker from '@/components/landing/IconPicker.vue';
+import { LANDING_ICONS } from '@/components/landing/icons';
 import LandingImagePicker from '@/components/landing/LandingImagePicker.vue';
+import { ALIGN_OPTIONS, HERO_BACKGROUNDS, HERO_EFFECTS, HERO_PRESETS, SECTION_META, sectionHeading, SOCIAL_LINKS } from '@/components/landing/meta';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
+import SiteTitle from '@/components/landing/SiteTitle.vue';
 import { STAT_METRICS, statOverrides } from '@/components/landing/stats';
 import {
     allTitleFontsHref,
     siteHeadingVar,
+    TITLE_DISPLAYS,
     TITLE_SHADOWS,
     TITLE_SIZES,
     TITLE_TRACKINGS,
     TITLE_WEIGHTS,
     titleFontHref,
-    titleStyle,
 } from '@/components/landing/titleStyle';
-import type { BrandContext, LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
+import type { LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Eye, EyeOff, GripVertical, Loader2, Lock, Plus, RotateCw, Star, Trash2 } from 'lucide-vue-next';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, GripVertical, Loader2, Lock, RotateCw, Star } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -38,12 +45,19 @@ interface RecentPhoto {
     url: string;
     is_showcase: boolean;
 }
+interface Member {
+    user_id: number;
+    title: string | null;
+    bio: string | null;
+}
 
+// The config arrives complete and clean (LandingConfig::forTenant), so every
+// field a control binds to already exists.
 const props = defineProps<{
     config: {
         sections: SectionConfig[];
         seo: { title: string | null; description: string | null; og_image: string | null };
-        theme: Record<string, unknown>;
+        theme: { chatbot: boolean };
         title: TitleConfig;
         social: Record<string, string | null>;
     };
@@ -54,203 +68,68 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Landing page', href: '/company/landing' }];
+const brand = useSiteBrand();
 
 const sections = ref<SectionConfig[]>(clone(props.config.sections));
-const seo = ref({ title: props.config.seo.title ?? '', description: props.config.seo.description ?? '', og_image: props.config.seo.og_image });
+const seo = ref(clone(props.config.seo));
 const ogUrl = ref(props.ogImageUrl);
 const theme = ref(clone(props.config.theme));
 const title = ref<TitleConfig>(clone(props.config.title));
-
-// Footer social links (empty string = unset → sanitized to null on save).
-const socialFields = [
-    { key: 'facebook', label: 'Facebook' },
-    { key: 'instagram', label: 'Instagram' },
-    { key: 'twitter', label: 'X (Twitter)' },
-    { key: 'linkedin', label: 'LinkedIn' },
-    { key: 'youtube', label: 'YouTube' },
-] as const;
-const social = ref<Record<string, string>>(Object.fromEntries(socialFields.map((f) => [f.key, props.config.social?.[f.key] ?? ''])));
+const social = ref(clone(props.config.social));
 const photos = ref<RecentPhoto[]>(clone(props.recentPhotos));
-
-// Load the selected title font into the editor so its live preview is accurate,
-// plus every font so the dropdown can render each option in its own typeface.
-const titleFont = computed(() => titleFontHref(title.value));
-const allFontsHref = allTitleFontsHref();
-// Solid-color opt-in: null = inherit the theme foreground (the default look).
-const useCustomColor = computed({
-    get: () => title.value.color !== null,
-    set: (on: boolean) => {
-        title.value.color = on ? (title.value.color ?? '#0f172a') : null;
-    },
-});
-
-const expanded = ref<string | null>('hero');
-const toggleOpen = (k: string) => (expanded.value = expanded.value === k ? null : k);
-
-const page = usePage();
-const tenant = page.props.tenant as { name: string; slug: string; logo_path: string | null; brand_color: string | null } | null;
-const brand = computed<BrandContext>(() => ({
-    name: tenant?.name ?? 'Pool Service',
-    slug: tenant?.slug ?? '',
-    logoUrl: tenant?.logo_path ? `/storage/${tenant.logo_path}` : null,
-    color: tenant?.brand_color ?? null,
-}));
 const enabledDraft = computed(() => sections.value.filter((s) => s.enabled));
 
-const TITLES: Record<string, string> = {
-    hero: 'Hero',
-    stats: 'Stats band',
-    services: 'Services',
-    quote: 'Instant quote',
-    gallery: 'Photo gallery',
-    team: 'Meet the team',
-    service_area: 'Service area',
-    booking: 'Online booking',
-    testimonials: 'Testimonials',
-    faq: 'FAQ',
-    cta: 'Call to action',
-    contact: 'Contact form',
-};
+// The title font in use, plus every font so the font picker can show each in its own face.
+const titleFont = computed(() => titleFontHref(title.value));
+const allFontsHref = allTitleFontsHref();
+// A solid title color is opt-in: null = the theme's text color.
+const useCustomColor = computed({
+    get: () => title.value.color !== null,
+    set: (on: boolean) => (title.value.color = on ? (title.value.color ?? '#0f172a') : null),
+});
 
-// Each section's on-page heading text, so the builder list reads the same as the live page.
-// These fallbacks mirror the section components' own defaults. hero/stats have no on-page
-// heading and aren't listed here, so they keep their descriptive TITLES label.
-const HEADING_DEFAULTS: Record<string, string> = {
-    services: 'Our services',
-    quote: 'Get an instant estimate',
-    gallery: 'Recent work',
-    team: 'Meet the team',
-    service_area: 'Where we serve',
-    booking: 'Request your first visit',
-    testimonials: 'What our customers say',
-    faq: 'Frequently asked questions',
-    cta: 'Ready for a worry-free pool?',
-    contact: 'Get in touch',
-};
+// One panel open at a time.
+const open = ref<string | null>('hero');
+const toggle = (key: string) => (open.value = open.value === key ? null : key);
+// A section's panel reads as it does on the page: its heading, else what it is.
+const panelTitle = (s: SectionConfig) => sectionHeading(s) || SECTION_META[s.key]?.name || s.key;
 
-// Label a section by its actual on-page heading: the tenant's custom value if set, else the
-// component default. CTA/hero store it as `headline`; every other section as `heading`.
-function sectionLabel(s: SectionConfig): string {
-    const fallback = HEADING_DEFAULTS[s.key];
-    if (!fallback) return TITLES[s.key] || s.key;
-    const field = s.key === 'cta' ? 'headline' : 'heading';
-    const custom = typeof s[field] === 'string' ? (s[field] as string).trim() : '';
-    return custom || fallback;
-}
-const taClass = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
-const HERO_PRESETS = [
-    'backyard',
-    'cityscape',
-    'infinity',
-    'islands',
-    'night',
-    'patio',
-    'resort',
-    'skyline',
-    'sunset',
-    'tiles',
-    'underwater',
-    'water',
-];
-const strOr = (v: unknown, d: string): string => (typeof v === 'string' && v !== '' ? v : d);
-const numOr = (v: unknown, d: number): number => (typeof v === 'number' ? v : d);
-function fxOf(s: SectionConfig): Record<string, unknown> {
-    if (typeof s.effects !== 'object' || s.effects === null || Array.isArray(s.effects)) {
-        s.effects = {};
-    }
-    return s.effects as Record<string, unknown>;
+const textarea = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm';
+const select = 'border-input bg-background h-9 w-full rounded-md border px-2 text-sm';
+
+// Add a key to a picked list (badges, stats), or take it off.
+function flip(list: string[], key: string) {
+    const i = list.indexOf(key);
+    if (i >= 0) list.splice(i, 1);
+    else list.push(key);
 }
 
-// --- mutation helpers (operate on local draft state; preview is reactive) ---
-function itemsOf(s: SectionConfig): Record<string, unknown>[] {
-    if (!Array.isArray(s.items)) {
-        s.items = [];
-    }
-    return s.items as Record<string, unknown>[];
-}
-const addItem = (s: SectionConfig, blank: Record<string, unknown>) => itemsOf(s).push({ ...blank });
-const removeItem = (s: SectionConfig, i: number) => itemsOf(s).splice(i, 1);
-
-// A picked-keys list on a section (stats `metrics`, hero `badges`): toggling adds to the end or removes.
-function listOf(s: SectionConfig, field: 'metrics' | 'badges'): string[] {
-    if (!Array.isArray(s[field])) {
-        s[field] = [];
-    }
-    return s[field] as string[];
-}
-function toggleIn(s: SectionConfig, field: 'metrics' | 'badges', key: string) {
-    const a = listOf(s, field);
-    const i = a.indexOf(key);
-    if (i >= 0) {
-        a.splice(i, 1);
-    } else {
-        a.push(key);
-    }
+// A stat's own number: blank (or not a number) = the live count, which Reset also goes back to.
+function setOverride(s: SectionConfig, key: string, raw: string | number) {
+    const n = Number.parseInt(String(raw), 10);
+    if (Number.isNaN(n) || n < 0) delete statOverrides(s)[key];
+    else statOverrides(s)[key] = n;
 }
 
-// A stat's own number: blank = the live count; Reset clears it back to that.
-// (An empty overrides map arrives from PHP as [] — swap it for an object so keys stick.)
-function setOverride(s: SectionConfig, key: string, raw: string) {
-    const o = { ...statOverrides(s) };
-    const n = Number.parseInt(raw, 10);
-    if (raw.trim() === '' || Number.isNaN(n) || n < 0) {
-        delete o[key];
-    } else {
-        o[key] = n;
-    }
-    s.overrides = o;
-}
-function resetOverride(s: SectionConfig, key: string) {
-    const o = { ...statOverrides(s) };
-    delete o[key];
-    s.overrides = o;
-}
-
-interface Member {
-    user_id: number;
-    title: string;
-    bio: string;
-}
-function membersOf(s: SectionConfig): Member[] {
-    if (!Array.isArray(s.members)) {
-        s.members = [];
-    }
-    return s.members as Member[];
-}
-const memberOf = (s: SectionConfig, id: number) => membersOf(s).find((m) => m.user_id === id);
+// Team members: an agent is on the site once ticked, with an optional title and bio.
+const memberOf = (s: SectionConfig, id: number) => (s.members as Member[]).find((m) => m.user_id === id);
 function toggleMember(s: SectionConfig, id: number) {
-    const a = membersOf(s);
-    const i = a.findIndex((m) => m.user_id === id);
-    if (i >= 0) {
-        a.splice(i, 1);
-    } else {
-        a.push({ user_id: id, title: '', bio: '' });
-    }
-}
-function setMember(s: SectionConfig, id: number, field: 'title' | 'bio', val: string) {
-    const m = memberOf(s, id);
-    if (m) {
-        m[field] = val;
-    }
+    const members = s.members as Member[];
+    const i = members.findIndex((m) => m.user_id === id);
+    if (i >= 0) members.splice(i, 1);
+    else members.push({ user_id: id, title: null, bio: null });
 }
 
-function onHeroUpload(s: SectionConfig, e: { path: string; url: string }) {
-    s.image_path = e.path;
-    s.image_url = e.url;
-}
-const heroUrl = (s: SectionConfig): string | null => (typeof s.image_url === 'string' ? s.image_url : null);
-function onOgUpload(e: { path: string; url: string }) {
-    seo.value.og_image = e.path;
-    ogUrl.value = e.url;
-}
-
-// Gallery curation persists immediately (the showcase flag is live data).
+// Featuring a photo saves at once (it's live data, not part of the config). The tile flips
+// straight away and back if the save fails; `async` keeps a quick run of taps from
+// cancelling each other (each waited on its own visit before, so most were lost on screen).
 function toggleShowcase(p: RecentPhoto) {
     const next = !p.is_showcase;
+    p.is_showcase = next;
     router.post(
         `/photos/${p.id}/showcase`,
         { is_showcase: next },
-        { preserveScroll: true, preserveState: true, onSuccess: () => (p.is_showcase = next) },
+        { async: true, preserveScroll: true, preserveState: true, onError: () => (p.is_showcase = !next) },
     );
 }
 
@@ -261,13 +140,7 @@ function save() {
     saved.value = false;
     router.post(
         '/company/landing',
-        {
-            sections: sections.value,
-            seo: { title: seo.value.title, description: seo.value.description, og_image: seo.value.og_image },
-            theme: theme.value,
-            title: title.value,
-            social: social.value,
-        },
+        { sections: sections.value, seo: seo.value, theme: theme.value, title: title.value, social: social.value },
         {
             preserveScroll: true,
             preserveState: true,
@@ -302,114 +175,97 @@ function save() {
                     </div>
                 </div>
 
-                <!-- SEO -->
-                <div class="border-border rounded-xl border">
-                    <button
-                        type="button"
-                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
-                        @click="toggleOpen('__seo')"
-                    >
-                        SEO &amp; social sharing
-                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__seo' ? 'rotate-180' : ''" />
-                    </button>
-                    <div v-show="expanded === '__seo'" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
-                        <div class="grid gap-1">
-                            <Label>Page title</Label><Input v-model="seo.title" placeholder="Acme Pools — Weekly Pool Service" />
-                        </div>
-                        <div class="grid gap-1">
-                            <Label>Description</Label
-                            ><textarea v-model="seo.description" rows="2" :class="taClass" placeholder="Reliable weekly pool service in…" />
-                        </div>
-                        <div class="grid gap-1">
-                            <Label>Social share image</Label><LandingImagePicker :url="ogUrl" label="image" @uploaded="onOgUpload" />
-                        </div>
+                <EditorPanel title="SEO & social sharing" data-panel="seo" :open="open === '__seo'" @toggle="toggle('__seo')">
+                    <EditorField label="Page title"><Input v-model="seo.title" placeholder="Acme Pools — Weekly Pool Service" /></EditorField>
+                    <EditorField label="Description">
+                        <textarea v-model="seo.description" rows="2" :class="textarea" placeholder="Reliable weekly pool service in…" />
+                    </EditorField>
+                    <EditorField label="Social share image">
+                        <LandingImagePicker :url="ogUrl" label="image" @uploaded="(e) => ((seo.og_image = e.path), (ogUrl = e.url))" />
+                    </EditorField>
+                </EditorPanel>
+
+                <EditorPanel title="Social links" data-panel="social" :open="open === '__social'" @toggle="toggle('__social')">
+                    <p class="text-muted-foreground text-xs">Links for the footer icons. Leave a field blank to hide that icon.</p>
+                    <EditorField v-for="l in SOCIAL_LINKS" :key="l.value" :label="l.label">
+                        <Input v-model="social[l.value]" type="url" placeholder="https://…" />
+                    </EditorField>
+                </EditorPanel>
+
+                <EditorPanel title="Company title" data-panel="title" :open="open === '__title'" @toggle="toggle('__title')">
+                    <!-- Exactly what the site header shows. -->
+                    <div class="border-border bg-background flex min-h-14 items-center justify-center overflow-hidden rounded-lg border px-4 py-3">
+                        <SiteTitle :title="title" :logo-url="brand.logoUrl" :name="brand.name" />
                     </div>
-                </div>
-
-                <!-- Social links -->
-                <div class="border-border rounded-xl border">
-                    <button
-                        type="button"
-                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
-                        @click="toggleOpen('__social')"
-                    >
-                        Social links
-                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__social' ? 'rotate-180' : ''" />
-                    </button>
-                    <div v-show="expanded === '__social'" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
-                        <p class="text-muted-foreground text-xs">Links for the footer icons — leave a field blank to hide that icon.</p>
-                        <div v-for="f in socialFields" :key="f.key" class="grid gap-1">
-                            <Label>{{ f.label }}</Label>
-                            <Input v-model="social[f.key]" type="url" placeholder="https://…" />
+                    <EditorField label="Title text" hint="Blank uses your company name.">
+                        <Input v-model="title.text" placeholder="Your company name" />
+                    </EditorField>
+                    <EditorField label="Icon beside the name">
+                        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Icon beside the name">
+                            <button
+                                type="button"
+                                :aria-pressed="title.icon === null"
+                                class="h-10 rounded-md border px-3 text-xs"
+                                :class="choice(title.icon === null)"
+                                @click="title.icon = null"
+                            >
+                                None
+                            </button>
+                            <button
+                                type="button"
+                                :aria-pressed="title.icon === 'logo'"
+                                class="flex h-10 items-center gap-1.5 rounded-md border px-2.5 text-xs"
+                                :class="choice(title.icon === 'logo')"
+                                @click="title.icon = 'logo'"
+                            >
+                                <img v-if="brand.logoUrl" :src="brand.logoUrl" alt="" class="size-6 rounded object-contain" /> Logo
+                            </button>
+                            <button
+                                v-for="ic in LANDING_ICONS"
+                                :key="ic.key"
+                                type="button"
+                                :title="ic.label"
+                                :aria-label="ic.label"
+                                :aria-pressed="title.icon === ic.key"
+                                class="flex size-10 items-center justify-center rounded-md border"
+                                :class="choice(title.icon === ic.key)"
+                                @click="title.icon = ic.key"
+                            >
+                                <component :is="ic.icon" class="size-5" />
+                            </button>
                         </div>
+                        <template v-if="title.icon === 'logo' && !brand.logoUrl" #hint>
+                            No logo uploaded yet, so nothing shows.
+                            <Link href="/company" class="text-primary underline-offset-4 hover:underline">Add one in Company settings</Link>, or pick
+                            an icon.
+                        </template>
+                    </EditorField>
+                    <EditorField label="Show in header"><Segmented v-model="title.display" :options="TITLE_DISPLAYS" /></EditorField>
+                    <EditorField label="Size"><Segmented v-model="title.size" :options="TITLE_SIZES" /></EditorField>
+                    <div class="grid grid-cols-2 gap-3">
+                        <EditorField label="Font"><FontPicker v-model="title.font" /></EditorField>
+                        <EditorField label="Shadow">
+                            <select v-model="title.shadow" :class="select">
+                                <option v-for="o in TITLE_SHADOWS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                            </select>
+                        </EditorField>
+                        <EditorField label="Weight">
+                            <select v-model="title.weight" :class="select">
+                                <option v-for="o in TITLE_WEIGHTS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                            </select>
+                        </EditorField>
+                        <EditorField label="Spacing">
+                            <select v-model="title.tracking" :class="select">
+                                <option v-for="o in TITLE_TRACKINGS" :key="o.value" :value="o.value">{{ o.label }}</option>
+                            </select>
+                        </EditorField>
                     </div>
-                </div>
-
-                <!-- Company title -->
-                <div class="border-border rounded-xl border">
-                    <button
-                        type="button"
-                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
-                        @click="toggleOpen('__title')"
-                    >
-                        Company title
-                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__title' ? 'rotate-180' : ''" />
-                    </button>
-                    <div v-show="expanded === '__title'" class="border-border bg-muted/20 space-y-3 border-t p-4 text-sm">
-                        <!-- Live preview of the styled title, on a header-like background. -->
-                        <div
-                            class="border-border bg-background flex min-h-14 items-center justify-center overflow-hidden rounded-lg border px-4 py-3"
-                        >
-                            <span class="whitespace-nowrap" :style="titleStyle(title)">{{ title.text || 'Company Name' }}</span>
-                        </div>
-
-                        <div class="grid gap-1">
-                            <Label>Title text <span class="text-muted-foreground font-normal">(blank = company name)</span></Label>
-                            <Input v-model="title.text" placeholder="Your company name" />
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="grid gap-1">
-                                <Label>Font</Label>
-                                <FontPicker v-model="title.font" />
-                            </div>
-                            <div class="grid gap-1">
-                                <Label>Shadow</Label>
-                                <select v-model="title.shadow" class="border-input bg-background h-9 w-full rounded-md border px-2 text-sm">
-                                    <option v-for="o in TITLE_SHADOWS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-2">
-                            <div class="grid gap-1">
-                                <Label>Size</Label>
-                                <select v-model="title.size" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                    <option v-for="o in TITLE_SIZES" :key="o.value" :value="o.value">{{ o.label }}</option>
-                                </select>
-                            </div>
-                            <div class="grid gap-1">
-                                <Label>Weight</Label>
-                                <select v-model="title.weight" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                    <option v-for="o in TITLE_WEIGHTS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                                </select>
-                            </div>
-                            <div class="grid gap-1">
-                                <Label>Spacing</Label>
-                                <select v-model="title.tracking" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                    <option v-for="o in TITLE_TRACKINGS" :key="o.value" :value="o.value">{{ o.label }}</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid gap-1">
-                            <Label>Color</Label>
-                            <div class="flex items-center gap-4">
-                                <label class="flex items-center gap-1.5"><input v-model="title.color_type" type="radio" value="solid" /> Solid</label>
-                                <label class="flex items-center gap-1.5"
-                                    ><input v-model="title.color_type" type="radio" value="gradient" /> Gradient</label
-                                >
-                            </div>
+                    <EditorField label="Color">
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-1.5"><input v-model="title.color_type" type="radio" value="solid" /> Solid</label>
+                            <label class="flex items-center gap-1.5"
+                                ><input v-model="title.color_type" type="radio" value="gradient" /> Gradient</label
+                            >
                         </div>
                         <div v-if="title.color_type === 'solid'" class="flex items-center gap-2">
                             <label class="flex items-center gap-1.5"
@@ -426,62 +282,43 @@ function save() {
                             <input v-model="title.gradient_start" type="color" class="border-input h-8 w-9 rounded border" title="Start color" />
                             <input v-model="title.gradient_via" type="color" class="border-input h-8 w-9 rounded border" title="Middle color" />
                             <input v-model="title.gradient_end" type="color" class="border-input h-8 w-9 rounded border" title="End color" />
-                            <div class="ml-auto flex items-center gap-1.5">
-                                <Label class="text-xs">Angle</Label>
-                                <Input v-model.number="title.gradient_angle" type="number" min="0" max="360" class="w-16" />
-                            </div>
+                            <label class="ml-auto flex items-center gap-1.5 text-xs">
+                                Angle <Input v-model.number="title.gradient_angle" type="number" min="0" max="360" class="w-16" />
+                            </label>
                         </div>
-
-                        <div class="flex items-center gap-2">
-                            <label class="flex items-center gap-1.5"
-                                ><input v-model="title.outline" type="checkbox" class="border-input size-4 rounded" /> Outline</label
-                            >
-                            <template v-if="title.outline">
-                                <input v-model="title.outline_color" type="color" class="border-input h-8 w-9 rounded border" title="Outline color" />
-                                <select v-model.number="title.outline_width" class="border-input bg-background h-8 rounded-md border px-2 text-sm">
-                                    <option :value="1">Thin</option>
-                                    <option :value="2">Medium</option>
-                                    <option :value="3">Thick</option>
-                                </select>
-                            </template>
-                        </div>
+                    </EditorField>
+                    <div class="flex items-center gap-2">
+                        <label class="flex items-center gap-1.5"
+                            ><input v-model="title.outline" type="checkbox" class="border-input size-4 rounded" /> Outline</label
+                        >
+                        <template v-if="title.outline">
+                            <input v-model="title.outline_color" type="color" class="border-input h-8 w-9 rounded border" title="Outline color" />
+                            <select v-model.number="title.outline_width" class="border-input bg-background h-8 rounded-md border px-2 text-sm">
+                                <option :value="1">Thin</option>
+                                <option :value="2">Medium</option>
+                                <option :value="3">Thick</option>
+                            </select>
+                        </template>
                     </div>
-                </div>
+                </EditorPanel>
 
-                <!-- AI chat assistant -->
-                <div class="border-border rounded-xl border">
-                    <button
-                        type="button"
-                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium"
-                        @click="toggleOpen('__chat')"
-                    >
-                        AI chat assistant
-                        <ChevronDown class="text-muted-foreground size-4 transition-transform" :class="expanded === '__chat' ? 'rotate-180' : ''" />
-                    </button>
-                    <div v-show="expanded === '__chat'" class="border-border bg-muted/20 space-y-2 border-t p-4 text-sm">
+                <EditorPanel title="AI chat assistant" data-panel="chat" :open="open === '__chat'" @toggle="toggle('__chat')">
+                    <EditorField hint="Answers visitor questions and captures leads. Uses your AI allowance; appears only while AI is configured.">
                         <label class="flex items-center gap-2">
-                            <input v-model="theme.chatbot" type="checkbox" class="border-input size-4 rounded" />
-                            <span>Show a lead-capture chat widget on the public site</span>
+                            <input v-model="theme.chatbot" type="checkbox" class="border-input size-4 rounded" /> Show a lead-capture chat widget on
+                            the public site
                         </label>
-                        <p class="text-muted-foreground text-xs">
-                            Answers visitor questions and captures leads. Uses your AI allowance; appears only while AI is configured.
-                        </p>
-                    </div>
-                </div>
+                    </EditorField>
+                </EditorPanel>
 
-                <!-- Sections -->
+                <!-- The page's sections: drag to reorder, the eye shows or hides one. -->
                 <draggable v-model="sections" item-key="key" handle=".drag-handle" :animation="150" class="space-y-2">
                     <template #item="{ element: s }">
-                        <div class="border-border rounded-xl border">
-                            <div class="flex items-center gap-2 px-3 py-2.5">
+                        <EditorPanel :title="panelTitle(s)" :data-panel="s.key" :open="open === s.key" @toggle="toggle(s.key)">
+                            <template #before>
                                 <GripVertical class="drag-handle text-muted-foreground size-4 shrink-0 cursor-grab active:cursor-grabbing" />
-                                <button type="button" class="flex flex-1 items-center gap-2 text-left text-sm font-medium" @click="toggleOpen(s.key)">
-                                    {{ sectionLabel(s) }}
-                                    <ChevronDown
-                                        class="text-muted-foreground size-4 transition-transform"
-                                        :class="expanded === s.key ? 'rotate-180' : ''"
-                                    />
-                                </button>
+                            </template>
+                            <template #after>
                                 <button
                                     type="button"
                                     :title="s.enabled ? 'Visible — click to hide' : 'Hidden — click to show'"
@@ -490,435 +327,244 @@ function save() {
                                 >
                                     <Eye v-if="s.enabled" class="size-4" /><EyeOff v-else class="size-4" />
                                 </button>
-                            </div>
+                            </template>
 
-                            <!-- The hero has the most settings, so its groups get more room between them. -->
-                            <div
-                                v-show="expanded === s.key"
-                                class="border-border bg-muted/20 border-t p-4 text-sm"
-                                :class="s.key === 'hero' ? 'space-y-6' : 'space-y-3'"
-                            >
-                                <!-- HERO -->
-                                <template v-if="s.key === 'hero'">
-                                    <div class="grid gap-1">
-                                        <Label>Headline</Label><textarea v-model="s.headline" rows="2" :class="taClass" />
-                                        <p class="text-muted-foreground text-xs">Press Enter to start a new line.</p>
-                                    </div>
-                                    <div class="grid gap-1"><Label>Subheadline</Label><textarea v-model="s.subhead" rows="2" :class="taClass" /></div>
-                                    <div class="grid gap-1"><Label>Text alignment</Label><AlignPicker v-model="s.align" /></div>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="grid gap-1"><Label>Button text</Label><Input v-model="s.cta_label" /></div>
-                                        <div class="grid gap-1">
-                                            <Label>Button target</Label><Input v-model="s.cta_anchor" placeholder="contact" />
-                                        </div>
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <div class="flex items-baseline justify-between gap-2">
-                                            <Label>Badges · {{ listOf(s, 'badges').length }} of {{ MAX_BADGES }}</Label>
-                                            <button
-                                                v-if="listOf(s, 'badges').length"
-                                                type="button"
-                                                class="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
-                                                @click="s.badges = []"
-                                            >
-                                                Turn all off
-                                            </button>
-                                        </div>
-                                        <p class="text-muted-foreground text-xs">Shown under the headline. Only pick what’s true of your business.</p>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            <button
-                                                v-for="b in HERO_BADGES"
-                                                :key="b.key"
-                                                type="button"
-                                                :aria-pressed="listOf(s, 'badges').includes(b.key)"
-                                                :disabled="!listOf(s, 'badges').includes(b.key) && listOf(s, 'badges').length >= MAX_BADGES"
-                                                class="rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40"
-                                                :class="
-                                                    listOf(s, 'badges').includes(b.key)
-                                                        ? 'border-primary bg-primary text-primary-foreground'
-                                                        : 'border-input bg-background hover:bg-muted'
-                                                "
-                                                @click="toggleIn(s, 'badges', b.key)"
-                                            >
-                                                {{ b.label }}
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="grid gap-1">
-                                            <Label>Headline size</Label>
-                                            <div class="flex gap-1">
-                                                <button
-                                                    v-for="sz in ['sm', 'md', 'lg', 'xl']"
-                                                    :key="sz"
-                                                    type="button"
-                                                    class="flex-1 rounded-md border py-1 text-xs uppercase"
-                                                    :class="
-                                                        (s.headline_size || 'lg') === sz
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-border'
-                                                    "
-                                                    @click="s.headline_size = sz"
-                                                >
-                                                    {{ sz }}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="grid gap-1">
-                                            <Label>Width · {{ numOr(s.headline_max_width, 56) }}rem</Label>
-                                            <input
-                                                type="range"
-                                                min="32"
-                                                max="80"
-                                                :value="numOr(s.headline_max_width, 56)"
-                                                class="mt-2 w-full"
-                                                @input="s.headline_max_width = Number(($event.target as HTMLInputElement).value)"
-                                            />
-                                        </div>
-                                    </div>
+                            <!-- Every section with a heading or a blurb gets these first. -->
+                            <EditorField v-if="'heading' in s" label="Heading"><Input v-model="s.heading" /></EditorField>
+                            <EditorField v-if="'blurb' in s" label="Blurb"><textarea v-model="s.blurb" rows="2" :class="textarea" /></EditorField>
 
-                                    <div class="grid gap-1.5">
-                                        <Label>Background</Label>
-                                        <div class="flex gap-1">
-                                            <button
-                                                v-for="[bt, bl] in [
-                                                    ['preset', 'Preset'],
-                                                    ['image', 'Upload'],
-                                                    ['gradient', 'Gradient'],
-                                                ]"
-                                                :key="bt"
-                                                type="button"
-                                                class="flex-1 rounded-md border py-1 text-xs"
-                                                :class="
-                                                    (s.bg_type || 'preset') === bt ? 'border-primary bg-primary/10 text-primary' : 'border-border'
-                                                "
-                                                @click="s.bg_type = bt"
-                                            >
-                                                {{ bl }}
-                                            </button>
-                                        </div>
-                                        <div v-if="(s.bg_type || 'preset') === 'preset'" class="grid grid-cols-4 gap-2">
-                                            <button
-                                                v-for="p in HERO_PRESETS"
-                                                :key="p"
-                                                type="button"
-                                                class="overflow-hidden rounded-md border-2"
-                                                :class="(s.preset || 'backyard') === p ? 'border-primary' : 'border-transparent'"
-                                                @click="s.preset = p"
-                                            >
-                                                <img
-                                                    :src="`/assets/images/hero-presets/${p}.jpg`"
-                                                    :alt="p"
-                                                    loading="lazy"
-                                                    class="h-11 w-full object-cover"
-                                                />
-                                            </button>
-                                        </div>
-                                        <LandingImagePicker
-                                            v-else-if="s.bg_type === 'image'"
-                                            :url="heroUrl(s)"
-                                            label="hero image"
-                                            @uploaded="(e) => onHeroUpload(s, e)"
-                                        />
-                                        <div v-else class="grid grid-cols-2 gap-3">
-                                            <div class="grid gap-1">
-                                                <Label class="text-xs">Top color</Label
-                                                ><input
-                                                    type="color"
-                                                    :value="strOr(s.gradient_start, '#0f172a')"
-                                                    class="border-input h-9 w-full rounded border"
-                                                    @input="s.gradient_start = ($event.target as HTMLInputElement).value"
-                                                />
-                                            </div>
-                                            <div class="grid gap-1">
-                                                <Label class="text-xs">Bottom color</Label
-                                                ><input
-                                                    type="color"
-                                                    :value="strOr(s.gradient_end, '#0369a1')"
-                                                    class="border-input h-9 w-full rounded border"
-                                                    @input="s.gradient_end = ($event.target as HTMLInputElement).value"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="grid gap-1.5">
-                                        <Label>Effects</Label>
-                                        <div class="grid grid-cols-2 gap-x-4 gap-y-2">
-                                            <label class="flex items-center gap-2"
-                                                ><input
-                                                    type="checkbox"
-                                                    :checked="!!fxOf(s).ken_burns"
-                                                    @change="fxOf(s).ken_burns = ($event.target as HTMLInputElement).checked"
-                                                />
-                                                Ken Burns zoom</label
-                                            >
-                                            <label class="flex items-center gap-2"
-                                                ><input
-                                                    type="checkbox"
-                                                    :checked="!!fxOf(s).cta_glow"
-                                                    @change="fxOf(s).cta_glow = ($event.target as HTMLInputElement).checked"
-                                                />
-                                                Button glow</label
-                                            >
-                                            <label class="flex items-center gap-2"
-                                                ><input
-                                                    type="checkbox"
-                                                    :checked="!!fxOf(s).scroll_cue"
-                                                    @change="fxOf(s).scroll_cue = ($event.target as HTMLInputElement).checked"
-                                                />
-                                                Scroll-down arrow</label
-                                            >
-                                            <label class="flex items-center gap-2"
-                                                ><input
-                                                    type="checkbox"
-                                                    :checked="!!fxOf(s).dark_overlay"
-                                                    @change="fxOf(s).dark_overlay = ($event.target as HTMLInputElement).checked"
-                                                />
-                                                Dark overlay</label
-                                            >
-                                            <label class="flex items-center gap-2"
-                                                ><input
-                                                    type="checkbox"
-                                                    :checked="!!fxOf(s).dot_matrix"
-                                                    @change="fxOf(s).dot_matrix = ($event.target as HTMLInputElement).checked"
-                                                />
-                                                Dot matrix</label
-                                            >
-                                            <label class="flex items-center gap-2"
-                                                ><input
-                                                    type="checkbox"
-                                                    :checked="!!fxOf(s).vignette"
-                                                    @change="fxOf(s).vignette = ($event.target as HTMLInputElement).checked"
-                                                />
-                                                Vignette</label
-                                            >
-                                        </div>
-                                        <div v-if="fxOf(s).dark_overlay">
-                                            <Label class="text-xs">Overlay · {{ fxOf(s).overlay_opacity ?? 40 }}%</Label>
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="90"
-                                                :value="numOr(fxOf(s).overlay_opacity, 40)"
-                                                class="mt-1 w-full"
-                                                @input="fxOf(s).overlay_opacity = Number(($event.target as HTMLInputElement).value)"
-                                            />
-                                        </div>
-                                    </div>
-                                </template>
-
-                                <!-- STATS -->
-                                <template v-else-if="s.key === 'stats'">
-                                    <p class="text-muted-foreground text-xs">
-                                        Tick the numbers to show. Each shows your live count unless you type your own; Reset goes back to the live
-                                        count. A number at 0 stays hidden.
-                                    </p>
-                                    <div class="grid gap-1"><Label>Alignment</Label><AlignPicker v-model="s.align" /></div>
-                                    <ul class="grid gap-2">
-                                        <li v-for="m in STAT_METRICS" :key="m.key" class="flex items-center gap-2">
-                                            <label class="flex min-w-0 flex-1 items-center gap-2">
-                                                <input
-                                                    type="checkbox"
-                                                    :checked="listOf(s, 'metrics').includes(m.key)"
-                                                    @change="toggleIn(s, 'metrics', m.key)"
-                                                />
-                                                <span class="truncate">{{ m.label }}</span>
-                                            </label>
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                inputmode="numeric"
-                                                class="h-8 w-28"
-                                                :aria-label="`Your own number for ${m.label}`"
-                                                :placeholder="`${live.stats?.[m.key] ?? 0} live`"
-                                                :model-value="statOverrides(s)[m.key] ?? ''"
-                                                @update:model-value="(v) => setOverride(s, m.key, String(v))"
-                                            />
-                                            <button
-                                                type="button"
-                                                class="text-muted-foreground hover:text-foreground w-10 text-xs disabled:invisible"
-                                                :disabled="statOverrides(s)[m.key] === undefined"
-                                                @click="resetOverride(s, m.key)"
-                                            >
-                                                Reset
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </template>
-
-                                <!-- SERVICES -->
-                                <template v-else-if="s.key === 'services'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="border-border bg-background space-y-2 rounded-lg border p-3">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-muted-foreground text-xs font-medium">Service {{ i + 1 }}</span
-                                            ><button type="button" @click="removeItem(s, i)">
-                                                <Trash2 class="text-muted-foreground size-4 hover:text-red-600" />
-                                            </button>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <IconPicker v-model="it.icon" />
-                                            <Input v-model="it.title" placeholder="Title" class="flex-1" />
-                                        </div>
-                                        <textarea v-model="it.body" rows="2" :class="taClass" placeholder="Description" />
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" @click="addItem(s, { title: '', body: '', icon: 'droplet' })"
-                                        ><Plus class="mr-1 size-3.5" /> Add service</Button
-                                    >
-                                </template>
-
-                                <!-- GALLERY -->
-                                <template v-else-if="s.key === 'gallery'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div class="grid gap-1">
-                                        <Label>Max photos</Label><Input v-model.number="s.limit" type="number" min="1" max="24" class="w-24" />
-                                    </div>
-                                    <div>
-                                        <Label
-                                            >Featured photos
-                                            <span class="text-muted-foreground font-normal">(tap to feature on your site)</span></Label
+                            <template v-if="s.key === 'hero'">
+                                <EditorField label="Headline" hint="Press Enter to start a new line.">
+                                    <textarea v-model="s.headline" rows="2" :class="textarea" />
+                                </EditorField>
+                                <EditorField label="Subheadline"><textarea v-model="s.subhead" rows="2" :class="textarea" /></EditorField>
+                                <EditorField label="Text alignment"><Segmented v-model="s.align" :options="ALIGN_OPTIONS" /></EditorField>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <EditorField label="Button text"><Input v-model="s.cta_label" /></EditorField>
+                                    <EditorField label="Button target"><Input v-model="s.cta_anchor" placeholder="contact" /></EditorField>
+                                </div>
+                                <EditorField hint="Shown under the headline. Only pick what’s true of your business.">
+                                    <template #label>Badges · {{ s.badges.length }} of {{ MAX_BADGES }}</template>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <button
+                                            v-for="b in HERO_BADGES"
+                                            :key="b.key"
+                                            type="button"
+                                            :aria-pressed="s.badges.includes(b.key)"
+                                            :disabled="!s.badges.includes(b.key) && s.badges.length >= MAX_BADGES"
+                                            class="rounded-full border px-2.5 py-1 text-xs font-medium disabled:opacity-40"
+                                            :class="choice(s.badges.includes(b.key))"
+                                            @click="flip(s.badges, b.key)"
                                         >
-                                        <p v-if="!photos.length" class="text-muted-foreground mt-1 text-xs">
-                                            No visit photos yet — photos your team uploads on visits will appear here to feature.
-                                        </p>
-                                        <div v-else class="mt-2 grid grid-cols-4 gap-2">
-                                            <button
-                                                v-for="p in photos"
-                                                :key="p.id"
-                                                type="button"
-                                                class="relative aspect-square overflow-hidden rounded-md border-2"
-                                                :class="p.is_showcase ? 'border-primary' : 'border-border'"
-                                                @click="toggleShowcase(p)"
-                                            >
-                                                <img
-                                                    :src="p.url"
-                                                    alt=""
-                                                    class="h-full w-full object-cover"
-                                                    :class="p.is_showcase ? '' : 'opacity-60'"
-                                                />
-                                                <span
-                                                    v-if="p.is_showcase"
-                                                    class="bg-primary text-primary-foreground absolute top-1 right-1 rounded-full p-0.5"
-                                                    ><Star class="size-3"
-                                                /></span>
-                                            </button>
-                                        </div>
+                                            {{ b.label }}
+                                        </button>
                                     </div>
-                                </template>
-
-                                <!-- TEAM -->
-                                <template v-else-if="s.key === 'team'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <p v-if="!agents.length" class="text-muted-foreground text-xs">No team members to show yet.</p>
-                                    <div v-for="a in agents" :key="a.id" class="border-border bg-background rounded-lg border p-3">
-                                        <div class="flex items-center gap-3">
-                                            <label class="flex flex-1 items-center gap-2 font-medium"
-                                                ><input type="checkbox" :checked="!!memberOf(s, a.id)" @change="toggleMember(s, a.id)" />
-                                                {{ a.name }}</label
-                                            >
-                                            <Input
-                                                v-if="memberOf(s, a.id)"
-                                                :model-value="memberOf(s, a.id)?.title ?? ''"
-                                                placeholder="Title (e.g. Lead Technician)"
-                                                class="flex-1"
-                                                @update:model-value="(v) => setMember(s, a.id, 'title', String(v))"
+                                    <button
+                                        v-if="s.badges.length"
+                                        type="button"
+                                        class="text-muted-foreground hover:text-foreground justify-self-start text-xs underline-offset-4 hover:underline"
+                                        @click="s.badges = []"
+                                    >
+                                        Turn all off
+                                    </button>
+                                </EditorField>
+                                <EditorField label="Headline size"><Segmented v-model="s.headline_size" :options="TITLE_SIZES" /></EditorField>
+                                <EditorField :label="`Headline width · ${s.headline_max_width}rem`">
+                                    <input v-model.number="s.headline_max_width" type="range" min="32" max="80" class="w-full" />
+                                </EditorField>
+                                <EditorField label="Background">
+                                    <Segmented v-model="s.bg_type" :options="HERO_BACKGROUNDS" />
+                                    <div v-if="s.bg_type === 'preset'" class="grid grid-cols-4 gap-2">
+                                        <button
+                                            v-for="p in HERO_PRESETS"
+                                            :key="p"
+                                            type="button"
+                                            :aria-pressed="s.preset === p"
+                                            class="overflow-hidden rounded-md border-2"
+                                            :class="s.preset === p ? 'border-primary' : 'border-transparent'"
+                                            @click="s.preset = p"
+                                        >
+                                            <img
+                                                :src="`/assets/images/hero-presets/${p}.jpg`"
+                                                :alt="p"
+                                                loading="lazy"
+                                                class="h-11 w-full object-cover"
                                             />
-                                        </div>
-                                        <div v-if="memberOf(s, a.id)" class="mt-2">
-                                            <textarea
-                                                :value="memberOf(s, a.id)?.bio ?? ''"
-                                                rows="2"
-                                                :class="taClass"
-                                                placeholder="Short bio"
-                                                @input="(e) => setMember(s, a.id, 'bio', (e.target as HTMLTextAreaElement).value)"
-                                            />
-                                        </div>
+                                        </button>
                                     </div>
-                                </template>
+                                    <LandingImagePicker
+                                        v-else-if="s.bg_type === 'image'"
+                                        :url="s.image_url"
+                                        label="hero image"
+                                        @uploaded="(e) => Object.assign(s, { image_path: e.path, image_url: e.url })"
+                                    />
+                                    <div v-else class="grid grid-cols-2 gap-3">
+                                        <label class="grid gap-1 text-xs"
+                                            >Top color <input v-model="s.gradient_start" type="color" class="border-input h-9 w-full rounded border"
+                                        /></label>
+                                        <label class="grid gap-1 text-xs"
+                                            >Bottom color <input v-model="s.gradient_end" type="color" class="border-input h-9 w-full rounded border"
+                                        /></label>
+                                    </div>
+                                </EditorField>
+                                <EditorField label="Effects">
+                                    <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                                        <label v-for="fx in HERO_EFFECTS" :key="fx.value" class="flex items-center gap-2">
+                                            <input v-model="s.effects[fx.value]" type="checkbox" /> {{ fx.label }}
+                                        </label>
+                                    </div>
+                                    <label v-if="s.effects.dark_overlay" class="grid gap-1 text-xs">
+                                        Overlay · {{ s.effects.overlay_opacity }}%
+                                        <input v-model.number="s.effects.overlay_opacity" type="range" min="0" max="90" class="w-full" />
+                                    </label>
+                                </EditorField>
+                            </template>
 
-                                <!-- SERVICE AREA -->
-                                <template v-else-if="s.key === 'service_area'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div class="grid gap-1">
-                                        <Label>Area caption</Label><Input v-model="s.radius_label" placeholder="Serving a 25-mile radius" />
+                            <template v-else-if="s.key === 'stats'">
+                                <p class="text-muted-foreground text-xs">
+                                    Tick the numbers to show. Each shows your live count unless you type your own; Reset goes back to the live count.
+                                    A number at 0 stays hidden.
+                                </p>
+                                <EditorField label="Alignment"><Segmented v-model="s.align" :options="ALIGN_OPTIONS" /></EditorField>
+                                <ul class="grid gap-2">
+                                    <li v-for="m in STAT_METRICS" :key="m.key" class="flex items-center gap-2">
+                                        <label class="flex min-w-0 flex-1 items-center gap-2">
+                                            <input type="checkbox" :checked="s.metrics.includes(m.key)" @change="flip(s.metrics, m.key)" />
+                                            <span class="truncate">{{ m.label }}</span>
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            min="0"
+                                            inputmode="numeric"
+                                            class="h-8 w-28"
+                                            :aria-label="`Your own number for ${m.label}`"
+                                            :placeholder="`${live.stats?.[m.key] ?? 0} live`"
+                                            :model-value="statOverrides(s)[m.key] ?? ''"
+                                            @update:model-value="(v) => setOverride(s, m.key, v)"
+                                        />
+                                        <button
+                                            type="button"
+                                            class="text-muted-foreground hover:text-foreground w-10 text-xs disabled:invisible"
+                                            :disabled="statOverrides(s)[m.key] === undefined"
+                                            @click="setOverride(s, m.key, '')"
+                                        >
+                                            Reset
+                                        </button>
+                                    </li>
+                                </ul>
+                            </template>
+
+                            <EditorItems
+                                v-else-if="s.key === 'services'"
+                                v-slot="{ item }"
+                                v-model="s.items"
+                                noun="Service"
+                                :blank="{ title: '', body: '', icon: 'droplet' }"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <IconPicker v-model="item.icon" />
+                                    <Input v-model="item.title" placeholder="Title" class="flex-1" />
+                                </div>
+                                <textarea v-model="item.body" rows="2" :class="textarea" placeholder="Description" />
+                            </EditorItems>
+
+                            <template v-else-if="s.key === 'gallery'">
+                                <EditorField label="Max photos"
+                                    ><Input v-model.number="s.limit" type="number" min="1" max="24" class="w-24"
+                                /></EditorField>
+                                <EditorField label="Featured photos" hint="Tap a photo to feature it on your site.">
+                                    <p v-if="!photos.length" class="text-muted-foreground text-xs">
+                                        No visit photos yet. Photos your team takes on visits show up here to feature.
+                                    </p>
+                                    <div v-else class="grid grid-cols-4 gap-2">
+                                        <button
+                                            v-for="p in photos"
+                                            :key="p.id"
+                                            type="button"
+                                            :aria-pressed="p.is_showcase"
+                                            class="relative aspect-square overflow-hidden rounded-md border-2"
+                                            :class="p.is_showcase ? 'border-primary' : 'border-border'"
+                                            @click="toggleShowcase(p)"
+                                        >
+                                            <img :src="p.url" alt="" class="h-full w-full object-cover" :class="p.is_showcase ? '' : 'opacity-60'" />
+                                            <span
+                                                v-if="p.is_showcase"
+                                                class="bg-primary text-primary-foreground absolute top-1 right-1 rounded-full p-0.5"
+                                                ><Star class="size-3"
+                                            /></span>
+                                        </button>
                                     </div>
-                                    <div class="grid gap-1">
-                                        <Label>Center ZIP code <span class="text-muted-foreground font-normal">(optional)</span></Label>
-                                        <Input v-model="s.zip" placeholder="e.g. 90210" class="w-40" />
+                                </EditorField>
+                            </template>
+
+                            <template v-else-if="s.key === 'team'">
+                                <p v-if="!agents.length" class="text-muted-foreground text-xs">No team members to show yet.</p>
+                                <div v-for="a in agents" :key="a.id" class="border-border bg-background space-y-2 rounded-lg border p-3">
+                                    <div class="flex items-center gap-3">
+                                        <label class="flex flex-1 items-center gap-2 font-medium">
+                                            <input type="checkbox" :checked="!!memberOf(s, a.id)" @change="toggleMember(s, a.id)" /> {{ a.name }}
+                                        </label>
+                                        <Input
+                                            v-if="memberOf(s, a.id)"
+                                            v-model="memberOf(s, a.id)!.title"
+                                            placeholder="Title (e.g. Lead Technician)"
+                                            class="flex-1"
+                                        />
                                     </div>
-                                    <p class="text-muted-foreground text-xs">
+                                    <textarea
+                                        v-if="memberOf(s, a.id)"
+                                        v-model="memberOf(s, a.id)!.bio"
+                                        rows="2"
+                                        :class="textarea"
+                                        placeholder="Short bio"
+                                    />
+                                </div>
+                            </template>
+
+                            <template v-else-if="s.key === 'service_area'">
+                                <EditorField label="Area caption"
+                                    ><Input v-model="s.radius_label" placeholder="Serving a 25-mile radius"
+                                /></EditorField>
+                                <EditorField label="Center ZIP code (optional)">
+                                    <Input v-model="s.zip" placeholder="e.g. 90210" class="w-40" />
+                                    <template #hint>
                                         The map centers on your business address (set in
-                                        <a href="/company" class="text-primary">Company settings</a>). Enter a ZIP code to center it there instead —
-                                        useful to show a service area without revealing your exact address.
-                                    </p>
-                                </template>
+                                        <Link href="/company" class="text-primary">Company settings</Link>). Enter a ZIP code to center it there
+                                        instead, to show a service area without revealing your exact address.
+                                    </template>
+                                </EditorField>
+                            </template>
 
-                                <!-- TESTIMONIALS -->
-                                <template v-else-if="s.key === 'testimonials'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="border-border bg-background space-y-2 rounded-lg border p-3">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-muted-foreground text-xs font-medium">Review {{ i + 1 }}</span
-                                            ><button type="button" @click="removeItem(s, i)">
-                                                <Trash2 class="text-muted-foreground size-4 hover:text-red-600" />
-                                            </button>
-                                        </div>
-                                        <textarea v-model="it.quote" rows="2" :class="taClass" placeholder="Quote" />
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <Input v-model="it.author" placeholder="Name" /><Input v-model="it.location" placeholder="Location" />
-                                        </div>
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" @click="addItem(s, { quote: '', author: '', location: '' })"
-                                        ><Plus class="mr-1 size-3.5" /> Add review</Button
-                                    >
-                                </template>
+                            <EditorItems
+                                v-else-if="s.key === 'testimonials'"
+                                v-slot="{ item }"
+                                v-model="s.items"
+                                noun="Review"
+                                :blank="{ quote: '', author: '', location: '' }"
+                            >
+                                <textarea v-model="item.quote" rows="2" :class="textarea" placeholder="Quote" />
+                                <div class="grid grid-cols-2 gap-2">
+                                    <Input v-model="item.author" placeholder="Name" /><Input v-model="item.location" placeholder="Location" />
+                                </div>
+                            </EditorItems>
 
-                                <!-- FAQ -->
-                                <template v-else-if="s.key === 'faq'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div v-for="(it, i) in itemsOf(s)" :key="i" class="border-border bg-background space-y-2 rounded-lg border p-3">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-muted-foreground text-xs font-medium">Q{{ i + 1 }}</span
-                                            ><button type="button" @click="removeItem(s, i)">
-                                                <Trash2 class="text-muted-foreground size-4 hover:text-red-600" />
-                                            </button>
-                                        </div>
-                                        <Input v-model="it.q" placeholder="Question" />
-                                        <textarea v-model="it.a" rows="2" :class="taClass" placeholder="Answer" />
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" @click="addItem(s, { q: '', a: '' })"
-                                        ><Plus class="mr-1 size-3.5" /> Add question</Button
-                                    >
-                                </template>
+                            <EditorItems v-else-if="s.key === 'faq'" v-slot="{ item }" v-model="s.items" noun="Question" :blank="{ q: '', a: '' }">
+                                <Input v-model="item.q" placeholder="Question" />
+                                <textarea v-model="item.a" rows="2" :class="textarea" placeholder="Answer" />
+                            </EditorItems>
 
-                                <!-- CTA -->
-                                <template v-else-if="s.key === 'cta'">
-                                    <div class="grid gap-1"><Label>Headline</Label><Input v-model="s.headline" /></div>
-                                    <div class="grid grid-cols-2 gap-3">
-                                        <div class="grid gap-1"><Label>Button text</Label><Input v-model="s.button_label" /></div>
-                                        <div class="grid gap-1">
-                                            <Label>Button target</Label><Input v-model="s.button_anchor" placeholder="contact" />
-                                        </div>
-                                    </div>
-                                </template>
+                            <template v-else-if="s.key === 'cta'">
+                                <EditorField label="Headline"><Input v-model="s.headline" /></EditorField>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <EditorField label="Button text"><Input v-model="s.button_label" /></EditorField>
+                                    <EditorField label="Button target"><Input v-model="s.button_anchor" placeholder="contact" /></EditorField>
+                                </div>
+                            </template>
 
-                                <!-- QUOTE / BOOKING (heading + blurb; both pull live service pricing) -->
-                                <template v-else-if="s.key === 'quote' || s.key === 'booking'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div class="grid gap-1"><Label>Blurb</Label><textarea v-model="s.blurb" rows="2" :class="taClass" /></div>
-                                    <p class="text-muted-foreground text-xs">
-                                        Uses your active services and their prices. Set prices under Services.
-                                    </p>
-                                </template>
-
-                                <!-- CONTACT -->
-                                <template v-else-if="s.key === 'contact'">
-                                    <div class="grid gap-1"><Label>Heading</Label><Input v-model="s.heading" /></div>
-                                    <div class="grid gap-1"><Label>Blurb</Label><textarea v-model="s.blurb" rows="2" :class="taClass" /></div>
-                                </template>
-                            </div>
-                        </div>
+                            <p v-else-if="s.key === 'quote' || s.key === 'booking'" class="text-muted-foreground text-xs">
+                                Uses your active services and their prices. Set prices under Services.
+                            </p>
+                        </EditorPanel>
                     </template>
                 </draggable>
             </div>

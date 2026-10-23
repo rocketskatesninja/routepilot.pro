@@ -31,8 +31,8 @@ describe('statItems', () => {
         expect(statItems(stats({ metrics: ['water_tests'], overrides: { water_tests: 1200 } }), live)[0].value).toBe(1200);
     });
 
-    it('ignores unknown stats and the empty overrides list PHP sends', () => {
-        expect(statItems(stats({ metrics: ['bogus', 'pools_serviced'], overrides: [] }), live).map((i) => i.key)).toEqual(['pools_serviced']);
+    it('ignores unknown stats', () => {
+        expect(statItems(stats({ metrics: ['bogus', 'pools_serviced'], overrides: {} }), live).map((i) => i.key)).toEqual(['pools_serviced']);
     });
 });
 

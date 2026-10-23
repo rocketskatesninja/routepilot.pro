@@ -1,13 +1,15 @@
 <script setup lang="ts">
+import { useSiteBrand } from '@/components/landing/brand';
 import { frame } from '@/components/landing/layout';
 import LeadChatWidget from '@/components/landing/LeadChatWidget.vue';
+import { SOCIAL_LINKS } from '@/components/landing/meta';
 import SectionRenderer from '@/components/landing/SectionRenderer.vue';
-import { siteHeadingVar, titleFontHref, titleStyle } from '@/components/landing/titleStyle';
-import type { BrandContext, LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
+import SiteTitle from '@/components/landing/SiteTitle.vue';
+import { siteHeadingVar, titleFontHref } from '@/components/landing/titleStyle';
+import type { LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
 import { hasContent, quoteAnchor } from '@/components/landing/visibility';
-import { Head, usePage } from '@inertiajs/vue3';
-import { Facebook, Instagram, Linkedin, Twitter, Youtube } from 'lucide-vue-next';
-import { computed, onMounted, ref, type Component } from 'vue';
+import { Head } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps<{
     sections: SectionConfig[];
@@ -15,64 +17,39 @@ const props = defineProps<{
     seo: { title: string; description: string; og_image: string | null };
     chatbot?: boolean;
     title: TitleConfig;
-    social?: Partial<Record<'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube', string>>;
+    social?: Record<string, string>;
 }>();
 
-// Render the chat widget client-only (it uses localStorage) when the tenant
-// enabled it AND the AI is actually configured + in-quota.
+const brand = useSiteBrand();
+const year = new Date().getFullYear();
+
+// The chat widget renders client-only (it uses localStorage), when the company
+// turned it on and the AI is configured and in quota.
 const mounted = ref(false);
 onMounted(() => (mounted.value = true));
 const showChat = computed(() => mounted.value && props.chatbot === true && props.live.chatEnabled === true);
 
-const page = usePage();
-const tenant = page.props.tenant as { name: string; slug: string; logo_path: string | null; brand_color: string | null } | null;
-
-const brand = computed<BrandContext>(() => ({
-    name: tenant?.name ?? 'Pool Service',
-    slug: tenant?.slug ?? '',
-    logoUrl: tenant?.logo_path ? `/storage/${tenant.logo_path}` : null,
-    color: tenant?.brand_color ?? null,
-}));
-
-const year = new Date().getFullYear();
-
 // Enabled sections with something to show; the nav, footer and buttons only link to these.
 const shown = computed(() => props.sections.filter((s) => hasContent(s, props.live)));
 const onPage = computed(() => shown.value.map((s) => s.key));
-const NAV: { key: string; label: string }[] = [
+const NAV = [
     { key: 'services', label: 'Services' },
     { key: 'gallery', label: 'Our work' },
     { key: 'testimonials', label: 'Reviews' },
     { key: 'faq', label: 'FAQ' },
 ];
 const nav = computed(() => NAV.filter((n) => onPage.value.includes(n.key)));
-const hasQuote = computed(() => onPage.value.includes('quote') || onPage.value.includes('booking'));
-const headerCta = computed(() =>
-    hasQuote.value
-        ? { href: quoteAnchor(onPage.value), label: 'Get a quote' }
-        : onPage.value.includes('contact')
-          ? { href: '#contact', label: 'Contact us' }
-          : null,
-);
+// "Get a quote" when there's a quote or booking form, else "Contact us" (if there's a contact form).
+const headerCta = computed(() => {
+    const href = quoteAnchor(onPage.value);
+    if (href !== '#contact') return { href, label: 'Get a quote' };
+    return onPage.value.includes('contact') ? { href, label: 'Contact us' } : null;
+});
 
-// Footer social links — only the platforms the tenant configured, in a fixed order.
-const socialMeta: { key: 'facebook' | 'instagram' | 'twitter' | 'linkedin' | 'youtube'; label: string; icon: Component }[] = [
-    { key: 'facebook', label: 'Facebook', icon: Facebook },
-    { key: 'instagram', label: 'Instagram', icon: Instagram },
-    { key: 'twitter', label: 'X (Twitter)', icon: Twitter },
-    { key: 'linkedin', label: 'LinkedIn', icon: Linkedin },
-    { key: 'youtube', label: 'YouTube', icon: Youtube },
-];
-const socials = computed(() =>
-    socialMeta.flatMap((s) => {
-        const href = props.social?.[s.key];
-        return href ? [{ label: s.label, href, icon: s.icon }] : [];
-    }),
-);
+// Footer social links: the platforms the company set, in a fixed order.
+const socials = computed(() => SOCIAL_LINKS.flatMap((l) => (props.social?.[l.value] ? [{ ...l, href: props.social[l.value] }] : [])));
 
-// Header company title — styled from the saved config; text falls back to the tenant name.
-const titleText = computed(() => props.title.text || brand.value.name);
-const titleStyleStr = computed(() => titleStyle(props.title));
+// The company's title font: the header name (SiteTitle) and every section heading use it.
 const titleFont = computed(() => titleFontHref(props.title));
 </script>
 
@@ -91,8 +68,7 @@ const titleFont = computed(() => titleFontHref(props.title));
         <header class="border-border bg-background/90 sticky top-0 z-40 border-b backdrop-blur">
             <div class="flex h-16 items-center justify-between gap-6" :class="frame">
                 <a href="#hero" class="flex min-w-0 items-center gap-2">
-                    <img v-if="brand.logoUrl" :src="brand.logoUrl" alt="" class="size-9 rounded object-contain" />
-                    <span class="truncate" :style="titleStyleStr">{{ titleText }}</span>
+                    <SiteTitle :title="title" :logo-url="brand.logoUrl" :name="brand.name" />
                 </a>
                 <nav class="flex items-center gap-7 text-base" aria-label="Site">
                     <a v-for="n in nav" :key="n.key" :href="`#${n.key}`" class="text-muted-foreground hover:text-foreground hidden @5xl:inline">{{

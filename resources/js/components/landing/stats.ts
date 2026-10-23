@@ -23,8 +23,7 @@ export interface StatItem {
 
 /** The numbers a company typed in place of the live counts, by stat. */
 export function statOverrides(content: SectionConfig): Record<string, number> {
-    const o = content.overrides;
-    return o !== null && typeof o === 'object' && !Array.isArray(o) ? (o as Record<string, number>) : {};
+    return (content.overrides ?? {}) as Record<string, number>;
 }
 
 /**

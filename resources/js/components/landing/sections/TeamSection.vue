@@ -4,7 +4,6 @@ import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string });
 const team = computed(() => props.live.team ?? []);
 const initials = (name: string) =>
     name
@@ -16,7 +15,7 @@ const initials = (name: string) =>
 </script>
 
 <template>
-    <SectionShell id="team" tinted :heading="c.heading || 'Meet the team'">
+    <SectionShell :section="content" tinted>
         <ul v-if="team.length" class="grid grid-cols-2 gap-x-6 gap-y-10 @5xl:grid-cols-3">
             <li v-for="m in team" :key="m.user_id">
                 <img v-if="m.avatar" :src="m.avatar" :alt="m.name" loading="lazy" class="aspect-[4/5] w-full rounded-2xl object-cover" />

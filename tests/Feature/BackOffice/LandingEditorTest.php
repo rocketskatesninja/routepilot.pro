@@ -74,5 +74,5 @@ test('saving keeps picked badges, typed stat numbers, and all stats turned off',
 
     expect(collect($config['sections'])->firstWhere('key', 'hero')['badges'])->toBe(['family_owned', 'free_estimates'])
         ->and($stats['metrics'])->toBe([])
-        ->and($stats['overrides'])->toBe(['years_active' => 15]);
+        ->and((array) $stats['overrides'])->toBe(['years_active' => 15]);
 });

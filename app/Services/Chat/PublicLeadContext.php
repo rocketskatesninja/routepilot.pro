@@ -6,7 +6,6 @@ namespace App\Services\Chat;
 
 use App\Models\ServiceType;
 use App\Models\Tenant;
-use App\Models\TenantSetting;
 use App\Support\LandingConfig;
 
 /**
@@ -54,26 +53,18 @@ class PublicLeadContext
         return implode("\n\n", array_filter($parts));
     }
 
-    /** Pull Q&A pairs from the tenant's landing FAQ section, if any. */
+    /** The answered questions from the company's FAQ section, when it's on the site. */
     private function faq(Tenant $tenant): string
     {
-        $config = LandingConfig::fromStored(TenantSetting::getFor($tenant->id, 'landing'));
-        foreach (LandingConfig::enabledOrdered($config) as $section) {
-            if (($section['key'] ?? null) !== 'faq') {
-                continue;
-            }
-            $rows = [];
-            foreach (is_array($section['items'] ?? null) ? $section['items'] : [] as $item) {
-                $q = is_array($item) ? ($item['q'] ?? null) : null;
-                $a = is_array($item) ? ($item['a'] ?? null) : null;
-                if (is_string($q) && is_string($a) && $q !== '' && $a !== '') {
-                    $rows[] = "Q: {$q}\nA: {$a}";
-                }
-            }
+        $faq = collect(LandingConfig::enabledOrdered(LandingConfig::forTenant($tenant->id)))->firstWhere('key', 'faq');
 
-            return implode("\n", $rows);
+        $rows = [];
+        foreach (is_array($faq) && is_array($faq['items']) ? $faq['items'] : [] as $item) {
+            if (is_array($item) && is_string($item['q'] ?? null) && is_string($item['a'] ?? null)) {
+                $rows[] = "Q: {$item['q']}\nA: {$item['a']}";
+            }
         }
 
-        return '';
+        return implode("\n", $rows);
     }
 }

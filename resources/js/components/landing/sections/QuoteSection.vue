@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { button, field } from '../layout';
-import LeadSent from '../primitives/LeadSent.vue';
+import { field } from '../layout';
+import ContactFields from '../primitives/ContactFields.vue';
+import LeadForm from '../primitives/LeadForm.vue';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { LandingService, SectionProps } from '../types';
 import { useLeadForm } from '../useLeadForm';
 
 const props = defineProps<SectionProps>();
-const c = computed(() => props.content as { heading?: string; blurb?: string });
+const lead = useLeadForm(props);
 const services = computed<LandingService[]>(() => props.live.services ?? []);
 
 const poolTypes = [
@@ -19,15 +20,9 @@ const poolTypes = [
 ];
 
 const form = ref({ poolType: 'inground', gallons: '', serviceId: '', name: '', email: '', phone: '' });
-const { sending, sent, error, send } = useLeadForm(props);
-
 const selected = computed<LandingService | undefined>(() => services.value.find((s) => String(s.id) === form.value.serviceId));
-
 // The estimate is the service's real price — the same one billing charges.
-const estimate = computed(() => {
-    const s = selected.value;
-    return s && s.price > 0 ? s.price : null;
-});
+const estimate = computed(() => (selected.value && selected.value.price > 0 ? selected.value.price : null));
 
 const money = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const freqLabel = (f: string) =>
@@ -37,7 +32,7 @@ function submit() {
     const s = selected.value;
     if (form.value.name.trim() === '' || !s) return;
     const est = estimate.value;
-    send({
+    lead.send({
         name: form.value.name,
         email: form.value.email,
         phone: form.value.phone,
@@ -57,16 +52,15 @@ function submit() {
 </script>
 
 <template>
-    <SectionShell id="quote" :heading="c.heading || 'Get an instant estimate'" :intro="c.blurb || undefined">
+    <SectionShell :section="content">
         <p v-if="!services.length" class="border-border text-muted-foreground rounded-2xl border p-8 text-lg">
             Pricing is tailored to each pool. Use the contact form and we’ll send you a quote.
         </p>
 
-        <LeadSent v-else-if="sent">
-            Thanks! We’ve got your details{{ estimate ? ' and your estimate' : '' }}. We’ll reach out shortly to confirm your exact quote.
-        </LeadSent>
-
-        <form v-else class="grid gap-4 @3xl:grid-cols-2" @submit.prevent="submit">
+        <LeadForm v-else :lead="lead" label="Get my quote" :disabled="!selected" @submit="submit">
+            <template #sent>
+                Thanks! We’ve got your details{{ estimate ? ' and your estimate' : '' }}. We’ll reach out shortly to confirm your exact quote.
+            </template>
             <label>
                 <span class="text-foreground mb-1.5 block text-base font-medium">Pool type</span>
                 <select v-model="form.poolType" :class="field">
@@ -85,7 +79,6 @@ function submit() {
                 </select>
             </label>
 
-            <!-- live estimate -->
             <div v-if="selected" class="site-tint rounded-2xl p-6 @3xl:col-span-2" aria-live="polite">
                 <template v-if="estimate">
                     <p class="text-muted-foreground text-base">Estimated price</p>
@@ -98,25 +91,7 @@ function submit() {
                 <p v-else class="text-muted-foreground text-base">We’ll prepare a custom quote for this service.</p>
             </div>
 
-            <label class="@3xl:col-span-2">
-                <span class="sr-only">Your name</span>
-                <input v-model="form.name" required autocomplete="name" placeholder="Your name" :class="field" />
-            </label>
-            <label>
-                <span class="sr-only">Email</span>
-                <input v-model="form.email" type="email" autocomplete="email" placeholder="Email" :class="field" />
-            </label>
-            <label>
-                <span class="sr-only">Phone</span>
-                <input v-model="form.phone" type="tel" autocomplete="tel" placeholder="Phone" :class="field" />
-            </label>
-
-            <p v-if="error" class="text-base text-red-600 @3xl:col-span-2 dark:text-red-400">{{ error }}</p>
-            <div class="@3xl:col-span-2">
-                <button type="submit" :disabled="sending || !selected" class="w-full @3xl:w-auto" :class="button">
-                    {{ sending ? 'Sending…' : 'Get my quote' }}
-                </button>
-            </div>
-        </form>
+            <ContactFields v-model:name="form.name" v-model:email="form.email" v-model:phone="form.phone" />
+        </LeadForm>
     </SectionShell>
 </template>
