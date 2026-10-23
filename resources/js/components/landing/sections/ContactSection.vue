@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { postJson } from '@/lib/http';
+import { failureReason, postJson } from '@/lib/http';
 import { computed, ref } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';
@@ -12,6 +12,7 @@ const form = ref({ name: '', email: '', phone: '', message: '' });
 const sending = ref(false);
 const sent = ref(false);
 const error = ref('');
+const tryAgain = 'Something went wrong — please try again, or give us a call.';
 
 async function submit() {
     if (sending.value || form.value.name.trim() === '') {
@@ -22,11 +23,13 @@ async function submit() {
     try {
         const res = await postJson(action.value, { ...form.value, source: 'contact' });
         if (!res.ok) {
-            throw new Error('failed');
+            // e.g. they already have messages waiting on a reply
+            error.value = (await failureReason(res)) ?? tryAgain;
+            return;
         }
         sent.value = true;
     } catch {
-        error.value = 'Something went wrong — please try again, or give us a call.';
+        error.value = tryAgain;
     } finally {
         sending.value = false;
     }
@@ -40,10 +43,7 @@ async function submit() {
         :heading="c.heading || 'Get in touch'"
         :subheading="c.blurb || 'Tell us about your pool and we’ll get right back to you.'"
     >
-        <div
-            v-if="sent"
-            class="reveal rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center text-emerald-700 dark:text-emerald-400"
-        >
+        <div v-if="sent" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center text-emerald-700 dark:text-emerald-400">
             Thanks! We’ve received your message and will be in touch shortly.
         </div>
         <form v-else class="reveal mx-auto max-w-md space-y-4" @submit.prevent="submit">

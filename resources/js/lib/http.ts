@@ -23,6 +23,16 @@ export async function postJson(url: string, body?: unknown): Promise<Response> {
 }
 
 /**
+ * The reason a failed request gives in its JSON `error` field, written to be
+ * shown to the person (null when it gave none — fall back to a generic line).
+ */
+export async function failureReason(res: Response): Promise<string | null> {
+    const data: unknown = await res.json().catch(() => null);
+    const error = data !== null && typeof data === 'object' ? (data as { error?: unknown }).error : null;
+    return typeof error === 'string' ? error : null;
+}
+
+/**
  * POST multipart/form-data to a same-origin Laravel route (for file uploads).
  * No Content-Type header — the browser sets the multipart boundary itself.
  */

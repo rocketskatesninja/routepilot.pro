@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\AuditLog;
 use App\Models\Customer;
+use App\Models\Lead;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
@@ -98,6 +99,22 @@ test('stale agent locations are pruned', function () {
     $this->artisan('app:purge-retention')->assertSuccessful();
 
     expect(DB::table('agent_locations')->count())->toBe(0);
+});
+
+test('an old website lead loses its IP but stays; a recent one keeps it', function () {
+    $old = Lead::create(['name' => 'Old', 'source' => 'contact']);
+    $recent = Lead::create(['name' => 'Recent', 'source' => 'contact']);
+    $old->forceFill(['ip_address' => '203.0.113.1'])->save();
+    $recent->forceFill(['ip_address' => '203.0.113.2'])->save();
+    DB::table('leads')->where('id', $old->id)->update(['created_at' => now()->subDays(91)]);
+
+    $this->artisan('app:purge-retention --dry')->assertSuccessful();
+    expect($old->fresh()?->ip_address)->toBe('203.0.113.1');
+
+    $this->artisan('app:purge-retention')->assertSuccessful();
+    expect($old->fresh()?->ip_address)->toBeNull()
+        ->and($old->fresh()?->name)->toBe('Old')
+        ->and($recent->fresh()?->ip_address)->toBe('203.0.113.2');
 });
 
 test('a dry run deletes nothing', function () {

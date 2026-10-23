@@ -10,14 +10,14 @@ use Illuminate\Console\Command;
 
 /**
  * Weekly housekeeping: prune old read notifications and techs' stale last-known
- * positions. Never deletes customers, reports or billing records. Pass --dry to
- * preview the counts without deleting anything.
+ * positions, and clear old website leads' IPs. Never deletes customers, reports
+ * or billing records. Pass --dry to preview the counts without deleting anything.
  */
 class PurgeRetention extends Command
 {
     protected $signature = 'app:purge-retention {--dry : Preview the counts without deleting}';
 
-    protected $description = 'Prune old read notifications and stale tech positions.';
+    protected $description = 'Prune old read notifications and stale tech positions; clear old lead IPs.';
 
     public function handle(DataRetention $retention): int
     {
@@ -25,10 +25,11 @@ class PurgeRetention extends Command
         $counts = $retention->purge($apply);
 
         $this->info(sprintf(
-            '%sRetention: %d notification(s), %d location(s).',
+            '%sRetention: %d notification(s), %d location(s), %d lead IP(s).',
             $apply ? '' : '[dry-run] would purge — ',
             $counts['notifications_pruned'],
             $counts['agent_locations_pruned'],
+            $counts['lead_ips_cleared'],
         ));
 
         // Record an applied run that did something as a platform compliance entry.

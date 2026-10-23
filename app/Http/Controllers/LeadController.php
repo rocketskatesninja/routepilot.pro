@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\CaptureLead;
 use App\Actions\ConvertLead;
 use App\Http\Requests\ConvertLeadRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Models\Lead;
 use App\Models\Tenant;
-use App\Models\User;
-use App\Notifications\LeadSubmitted;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Public-site leads — captured unauthenticated (by tenant), worked from the
@@ -24,15 +22,14 @@ use Illuminate\Support\Facades\Notification;
 class LeadController extends Controller
 {
     /** Public capture — the {tenant} comes from the landing site's slug. */
-    public function store(StoreLeadRequest $request, Tenant $tenant): JsonResponse
+    public function store(StoreLeadRequest $request, Tenant $tenant, CaptureLead $capture): JsonResponse
     {
         app()->instance('tenant_id', $tenant->id);
-        $lead = Lead::create($request->validated());
 
-        $admins = User::query()
-            ->where('tenant_id', $tenant->id)->where('role', 'tenant_admin')->where('is_active', true)
-            ->get();
-        Notification::send($admins, new LeadSubmitted($lead));
+        if ($capture->handle($tenant->id, $request->validated(), $request->ip()) === null) {
+            // `error` (not `message`) so the site's forms can tell this apart from a plain throttle.
+            return response()->json(['ok' => false, 'error' => CaptureLead::WAIT_FOR_REPLY], 429);
+        }
 
         return response()->json(['ok' => true]);
     }

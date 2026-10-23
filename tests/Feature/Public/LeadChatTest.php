@@ -62,3 +62,48 @@ test('public chat resumes the same session via the visitor token', function () {
 
     expect(ChatSession::query()->count())->toBe(1); // one session reused, not two
 });
+
+test('the chat assistant cannot save a lead for a visitor already waiting on three replies', function () {
+    config([
+        'ai.default_provider' => 'anthropic',
+        'ai.platform_keys.anthropic' => 'sk-test-key',
+        'ai.models.anthropic' => 'claude-test',
+    ]);
+    $tenant = Tenant::factory()->create(['slug' => 'acme']);
+    app()->instance('tenant_id', $tenant->id);
+    foreach (range(1, 3) as $i) {
+        Lead::create(['name' => 'Jane Visitor', 'email' => 'jane@example.test', 'source' => 'contact']);
+    }
+    app()->forgetInstance('tenant_id');
+
+    $this->mock(ClaudeService::class)
+        ->shouldReceive('chat')
+        ->andReturn(['tool_call' => ['name' => 'capture_lead', 'arguments' => [
+            'name' => 'Jane Visitor',
+            'email' => 'jane@example.test',
+            'summary' => 'Still waiting to hear back.',
+        ]]]);
+
+    $res = $this->postJson('/public/acme/chat', ['message' => 'Have you got my messages? jane@example.test'])->assertOk();
+
+    expect(Lead::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->count())->toBe(3)
+        ->and($res->json('reply'))->toContain('wait for our reply')->not->toContain('passed your details');
+});
+
+test('the chat assistant does not claim to pass on a visitor it has no name for', function () {
+    config([
+        'ai.default_provider' => 'anthropic',
+        'ai.platform_keys.anthropic' => 'sk-test-key',
+        'ai.models.anthropic' => 'claude-test',
+    ]);
+    $tenant = Tenant::factory()->create(['slug' => 'acme']);
+
+    $this->mock(ClaudeService::class)
+        ->shouldReceive('chat')
+        ->andReturn(['tool_call' => ['name' => 'capture_lead', 'arguments' => ['name' => ' ', 'email' => 'jane@example.test']]]);
+
+    $res = $this->postJson('/public/acme/chat', ['message' => 'Call me at jane@example.test'])->assertOk();
+
+    expect(Lead::query()->withoutGlobalScopes()->where('tenant_id', $tenant->id)->count())->toBe(0)
+        ->and($res->json('reply'))->toContain('your name')->not->toContain('passed your details');
+});

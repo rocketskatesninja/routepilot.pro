@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
-use App\Models\Lead;
-use App\Models\User;
-use App\Notifications\LeadSubmitted;
+use App\Actions\CaptureLead;
 use App\Services\Chat\AiTool;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * The public chatbot's one tool: capture a visitor's contact details as a lead
- * (source `chatbot`) and notify the tenant's admins. NOT registered in the
+ * (source `chatbot`) and notify the tenant's admins, under the same
+ * unanswered-message cap as the website's forms. What it returns is shown to
+ * the visitor as the reply (public chat makes no second AI round trip). NOT registered in the
  * authed ToolRegistry — it's offered only to the public lead-capture assistant.
  */
 class CaptureLeadTool extends AiTool
@@ -51,20 +50,20 @@ class CaptureLeadTool extends AiTool
             return 'I need your name to pass along — what should I put down?';
         }
 
-        $lead = Lead::create([
+        // Runs inside the visitor's own chat request, so request()->ip() is theirs.
+        $lead = app(CaptureLead::class)->handle($tenantId, [
             'name' => mb_substr($name, 0, 255),
             'email' => self::clean($params['email'] ?? null, 255),
             'phone' => self::clean($params['phone'] ?? null, 50),
             'message' => self::clean($params['summary'] ?? null, 2000),
             'source' => 'chatbot',
-        ]);
+        ], request()->ip());
 
-        $admins = User::query()
-            ->where('tenant_id', $tenantId)->where('role', 'tenant_admin')->where('is_active', true)
-            ->get();
-        Notification::send($admins, new LeadSubmitted($lead));
+        if ($lead === null) {
+            return CaptureLead::WAIT_FOR_REPLY;
+        }
 
-        return "Captured a lead for {$name}.";
+        return "Thanks, {$name}! I've passed your details to the team — they'll reach out soon. Anything else I can help with?";
     }
 
     private static function clean(mixed $v, int $max): ?string

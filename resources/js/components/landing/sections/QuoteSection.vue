@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { postJson } from '@/lib/http';
+import { failureReason, postJson } from '@/lib/http';
 import { computed, ref } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { LandingService, SectionProps } from '../types';
@@ -21,6 +21,7 @@ const form = ref({ poolType: 'inground', gallons: '', serviceId: '', name: '', e
 const sending = ref(false);
 const sent = ref(false);
 const error = ref('');
+const tryAgain = 'Something went wrong — please try again, or give us a call.';
 
 const selected = computed<LandingService | undefined>(() => services.value.find((s) => String(s.id) === form.value.serviceId));
 
@@ -57,10 +58,14 @@ async function submit() {
                 estimate: est ? money(est) : 'custom',
             },
         });
-        if (!res.ok) throw new Error('failed');
+        if (!res.ok) {
+            // e.g. they already have messages waiting on a reply
+            error.value = (await failureReason(res)) ?? tryAgain;
+            return;
+        }
         sent.value = true;
     } catch {
-        error.value = 'Something went wrong — please try again, or give us a call.';
+        error.value = tryAgain;
     } finally {
         sending.value = false;
     }
@@ -78,7 +83,7 @@ async function submit() {
 
         <div
             v-else-if="sent"
-            class="reveal rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center text-emerald-700 dark:text-emerald-400"
+            class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center text-emerald-700 dark:text-emerald-400"
         >
             Thanks! We’ve got your details{{ estimate ? ' and your estimate' : '' }} — we’ll reach out shortly to confirm your exact quote.
         </div>

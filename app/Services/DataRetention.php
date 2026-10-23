@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Weekly housekeeping: prune read in-app notifications and techs' stale
- * last-known positions. Runs platform-wide from the console with no bound
- * tenant, so every tenant is swept.
+ * last-known positions, and clear old website leads' IPs. Runs platform-wide
+ * from the console with no bound tenant, so every tenant is swept.
  *
  * It never deletes customers, reports or billing records: an archived customer
  * stays archived until someone deletes them for good from People → Archived.
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 class DataRetention
 {
     /**
-     * @return array{notifications_pruned: int, agent_locations_pruned: int}
+     * @return array{notifications_pruned: int, agent_locations_pruned: int, lead_ips_cleared: int}
      */
     public function purge(bool $apply = true, ?int $notificationDays = null): array
     {
@@ -26,7 +26,21 @@ class DataRetention
         return [
             'notifications_pruned' => $this->pruneReadNotifications($notificationDays, $apply),
             'agent_locations_pruned' => $this->pruneStaleLocations($apply),
+            'lead_ips_cleared' => $this->clearLeadIps($apply),
         ];
+    }
+
+    /** Clear (or count) the IP a website lead was sent from once it's old; the lead itself stays. */
+    private function clearLeadIps(bool $apply): int
+    {
+        $days = (int) config('retention.lead_ip_days');
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $query = DB::table('leads')->whereNotNull('ip_address')->where('created_at', '<', now()->subDays($days));
+
+        return $apply ? $query->update(['ip_address' => null]) : $query->count();
     }
 
     /**

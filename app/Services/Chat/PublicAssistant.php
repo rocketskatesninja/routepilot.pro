@@ -42,8 +42,9 @@ class PublicAssistant
     }
 
     /**
-     * Run capture_lead (the only public tool) and return a friendly confirmation
-     * — no second AI round trip, to keep public chat cheap.
+     * Run capture_lead (the only public tool) and reply with what it says: a
+     * thank-you, or why it didn't pass anything on (no name yet, or they're
+     * waiting on replies) — no second AI round trip, to keep public chat cheap.
      *
      * @param  array{name: string, arguments: array<string, mixed>}  $toolCall
      */
@@ -53,11 +54,7 @@ class PublicAssistant
             return "Let me get someone from the team to help with that — what's the best email or phone to reach you?";
         }
 
-        (new CaptureLeadTool)->execute($toolCall['arguments'], $tenantId);
-        $name = trim((string) ($toolCall['arguments']['name'] ?? ''));
-
-        return ($name !== '' ? "Thanks, {$name}! " : 'Thanks! ')
-            ."I've passed your details to the team — they'll reach out soon. Anything else I can help with?";
+        return (new CaptureLeadTool)->execute($toolCall['arguments'], $tenantId);
     }
 
     /**
