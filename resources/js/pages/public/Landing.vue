@@ -7,7 +7,7 @@ import SectionRenderer from '@/components/landing/SectionRenderer.vue';
 import SiteTitle from '@/components/landing/SiteTitle.vue';
 import { siteHeadingVar, titleFontHref } from '@/components/landing/titleStyle';
 import type { LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
-import { hasContent, quoteAnchor } from '@/components/landing/visibility';
+import { hasContent, headerButton, navLinks } from '@/components/landing/visibility';
 import { Head } from '@inertiajs/vue3';
 import { computed, onMounted, ref } from 'vue';
 
@@ -32,19 +32,8 @@ const showChat = computed(() => mounted.value && props.chatbot === true && props
 // Enabled sections with something to show; the nav, footer and buttons only link to these.
 const shown = computed(() => props.sections.filter((s) => hasContent(s, props.live)));
 const onPage = computed(() => shown.value.map((s) => s.key));
-const NAV = [
-    { key: 'services', label: 'Services' },
-    { key: 'gallery', label: 'Our work' },
-    { key: 'testimonials', label: 'Reviews' },
-    { key: 'faq', label: 'FAQ' },
-];
-const nav = computed(() => NAV.filter((n) => onPage.value.includes(n.key)));
-// "Get a quote" when there's a quote or booking form, else "Contact us" (if there's a contact form).
-const headerCta = computed(() => {
-    const href = quoteAnchor(onPage.value);
-    if (href !== '#contact') return { href, label: 'Get a quote' };
-    return onPage.value.includes('contact') ? { href, label: 'Contact us' } : null;
-});
+const nav = computed(() => navLinks(onPage.value));
+const headerCta = computed(() => headerButton(onPage.value));
 
 // Footer social links: the platforms the company set, in a fixed order.
 const socials = computed(() => SOCIAL_LINKS.flatMap((l) => (props.social?.[l.value] ? [{ ...l, href: props.social[l.value] }] : [])));
@@ -71,14 +60,21 @@ const titleFont = computed(() => titleFontHref(props.title));
                     <SiteTitle :title="title" :logo-url="brand.logoUrl" :name="brand.name" />
                 </a>
                 <nav class="flex items-center gap-7 text-base" aria-label="Site">
-                    <a v-for="n in nav" :key="n.key" :href="`#${n.key}`" class="text-muted-foreground hover:text-foreground hidden @5xl:inline">{{
-                        n.label
-                    }}</a>
-                    <a href="/login" class="text-muted-foreground hover:text-foreground hidden @3xl:inline">Customer login</a>
+                    <a
+                        v-for="n in nav"
+                        :key="n.href"
+                        :href="n.href"
+                        class="text-muted-foreground hover:text-foreground hidden whitespace-nowrap @6xl:inline"
+                        >{{ n.label }}</a
+                    >
+                    <!-- Phones: just the name and a login link. Wider: the button too, and from 1152px the section links. -->
+                    <a href="/login" class="text-muted-foreground hover:text-foreground whitespace-nowrap">
+                        <span class="@3xl:hidden">Log in</span><span class="hidden @3xl:inline">Customer login</span>
+                    </a>
                     <a
                         v-if="headerCta"
                         :href="headerCta.href"
-                        class="bg-primary text-primary-foreground rounded-lg px-4 py-2 font-semibold whitespace-nowrap hover:brightness-110"
+                        class="bg-primary text-primary-foreground hidden rounded-lg px-4 py-2 font-semibold whitespace-nowrap hover:brightness-110 @3xl:inline"
                         >{{ headerCta.label }}</a
                     >
                 </nav>
@@ -116,8 +112,8 @@ const titleFont = computed(() => titleFontHref(props.title));
                 <div v-if="nav.length">
                     <h2 class="mb-4 font-semibold text-white">Explore</h2>
                     <ul class="space-y-2.5">
-                        <li v-for="n in nav" :key="n.key">
-                            <a :href="`#${n.key}`" class="transition-colors hover:text-white">{{ n.label }}</a>
+                        <li v-for="n in nav" :key="n.href">
+                            <a :href="n.href" class="transition-colors hover:text-white">{{ n.label }}</a>
                         </li>
                     </ul>
                 </div>

@@ -10,23 +10,25 @@ export interface Option {
 }
 
 /**
- * Each section's name in the editor, and the heading it shows when the company
- * leaves its own blank — the same text as LandingConfig::defaults() (a unit test
- * keeps them in step). The hero and stats have no heading.
+ * Each section's name in the editor, the heading it shows when the company leaves
+ * its own blank — the same text as LandingConfig::defaults() (a unit test keeps
+ * them in step) — and its link in the site's header and footer, if it has one.
+ * Only the places visitors head for get one: the header has room for about six
+ * beside the company name (the hero, stats, CTA band, team and map have none).
  */
-export const SECTION_META: Record<string, { name: string; heading?: string }> = {
+export const SECTION_META: Record<string, { name: string; heading?: string; nav?: string }> = {
     hero: { name: 'Hero' },
     stats: { name: 'Stats band' },
-    services: { name: 'Services', heading: 'What we do' },
-    quote: { name: 'Instant quote', heading: 'Get an instant estimate' },
-    gallery: { name: 'Photo gallery', heading: 'Recent work' },
+    services: { name: 'Services', heading: 'What we do', nav: 'Services' },
+    quote: { name: 'Instant quote', heading: 'Get an instant estimate', nav: 'Get a quote' },
+    gallery: { name: 'Photo gallery', heading: 'Recent work', nav: 'Our work' },
     team: { name: 'Meet the team', heading: 'Meet the team' },
     service_area: { name: 'Service area', heading: 'Where we serve' },
-    booking: { name: 'Online booking', heading: 'Request your first visit' },
-    testimonials: { name: 'Testimonials', heading: 'Loved by homeowners' },
-    faq: { name: 'FAQ', heading: 'Common questions' },
+    booking: { name: 'Online booking', heading: 'Request your first visit', nav: 'Book a visit' },
+    testimonials: { name: 'Testimonials', heading: 'Loved by homeowners', nav: 'Reviews' },
+    faq: { name: 'FAQ', heading: 'Common questions', nav: 'FAQ' },
     cta: { name: 'Call to action', heading: 'Ready for a worry-free pool?' },
-    contact: { name: 'Contact form', heading: 'Get in touch' },
+    contact: { name: 'Contact form', heading: 'Get in touch', nav: 'Contact' },
 };
 
 /** The heading a section shows: the company's own, else its default. (The CTA band calls it a headline.) */
