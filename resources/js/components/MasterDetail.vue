@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { useMediaQuery } from '@vueuse/core';
+import { useMediaQuery, useMounted } from '@vueuse/core';
 import { computed } from 'vue';
 
 /**
- * Persistent master-detail layout. On wide screens (>= `query`) the detail is
+ * Persistent master-detail layout. On wide screens (xl, 1280px+) the detail is
  * docked on the right as an always-present pane (with an empty state); below
  * that it falls back to an overlay Sheet. The `#detail` slot is authored once
  * and rendered into whichever host is live — no markup duplication. The content
@@ -17,13 +17,11 @@ const props = withDefaults(
     defineProps<{
         hasSelection: boolean;
         selectionKey?: string | number | null;
-        query?: string;
         emptyText?: string;
         paneOpen?: boolean;
     }>(),
     {
         selectionKey: null,
-        query: '(min-width: 1280px)',
         emptyText: 'Select an item to see details.',
         paneOpen: undefined,
     },
@@ -31,7 +29,12 @@ const props = withDefaults(
 
 const emit = defineEmits<{ close: [] }>();
 
-const isDocked = useMediaQuery(props.query);
+// The server can't measure the screen, so it always renders the docked pane (CSS hides
+// it below xl) and the first browser render matches it; once mounted, narrow screens
+// swap it for the overlay. Deciding before mount made hydration mismatch on wide screens.
+const isWide = useMediaQuery('(min-width: 1280px)');
+const mounted = useMounted();
+const isDocked = computed(() => !mounted.value || isWide.value);
 const overlayOpen = computed(() => !isDocked.value && props.hasSelection && (props.paneOpen ?? true));
 </script>
 

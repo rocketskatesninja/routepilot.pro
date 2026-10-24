@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\StandardChemicals;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -48,6 +49,9 @@ class RegisterTenant
                 'tenant_id' => $tenant->id,
                 'role' => 'tenant_admin',
             ])->save();
+
+            // Start with the common pool chemicals, so techs have a list to pick from on day one.
+            StandardChemicals::addTo($tenant->id);
 
             return $user;
         });

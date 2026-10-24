@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -124,6 +124,12 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                     :current="props.company.logo_url ?? null"
                                     @update:model-value="(f) => (form.logo = f)"
                                 />
+                                <p class="text-muted-foreground text-sm">
+                                    Shown on your emails, customer portal and website. To choose how it sits beside your name on your website, open
+                                    <Link href="/company/landing?panel=title" class="text-primary underline-offset-4 hover:underline"
+                                        >Landing page → Company title</Link
+                                    >.
+                                </p>
                             </div>
                             <div class="grid gap-2">
                                 <Label for="name">Company name</Label>

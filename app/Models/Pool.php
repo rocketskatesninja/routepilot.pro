@@ -40,6 +40,15 @@ class Pool extends Model
     /** @use HasFactory<PoolFactory> */
     use BelongsToTenant, HasFactory, SoftDeletes;
 
+    /**
+     * The routine check for a pool's sanitizer, added to every visit's checklist:
+     * a chlorine pool's tablet chlorinator, a salt pool's cell. Others have none.
+     */
+    public const SANITIZER_TASKS = [
+        'chlorine' => 'Check and fill the chlorinator',
+        'salt' => 'Check the salt cell',
+    ];
+
     /** @var list<string> */
     protected $fillable = [
         'customer_id', 'name', 'type', 'volume_gallons', 'surface_type',
@@ -47,6 +56,14 @@ class Pool extends Model
         'has_automation', 'has_pool_cleaner', 'has_cover', 'has_water_feature',
         'has_auto_fill', 'features', 'custom_target_ranges', 'notes', 'requested_tasks',
     ];
+
+    /** This pool's routine sanitizer check (see SANITIZER_TASKS), if it has one. */
+    public function sanitizerTask(): ?string
+    {
+        $type = $this->getAttribute('sanitizer_type');
+
+        return is_string($type) ? (self::SANITIZER_TASKS[$type] ?? null) : null;
+    }
 
     /** @return array<string, string> */
     protected function casts(): array

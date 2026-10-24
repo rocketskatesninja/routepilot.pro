@@ -22,6 +22,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderComment;
@@ -116,7 +117,7 @@ class CustomerController extends Controller
                 'type' => $p->type,
                 'notes' => $p->notes,
                 'visits' => $p->visits->map(fn (ServiceVisit $v): array => [
-                    'completed_on' => $v->completed_at?->toDateString(),
+                    'completed_on' => Tenant::localDate($v->completed_at),
                     'notes' => $v->notes,
                     'office_notes' => $v->office_notes,
                     'reading' => $v->chemicalReading?->only(['free_chlorine', 'ph', 'alkalinity', 'lsi_score']),
@@ -129,9 +130,9 @@ class CustomerController extends Controller
                 'title' => $w->title,
                 'details' => $w->details,
                 'status' => $w->status,
-                'raised_on' => $w->created_at?->toDateString(),
-                'done_on' => $w->completed_at?->toDateString(),
-                'notes' => $w->comments->map(fn (WorkOrderComment $c): array => ['on' => $c->created_at?->toDateString(), 'note' => $c->body])->all(),
+                'raised_on' => Tenant::localDate($w->created_at),
+                'done_on' => Tenant::localDate($w->completed_at),
+                'notes' => $w->comments->map(fn (WorkOrderComment $c): array => ['on' => Tenant::localDate($c->created_at), 'note' => $c->body])->all(),
             ])->all(),
         ];
 

@@ -95,6 +95,7 @@ interface PoolDetail {
         status: string;
         service_type_id: number;
         agent_id: number | null;
+        agent_is_tech: boolean;
         frequency: string;
         preferred_day: string | null;
         starts_on: string | null;
@@ -834,9 +835,12 @@ function submitTargets() {
                                         {{ sub.schedule
                                         }}<template v-if="sub.agent_id">
                                             with
-                                            <Link :href="agentLink(sub.agent_id)" class="text-primary underline-offset-4 hover:underline">{{
-                                                sub.agent
-                                            }}</Link></template
+                                            <Link
+                                                v-if="sub.agent_is_tech"
+                                                :href="agentLink(sub.agent_id)"
+                                                class="text-primary underline-offset-4 hover:underline"
+                                                >{{ sub.agent }}</Link
+                                            ><template v-else>{{ sub.agent }}</template></template
                                         >
                                     </template>
                                     <p

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\RouteStop;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 
 class CompleteVisitRequest extends FormRequest
 {
@@ -31,6 +34,9 @@ class CompleteVisitRequest extends FormRequest
             'tasks.*.name' => ['nullable', 'string', 'max:255'],
             'tasks.*.done' => ['boolean'],
             'treatments' => ['array'],
+            // A chemical picked from the company's list (another company's id is ignored);
+            // name/unit are only sent for chemicals typed before the list existed.
+            'treatments.*.chemical_id' => ['nullable', 'integer'],
             'treatments.*.name' => ['nullable', 'string', 'max:255'],
             'treatments.*.amount' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'treatments.*.unit' => ['nullable', 'string', 'max:50'],
@@ -51,5 +57,33 @@ class CompleteVisitRequest extends FormRequest
             'completed_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'idempotency_key' => ['nullable', 'string', 'max:64'],
         ];
+    }
+
+    /** Names a tech reads in the field app when a visit is refused ("The photo must be an image."). */
+    public function attributes(): array
+    {
+        return [
+            'free_chlorine' => 'free chlorine', 'total_chlorine' => 'total chlorine', 'ph' => 'pH',
+            'calcium_hardness' => 'calcium', 'cyanuric_acid' => 'CYA', 'water_temperature' => 'temperature',
+            'treatments.*.amount' => 'chemical amount', 'work_order_title' => 'work order title',
+            'work_order_details' => 'work order details', 'work_order_price' => 'work order price',
+            'notes' => 'note to the homeowner', 'office_notes' => 'office note', 'photos' => 'photos', 'photos.*' => 'photo',
+        ];
+    }
+
+    /**
+     * A refused visit stays stuck in the tech's offline queue, so record why: the
+     * stop and the messages (field names and limits, never the values sent).
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        $stop = $this->route('stop');
+        Log::warning('Field visit refused', [
+            'user_id' => $this->user()?->id,
+            'stop_id' => $stop instanceof RouteStop ? $stop->id : $stop,
+            'errors' => $validator->errors()->toArray(),
+        ]);
+
+        parent::failedValidation($validator);
     }
 }

@@ -10,6 +10,8 @@ export interface FieldStop {
     order: number;
     status: string;
     completed: boolean;
+    // Added in the field (not on a plan, not billed); absent on bundles cached before it existed.
+    extra?: boolean;
     pool: {
         id: number;
         name: string;
@@ -47,7 +49,7 @@ export interface TodayBundle {
     generated_at: string;
     agent: { id: number; name: string };
     stops: FieldStop[];
-    inventory: { id: number; name: string; unit: string | null; stock: number }[];
+    inventory: FieldChemical[];
 }
 
 export interface QueuedVisit {
@@ -71,12 +73,26 @@ export interface WorkOrderDraft {
     price: string; // what to charge for it, if the tech knows
 }
 
+/** A chemical from the company's list: what a tech picks, in its one unit. `key` = which standard chemical it is, if any. */
+export interface FieldChemical {
+    id: number;
+    name: string;
+    unit: string;
+    key?: string | null; // absent on bundles cached before the chemical list
+}
+
+/** A chemical on the visit: picked from the list, a whole number of its unit. */
+export interface TreatmentDraft {
+    chemical_id: number | null;
+    amount: string;
+}
+
 /** A visit the tech has started but not finished — kept so a page reload doesn't lose it. */
 export interface VisitDraft {
     stop_id: number;
     reading: Record<string, string>;
     tasks: { name: string; done: boolean }[];
-    treatments: { name: string; amount: string; unit: string }[];
+    treatments: TreatmentDraft[]; // drafts from before the chemical list hold typed {name, amount, unit} rows
     notes: string;
     office_notes?: string; // absent on drafts saved before the office note existed
     work_order_form?: WorkOrderDraft; // likewise, before the work order section

@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Events\RouteUpdated;
-use App\Models\ChemicalInventory;
-use App\Models\InventoryTransaction;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\User;
@@ -18,14 +16,14 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Complete (or re-complete) a route stop: upsert the ServiceVisit + its
- * chemical reading (LSI computed by the engine), treatments (deducting matching
- * inventory), task checklist, any work order the tech raised, and mark the stop
- * done — all in one transaction.
+ * chemical reading (LSI computed by the engine), the chemicals used (see
+ * RecordTreatments), task checklist, any work order the tech raised, and mark
+ * the stop done — all in one transaction.
  *
  * Re-submitting an already-completed stop UPDATES the existing visit rather than
- * creating a second one: the reading/tasks/treatments are replaced and any newly
- * uploaded photos appended. Prior inventory deductions are reversed before the
- * submitted treatments are re-applied, so editing never double-deducts stock.
+ * creating a second one: the reading/tasks/chemicals are replaced and any newly
+ * uploaded photos appended. What the chemicals took from stock is put back before
+ * they're recorded again, so editing never double-deducts.
  */
 class CompleteVisit
 {
@@ -35,7 +33,7 @@ class CompleteVisit
         'cyanuric_acid', 'salt', 'tds', 'phosphates', 'water_temperature',
     ];
 
-    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing, private ReverseVisitInventory $reverseInventory, private CreateWorkOrder $workOrders) {}
+    public function __construct(private ChemistryService $chem, private PhotoService $photos, private BillingService $billing, private RecordTreatments $treatments, private CreateWorkOrder $workOrders) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -68,10 +66,8 @@ class CompleteVisit
                     ...$gps,
                 ]);
             } else {
-                // Editing an existing visit: reverse its inventory deductions and
-                // wipe replaceable children before re-applying the fresh submission.
-                $this->reverseInventory->handle($visit);
-                $visit->treatments()->delete();
+                // Editing an existing visit: wipe replaceable children before re-applying
+                // the fresh submission (RecordTreatments replaces the chemicals).
                 $visit->tasks()->delete();
                 $visit->chemicalReading()->delete();
                 $visit->update([
@@ -103,16 +99,7 @@ class CompleteVisit
                 }
             }
 
-            foreach ($this->rows($data['treatments'] ?? null) as $t) {
-                $name = is_string($t['name'] ?? null) ? $t['name'] : '';
-                if ($name === '') {
-                    continue;
-                }
-                $amount = (float) ($t['amount'] ?? 0);
-                $unit = is_string($t['unit'] ?? null) ? $t['unit'] : 'oz';
-                $visit->treatments()->create(['chemical_name' => $name, 'amount' => $amount, 'unit' => $unit]);
-                $this->deductInventory($name, $amount, $unit, $visit, $agent);
-            }
+            $this->treatments->handle($visit, $this->rows($data['treatments'] ?? null), $agent->id);
 
             foreach ($photos as $photo) {
                 $visit->photos()->create(['photo_path' => $this->photos->store($photo, 'visit-photos/'.$visit->id)]);
@@ -173,30 +160,6 @@ class CompleteVisit
         }
 
         return array_values(array_filter($value, 'is_array'));
-    }
-
-    /** Deduct a treatment from matching inventory (same unit) and log it. */
-    private function deductInventory(string $name, float $amount, string $unit, ServiceVisit $visit, User $agent): void
-    {
-        if ($amount <= 0) {
-            return;
-        }
-        $item = ChemicalInventory::query()->where('chemical_name', $name)->where('unit', $unit)->where('is_active', true)->first();
-        if ($item === null) {
-            return;
-        }
-
-        $item->update(['current_stock' => max(0.0, (float) $item->current_stock - $amount)]);
-
-        InventoryTransaction::create([
-            'chemical_inventory_id' => $item->id,
-            'type' => 'usage',
-            'quantity' => -$amount,
-            'service_visit_id' => $visit->id,
-            'agent_id' => $agent->id,
-            'pool_id' => $visit->getAttribute('pool_id'),
-            'created_by' => $agent->id,
-        ]);
     }
 
     /**

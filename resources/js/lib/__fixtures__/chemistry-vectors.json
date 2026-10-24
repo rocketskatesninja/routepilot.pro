@@ -234,9 +234,9 @@
         }
     },
     {
-        "name": "salt pool low chlorine runs the generator",
+        "name": "salt pool with chlorine a little low runs the generator longer",
         "reading": {
-            "free_chlorine": 0.4,
+            "free_chlorine": 0.8,
             "ph": 7.4,
             "salt": 3000
         },
@@ -256,7 +256,7 @@
             },
             "parameters": {
                 "free_chlorine": {
-                    "value": 0.4,
+                    "value": 0.8,
                     "status": "low",
                     "label": "Free Chlorine",
                     "unit": "ppm",
@@ -440,6 +440,224 @@
                 "parameters": []
             },
             "recommendations": [],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "salt pool with chlorine bottomed out gets liquid chlorine first",
+        "reading": {
+            "free_chlorine": 0.2,
+            "ph": 7.4,
+            "salt": 3000
+        },
+        "pool": {
+            "volume_gallons": 18000,
+            "sanitizer": "salt",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": -0.21,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 0.2,
+                    "status": "low",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "ph": {
+                    "value": 7.4,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "salt": {
+                    "value": 3000,
+                    "status": "normal",
+                    "label": "Salt",
+                    "unit": "ppm",
+                    "min": 2700,
+                    "max": 3400
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Free Chlorine",
+                    "chemical": "Liquid Chlorine",
+                    "amount": 32.4,
+                    "unit": "oz",
+                    "urgency": "high",
+                    "notes": [
+                        "The salt cell can't catch up from this low on its own. After adding, run the generator 3.6 extra hours and check the salt level and the cell."
+                    ],
+                    "original_amount": 32.4,
+                    "adjustments": [],
+                    "was_adjusted": false
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "chloramines in a chlorine pool call for a Cal-Hypo shock",
+        "reading": {
+            "free_chlorine": 1.5,
+            "total_chlorine": 2.3,
+            "ph": 7.4
+        },
+        "pool": {
+            "volume_gallons": 20000,
+            "sanitizer": "chlorine",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": -0.16,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 1.5,
+                    "status": "normal",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "combined_chlorine": {
+                    "value": 0.7999999999999998,
+                    "status": "high",
+                    "label": "Combined Chlorine",
+                    "unit": "ppm",
+                    "min": 0,
+                    "max": 0.5
+                },
+                "ph": {
+                    "value": 7.4,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Combined Chlorine",
+                    "chemical": "Granular Chlorine (Cal-Hypo)",
+                    "amount": 32,
+                    "unit": "oz",
+                    "urgency": "high",
+                    "notes": [
+                        "Shock: raises free chlorine about 8 ppm (10 times the combined chlorine) to burn off chloramines. Add at dusk with the pump running; swim again once free chlorine is back under 5 ppm."
+                    ],
+                    "original_amount": 32,
+                    "adjustments": [],
+                    "was_adjusted": false
+                }
+            ],
+            "weather_alerts": []
+        }
+    },
+    {
+        "name": "salt pool with chloramines and no chlorine gets one liquid-chlorine dose for both",
+        "reading": {
+            "free_chlorine": 0.2,
+            "total_chlorine": 1,
+            "ph": 7.4,
+            "salt": 3200
+        },
+        "pool": {
+            "volume_gallons": 15000,
+            "sanitizer": "salt",
+            "custom_target_ranges": null
+        },
+        "weather": null,
+        "expected": {
+            "lsi": {
+                "value": -0.21,
+                "status": "balanced",
+                "color": "green",
+                "label": "Balanced",
+                "description": "Water chemistry is in ideal balance."
+            },
+            "parameters": {
+                "free_chlorine": {
+                    "value": 0.2,
+                    "status": "low",
+                    "label": "Free Chlorine",
+                    "unit": "ppm",
+                    "min": 1,
+                    "max": 3
+                },
+                "combined_chlorine": {
+                    "value": 0.8,
+                    "status": "high",
+                    "label": "Combined Chlorine",
+                    "unit": "ppm",
+                    "min": 0,
+                    "max": 0.5
+                },
+                "ph": {
+                    "value": 7.4,
+                    "status": "normal",
+                    "label": "pH",
+                    "unit": "",
+                    "min": 7.2,
+                    "max": 7.6
+                },
+                "salt": {
+                    "value": 3200,
+                    "status": "normal",
+                    "label": "Salt",
+                    "unit": "ppm",
+                    "min": 2700,
+                    "max": 3400
+                }
+            },
+            "trends": {
+                "has_history": false,
+                "parameters": []
+            },
+            "recommendations": [
+                {
+                    "parameter": "Free Chlorine & Combined Chlorine",
+                    "chemical": "Liquid Chlorine",
+                    "amount": 147,
+                    "unit": "oz",
+                    "urgency": "high",
+                    "notes": [
+                        "The salt cell can't catch up from this low on its own. After adding, run the generator 3 extra hours and check the salt level and the cell.",
+                        "Shock: raises free chlorine about 8 ppm (10 times the combined chlorine) to burn off chloramines. Add at dusk with the pump running; swim again once free chlorine is back under 5 ppm."
+                    ],
+                    "original_amount": 147,
+                    "adjustments": [],
+                    "was_adjusted": false,
+                    "combined": true
+                }
+            ],
             "weather_alerts": []
         }
     }

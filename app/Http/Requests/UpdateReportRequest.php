@@ -44,6 +44,9 @@ class UpdateReportRequest extends FormRequest
             'reading.salt' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'reading.water_temperature' => ['nullable', 'numeric', 'min:0', 'max:150'],
             'treatments' => ['array'],
+            // A chemical picked from the company's list (another company's id is ignored);
+            // name/unit are only sent for chemicals typed before the list existed.
+            'treatments.*.chemical_id' => ['nullable', 'integer'],
             'treatments.*.name' => ['nullable', 'string', 'max:120'],
             'treatments.*.amount' => ['nullable', 'numeric', 'min:0'],
             'treatments.*.unit' => ['nullable', 'string', 'max:30'],

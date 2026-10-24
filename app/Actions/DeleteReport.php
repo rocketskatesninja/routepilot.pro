@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Delete a visit report — a duplicate, say, or one filed against the wrong pool
  * — and undo what it set in motion:
- *  - its charge is cancelled (kept in the history, marked void); an invoice it
- *    was on updates, and money already paid for it stays on the account as credit
+ *  - its charges (the visit, and its chemicals if they were billed) are cancelled
+ *    (kept in the history, marked void); an invoice they were on updates, and money
+ *    already paid for them stays on the account as credit
  *  - the chemicals it took from inventory go back on the shelf
  *  - its route stop opens again: due if its day is today or later, missed if
  *    the day has gone; the live schedule board refreshes
@@ -32,16 +33,16 @@ class DeleteReport
         private PhotoService $photos,
     ) {}
 
-    /** @return Charge|null the charge it cancelled, if the visit had one */
-    public function handle(ServiceVisit $visit, User $by): ?Charge
+    /** @return float what the charges it cancelled came to (0 when the visit had none) */
+    public function handle(ServiceVisit $visit, User $by): float
     {
         $photoPaths = $visit->photos()->pluck('photo_path')->all();
         $route = $visit->routeStop?->route;
 
-        $charge = DB::transaction(function () use ($visit, $by): ?Charge {
-            $charge = Charge::query()->active()->where('service_visit_id', $visit->id)->first();
-            if ($charge !== null) {
-                Charge::query()->whereKey($charge->id)->update([
+        $charges = DB::transaction(function () use ($visit, $by) {
+            $charges = Charge::query()->active()->where('service_visit_id', $visit->id)->get();
+            if ($charges->isNotEmpty()) {
+                Charge::query()->whereKey($charges->modelKeys())->update([
                     'voided_at' => now(),
                     'void_reason' => 'Visit report deleted',
                     'voided_by' => $by->id,
@@ -58,14 +59,14 @@ class DeleteReport
 
             $visit->delete(); // its reading, treatments, tasks and photo rows cascade
 
-            if ($charge !== null) {
-                $customer = Customer::withTrashed()->find($charge->customer_id);
+            if ($charges->isNotEmpty()) {
+                $customer = Customer::withTrashed()->find($charges->value('customer_id'));
                 if ($customer !== null) {
                     $this->billing->refreshInvoices($customer);
                 }
             }
 
-            return $charge;
+            return $charges;
         });
 
         foreach ($photoPaths as $path) {
@@ -75,6 +76,6 @@ class DeleteReport
             event(RouteUpdated::for($route));
         }
 
-        return $charge;
+        return round((float) $charges->sum(fn (Charge $c): float => $c->total()), 2);
     }
 }

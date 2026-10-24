@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\AddExtraStop;
 use App\Actions\CompleteVisit;
+use App\Actions\RemoveExtraStop;
 use App\Actions\SendVisitFollowups;
 use App\Events\AgentLocationUpdated;
 use App\Http\Controllers\Controller;
@@ -13,6 +15,7 @@ use App\Models\AgentLocation;
 use App\Models\ChemicalInventory;
 use App\Models\ChemicalReading;
 use App\Models\FieldSyncKey;
+use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceType;
@@ -70,14 +73,15 @@ class FieldController extends Controller
             'generated_at' => now()->toIso8601String(),
             'agent' => ['id' => $user->id, 'name' => $user->displayName()],
             'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop, $workOrders->get($stop->pool_id, collect()), $user))->values()->all(),
-            'inventory' => ChemicalInventory::query()
+            // The chemicals a tech picks from; `key` lets a water-test suggestion find its chemical.
+            'inventory' => ChemicalInventory::query()->active()
                 ->orderBy('chemical_name')
-                ->get(['id', 'chemical_name', 'unit', 'current_stock'])
+                ->get(['id', 'chemical_name', 'standard_key', 'unit'])
                 ->map(fn (ChemicalInventory $c): array => [
                     'id' => $c->id,
                     'name' => $c->chemical_name,
                     'unit' => $c->unit,
-                    'stock' => (float) $c->current_stock,
+                    'key' => $c->standard_key,
                 ])->all(),
         ]);
     }
@@ -93,9 +97,10 @@ class FieldController extends Controller
         abort_unless($agent instanceof User && $agent->isStaff(), 403);
 
         // A super-admin signed in as this agent is somewhere else: never post their
-        // position as the agent's (tracking:false also turns sharing off in the browser).
+        // position as the agent's (tracking:false also turns sharing off in the browser,
+        // and the reason tells the tech why).
         if ($request->session()->has('impersonator_id')) {
-            return response()->json(['tracking' => false]);
+            return response()->json(['tracking' => false, 'reason' => 'impersonating']);
         }
 
         $validated = $request->validate([
@@ -112,7 +117,7 @@ class FieldController extends Controller
             ->first();
 
         if ($route === null) {
-            return response()->json(['tracking' => false]);
+            return response()->json(['tracking' => false, 'reason' => 'no_route']);
         }
 
         AgentLocation::query()->updateOrCreate(
@@ -162,6 +167,7 @@ class FieldController extends Controller
             'order' => $stop->stop_order,
             'status' => $stop->status,
             'completed' => $stop->serviceVisit !== null,
+            'extra' => $stop->service_subscription_id === null, // added in the field: not on a plan, not billed
             'pool' => $pool === null ? null : [
                 'id' => $pool->id,
                 'name' => $pool->name,
@@ -178,7 +184,7 @@ class FieldController extends Controller
             ],
             'service' => [
                 'name' => $serviceType?->name,
-                'tasks' => $serviceType !== null ? array_values($serviceType->tasks ?? []) : [],
+                'tasks' => $this->checklist($serviceType, $pool),
                 // Which visit sections the field app shows (the Services-page checkboxes).
                 'modules' => $serviceType?->modules() ?? array_fill_keys(array_keys(ServiceType::MODULES), true),
             ],
@@ -233,6 +239,69 @@ class FieldController extends Controller
         }
 
         return response()->json(['ok' => true, 'idempotent' => false, 'visit_id' => $visit->id]);
+    }
+
+    /**
+     * Pools to add as an extra visit: the company's pools matching a name, customer
+     * or street (archived ones are left out by the soft delete), 20 at most.
+     */
+    public function pools(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->string('search'));
+        $like = '%'.$search.'%';
+
+        $pools = Pool::query()
+            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q
+                ->where('name', 'like', $like)
+                ->orWhereHas('customer', fn ($c) => $c->where('first_name', 'like', $like)->orWhere('last_name', 'like', $like))
+                ->orWhereHas('serviceLocation', fn ($l) => $l->where('address_line1', 'like', $like))))
+            ->with(['customer:id,first_name,last_name', 'serviceLocation:id,pool_id,address_line1,city'])
+            ->orderBy('name')
+            ->limit(20)
+            ->get();
+
+        return response()->json(['pools' => $pools->map(fn (Pool $p): array => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'customer' => $p->customer?->displayName(),
+            'address' => collect([$p->serviceLocation?->getAttribute('address_line1'), $p->serviceLocation?->getAttribute('city')])->filter()->join(', ') ?: null,
+        ])->values()->all()]);
+    }
+
+    /** Add a pool to the end of today's route as an extra visit; the app then opens it like any stop. */
+    public function addStop(Request $request, Pool $pool, AddExtraStop $action): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        return response()->json(['stop_id' => $action->handle($pool, $user)->id]);
+    }
+
+    /** Take an extra visit that hasn't been done back off the route. */
+    public function removeStop(Request $request, RouteStop $stop, RemoveExtraStop $action): JsonResponse
+    {
+        $this->authorizeStop($request, $stop);
+        abort_unless($action->handle($stop), 422, 'Only an extra visit that hasn’t been done can be removed.');
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * A visit's checklist: the service's tasks, then the routine check for the pool's
+     * sanitizer (the chlorinator, or a salt pool's cell) unless the service lists it already.
+     *
+     * @return list<string>
+     */
+    private function checklist(?ServiceType $serviceType, ?Pool $pool): array
+    {
+        $tasks = $serviceType !== null ? array_values($serviceType->tasks ?? []) : [];
+        $check = $pool?->sanitizerTask();
+        $listed = array_map(fn ($t): string => mb_strtolower(trim((string) $t)), $tasks);
+        if ($check !== null && ! in_array(mb_strtolower($check), $listed, true)) {
+            $tasks[] = $check;
+        }
+
+        return $tasks;
     }
 
     /** The stop must belong to this tenant and be worked by this agent (or an admin). */

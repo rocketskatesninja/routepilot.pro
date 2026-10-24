@@ -7,7 +7,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 // Agent-only field-status cluster (connectivity + live location sharing), shown in
 // the sidebar footer. Gated by the caller. Location state is the singleton shared
 // with the field app; connectivity is this device's online/offline status.
-const { sharing, toggle, restore } = useAgentTracking();
+const { sharing, toggle, restore, notice } = useAgentTracking();
 
 const online = ref(true);
 const onOnline = () => (online.value = true);
@@ -49,6 +49,8 @@ onBeforeUnmount(() => {
                     <MapPin :class="sharing ? 'animate-pulse text-sky-600 dark:text-sky-400' : ''" />
                     <span>{{ sharing ? 'Sharing location' : 'Share location' }}</span>
                 </SidebarMenuButton>
+                <!-- Why the server turned it off (hidden when the sidebar is collapsed to icons). -->
+                <p v-if="notice" class="px-2 pt-1 text-xs text-amber-700 group-data-[collapsible=icon]:hidden dark:text-amber-400">{{ notice }}</p>
             </SidebarMenuItem>
         </SidebarMenu>
     </SidebarGroup>

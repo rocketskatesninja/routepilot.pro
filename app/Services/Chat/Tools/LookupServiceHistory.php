@@ -60,7 +60,7 @@ class LookupServiceHistory extends AiTool
 
         $visits = ServiceVisit::query()
             ->whereIn('pool_id', $pools->pluck('id'))
-            ->with('pool', 'agent', 'chemicalReading', 'treatments', 'charge')
+            ->with('pool', 'agent', 'chemicalReading', 'treatments', 'charges')
             ->latest('visited_at')
             ->limit($limit)
             ->get();
@@ -76,7 +76,7 @@ class LookupServiceHistory extends AiTool
             $extras = collect([
                 $v->chemicalReading !== null ? 'Readings recorded' : null,
                 $v->treatments->isNotEmpty() ? $v->treatments->count().' treatment(s)' : null,
-                $v->charge !== null ? 'Billed $'.number_format((float) $v->charge->amount, 2).($v->charge->voided_at !== null ? ' (voided)' : '') : null,
+                $this->billed($v),
             ])->filter()->join(' | ');
 
             $line = "- **{$when}** — {$v->pool?->name} — {$agent} — ".ucfirst($v->status);
@@ -91,5 +91,17 @@ class LookupServiceHistory extends AiTool
         })->join("\n");
 
         return "Service history for **{$displayName}** (last {$visits->count()} visits):\n\n{$rows}";
+    }
+
+    /** "Billed $55.00" for what the visit was charged, "(voided)" when all of it was cancelled; null if never billed. */
+    private function billed(ServiceVisit $v): ?string
+    {
+        if ($v->charges->isEmpty()) {
+            return null;
+        }
+        $active = $v->charges->whereNull('voided_at');
+        $amount = ($active->isNotEmpty() ? $active : $v->charges)->sum(fn ($c): float => (float) $c->amount);
+
+        return 'Billed $'.number_format($amount, 2).($active->isEmpty() ? ' (voided)' : '');
     }
 }

@@ -6,6 +6,7 @@ namespace App\Services\Chat\Tools;
 
 use App\Models\ChemicalInventory;
 use App\Services\Chat\AiTool;
+use App\Support\StandardChemicals;
 
 /**
  * Check chemical inventory stock levels — a specific chemical or all items
@@ -41,7 +42,7 @@ class LookupInventory extends AiTool
         $search = trim((string) ($params['chemical_name'] ?? ''));
 
         $items = ChemicalInventory::query()
-            ->where('is_active', true)
+            ->active()
             ->when($search !== '', fn ($q) => $q->where('chemical_name', 'like', "%{$search}%"))
             ->orderBy('chemical_name')
             ->get();
@@ -53,10 +54,10 @@ class LookupInventory extends AiTool
         }
 
         $rows = $items->map(function (ChemicalInventory $item): string {
-            $stock = number_format((float) $item->current_stock, 2).' '.$item->unit;
-            $threshold = $item->reorder_threshold !== null ? number_format((float) $item->reorder_threshold, 2).' '.$item->unit : 'none set';
+            $stock = StandardChemicals::amount((float) $item->current_stock, $item->unit);
+            $threshold = $item->reorder_threshold !== null ? StandardChemicals::amount((float) $item->reorder_threshold, $item->unit) : 'none set';
             $low = $item->isLowStock() ? ' ⚠️ LOW STOCK' : '';
-            $cost = $item->cost_per_unit !== null ? '$'.number_format((float) $item->cost_per_unit, 2).'/'.$item->unit : '';
+            $cost = $item->cost_per_unit !== null ? '$'.number_format((float) $item->cost_per_unit, 2).'/'.StandardChemicals::unitFor(1, $item->unit) : '';
             $supplier = $item->supplier !== null ? " (from {$item->supplier})" : '';
 
             return "- **{$item->chemical_name}** [id:{$item->id}]: {$stock} (reorder at: {$threshold}){$low}"

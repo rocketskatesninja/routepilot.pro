@@ -1,16 +1,33 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import FieldAddPool from '@/components/field/FieldAddPool.vue';
 import FieldVisit from '@/components/field/FieldVisit.vue';
 import ImpersonationBanner from '@/components/ImpersonationBanner.vue';
 import { useAgentTracking } from '@/composables/useAgentTracking';
 import { pruneDrafts, saveBundle, type FieldStop, type TodayBundle } from '@/lib/field/store';
-import { QUEUE_SYNCED, failedCount, flushQueue, loadToday, queuedCount, retryFailed } from '@/lib/field/sync';
+import {
+    QUEUE_SYNCED,
+    discardFailed,
+    failedCount,
+    firstFailed,
+    flushQueue,
+    loadToday,
+    queuedCount,
+    reopenFailed,
+    retryFailed,
+} from '@/lib/field/sync';
 import { formatDay } from '@/lib/utils';
 import { Head, Link } from '@inertiajs/vue3';
-import { Check, CloudOff, LoaderCircle, MapPin, Navigation, RefreshCw, TriangleAlert, Wifi, WifiOff } from 'lucide-vue-next';
+import { Check, CloudOff, LoaderCircle, MapPin, Navigation, Plus, RefreshCw, TriangleAlert, Wifi, WifiOff, X } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-const { sharing: sharingLocation, toggle: toggleLocation, restore: restoreLocation } = useAgentTracking();
+const {
+    sharing: sharingLocation,
+    toggle: toggleLocation,
+    restore: restoreLocation,
+    notice: locationNotice,
+    dismissNotice: dismissLocationNotice,
+} = useAgentTracking();
 
 const bundle = ref<TodayBundle | null>(null);
 const source = ref<'network' | 'cache' | 'none'>('none');
@@ -18,10 +35,13 @@ const loading = ref(true);
 const online = ref(true);
 const queued = ref(0);
 const failed = ref(0);
+// The first visit that didn't sync: the banner shows the server's reason, and offers to fix or discard it.
+const firstFail = ref<{ stop_id: number; pool_name: string; error: string | null } | null>(null);
 // A short "it went through" after finishing a visit that raised a work order (no bell for your own).
 const notice = ref<string | null>(null);
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 const selected = ref<FieldStop | null>(null);
+const addingPool = ref(false);
 
 // The open stop is remembered for this tab, so a refresh lands back on the visit
 // (whose entries FieldVisit restores) instead of the list.
@@ -45,6 +65,7 @@ function rememberedStop(): number {
 async function refreshCounts() {
     queued.value = await queuedCount();
     failed.value = await failedCount();
+    firstFail.value = await firstFailed();
 }
 
 function navUrl(stop: FieldStop): string | null {
@@ -64,6 +85,38 @@ const remaining = computed(() => toDo.value.length);
 const done = computed(() => stops.value.filter(isDone).length);
 // The next stop still to do — named in the summary at the top.
 const next = computed(() => toDo.value[0] ?? null);
+
+// A refused visit can be reopened to fix while its stop is on today's route; any can be discarded.
+const fixable = computed(() => firstFail.value !== null && stops.value.some((s) => s.id === firstFail.value?.stop_id));
+
+/** A refused visit never reached the server, so its stop is still to do. */
+async function backToDo(stopId: number): Promise<FieldStop | null> {
+    const stop = stops.value.find((s) => s.id === stopId) ?? null;
+    if (stop) {
+        stop.completed = false;
+        stop.status = 'pending';
+        if (bundle.value) await saveBundle(bundle.value).catch(() => {});
+    }
+    return stop;
+}
+
+async function fixFailed() {
+    const failed = firstFail.value;
+    if (!fixable.value || !failed) return;
+    await reopenFailed(failed.stop_id);
+    const stop = await backToDo(failed.stop_id);
+    await refreshCounts();
+    selected.value = stop; // reopen it with what was entered
+}
+
+async function discardFailedVisit() {
+    const failed = firstFail.value;
+    if (!failed) return;
+    if (!confirm(`Discard the visit to ${failed.pool_name}? What was entered for it is lost, and the office won’t get the report.`)) return;
+    await discardFailed(failed.stop_id);
+    await backToDo(failed.stop_id);
+    await refreshCounts();
+}
 
 async function load() {
     loading.value = true;
@@ -126,6 +179,19 @@ function open(stop: FieldStop) {
     selected.value = stop;
 }
 
+// An extra visit is made on the server, so reload the route and open its new stop.
+async function onPoolAdded(stopId: number) {
+    addingPool.value = false;
+    await load();
+    const stop = stops.value.find((s) => s.id === stopId);
+    if (stop) open(stop);
+}
+
+async function onRemoved() {
+    selected.value = null;
+    await load();
+}
+
 async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
     if (raisedWorkOrder) {
         notice.value = online.value
@@ -173,14 +239,17 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                     <h1 class="font-display truncate text-lg leading-tight font-semibold tracking-tight">Today’s route</h1>
                     <p class="text-muted-foreground truncate text-xs">{{ bundle?.date ? formatDay(bundle.date) : 'Today' }}</p>
                 </div>
+                <!-- Connection, as an icon only: the colour and icon say it; the label is for screen readers and a long-press. -->
                 <span
-                    class="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+                    role="status"
+                    class="grid size-8 shrink-0 place-items-center rounded-full"
                     :class="
                         online ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
                     "
+                    :title="online ? 'Online' : 'Offline'"
+                    :aria-label="online ? 'Online' : 'Offline'"
                 >
-                    <Wifi v-if="online" class="size-3.5" /><WifiOff v-else class="size-3.5" />
-                    {{ online ? 'Online' : 'Offline' }}
+                    <Wifi v-if="online" class="size-4" /><WifiOff v-else class="size-4" />
                 </span>
                 <!-- Location + refresh sit together, no gap: the 40px tap targets already space the icons. -->
                 <div class="flex items-center">
@@ -215,6 +284,20 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                     online ? '…' : '. They’ll send when you’re back online.'
                 }}
             </div>
+            <div
+                v-if="locationNotice"
+                role="status"
+                class="flex items-center justify-between gap-2 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-400"
+            >
+                <span class="flex items-center gap-1.5"><MapPin class="size-4 shrink-0" /> {{ locationNotice }}</span>
+                <button
+                    class="grid size-8 shrink-0 place-items-center rounded-lg hover:bg-amber-500/15"
+                    aria-label="Dismiss"
+                    @click="dismissLocationNotice"
+                >
+                    <X class="size-4" />
+                </button>
+            </div>
             <div v-if="source === 'cache'" class="bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-400">
                 You’re offline, so this is your last saved route.
             </div>
@@ -222,10 +305,19 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                 v-if="failed > 0"
                 class="flex items-center justify-between gap-2 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400"
             >
-                <span class="flex items-center gap-1.5"
-                    ><TriangleAlert class="size-4" /> {{ failed }} visit{{ failed === 1 ? '' : 's' }} didn’t sync</span
-                >
-                <button class="rounded-lg bg-red-500/15 px-3 py-1 font-semibold hover:bg-red-500/25" @click="retry">Try again</button>
+                <span class="min-w-0">
+                    <span class="flex items-center gap-1.5"
+                        ><TriangleAlert class="size-4 shrink-0" /> {{ failed }} visit{{ failed === 1 ? '' : 's' }} didn’t sync</span
+                    >
+                    <span v-if="firstFail?.error" class="mt-0.5 block text-xs font-normal">{{ firstFail.error }}</span>
+                    <button class="mt-0.5 text-xs font-normal underline underline-offset-2" @click="discardFailedVisit">Discard it</button>
+                </span>
+                <div class="flex shrink-0 gap-1.5">
+                    <button v-if="fixable" class="rounded-lg bg-red-600 px-3 py-1 font-semibold text-white hover:bg-red-700" @click="fixFailed">
+                        Fix
+                    </button>
+                    <button class="rounded-lg bg-red-500/15 px-3 py-1 font-semibold hover:bg-red-500/25" @click="retry">Try again</button>
+                </div>
             </div>
         </header>
 
@@ -290,7 +382,9 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                                 <span v-if="isDone(stop)" class="shrink-0 font-medium">Done</span>
                                 <span v-else-if="stop.status === 'skipped'" class="text-muted-foreground shrink-0 font-medium">Skipped</span>
                             </div>
-                            <p class="text-muted-foreground truncate text-sm">{{ stop.service.name ?? 'Service visit' }}</p>
+                            <p class="text-muted-foreground truncate text-sm">
+                                {{ stop.extra ? 'Extra visit' : (stop.service.name ?? 'Service visit') }}
+                            </p>
                         </div>
                         <a
                             v-if="!isDone(stop) && navUrl(stop)"
@@ -305,9 +399,27 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                         </a>
                     </li>
                 </ol>
+
+                <!-- a pool that isn't on the route: added to the end as an extra visit -->
+                <button
+                    class="text-primary flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[hsl(var(--brand)/0.4)] text-base font-semibold disabled:opacity-50"
+                    :disabled="!online"
+                    @click="addingPool = true"
+                >
+                    <Plus class="size-5" /> {{ online ? 'New report' : 'New report (needs a connection)' }}
+                </button>
             </template>
         </main>
 
-        <FieldVisit v-if="selected" :stop="selected" :online="online" @done="onCompleted" @close="selected = null" />
+        <FieldVisit
+            v-if="selected"
+            :stop="selected"
+            :online="online"
+            :chemicals="bundle?.inventory ?? []"
+            @done="onCompleted"
+            @removed="onRemoved"
+            @close="selected = null"
+        />
+        <FieldAddPool v-if="addingPool" @added="onPoolAdded" @close="addingPool = false" />
     </div>
 </template>

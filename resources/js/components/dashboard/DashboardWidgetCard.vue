@@ -8,6 +8,7 @@ import {
     CloudSun,
     DollarSign,
     FileText,
+    FlaskConical,
     GripVertical,
     Inbox,
     LayoutGrid,
@@ -39,6 +40,7 @@ const ICONS: Record<string, LucideIcon> = {
     Banknote,
     Building2,
     Wrench,
+    FlaskConical,
 };
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { cn } from '@/lib/utils';
-import { useEventListener, useMediaQuery, useVModel } from '@vueuse/core';
+import { useEventListener, useMediaQuery, useMounted, useVModel } from '@vueuse/core';
 import { TooltipProvider } from 'radix-vue';
 import { computed, ref, type HTMLAttributes, type Ref } from 'vue';
 import {
@@ -28,7 +28,11 @@ const emits = defineEmits<{
     'update:open': [open: boolean];
 }>();
 
-const isMobile = useMediaQuery('(max-width: 768px)');
+// Desktop until mounted: the server can't measure the screen and renders the desktop
+// sidebar (CSS hides it on phones), so the first browser render has to match it.
+const isNarrow = useMediaQuery('(max-width: 768px)');
+const mounted = useMounted();
+const isMobile = computed(() => mounted.value && isNarrow.value);
 const openMobile = ref(false);
 
 const open = useVModel(props, 'open', emits, {

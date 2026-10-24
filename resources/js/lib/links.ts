@@ -47,6 +47,11 @@ export function inboxRequestLink(id: number | string): string {
     return `/inbox?selected=${id}`;
 }
 
+/** Back-office: the Inventory page with this chemical opened. */
+export function chemicalLink(id: number | string): string {
+    return `/inventory?selected=${id}`;
+}
+
 /** Back-office: the Work orders page with this one opened. */
 export function workOrderLink(id: number | string): string {
     return `/work-orders?selected=${id}`;

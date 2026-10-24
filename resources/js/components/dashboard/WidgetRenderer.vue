@@ -10,6 +10,7 @@ import RecentTenantsWidget from './widgets/RecentTenantsWidget.vue';
 import RecentVisitsWidget from './widgets/RecentVisitsWidget.vue';
 import RequestsWidget from './widgets/RequestsWidget.vue';
 import RouteMapWidget from './widgets/RouteMapWidget.vue';
+import RunningLowWidget from './widgets/RunningLowWidget.vue';
 import StatsWidget from './widgets/StatsWidget.vue';
 import TodayStopsWidget from './widgets/TodayStopsWidget.vue';
 import WeatherWidget from './widgets/WeatherWidget.vue';
@@ -31,6 +32,7 @@ const registry: Record<string, Component> = {
     billing_summary: BillingSummaryWidget,
     notifications: NotificationsWidget,
     work_orders: WorkOrdersWidget,
+    running_low: RunningLowWidget,
     // agent
     agent_stats: StatsWidget,
     agent_route: MyRouteWidget,

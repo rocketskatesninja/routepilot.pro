@@ -6,40 +6,29 @@ namespace App\Actions;
 
 use App\Models\ChemicalInventory;
 use App\Models\InventoryTransaction;
-use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
- * Move stock and log it: restock (+), usage (−), or adjustment (set to an
- * exact count). The transaction records the signed delta.
+ * Update stock from the back office: restocked (+), used (−), or counted (set
+ * to the amount on the shelf).
  */
 class AdjustStock
 {
     /**
-     * @param  array<string, mixed>  $data  validated {type, quantity, notes}
+     * @param  array<string, mixed>  $data  validated {type, quantity}
      */
     public function handle(ChemicalInventory $chemical, array $data, int $userId): InventoryTransaction
     {
-        return DB::transaction(function () use ($chemical, $data, $userId): InventoryTransaction {
-            $type = (string) $data['type'];
-            $quantity = (float) $data['quantity'];
-            $current = (float) $chemical->current_stock;
+        $type = (string) $data['type'];
+        $quantity = (float) $data['quantity'];
 
-            $delta = match ($type) {
-                'restock' => $quantity,
-                'usage' => -$quantity,
-                'adjustment' => $quantity - $current, // set to the given count
-                default => 0.0,
-            };
+        $change = match ($type) {
+            'restock' => $quantity,
+            'usage' => -$quantity,
+            'adjustment' => $quantity - (float) $chemical->current_stock,
+            default => throw new InvalidArgumentException("Unknown stock change: {$type}"),
+        };
 
-            $chemical->update(['current_stock' => max(0.0, $current + $delta)]);
-
-            return InventoryTransaction::create([
-                'chemical_inventory_id' => $chemical->id,
-                'type' => $type,
-                'quantity' => $delta,
-                'notes' => $data['notes'] ?? null,
-                'created_by' => $userId,
-            ]);
-        });
+        return $chemical->move($type, $change, ['created_by' => $userId]);
     }
 }

@@ -105,17 +105,36 @@ test('a homeowner who opted out gets no service notification', function () {
     expect($portalUser->notifications()->count())->toBe(0);
 });
 
-test('a treatment deducts matching inventory and logs it', function () {
+test('a chemical picked from the list is recorded in its unit, rounded up to whole ones, and taken off the shelf', function () {
     $item = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Cal Hypo', 'unit' => 'lbs', 'current_stock' => 10]);
 
     $this->actingAs($this->agent)
         ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
-            'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
+            'treatments' => [['chemical_id' => $item->id, 'amount' => 1.2]],
         ]))
         ->assertOk();
 
-    expect((float) $item->fresh()?->current_stock)->toBe(8.0);
-    expect(InventoryTransaction::query()->where('chemical_inventory_id', $item->id)->where('type', 'usage')->exists())->toBeTrue();
+    $treatment = ServiceVisit::query()->sole()->treatments()->sole();
+    expect($treatment->only(['chemical_inventory_id', 'chemical_name', 'unit']))->toBe(['chemical_inventory_id' => $item->id, 'chemical_name' => 'Cal Hypo', 'unit' => 'lbs'])
+        ->and((float) $treatment->amount)->toBe(2.0)
+        ->and((float) $item->fresh()?->current_stock)->toBe(8.0)
+        ->and(InventoryTransaction::query()->where('chemical_inventory_id', $item->id)->where('type', 'usage')->sole()->quantity)->toBe('-2.00');
+});
+
+test('a chemical typed by an older copy of the app is kept as typed, but not taken from stock', function () {
+    $item = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Cal Hypo', 'unit' => 'lbs', 'current_stock' => 10]);
+
+    $this->actingAs($this->agent)
+        ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
+            'treatments' => [['name' => 'Cal Hypo', 'amount' => 2.5, 'unit' => 'lbs']],
+        ]))
+        ->assertOk();
+
+    $treatment = ServiceVisit::query()->sole()->treatments()->sole();
+    expect($treatment->chemical_inventory_id)->toBeNull()
+        ->and([$treatment->chemical_name, (float) $treatment->amount, $treatment->unit])->toBe(['Cal Hypo', 2.5, 'lbs'])
+        ->and((float) $item->fresh()?->current_stock)->toBe(10.0)
+        ->and($item->transactions()->exists())->toBeFalse();
 });
 
 test('re-submitting a stop updates the same visit instead of creating a duplicate', function () {
@@ -153,7 +172,7 @@ test('editing a visit does not double-deduct inventory', function () {
     // First completion deducts 2 lbs → 8 remain, one usage transaction.
     $this->actingAs($this->agent)
         ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
-            'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
+            'treatments' => [['chemical_id' => $item->id, 'amount' => 2]],
         ]))
         ->assertOk();
 
@@ -163,7 +182,7 @@ test('editing a visit does not double-deduct inventory', function () {
     // so stock stays at 8 (not 6) and there's still exactly one usage row.
     $this->actingAs($this->agent)
         ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
-            'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
+            'treatments' => [['chemical_id' => $item->id, 'amount' => 2]],
         ]))
         ->assertOk();
 
@@ -179,7 +198,7 @@ test('editing a visit re-deducts correctly when the treatment amount changes', f
 
     $this->actingAs($this->agent)
         ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
-            'treatments' => [['name' => 'Cal Hypo', 'amount' => 2, 'unit' => 'lbs']],
+            'treatments' => [['chemical_id' => $item->id, 'amount' => 2]],
         ]))
         ->assertOk();
     expect((float) $item->fresh()?->current_stock)->toBe(8.0);
@@ -187,7 +206,7 @@ test('editing a visit re-deducts correctly when the treatment amount changes', f
     // Bump the amount to 3 lbs: reverse the old 2 (back to 10) then deduct 3 → 7.
     $this->actingAs($this->agent)
         ->post("/api/field/visits/{$this->stop->id}/complete", visitPayload([
-            'treatments' => [['name' => 'Cal Hypo', 'amount' => 3, 'unit' => 'lbs']],
+            'treatments' => [['chemical_id' => $item->id, 'amount' => 3]],
         ]))
         ->assertOk();
 

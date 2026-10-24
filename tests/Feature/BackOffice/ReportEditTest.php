@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
@@ -40,6 +41,23 @@ test('an admin can edit any report (notes + reading + treatments + tasks)', func
         ->and((float) $visit->chemicalReading()->first()?->ph)->toBe(7.4)
         ->and($visit->treatments()->count())->toBe(1)
         ->and($visit->tasks()->where('is_completed', true)->count())->toBe(1);
+});
+
+test('editing a report\'s chemicals moves stock to match', function () {
+    $acid = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Muriatic Acid', 'unit' => 'oz', 'current_stock' => 100]);
+    $visit = completedVisit($this->tenant, $this->agent);
+    $edit = fn (array $treatments) => $this->actingAs($this->admin)->patch("/reports/{$visit->id}", ['treatments' => $treatments])->assertRedirect();
+
+    $edit([['chemical_id' => $acid->id, 'amount' => 8]]);
+    expect((float) $acid->fresh()?->current_stock)->toBe(92.0);
+
+    $edit([['chemical_id' => $acid->id, 'amount' => 20]]); // the 8 goes back, then 20 comes off
+    expect((float) $acid->fresh()?->current_stock)->toBe(80.0)
+        ->and($acid->transactions()->sole()->agent_id)->toBe($this->agent->id);
+
+    $edit([]); // treatment removed: all of it back on the shelf
+    expect((float) $acid->fresh()?->current_stock)->toBe(100.0)
+        ->and($acid->transactions()->exists())->toBeFalse();
 });
 
 test('an agent can edit their own report', function () {

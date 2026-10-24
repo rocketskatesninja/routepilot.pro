@@ -228,22 +228,70 @@ export function analyzeTrends(history: Reading[], currentReading: Reading, range
 
 const pct = (factor: number): string => `${round(factor * 100)}%`;
 
+/** Ounces that raise 10,000 gallons by 1 ppm of free chlorine: Cal-Hypo (65%) by weight, liquid chlorine (10–12.5%) by volume. */
+const CAL_HYPO_OZ_PER_PPM = 2.0;
+const LIQUID_CHLORINE_OZ_PER_PPM = 10.0;
+
+/**
+ * Low free chlorine. A chlorine pool gets a Cal-Hypo top-up; a salt pool runs
+ * its generator longer, unless chlorine has bottomed out (under half the
+ * minimum). A cell can't recover from that quickly, so the pool first gets
+ * liquid chlorine back to the middle of its range.
+ */
+function lowChlorine(data: ParamAnalysis, factor: number, sanitizer: string): Recommendation {
+    const base = round(2.0 * factor, 1); // per 10,000 gal: 2 oz of Cal-Hypo, or 2 hours more of the generator
+    if (sanitizer === 'salt' && data.value < data.min / 2) {
+        const raise = (data.min + data.max) / 2 - data.value;
+        return {
+            parameter: data.label,
+            chemical: 'Liquid Chlorine',
+            amount: round(LIQUID_CHLORINE_OZ_PER_PPM * raise * factor, 1),
+            unit: 'oz',
+            urgency: 'high',
+            notes: [
+                `The salt cell can't catch up from this low on its own. After adding, run the generator ${base} extra hours and check the salt level and the cell.`,
+            ],
+        };
+    }
+    return {
+        parameter: data.label,
+        chemical: sanitizer === 'salt' ? 'Run chlorine generator' : 'Granular Chlorine (Cal-Hypo)',
+        amount: base,
+        unit: sanitizer === 'salt' ? 'hours extra runtime' : 'oz',
+        urgency: 'high',
+        notes: [],
+    };
+}
+
+/**
+ * High combined chlorine (chloramines): shock to breakpoint, raising free
+ * chlorine by 10 times the combined chlorine. Liquid chlorine for a salt pool
+ * (it adds no calcium), Cal-Hypo otherwise.
+ */
+function shock(data: ParamAnalysis, factor: number, sanitizer: string): Recommendation {
+    const raise = round(10 * data.value, 1);
+    const perPpm = sanitizer === 'salt' ? LIQUID_CHLORINE_OZ_PER_PPM : CAL_HYPO_OZ_PER_PPM;
+    return {
+        parameter: data.label,
+        chemical: sanitizer === 'salt' ? 'Liquid Chlorine' : 'Granular Chlorine (Cal-Hypo)',
+        amount: round(perPpm * raise * factor, 1),
+        unit: 'oz',
+        urgency: 'high',
+        notes: [
+            `Shock: raises free chlorine about ${raise} ppm (10 times the combined chlorine) to burn off chloramines. Add at dusk with the pump running; swim again once free chlorine is back under 5 ppm.`,
+        ],
+    };
+}
+
 /** Base dosage for an out-of-range parameter, scaled by pool volume. */
 function getBaseDosage(param: string, data: ParamAnalysis, volumeGallons: number, sanitizer: string): Recommendation | null {
     const factor = volumeGallons / 10000;
 
     switch (param) {
         case 'free_chlorine':
-            return data.status === 'low'
-                ? {
-                      parameter: data.label,
-                      chemical: sanitizer === 'salt' ? 'Run chlorine generator' : 'Granular Chlorine (Cal-Hypo)',
-                      amount: round(2.0 * factor, 1),
-                      unit: sanitizer === 'salt' ? 'hours extra runtime' : 'oz',
-                      urgency: 'high',
-                      notes: [],
-                  }
-                : null;
+            return data.status === 'low' ? lowChlorine(data, factor, sanitizer) : null;
+        case 'combined_chlorine':
+            return data.status === 'high' ? shock(data, factor, sanitizer) : null;
         case 'ph':
             return {
                 parameter: data.label,

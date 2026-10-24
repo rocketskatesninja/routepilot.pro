@@ -17,16 +17,14 @@ class ReverseVisitInventory
     public function handle(ServiceVisit $visit): void
     {
         $usages = InventoryTransaction::query()
+            ->with('inventory')
             ->where('service_visit_id', $visit->id)
             ->where('type', 'usage')
             ->get();
 
         foreach ($usages as $usage) {
-            $item = $usage->inventory()->first();
-            if ($item !== null) {
-                // quantity was stored negative (e.g. -32); subtracting it restores stock.
-                $item->update(['current_stock' => (float) $item->current_stock - (float) $usage->quantity]);
-            }
+            // Usage is logged as what actually left the shelf (a negative change), so this restores it exactly.
+            $usage->inventory?->increment('current_stock', -(float) $usage->quantity);
             $usage->delete();
         }
     }

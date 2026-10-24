@@ -59,6 +59,37 @@ test('salt pools get generator runtime instead of granular chlorine', function (
         ->and($result['recommendations'][0]['unit'])->toBe('hours extra runtime');
 });
 
+test('a salt pool whose chlorine has bottomed out gets liquid chlorine back to mid-range first', function () {
+    $pool = makePool($this->tenant, $this->customer, ['volume_gallons' => 10000, 'sanitizer_type' => 'salt']);
+
+    $rec = $this->chem->fullAnalysis(['free_chlorine' => 0.2], $pool)['recommendations'][0];
+
+    // 1.8 ppm up to the middle of 1–3, at 10 oz per ppm per 10,000 gallons; then the generator.
+    expect([$rec['chemical'], $rec['amount'], $rec['unit'], $rec['urgency']])->toBe(['Liquid Chlorine', 18.0, 'oz', 'high'])
+        ->and($rec['notes'][0])->toContain('run the generator 2 extra hours and check the salt level and the cell');
+});
+
+test('high combined chlorine calls for a breakpoint shock: Cal-Hypo, or liquid chlorine in a salt pool', function () {
+    $chlorine = makePool($this->tenant, $this->customer, ['volume_gallons' => 10000, 'sanitizer_type' => 'chlorine']);
+    $salt = makePool($this->tenant, $this->customer, ['volume_gallons' => 10000, 'sanitizer_type' => 'salt']);
+    $reading = ['free_chlorine' => 2.0, 'total_chlorine' => 2.6]; // combined 0.6 ppm → raise free chlorine 6 ppm
+
+    $granular = $this->chem->fullAnalysis($reading, $chlorine)['recommendations'];
+    $liquid = $this->chem->fullAnalysis($reading, $salt)['recommendations'];
+
+    expect($granular)->toHaveCount(1)
+        ->and([$granular[0]['parameter'], $granular[0]['chemical'], $granular[0]['amount'], $granular[0]['urgency']])
+        ->toBe(['Combined Chlorine', 'Granular Chlorine (Cal-Hypo)', 12.0, 'high'])
+        ->and($granular[0]['notes'][0])->toContain('raises free chlorine about 6 ppm')
+        ->and([$liquid[0]['chemical'], $liquid[0]['amount'], $liquid[0]['unit']])->toBe(['Liquid Chlorine', 60.0, 'oz']);
+});
+
+test('combined chlorine within range needs no shock', function () {
+    $pool = makePool($this->tenant, $this->customer, ['volume_gallons' => 10000]);
+
+    expect($this->chem->fullAnalysis(['free_chlorine' => 2.0, 'total_chlorine' => 2.4], $pool)['recommendations'])->toBe([]);
+});
+
 test('a required drain/refill suppresses all chemical dosing', function () {
     $pool = makePool($this->tenant, $this->customer, ['volume_gallons' => 10000]);
 

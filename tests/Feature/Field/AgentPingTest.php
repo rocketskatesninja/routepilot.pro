@@ -41,7 +41,7 @@ test('a ping without a route today is refused (tracking:false, nothing stored)',
 
     $this->actingAs($this->agent)
         ->postJson('/api/field/ping', ['lat' => 31.2, 'lng' => -81.5])
-        ->assertOk()->assertJsonPath('tracking', false);
+        ->assertOk()->assertJsonPath('tracking', false)->assertJsonPath('reason', 'no_route');
 
     expect(AgentLocation::query()->count())->toBe(0);
     Event::assertNotDispatched(AgentLocationUpdated::class);
@@ -53,7 +53,7 @@ test('a super-admin signed in as the agent never posts a location', function () 
 
     $this->actingAs($this->agent)->withSession(['impersonator_id' => 999])
         ->postJson('/api/field/ping', ['lat' => 31.2, 'lng' => -81.5])
-        ->assertOk()->assertJsonPath('tracking', false);
+        ->assertOk()->assertJsonPath('tracking', false)->assertJsonPath('reason', 'impersonating');
 
     expect(AgentLocation::query()->count())->toBe(0);
     Event::assertNotDispatched(AgentLocationUpdated::class);

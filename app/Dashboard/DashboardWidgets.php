@@ -27,6 +27,7 @@ class DashboardWidgets
         'billing_summary' => ['label' => 'Outstanding balances', 'icon' => 'DollarSign', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin']],
         'notifications' => ['label' => 'Notifications', 'icon' => 'Bell', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 5, 'roles' => ['tenant_admin', 'agent']],
         'work_orders' => ['label' => 'Work orders', 'icon' => 'Wrench', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['tenant_admin', 'agent']],
+        'running_low' => ['label' => 'Running low', 'icon' => 'FlaskConical', 'minW' => 3, 'minH' => 3, 'w' => 4, 'h' => 4, 'roles' => ['tenant_admin']],
 
         // agent (field PWA)
         'agent_stats' => ['label' => 'My day', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['agent']],
@@ -53,7 +54,8 @@ class DashboardWidgets
             ['i' => 'requests', 'x' => 8, 'y' => 3, 'w' => 4, 'h' => 6],
             ['i' => 'my_route', 'x' => 0, 'y' => 9, 'w' => 6, 'h' => 5],
             ['i' => 'work_orders', 'x' => 6, 'y' => 9, 'w' => 6, 'h' => 5],
-            ['i' => 'recent_visits', 'x' => 0, 'y' => 14, 'w' => 12, 'h' => 4],
+            ['i' => 'recent_visits', 'x' => 0, 'y' => 14, 'w' => 8, 'h' => 4],
+            ['i' => 'running_low', 'x' => 8, 'y' => 14, 'w' => 4, 'h' => 4],
         ],
         'agent' => [
             ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
@@ -84,6 +86,7 @@ class DashboardWidgets
             ['i' => 'work_orders', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 5],
             ['i' => 'my_route', 'x' => 0, 'y' => 21, 'w' => 12, 'h' => 5],
             ['i' => 'recent_visits', 'x' => 0, 'y' => 26, 'w' => 12, 'h' => 4],
+            ['i' => 'running_low', 'x' => 0, 'y' => 30, 'w' => 12, 'h' => 4],
         ],
         'agent' => [
             ['i' => 'agent_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],

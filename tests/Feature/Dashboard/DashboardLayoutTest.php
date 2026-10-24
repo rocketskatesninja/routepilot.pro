@@ -31,16 +31,17 @@ test('the admin dashboard renders the default widget grid', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboards/Grid')
-            ->has('layouts.desktop', 6)
-            ->has('layouts.mobile', 6)
+            ->has('layouts.desktop', 7)
+            ->has('layouts.mobile', 7)
             ->has('catalog.stats')
             ->has('catalog.route_map')
             ->has('catalog.weather')
-            ->has('palette', 11) // every widget the role may add
+            ->has('palette', 12) // every widget the role may add
             ->has('widgets.stats.tiles')
             ->has('widgets.route_map.markers')
             ->has('widgets.recent_visits')
             ->has('widgets.work_orders.orders')
+            ->has('widgets.running_low.items')
         );
 });
 
@@ -111,7 +112,8 @@ test('only the placed widgets compute data; the rest are offered to add', functi
             ->has('layouts.mobile', 1)
             ->has('widgets.stats')
             ->missing('widgets.my_route')
-            ->has('palette', 11)
+            ->missing('widgets.running_low')
+            ->has('palette', 12)
         );
 });
 

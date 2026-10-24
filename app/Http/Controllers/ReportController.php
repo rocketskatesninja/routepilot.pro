@@ -9,6 +9,7 @@ use App\Actions\UpdateReport;
 use App\Http\Requests\UpdateReportRequest;
 use App\Models\AuditLog;
 use App\Models\Charge;
+use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
@@ -63,7 +64,7 @@ class ReportController extends Controller
             ->withQueryString()
             ->through(fn (ServiceVisit $v) => [
                 'id' => $v->id,
-                'completed_on' => $v->completed_at?->toDateString(),
+                'completed_on' => Tenant::localDate($v->completed_at),
                 'pool' => $v->pool?->name,
                 'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
                 'customer' => $v->pool?->customer?->displayName(),
@@ -78,7 +79,7 @@ class ReportController extends Controller
             $visit = ServiceVisit::query()
                 ->when($ownOnly, fn ($q) => $q->where('agent_id', $user?->id))
                 ->with([
-                    'pool:id,name,customer_id,custom_target_ranges', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name',
+                    'pool:id,name,customer_id,custom_target_ranges', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name,role',
                     'serviceSubscription.serviceType:id,name', 'chemicalReading', 'treatments', 'tasks', 'photos',
                     'workOrder:id,service_visit_id,title,details,urgent,status',
                 ])
@@ -89,9 +90,14 @@ class ReportController extends Controller
                 $selected['can_edit'] = $this->canManage($request->user())
                     || (int) $visit->getAttribute('agent_id') === $request->user()?->id;
                 $selected['can_delete'] = $this->canManage($request->user());
-                // What deleting it would cancel on the bill, for the confirm prompt.
-                $charge = Charge::query()->active()->where('service_visit_id', $visit->id)->with('invoice:id,number')->first();
-                $selected['charge'] = $charge === null ? null : ['amount' => $charge->total(), 'invoice' => $charge->invoice?->number];
+                // What deleting it would cancel on the bill (the visit, and its chemicals), for the confirm prompt.
+                $charges = Charge::query()->active()->where('service_visit_id', $visit->id)->with('invoice:id,number')->get();
+                $selected['charge'] = $charges->isEmpty() ? null : [
+                    'amount' => round((float) $charges->sum(fn (Charge $c): float => $c->total()), 2),
+                    'invoice' => $charges->first(fn (Charge $c): bool => $c->invoice !== null)?->invoice?->number,
+                ];
+                // Billed once (see BillingService::chargeChemicals), so the edit form says changes won't follow.
+                $selected['chemicals_billed'] = $charges->contains('kind', 'chemicals');
                 // Recent chlorine/pH for this pool → the drawer's chemistry trend.
                 $trendVisits = ServiceVisit::query()
                     ->where('pool_id', $visit->getAttribute('pool_id'))
@@ -106,13 +112,17 @@ class ReportController extends Controller
         return Inertia::render('reports/Index', [
             'visits' => $visits,
             'selected' => $selected,
+            // What the edit form picks chemicals from (only needed with a report open).
+            'chemicals' => $selected === null ? [] : ChemicalInventory::query()->active()->orderBy('chemical_name')
+                ->get(['id', 'chemical_name', 'unit'])
+                ->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'unit' => $c->unit])->all(),
             'sort' => $sort,
         ]);
     }
 
     public function update(UpdateReportRequest $request, ServiceVisit $visit, UpdateReport $action): RedirectResponse
     {
-        $action->handle($visit, $request->validated());
+        $action->handle($visit, $request->validated(), (int) $request->user()?->id);
 
         return back()->with('success', 'Report updated.');
     }
@@ -127,10 +137,10 @@ class ReportController extends Controller
             'completed_on' => Tenant::localDate($visit->completed_at),
             'agent_id' => $visit->getAttribute('agent_id'),
         ];
-        $charge = $action->handle($visit, $request->user());
-        AuditLog::record($request->user(), 'report.deleted', $visit, [...$summary, 'charge_cancelled' => $charge?->total()]);
+        $cancelled = $action->handle($visit, $request->user());
+        AuditLog::record($request->user(), 'report.deleted', $visit, [...$summary, 'charge_cancelled' => $cancelled > 0 ? $cancelled : null]);
 
-        return back()->with('success', 'Report deleted.'.($charge !== null ? ' Its charge was cancelled.' : ''));
+        return back()->with('success', 'Report deleted.'.($cancelled > 0 ? ' What it was billed was cancelled.' : ''));
     }
 
     /** @return array<string, mixed> */
@@ -147,8 +157,8 @@ class ReportController extends Controller
             'customer' => $visit->pool?->customer?->displayName(),
             'customer_id' => $visit->pool?->customer?->getKey(),
             'agent' => $visit->agent?->displayName(),
-            'agent_id' => $visit->agent?->getKey(),
-            'completed_on' => $visit->completed_at?->toDateString(),
+            'agent_id' => $visit->agent?->role === 'agent' ? $visit->agent->id : null, // People opens techs only, so only they're linked
+            'completed_on' => Tenant::localDate($visit->completed_at), // the company's day, not UTC's
             'notes' => $visit->notes,
             'office_notes' => $visit->office_notes,
             // The work order the tech raised on this visit, if any.
@@ -165,6 +175,7 @@ class ReportController extends Controller
                 'lsi_score' => $reading->lsi_score,
             ] : null,
             'treatments' => $visit->treatments->map(fn ($t) => [
+                'chemical_id' => $t->getAttribute('chemical_inventory_id'), // null: typed before the chemical list
                 'name' => $t->getAttribute('chemical_name'),
                 'amount' => (float) $t->getAttribute('amount'),
                 'unit' => $t->getAttribute('unit'),

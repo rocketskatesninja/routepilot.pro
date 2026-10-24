@@ -669,9 +669,18 @@ function destroyAgent() {
                                 <Input id="zip" v-model="form.zip" />
                             </div>
                         </div>
-                        <label class="flex items-center gap-2"
-                            ><input v-model="form.bill_chemicals" type="checkbox" /> <span>Itemize chemicals on this customer's bill</span></label
-                        >
+                        <!-- Billed per visit: each visit's chemicals go on their bill at the chemicals' sell prices. -->
+                        <div class="grid gap-1.5">
+                            <Label for="chemicals">Chemicals</Label>
+                            <select
+                                id="chemicals"
+                                v-model="form.bill_chemicals"
+                                class="border-input bg-background h-9 w-64 rounded-md border px-2 text-sm"
+                            >
+                                <option :value="false">Included in their service</option>
+                                <option :value="true">Billed per visit</option>
+                            </select>
+                        </div>
                         <div class="grid gap-1.5">
                             <Label for="notes">Notes</Label>
                             <textarea

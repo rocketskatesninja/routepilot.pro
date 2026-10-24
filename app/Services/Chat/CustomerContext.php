@@ -41,7 +41,7 @@ class CustomerContext
                 $r = $v->chemicalReading;
                 $chem = $r !== null ? "FC={$r->free_chlorine} pH={$r->ph}".($r->lsi_score !== null ? " LSI={$r->lsi_score}" : '') : 'no readings';
 
-                return '- '.($v->completed_at?->format('M j') ?? '?').": {$v->pool?->name} by ".($v->agent?->displayName() ?? 'your technician')." ({$chem})";
+                return '- '.($v->completed_at !== null ? Tenant::local($v->completed_at)->format('M j') : '?').": {$v->pool?->name} by ".($v->agent?->displayName() ?? 'your technician')." ({$chem})";
             })->join("\n");
 
         $nextStop = RouteStop::query()

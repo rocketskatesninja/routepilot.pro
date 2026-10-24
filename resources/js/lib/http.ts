@@ -9,8 +9,17 @@ export function getCookie(name: string): string {
  * headers. Returns the raw Response (callers check .ok / parse as needed).
  */
 export async function postJson(url: string, body?: unknown): Promise<Response> {
+    return sendJson('POST', url, body);
+}
+
+/** DELETE a same-origin Laravel route, with the same headers as postJson. */
+export async function deleteJson(url: string): Promise<Response> {
+    return sendJson('DELETE', url);
+}
+
+async function sendJson(method: 'POST' | 'DELETE', url: string, body?: unknown): Promise<Response> {
     return fetch(url, {
-        method: 'POST',
+        method,
         credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',

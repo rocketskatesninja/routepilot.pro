@@ -5,7 +5,19 @@
  * request / not authorized) marks an item failed.
  */
 import { postForm, postJson } from '@/lib/http';
-import { allQueued, enqueue, getBundle, patchQueued, removeQueued, saveBundle, type QueuedVisit, type TodayBundle } from './store';
+import {
+    allQueued,
+    enqueue,
+    getBundle,
+    patchQueued,
+    removeQueued,
+    saveBundle,
+    saveDraft,
+    saveDraftPhotos,
+    type QueuedVisit,
+    type TodayBundle,
+    type VisitDraft,
+} from './store';
 
 export interface LoadResult {
     bundle: TodayBundle | null;
@@ -108,9 +120,9 @@ async function sync(item: QueuedVisit): Promise<void> {
         await removeQueued(item.idempotency_key);
         return;
     }
-    // A definitive client error won't succeed on retry — surface it, stop retrying.
+    // A definitive client error won't succeed on retry — surface it (with the server's reason), stop retrying.
     if (res.status >= 400 && res.status < 500 && res.status !== 419) {
-        await patchQueued(item.idempotency_key, { status: 'failed', error: `Server rejected (${res.status})` });
+        await patchQueued(item.idempotency_key, { status: 'failed', error: await refusal(res) });
     }
     // 419 (CSRF) / 5xx stay pending for a later retry.
 }
@@ -121,6 +133,68 @@ export async function queuedCount(): Promise<number> {
 
 export async function failedCount(): Promise<number> {
     return (await allQueued()).filter((i) => i.status === 'failed').length;
+}
+
+/** The first visit that didn't sync, for the banner: its stop, its pool and the server's reason (null when none failed). */
+export async function firstFailed(): Promise<Pick<QueuedVisit, 'stop_id' | 'pool_name' | 'error'> | null> {
+    const item = (await allQueued()).find((i) => i.status === 'failed');
+    return item ? { stop_id: item.stop_id, pool_name: item.pool_name, error: item.error } : null;
+}
+
+/** Drop a refused visit for good, every failed copy for its stop: what was entered for it is lost. */
+export async function discardFailed(stopId: number): Promise<void> {
+    for (const item of await allQueued()) {
+        if (item.status === 'failed' && item.stop_id === stopId) await removeQueued(item.idempotency_key);
+    }
+}
+
+/**
+ * Take a refused visit back out of the queue as its stop's draft, so the tech can
+ * fix what the server refused and finish it again (resending would only send the
+ * same thing). Every failed copy for the stop goes; the newest one's entries return.
+ */
+export async function reopenFailed(stopId: number): Promise<void> {
+    const failed = (await allQueued()).filter((i) => i.status === 'failed' && i.stop_id === stopId);
+    if (!failed.length) return;
+    const latest = failed.reduce((a, b) => (b.created_at > a.created_at ? b : a));
+    await saveDraft(draftFrom(latest));
+    if (latest.photos?.length) await saveDraftPhotos(stopId, latest.photos);
+    for (const item of failed) await removeQueued(item.idempotency_key);
+}
+
+/** A queued visit back in the shape the visit form keeps its draft in. */
+function draftFrom(item: QueuedVisit): VisitDraft {
+    const p = item.payload;
+    const text = (v: unknown): string => (typeof v === 'string' ? v : '');
+    const rows = (v: unknown): Record<string, unknown>[] => (Array.isArray(v) ? v.filter((r) => r !== null && typeof r === 'object') : []);
+    return {
+        stop_id: item.stop_id,
+        // Every number sent; the form only reads back its own reading boxes.
+        reading: Object.fromEntries(Object.entries(p).flatMap(([k, v]) => (typeof v === 'number' ? [[k, String(v)]] : []))),
+        tasks: rows(p.tasks).map((t) => ({ name: text(t.name), done: t.done === true })),
+        // Picked chemicals as the form keeps them; typed ones (older copies of the app) keep their name for the form to match.
+        treatments: rows(p.treatments).map((t) =>
+            t.chemical_id != null ? { chemical_id: Number(t.chemical_id), amount: t.amount != null ? String(t.amount) : '' } : t,
+        ) as VisitDraft['treatments'],
+        notes: text(p.notes),
+        office_notes: text(p.office_notes),
+        work_order_form: {
+            title: text(p.work_order_title),
+            details: text(p.work_order_details),
+            urgent: p.work_order_urgent === true,
+            price: p.work_order_price != null ? String(p.work_order_price) : '',
+        },
+        analyzed: true,
+        updated_at: Date.now(),
+    };
+}
+
+/** The server's reason for refusing a visit: the first field error of a 422 ("The photo must be an image."), else its message. */
+async function refusal(res: Response): Promise<string> {
+    const data = (await res.json().catch(() => null)) as { message?: unknown; errors?: Record<string, unknown[]> } | null;
+    const first = data?.errors ? Object.values(data.errors).flat()[0] : null;
+    if (typeof first === 'string') return first;
+    return typeof data?.message === 'string' && data.message !== '' ? data.message : `Server rejected (${res.status})`;
 }
 
 /** Reset failed items to pending and flush again (manual retry). */

@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Models\ChemicalInventory;
 use App\Models\Tenant;
+use App\Support\StandardChemicals;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,7 +22,7 @@ class ChemicalInventoryFactory extends Factory
         return [
             'tenant_id' => Tenant::factory(),
             'chemical_name' => fake()->randomElement(['Liquid Chlorine', 'Muriatic Acid', 'Cal Hypo', 'Soda Ash', 'Cyanuric Acid', 'Algaecide']),
-            'unit' => fake()->randomElement(['gal', 'lbs', 'oz']),
+            'unit' => fake()->randomElement(StandardChemicals::UNITS),
             'current_stock' => fake()->randomFloat(2, 5, 100),
             'reorder_threshold' => 10,
             'cost_per_unit' => fake()->randomFloat(2, 1, 8),

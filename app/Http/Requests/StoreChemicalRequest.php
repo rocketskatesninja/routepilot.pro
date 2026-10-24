@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Support\StandardChemicals;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreChemicalRequest extends FormRequest
 {
@@ -18,7 +20,7 @@ class StoreChemicalRequest extends FormRequest
     {
         return [
             'chemical_name' => ['required', 'string', 'max:255'],
-            'unit' => ['required', 'string', 'max:50'],
+            'unit' => ['required', Rule::in(StandardChemicals::UNITS)], // one unit per chemical: gal, lbs or bag
             'current_stock' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'reorder_threshold' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'cost_per_unit' => ['nullable', 'numeric', 'min:0', 'max:100000'],

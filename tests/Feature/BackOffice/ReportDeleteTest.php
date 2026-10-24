@@ -51,7 +51,7 @@ function finishedStop(string $date, string $key = ''): RouteStop
     test()->actingAs(test()->agent)->post("/api/field/visits/{$stop->id}/complete", [
         'free_chlorine' => 2.5, 'ph' => 7.5,
         'tasks' => [['name' => 'Skim', 'done' => true]],
-        'treatments' => [['name' => 'Liquid Chlorine', 'amount' => 32, 'unit' => 'oz']],
+        'treatments' => [['chemical_id' => test()->chlorine->id, 'amount' => 32]],
         'photos' => [UploadedFile::fake()->image('pool.jpg')],
         'idempotency_key' => $key ?: null,
     ])->assertOk();
@@ -84,6 +84,17 @@ test('deleting a report undoes what the visit did', function () {
         ->and($stop->fresh()->completed_at)->toBeNull()
         ->and(AuditLog::query()->where('action', 'report.deleted')->where('model_id', $visit->id)->exists())->toBeTrue();
     Storage::disk('public')->assertMissing($photo);
+});
+
+test('deleting a report that used more than was on the shelf puts back only what came off it', function () {
+    $this->chlorine->update(['current_stock' => 10]); // the visit uses 32 oz
+
+    finishedStop($this->tenant->today()->toDateString());
+    expect((float) $this->chlorine->fresh()->current_stock)->toBe(0.0);
+
+    $this->actingAs($this->admin)->delete('/reports/'.ServiceVisit::query()->sole()->id);
+
+    expect((float) $this->chlorine->fresh()->current_stock)->toBe(10.0); // not 32
 });
 
 test('a report from a past day reopens its stop as missed', function () {
@@ -144,7 +155,7 @@ test('a phone replaying its original sync doesn\'t bring a deleted report back',
     $this->actingAs($this->admin)->delete('/reports/'.ServiceVisit::query()->sole()->id);
 
     $this->actingAs($this->agent)->post("/api/field/visits/{$stop->id}/complete", [
-        'treatments' => [['name' => 'Liquid Chlorine', 'amount' => 32, 'unit' => 'oz']],
+        'treatments' => [['chemical_id' => test()->chlorine->id, 'amount' => 32]],
         'idempotency_key' => 'sync-key-1',
     ])->assertOk()->assertJsonPath('idempotent', true);
 

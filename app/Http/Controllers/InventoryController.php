@@ -19,8 +19,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Back-office Inventory screen — central chemical stock on the table+drawer
- * pattern. The drawer shows value, reorder status, and recent stock moves.
+ * Back-office Inventory screen — central chemical stock as a list + detail
+ * pane. The pane shows value, reorder status, and recent stock changes.
  */
 class InventoryController extends Controller
 {
@@ -29,9 +29,10 @@ class InventoryController extends Controller
         $this->authorizeStaff($request);
 
         $search = trim((string) $request->string('search'));
+        $archived = $request->boolean('archived');
 
         $query = ChemicalInventory::query()
-            ->where('is_active', true)
+            ->where('is_active', ! $archived)
             ->when($search !== '', fn ($q) => $q->where('chemical_name', 'like', '%'.$search.'%'));
 
         $sort = $this->applySort($query, $request, [
@@ -50,7 +51,7 @@ class InventoryController extends Controller
                 'unit' => $i->unit,
                 'stock' => (float) $i->current_stock,
                 'low' => $i->isLowStock(),
-                'cost_per_unit' => $i->cost_per_unit !== null ? (float) $i->cost_per_unit : null,
+                'cost_per_unit' => self::number($i->cost_per_unit),
             ]);
 
         $selected = null;
@@ -65,7 +66,11 @@ class InventoryController extends Controller
         return Inertia::render('inventory/Index', [
             'items' => $items,
             'selected' => $selected,
-            'filters' => ['search' => $search],
+            'filters' => ['search' => $search, 'archived' => $archived],
+            'counts' => [
+                'active' => ChemicalInventory::query()->active()->count(),
+                'archived' => ChemicalInventory::query()->where('is_active', false)->count(),
+            ],
             'sort' => $sort,
             'canManage' => $this->canManage($request->user()),
         ]);
@@ -73,7 +78,7 @@ class InventoryController extends Controller
 
     public function store(StoreChemicalRequest $request, CreateChemical $action): RedirectResponse
     {
-        $action->handle($request->validated());
+        $action->handle($request->validated(), (int) $request->user()?->id);
 
         return back()->with('success', 'Chemical added.');
     }
@@ -89,36 +94,49 @@ class InventoryController extends Controller
     {
         $action->handle($chemical, $request->validated(), (int) $request->user()?->id);
 
-        return back()->with('success', 'Stock adjusted.');
+        return back()->with('success', 'Stock updated.');
     }
 
-    public function destroy(Request $request, ChemicalInventory $chemical): RedirectResponse
+    /** Off the list and out of visit deductions; its history stays, and it can be restored. */
+    public function archive(Request $request, ChemicalInventory $chemical): RedirectResponse
     {
         $this->authorizeAdmin($request);
-        $chemical->delete();
+        $chemical->update(['is_active' => false]);
 
-        return back()->with('success', 'Chemical removed.');
+        return back()->with('success', 'Chemical archived.');
+    }
+
+    public function restore(Request $request, ChemicalInventory $chemical): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+        $chemical->update(['is_active' => true]);
+
+        return back()->with('success', 'Chemical restored.');
     }
 
     /** @return array<string, mixed> */
     private function toDetail(ChemicalInventory $item): array
     {
         $stock = (float) $item->current_stock;
-        $cost = $item->cost_per_unit !== null ? (float) $item->cost_per_unit : null;
+        $cost = self::number($item->cost_per_unit);
 
-        $transactions = InventoryTransaction::query()
-            ->where('chemical_inventory_id', $item->id)
-            ->with('agent:id,first_name,last_name')
-            ->latest()
+        $transactions = $item->transactions()
+            ->with(['agent:id,first_name,last_name,role', 'creator:id,first_name,last_name', 'pool' => fn ($q) => $q->withTrashed()])
+            ->latest('id')
             ->limit(8)
             ->get()
             ->map(fn (InventoryTransaction $t) => [
                 'id' => $t->id,
                 'type' => $t->getAttribute('type'),
-                'quantity' => (float) $t->quantity,
+                'change' => (float) $t->quantity, // signed: + onto the shelf, − off it
                 'on' => Tenant::localDate($t->created_at),
-                'agent' => $t->agent?->displayName(),
-                'agent_id' => $t->agent?->getKey(),
+                // The tech on a visit; otherwise whoever updated the stock in the office.
+                'by' => ($t->agent ?? $t->creator)?->displayName(),
+                'agent_id' => $t->agent?->role === 'agent' ? $t->agent->id : null, // People opens techs only
+                // Usage from a visit: the pool, and the report it's on (an archived pool isn't on the Pools page, so no link).
+                'pool' => $t->pool?->getAttribute('name'),
+                'pool_id' => $t->pool !== null && ! $t->pool->trashed() ? $t->pool->id : null,
+                'report_id' => $t->getAttribute('service_visit_id'),
             ])->all();
 
         return [
@@ -127,23 +145,21 @@ class InventoryController extends Controller
             'photo_url' => $this->photoUrl($item->getAttribute('photo_path')),
             'unit' => $item->unit,
             'stock' => $stock,
-            'reorder_threshold' => $item->reorder_threshold !== null ? (float) $item->reorder_threshold : null,
+            'reorder_threshold' => self::number($item->reorder_threshold),
             'cost_per_unit' => $cost,
-            'sell_price' => $item->sell_price !== null ? (float) $item->sell_price : null,
+            'sell_price' => self::number($item->sell_price),
             'supplier' => $item->supplier,
+            'is_active' => $item->is_active,
+            'unit_locked' => $item->unitLocked(), // the edit form can't change it then
             'value' => $cost !== null ? round($stock * $cost, 2) : null,
             'low' => $item->isLowStock(),
             'transactions' => $transactions,
-            // Raw values for the edit form.
-            'fields' => [
-                'chemical_name' => $item->chemical_name,
-                'unit' => $item->unit,
-                'reorder_threshold' => $item->reorder_threshold !== null ? (float) $item->reorder_threshold : null,
-                'cost_per_unit' => $cost,
-                'sell_price' => $item->sell_price !== null ? (float) $item->sell_price : null,
-                'supplier' => $item->supplier,
-                'is_active' => $item->is_active,
-            ],
         ];
+    }
+
+    /** A decimal column as a number for the page (decimal casts come back as strings). */
+    private static function number(mixed $value): ?float
+    {
+        return $value !== null ? (float) $value : null;
     }
 }

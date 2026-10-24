@@ -92,8 +92,8 @@ const useCustomColor = computed({
     set: (on: boolean) => (title.value.color = on ? (title.value.color ?? '#0f172a') : null),
 });
 
-// One panel open at a time.
-const open = ref<string | null>('hero');
+// One panel open at a time: the hero, or Company title when linked here with ?panel=title (from Company settings).
+const open = ref<string | null>(new URL(usePage().url, 'http://localhost').searchParams.get('panel') === 'title' ? '__title' : 'hero');
 const toggle = (key: string) => (open.value = open.value === key ? null : key);
 // A section's panel reads as it does on the page: its heading, else what it is.
 const panelTitle = (s: SectionConfig) => sectionHeading(s) || SECTION_META[s.key]?.name || s.key;
@@ -240,10 +240,17 @@ function save() {
                                 <component :is="ic.icon" class="size-5" />
                             </button>
                         </div>
-                        <template v-if="title.icon === 'logo' && !brand.logoUrl" #hint>
-                            No logo uploaded yet, so nothing shows.
-                            <Link href="/company" class="text-primary underline-offset-4 hover:underline">Add one in Company settings</Link>, or pick
-                            an icon.
+                        <!-- The logo itself lives in Company settings (emails and the portal use it too). -->
+                        <template v-if="title.icon === 'logo'" #hint>
+                            <template v-if="brand.logoUrl">
+                                This is your company logo.
+                                <Link href="/company" class="text-primary underline-offset-4 hover:underline">Change it in Company settings</Link>.
+                            </template>
+                            <template v-else>
+                                No logo uploaded yet, so nothing shows.
+                                <Link href="/company" class="text-primary underline-offset-4 hover:underline">Add one in Company settings</Link>, or
+                                pick an icon.
+                            </template>
                         </template>
                     </EditorField>
                     <EditorField label="Show in header"><Segmented v-model="title.display" :options="TITLE_DISPLAYS" /></EditorField>

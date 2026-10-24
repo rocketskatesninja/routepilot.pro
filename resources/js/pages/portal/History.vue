@@ -5,6 +5,7 @@ import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { checkWater, monthYear, waterSummary, type WaterCheck, type WaterReading, type WaterTargets } from '@/lib/portal';
+import { formatAmount } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
@@ -70,7 +71,7 @@ function summary(v: Visit): string {
     return s ? `${s.charAt(0).toUpperCase()}${s.slice(1)}.` : 'Visit completed.';
 }
 
-const amount = (t: Visit['treatments'][number]) => `${Number.isInteger(t.amount) ? t.amount : t.amount.toFixed(2)} ${t.unit}`;
+const amount = (t: Visit['treatments'][number]) => formatAmount(t.amount, t.unit);
 const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll: false });
 </script>
 

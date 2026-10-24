@@ -57,10 +57,15 @@ class ServiceVisit extends Model
         return $this->belongsTo(ServiceSubscription::class);
     }
 
-    /** @return HasOne<Charge, $this> */
-    public function charge(): HasOne
+    /**
+     * What the visit was billed: its visit charge, and a chemicals charge when the
+     * customer pays for chemicals (one of each at most).
+     *
+     * @return HasMany<Charge, $this>
+     */
+    public function charges(): HasMany
     {
-        return $this->hasOne(Charge::class);
+        return $this->hasMany(Charge::class);
     }
 
     /** @return BelongsTo<RouteStop, $this> */
@@ -130,7 +135,7 @@ class ServiceVisit extends Model
         return [
             'chlorine' => $withReading->map(fn (self $v): ?float => $v->chemicalReading?->free_chlorine)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
             'ph' => $withReading->map(fn (self $v): ?float => $v->chemicalReading?->ph)->filter(fn (?float $x): bool => $x !== null)->values()->all(),
-            'dates' => $withReading->map(fn (self $v): ?string => $v->completed_at?->format('M j'))->filter()->values()->all(),
+            'dates' => $withReading->map(fn (self $v): ?string => $v->completed_at !== null ? Tenant::local($v->completed_at)->format('M j') : null)->filter()->values()->all(),
         ];
     }
 }

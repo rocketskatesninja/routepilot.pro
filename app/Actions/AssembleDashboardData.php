@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
@@ -55,6 +56,7 @@ class AssembleDashboardData
             'billing_summary' => fn () => $this->billing(),
             'notifications' => fn () => $this->notifications($user),
             'work_orders' => fn () => $this->workOrders($user),
+            'running_low' => fn () => $this->runningLow(),
             // agent
             'agent_stats' => fn () => $this->agentStats($user),
             'agent_route' => fn () => $this->agentRoute($user),
@@ -544,6 +546,30 @@ class AssembleDashboardData
     }
 
     /**
+     * Chemicals at or below their reorder point, the furthest under it first. `tracked`
+     * tells "nothing is low" apart from "nothing is tracked yet".
+     *
+     * @return array{items: list<array<string, mixed>>, tracked: int}
+     */
+    private function runningLow(): array
+    {
+        $chemicals = ChemicalInventory::query()->active()->get();
+
+        return [
+            'items' => $chemicals->filter(fn (ChemicalInventory $c): bool => $c->isLowStock())
+                ->sortBy(fn (ChemicalInventory $c): float => (float) $c->reorder_threshold > 0 ? (float) $c->current_stock / (float) $c->reorder_threshold : 0.0)
+                ->map(fn (ChemicalInventory $c): array => [
+                    'id' => $c->id,
+                    'name' => $c->chemical_name,
+                    'unit' => $c->unit,
+                    'stock' => (float) $c->current_stock,
+                    'reorder_at' => (float) $c->reorder_threshold,
+                ])->values()->all(),
+            'tracked' => $chemicals->count(),
+        ];
+    }
+
+    /**
      * Recent activity — completed visits (each links to its report) + skipped and missed
      * stops, newest first. Optionally scoped to an agent and/or a set of pools.
      *
@@ -563,7 +589,7 @@ class AssembleDashboardData
                 'pool' => $v->pool?->getAttribute('name'),
                 'pool_photo' => $this->photoUrl($v->pool?->getAttribute('photo_path')),
                 'agent' => $this->name($v->agent),
-                'on' => $v->completed_at?->toDateString(),
+                'on' => Tenant::localDate($v->completed_at),
                 'ts' => $v->completed_at?->getTimestamp() ?? 0,
                 'status' => 'completed',
                 'report_url' => $reportPath.'?selected='.$v->id,

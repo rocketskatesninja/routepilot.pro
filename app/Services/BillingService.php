@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Charge;
+use App\Models\ChemicalTreatment;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
+use App\Support\StandardChemicals;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -109,7 +111,7 @@ class BillingService
     /** Charge a completed visit at its own plan's price — once. No plan, no charge. */
     public function chargeVisit(ServiceVisit $visit): ?Charge
     {
-        $existing = Charge::query()->where('service_visit_id', $visit->id)->first();
+        $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'visit')->first();
         $plan = $visit->serviceSubscription()->with('serviceType:id,name,price')->first();
         $pool = $visit->pool()->first(['id', 'name', 'customer_id']);
         if ($existing !== null || $plan === null || $pool === null) {
@@ -123,6 +125,45 @@ class BillingService
             'kind' => 'visit',
             'description' => $plan->serviceType->name.' — '.$pool->getAttribute('name'),
             'amount' => (float) $plan->serviceType->price,
+            'taxable' => false,
+            'tax' => 0,
+            'occurred_on' => $this->localDate($visit),
+        ]);
+        $charge->forceFill(['tenant_id' => $visit->getAttribute('tenant_id')])->save();
+
+        return $charge;
+    }
+
+    /**
+     * Charge the chemicals used on a visit, for a customer who pays for them: one
+     * line, each chemical's whole units at its sell price. Like the visit charge it's
+     * made once, the first time the visit has any to bill; editing the report later
+     * doesn't re-price it. Chemicals with no sell price, and typed ones that aren't
+     * from the company's list, aren't billed.
+     */
+    public function chargeChemicals(ServiceVisit $visit): ?Charge
+    {
+        $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'chemicals')->first();
+        $pool = $visit->pool()->with('customer:id,bill_chemicals')->first(['id', 'name', 'customer_id']);
+        if ($existing !== null || $pool === null || $pool->customer?->getAttribute('bill_chemicals') !== true) {
+            return $existing;
+        }
+
+        $lines = $visit->treatments()->with('chemical:id,sell_price')->get()
+            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->getAttribute('sell_price') !== null);
+        $amount = round($lines->sum(fn (ChemicalTreatment $t): float => (float) $t->amount * (float) $t->chemical?->getAttribute('sell_price')), 2);
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $used = $lines->map(fn (ChemicalTreatment $t): string => $t->chemical_name.' '.StandardChemicals::amount((float) $t->amount, (string) $t->unit))->join(', ');
+        $charge = new Charge([
+            'customer_id' => $pool->getAttribute('customer_id'),
+            'pool_id' => $pool->id,
+            'service_visit_id' => $visit->id,
+            'kind' => 'chemicals',
+            'description' => Str::limit('Chemicals — '.$pool->getAttribute('name').': '.$used, 250),
+            'amount' => $amount,
             'taxable' => false,
             'tax' => 0,
             'occurred_on' => $this->localDate($visit),

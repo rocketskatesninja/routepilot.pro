@@ -19,6 +19,12 @@ const MIN_INTERVAL_MS = 25_000;
  * a page or the sidebar never triggers a prompt.
  */
 const sharing = ref(false);
+// Why the server turned sharing off, in words for the tech; cleared when they share again.
+const notice = ref<string | null>(null);
+const NOTICES: Record<string, string> = {
+    no_route: 'Location sharing turned off: you’re not on a route today.',
+    impersonating: 'Location sharing is off while you’re signed in as someone else.',
+};
 let watchId: number | null = null;
 let lastSent = 0;
 
@@ -36,7 +42,10 @@ async function send(pos: GeolocationPosition): Promise<void> {
             accuracy: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null,
         });
         const data = await res.json().catch(() => ({}));
-        if (data?.tracking === false) stop(); // shift over → stop sharing
+        if (data?.tracking === false) {
+            stop(); // no route today (or signed in as someone else) → stop sharing, and say why
+            notice.value = NOTICES[data.reason] ?? 'Location sharing turned off.';
+        }
     } catch {
         /* offline / transient — keep watching, retry on the next position */
     }
@@ -61,6 +70,7 @@ function clearWatch(): void {
 /** Turn sharing on — the only path that may surface the geolocation prompt. */
 function start(): void {
     sharing.value = true;
+    notice.value = null;
     if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, '1');
     ensureWatch();
 }
@@ -94,6 +104,10 @@ async function restore(): Promise<void> {
     // No Permissions API: don't auto-start, to avoid an unprompted geolocation request.
 }
 
+const dismissNotice = (): void => {
+    notice.value = null;
+};
+
 export function useAgentTracking() {
-    return { sharing, toggle, restore };
+    return { sharing, toggle, restore, notice, dismissNotice };
 }

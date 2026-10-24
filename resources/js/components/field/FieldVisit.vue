@@ -6,18 +6,31 @@ import PaneFacts from '@/components/pane/PaneFacts.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
 import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
-import { fullAnalysis, type FullAnalysis, type Reading } from '@/lib/chemistry';
+import { fullAnalysis, type FullAnalysis, type Reading, type Recommendation } from '@/lib/chemistry';
+import { SUGGESTION_KEYS, toStockAmount } from '@/lib/field/chemicals';
 import { shrinkPhoto } from '@/lib/field/photo';
-import { deleteDraft, getDraft, saveDraft, saveDraftPhotos, type FieldStop, type FieldWorkOrder, type WorkOrderDraft } from '@/lib/field/store';
+import {
+    deleteDraft,
+    getDraft,
+    saveDraft,
+    saveDraftPhotos,
+    type FieldChemical,
+    type FieldStop,
+    type FieldWorkOrder,
+    type TreatmentDraft,
+    type WorkOrderDraft,
+} from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
+import { deleteJson } from '@/lib/http';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
-import { formatDay } from '@/lib/utils';
-import { ChevronLeft, Lock, Navigation, Plus, Sparkles, X } from 'lucide-vue-next';
+import { formatAmount, formatDay, unitFor } from '@/lib/utils';
+import { ChevronLeft, LoaderCircle, Lock, Navigation, Plus, Sparkles, Trash2, WifiOff, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
-const props = defineProps<{ stop: FieldStop; online: boolean }>();
-const emit = defineEmits<{ (e: 'done', stopId: number, raisedWorkOrder: boolean): void; (e: 'close'): void }>();
+// `chemicals`: the company's list (from the day bundle, so it works offline).
+const props = defineProps<{ stop: FieldStop; online: boolean; chemicals: FieldChemical[] }>();
+const emit = defineEmits<{ (e: 'done', stopId: number, raisedWorkOrder: boolean): void; (e: 'removed'): void; (e: 'close'): void }>();
 
 const pool = computed(() => props.stop.pool);
 
@@ -32,20 +45,27 @@ const show = { tasks: has('tasks'), chemistry: has('chemistry'), treatments: has
 
 // Reading inputs (strings, as form fields). Keys match the API; `water_temperature`
 // is remapped to `temperature` for the chemistry engine.
+// `max`: the highest value the server accepts (CompleteVisitRequest); a reading past it is caught here, before the
+// visit is saved, since a visit the server refuses would be stuck on the phone.
 const readingFields = [
-    { key: 'free_chlorine', label: 'Free Cl', unit: 'ppm' },
-    { key: 'total_chlorine', label: 'Total Cl', unit: 'ppm' },
-    { key: 'ph', label: 'pH', unit: '' },
-    { key: 'alkalinity', label: 'Alkalinity', unit: 'ppm' },
-    { key: 'calcium_hardness', label: 'Calcium', unit: 'ppm' },
-    { key: 'cyanuric_acid', label: 'CYA', unit: 'ppm' },
-    { key: 'salt', label: 'Salt', unit: 'ppm' },
-    { key: 'water_temperature', label: 'Temp', unit: '°F' },
+    { key: 'free_chlorine', label: 'Free Cl', unit: 'ppm', max: 100 },
+    { key: 'total_chlorine', label: 'Total Cl', unit: 'ppm', max: 100 },
+    { key: 'ph', label: 'pH', unit: '', max: 14 },
+    { key: 'alkalinity', label: 'Alkalinity', unit: 'ppm', max: 1000 },
+    { key: 'calcium_hardness', label: 'Calcium', unit: 'ppm', max: 5000 },
+    { key: 'cyanuric_acid', label: 'CYA', unit: 'ppm', max: 1000 },
+    { key: 'salt', label: 'Salt', unit: 'ppm', max: 20000 },
+    { key: 'water_temperature', label: 'Temp', unit: '°F', max: 120 },
 ];
+/** A reading the server would refuse: not a number, or outside 0 to its max. */
+const outOfRange = (f: (typeof readingFields)[number]): boolean => {
+    const v = reading[f.key];
+    return v !== '' && !(Number(v) >= 0 && Number(v) <= f.max);
+};
 const reading = reactive<Record<string, string>>(Object.fromEntries(readingFields.map((f) => [f.key, ''])));
 
 const tasks = reactive((props.stop.service.tasks ?? []).map((name) => ({ name, done: false })));
-const treatments = reactive<{ name: string; amount: string; unit: string }[]>([]);
+const treatments = reactive<TreatmentDraft[]>([]);
 const notes = ref('');
 const officeNotes = ref(''); // for the company only; the homeowner never sees it
 // Something to do later: becomes a work order on the company's list.
@@ -69,7 +89,7 @@ onMounted(async () => {
             tasks.forEach((t, i) => {
                 if (draft.tasks[i]?.name === t.name) t.done = draft.tasks[i].done;
             });
-            treatments.splice(0, treatments.length, ...draft.treatments);
+            treatments.splice(0, treatments.length, ...restoredTreatments(draft.treatments));
             notes.value = draft.notes;
             officeNotes.value = draft.office_notes ?? '';
             // A draft from the single box keeps its text in Details; the server titles it from the first line.
@@ -150,12 +170,43 @@ function analyze() {
     });
 }
 
-function applyRec(chemical: string, amount: number, unit: string) {
-    if (treatments.some((t) => t.name === chemical)) return;
-    treatments.push({ name: chemical, amount: amount > 0 ? String(amount) : '', unit });
+// --- chemicals: picked from the company's list, each a whole number of its own unit ---
+const unitOf = (id: number | null): string => props.chemicals.find((c) => c.id === id)?.unit ?? '';
+
+/**
+ * Each suggestion with what Add would record: the company chemical it calls for
+ * (found by its standard key; actions like running the generator have none) and
+ * the dose in that chemical's unit, rounded up.
+ */
+interface Suggestion {
+    rec: Recommendation;
+    chemical: FieldChemical | null;
+    amount: number | null;
 }
-const addTreatment = () => treatments.push({ name: '', amount: '', unit: 'oz' });
+const suggestions = computed<Suggestion[]>(() =>
+    (analysis.value?.recommendations ?? []).map((rec) => {
+        const key = SUGGESTION_KEYS[rec.chemical];
+        const chemical = key ? (props.chemicals.find((c) => c.key === key) ?? null) : null;
+        return { rec, chemical, amount: chemical ? toStockAmount(rec.amount, rec.unit, chemical.unit) : null };
+    }),
+);
+const added = (chemical: FieldChemical): boolean => treatments.some((t) => t.chemical_id === chemical.id);
+
+function applySuggestion({ chemical, amount }: Suggestion) {
+    if (!chemical || added(chemical)) return;
+    treatments.push({ chemical_id: chemical.id, amount: amount !== null ? String(amount) : '' });
+}
+const addTreatment = () => treatments.push({ chemical_id: null, amount: '' });
 const removeTreatment = (i: number) => treatments.splice(i, 1);
+
+/** A saved draft's chemicals; ones typed before the list are matched to it by name, or dropped. */
+function restoredTreatments(rows: (TreatmentDraft | { name?: string; amount?: string })[]): TreatmentDraft[] {
+    return rows.flatMap((row) => {
+        if ('chemical_id' in row) return [row];
+        const match = props.chemicals.find((c) => c.name.toLowerCase() === (row.name ?? '').trim().toLowerCase());
+        return match ? [{ chemical_id: match.id, amount: String(Math.ceil(Number(row.amount) || 0) || '') }] : [];
+    });
+}
 
 // Directions to the pool (works offline — the maps app handles the route).
 const navUrl = computed(() =>
@@ -164,14 +215,18 @@ const navUrl = computed(() =>
         : null,
 );
 
-/** Best-effort GPS proof-of-presence — never blocks completion if denied/unavailable. */
+/**
+ * Best-effort GPS proof-of-presence — never blocks completion if denied/unavailable.
+ * A fix from the last couple of minutes is still at the pool, so take that rather
+ * than make the tech wait; a fresh one gets 3 seconds at most.
+ */
 function captureLocation(): Promise<{ lat: number; lng: number } | null> {
     return new Promise((resolve) => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(null);
         navigator.geolocation.getCurrentPosition(
             (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
             () => resolve(null),
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 },
+            { enableHighAccuracy: true, timeout: 3000, maximumAge: 120000 },
         );
     });
 }
@@ -186,13 +241,34 @@ const liveChecks = computed(() => {
     return checkWater(entered, pool.value?.custom_target_ranges ?? null);
 });
 
+// While it saves, the form is locked and the button says so; if the phone can't save it, say that and unlock.
+const saveError = ref<string | null>(null);
+
 async function complete() {
+    const bad = show.chemistry ? readingFields.find(outOfRange) : undefined;
+    if (bad) {
+        saveError.value = `Check ${bad.label}: it must be between 0 and ${bad.max}${bad.unit ? ` ${bad.unit}` : ''}.`;
+        return;
+    }
     submitting.value = true;
+    saveError.value = null;
+    try {
+        await saveVisit();
+    } catch (e) {
+        console.error('Could not save the visit on the phone:', e);
+        saveError.value = 'Couldn’t save the visit on this phone. Try again.';
+        submitting.value = false;
+    }
+}
+
+async function saveVisit() {
     const payload: Record<string, unknown> = {
         // Hidden sections send nothing, so the report only carries what this service covers.
         tasks: show.tasks ? tasks.map((t) => ({ name: t.name, done: t.done })) : [],
         treatments: show.treatments
-            ? treatments.filter((t) => t.name !== '').map((t) => ({ name: t.name, amount: t.amount === '' ? null : Number(t.amount), unit: t.unit }))
+            ? treatments
+                  .filter((t) => t.chemical_id !== null && t.amount !== '')
+                  .map((t) => ({ chemical_id: t.chemical_id, amount: Number(t.amount) }))
             : [],
         notes: notes.value || null,
         office_notes: officeNotes.value || null,
@@ -219,22 +295,55 @@ async function complete() {
     submitting.value = false;
     emit('done', props.stop.id, raisesWorkOrder.value);
 }
+
+// An extra visit added by mistake (or not got to) comes back off the route, with whatever was entered.
+const removing = ref(false);
+const removeError = ref<string | null>(null);
+async function removeFromToday() {
+    if (!confirm(`Take ${pool.value?.name ?? 'this pool'} off today’s route? Anything you’ve entered for it is discarded.`)) return;
+    removing.value = true;
+    removeError.value = null;
+    try {
+        const res = await deleteJson(`/api/field/stops/${props.stop.id}`);
+        if (!res.ok) throw new Error(String(res.status));
+        finished = true;
+        clearTimeout(saveTimer);
+        await deleteDraft(props.stop.id).catch((e) => console.error('Could not clear the removed visit’s draft:', e));
+        emit('removed');
+    } catch {
+        removeError.value = 'Couldn’t take it off your route. Check your connection and try again.';
+    } finally {
+        removing.value = false;
+    }
+}
 </script>
 
 <template>
     <div class="bg-background text-foreground fixed inset-0 z-50 flex flex-col">
         <!-- header -->
         <header class="border-border bg-background flex items-center gap-2 border-b px-3 py-2.5">
-            <button class="hover:bg-muted grid size-10 shrink-0 place-items-center rounded-xl" aria-label="Back to the route" @click="emit('close')">
+            <button
+                class="hover:bg-muted grid size-10 shrink-0 place-items-center rounded-xl disabled:opacity-40"
+                aria-label="Back to the route"
+                :disabled="submitting"
+                @click="emit('close')"
+            >
                 <ChevronLeft class="size-6" />
             </button>
             <div class="min-w-0 flex-1">
                 <h1 class="font-display truncate text-xl leading-tight font-semibold tracking-tight">{{ pool?.name }}</h1>
                 <p class="text-muted-foreground truncate text-sm">{{ pool?.customer }}</p>
             </div>
-            <span v-if="!online" class="rounded-full bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400"
-                >Offline</span
+            <!-- Offline, as an icon only (same badge as the route screen's). -->
+            <span
+                v-if="!online"
+                role="status"
+                class="grid size-8 shrink-0 place-items-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                title="Offline"
+                aria-label="Offline"
             >
+                <WifiOff class="size-4" />
+            </span>
             <a
                 v-if="navUrl"
                 :href="navUrl"
@@ -246,12 +355,17 @@ async function complete() {
             </a>
         </header>
 
-        <div class="flex-1 space-y-7 overflow-y-auto p-4 pb-28">
+        <!-- Locked while the visit saves (inert: no taps, no typing, no focus). -->
+        <div
+            class="flex-1 space-y-7 overflow-y-auto p-4 pb-28 transition-opacity"
+            :class="{ 'opacity-60': submitting }"
+            :inert="submitting || undefined"
+        >
             <!-- getting in -->
             <section class="space-y-2">
                 <PaneFacts
                     :facts="[
-                        { label: 'Service', value: stop.service.name },
+                        { label: 'Service', value: stop.extra ? 'Extra visit' : stop.service.name },
                         { label: 'Gate code', value: pool?.gate_code },
                         { label: 'Phone', value: pool?.phone, href: pool?.phone ? telLink(pool.phone) : null },
                     ]"
@@ -302,7 +416,11 @@ async function complete() {
                             type="number"
                             inputmode="decimal"
                             step="any"
+                            min="0"
+                            :max="f.max"
+                            :aria-invalid="outOfRange(f) || undefined"
                             class="border-input bg-background text-foreground focus:border-primary focus:ring-primary h-12 w-full rounded-xl border px-3 text-base focus:ring-1 focus:outline-none"
+                            :class="{ 'border-red-500 ring-1 ring-red-500': outOfRange(f) }"
                         />
                     </label>
                 </div>
@@ -324,32 +442,34 @@ async function complete() {
                         >LSI {{ analysis.lsi.value }}, {{ analysis.lsi.label.toLowerCase() }}</Chip
                     >
                 </template>
-                <p v-if="!analysis.recommendations.length" class="text-muted-foreground text-sm">Nothing to add. The water is in range.</p>
+                <p v-if="!suggestions.length" class="text-muted-foreground text-sm">Nothing to add. The water is in range.</p>
                 <ul v-else class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
-                    <li v-for="(rec, i) in analysis.recommendations" :key="i" class="flex items-start gap-3 p-4">
+                    <li v-for="(s, i) in suggestions" :key="i" class="flex items-start gap-3 p-4">
                         <div class="min-w-0 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <p class="font-semibold">{{ rec.chemical }}</p>
-                                <Chip v-if="rec.urgency !== 'low'" :tone="rec.urgency === 'high' ? 'bad' : 'warn'">{{
-                                    rec.urgency === 'high' ? 'Needed now' : 'Soon'
+                                <p class="font-semibold">{{ s.rec.chemical }}</p>
+                                <Chip v-if="s.rec.urgency !== 'low'" :tone="s.rec.urgency === 'high' ? 'bad' : 'warn'">{{
+                                    s.rec.urgency === 'high' ? 'Needed now' : 'Soon'
                                 }}</Chip>
                             </div>
                             <p class="text-muted-foreground text-sm">
-                                {{ rec.parameter }}<template v-if="rec.amount">: {{ rec.amount }} {{ rec.unit }}</template>
+                                {{ s.rec.parameter }}<template v-if="s.rec.amount">: {{ s.rec.amount }} {{ s.rec.unit }}</template>
                             </p>
-                            <ul v-if="rec.notes?.length" class="text-muted-foreground mt-1 list-disc pl-5 text-sm">
-                                <li v-for="(n, j) in rec.notes" :key="j">{{ n }}</li>
+                            <ul v-if="s.rec.notes?.length" class="text-muted-foreground mt-1 list-disc pl-5 text-sm">
+                                <li v-for="(n, j) in s.rec.notes" :key="j">{{ n }}</li>
                             </ul>
                         </div>
+                        <!-- Only a chemical the company keeps gets Add: it records the dose in that chemical's unit, rounded up. -->
                         <Button
-                            v-if="show.treatments"
+                            v-if="show.treatments && s.chemical"
                             size="sm"
                             variant="outline"
                             class="h-10 shrink-0 rounded-xl"
-                            :disabled="treatments.some((t) => t.name === rec.chemical)"
-                            @click="applyRec(rec.chemical, rec.amount, rec.unit)"
+                            :disabled="added(s.chemical)"
+                            @click="applySuggestion(s)"
                         >
-                            <Plus class="mr-1 size-4" /> {{ treatments.some((t) => t.name === rec.chemical) ? 'Added' : 'Add' }}
+                            <Plus class="mr-1 size-4" />
+                            {{ added(s.chemical) ? 'Added' : s.amount !== null ? `Add ${formatAmount(s.amount, s.chemical.unit)}` : 'Add' }}
                         </Button>
                     </li>
                 </ul>
@@ -357,31 +477,34 @@ async function complete() {
 
             <!-- chemicals added -->
             <PaneSection v-if="show.treatments" title="Chemicals added">
-                <template #action>
+                <template v-if="chemicals.length" #action>
                     <PaneAction :icon="Plus" @click="addTreatment">Add one</PaneAction>
                 </template>
-                <p v-if="!treatments.length" class="text-muted-foreground text-sm">None yet. Add one from “What to add”, or add your own.</p>
+                <p v-if="!chemicals.length" class="text-muted-foreground text-sm">
+                    No chemicals set up yet. The office adds them on the Inventory page.
+                </p>
+                <p v-else-if="!treatments.length" class="text-muted-foreground text-sm">None yet. Add one from “What to add”, or pick your own.</p>
                 <div v-for="(t, i) in treatments" :key="i" class="mb-2 flex items-center gap-2">
-                    <input
-                        v-model="t.name"
-                        placeholder="Chemical"
+                    <select
+                        v-model="t.chemical_id"
                         aria-label="Chemical"
-                        class="border-input bg-background text-foreground placeholder:text-muted-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
-                    />
+                        class="border-input bg-background text-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
+                    >
+                        <option :value="null" disabled>Pick a chemical</option>
+                        <option v-for="c in chemicals" :key="c.id" :value="c.id">{{ c.name }}</option>
+                    </select>
+                    <!-- Whole units only: anything less is rounded up when it's saved. -->
                     <input
                         v-model="t.amount"
                         type="number"
-                        inputmode="decimal"
-                        step="any"
+                        inputmode="numeric"
+                        min="1"
+                        step="1"
                         placeholder="Amt"
                         aria-label="Amount"
                         class="border-input bg-background text-foreground placeholder:text-muted-foreground h-11 w-20 rounded-xl border px-3 text-base"
                     />
-                    <input
-                        v-model="t.unit"
-                        aria-label="Unit"
-                        class="border-input bg-background text-foreground h-11 w-16 rounded-xl border px-3 text-base"
-                    />
+                    <span class="text-muted-foreground w-10 shrink-0 text-base">{{ unitFor(Number(t.amount), unitOf(t.chemical_id)) }}</span>
                     <button
                         class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
                         aria-label="Remove"
@@ -401,6 +524,7 @@ async function complete() {
             <PaneSection title="Note to the homeowner">
                 <textarea
                     v-model="notes"
+                    maxlength="2000"
                     rows="3"
                     aria-label="Note to the homeowner"
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
@@ -414,6 +538,7 @@ async function complete() {
                 </template>
                 <textarea
                     v-model="officeNotes"
+                    maxlength="2000"
                     rows="3"
                     aria-label="Office note"
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground w-full rounded-xl border px-3 py-2.5 text-base"
@@ -436,6 +561,7 @@ async function complete() {
                 />
                 <textarea
                     v-model="workOrder.details"
+                    maxlength="5000"
                     rows="3"
                     aria-label="Work order details"
                     class="border-input bg-background text-foreground placeholder:text-muted-foreground mt-2 w-full rounded-xl border px-3 py-2.5 text-base"
@@ -461,12 +587,26 @@ async function complete() {
                     </label>
                 </div>
             </PaneSection>
+
+            <!-- an extra visit can come back off the route until it's done -->
+            <section v-if="stop.extra" class="border-border space-y-2 border-t pt-5">
+                <p v-if="removeError" role="alert" class="text-sm font-medium text-red-700 dark:text-red-400">{{ removeError }}</p>
+                <button
+                    class="flex h-11 items-center gap-2 rounded-xl px-1 text-base font-semibold text-red-700 disabled:opacity-50 dark:text-red-400"
+                    :disabled="!online || removing"
+                    @click="removeFromToday"
+                >
+                    <Trash2 class="size-5" /> {{ online ? 'Remove from today' : 'Remove from today (needs a connection)' }}
+                </button>
+            </section>
         </div>
 
         <!-- complete -->
         <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4">
+            <p v-if="saveError" role="alert" class="mb-2 text-sm font-medium text-red-700 dark:text-red-400">{{ saveError }}</p>
             <Button class="h-12 w-full rounded-xl text-base" :disabled="submitting || shrinking" @click="complete">
-                {{ online ? 'Finish visit' : 'Finish visit (sends when you’re back online)' }}
+                <template v-if="submitting"><LoaderCircle class="mr-2 size-5 animate-spin" /> Saving…</template>
+                <template v-else>{{ online ? 'Finish visit' : 'Finish visit (sends when you’re back online)' }}</template>
             </Button>
         </footer>
     </div>

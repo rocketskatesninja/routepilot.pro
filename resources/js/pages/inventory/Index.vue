@@ -16,13 +16,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { agentLink } from '@/lib/links';
+import { agentLink, poolLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
-import { formatDay, formatMoney } from '@/lib/utils';
+import { formatAmount, formatDay, formatMoney, unitFor } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { FlaskConical, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Archive, FlaskConical, Pencil, Plus, RotateCcw } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 interface InventoryRow {
@@ -35,16 +35,6 @@ interface InventoryRow {
     cost_per_unit: number | null;
 }
 
-interface InventoryFields {
-    chemical_name: string;
-    unit: string;
-    reorder_threshold: number | null;
-    cost_per_unit: number | null;
-    sell_price: number | null;
-    supplier: string | null;
-    is_active: boolean;
-}
-
 interface InventoryDetail {
     id: number;
     name: string;
@@ -55,16 +45,30 @@ interface InventoryDetail {
     cost_per_unit: number | null;
     sell_price: number | null;
     supplier: string | null;
+    is_active: boolean;
+    unit_locked: boolean; // it has stock or history, so its unit can't change
     value: number | null;
     low: boolean;
-    transactions: { id: number; type: string; quantity: number; on: string | null; agent: string | null; agent_id: number | null }[];
-    fields: InventoryFields;
+    /** Newest first; `change` is signed: + onto the shelf, − off it. */
+    // by: the tech on a visit, else who updated it in the office. pool/report_id: usage from a visit (pool_id null once the pool's archived).
+    transactions: {
+        id: number;
+        type: string;
+        change: number;
+        on: string | null;
+        by: string | null;
+        agent_id: number | null;
+        pool: string | null;
+        pool_id: number | null;
+        report_id: number | null;
+    }[];
 }
 
 const props = defineProps<{
     items: Paginated<InventoryRow>;
     selected: InventoryDetail | null;
-    filters: { search: string };
+    filters: { search: string; archived: boolean };
+    counts: { active: number; archived: number };
     sort: { key: string; dir: string };
     canManage: boolean;
 }>();
@@ -74,15 +78,25 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Inventory', href: '/inventory' 
 const { search } = useListSearch(props.filters.search);
 
 const open = (id: number) => visitQuery({ search: search.value || undefined, selected: id });
-const closeDrawer = () => visitQuery({ search: search.value || undefined, selected: undefined });
-const money = formatMoney;
+const deselect = () => visitQuery({ search: search.value || undefined, selected: undefined });
+// Archived chemicals have their own tab; switching keeps the search, resets selection and page.
+const tabs = computed(() => [
+    { archived: false, label: 'Active', count: props.counts.active },
+    { archived: true, label: 'Archived', count: props.counts.archived },
+]);
+const showArchived = (archived: boolean) =>
+    visitQuery({ archived: archived ? 1 : undefined, selected: undefined, page: undefined }, { replace: true });
 
 // --- the side panel ---
 const chemical = computed(() => props.selected);
-const amount = (n: number, unit: string) => `${Number.isInteger(n) ? n : n.toFixed(2)} ${unit}`;
-/** "Restocked 10 gal" / "Used 2 gal" / "Counted 50 gal". */
-const movement = (t: InventoryDetail['transactions'][number], unit: string) =>
-    `${{ restock: 'Restocked', usage: 'Used', adjustment: 'Counted' }[t.type] ?? t.type} ${amount(t.quantity, unit)}`;
+/** "Restocked 10 gal" / "Used 2 gal" / "Counted, 3 gal less". */
+function movement(t: InventoryDetail['transactions'][number], unit: string): string {
+    const size = formatAmount(Math.abs(t.change), unit);
+    if (t.type === 'restock') return `Restocked ${size}`;
+    // Stock never goes below zero, so usage from an empty shelf moves nothing: it's tagged "None in stock" instead.
+    if (t.type === 'usage') return t.change === 0 ? 'Used' : `Used ${size}`;
+    return t.change === 0 ? 'Counted, no change' : `Counted, ${size} ${t.change > 0 ? 'more' : 'less'}`;
+}
 
 // The detail pane is shared: it hosts the create/edit form when one is open,
 // otherwise the selected item's detail. Closing the pane cancels the form first.
@@ -90,7 +104,7 @@ function closePane() {
     if (formOpen.value) {
         formOpen.value = false;
     } else {
-        closeDrawer();
+        deselect();
     }
 }
 
@@ -106,7 +120,6 @@ const form = useForm<{
     cost_per_unit: string;
     sell_price: string;
     supplier: string;
-    is_active: boolean;
     photo: File | null;
 }>({
     chemical_name: '',
@@ -116,7 +129,6 @@ const form = useForm<{
     cost_per_unit: '',
     sell_price: '',
     supplier: '',
-    is_active: true,
     photo: null,
 });
 
@@ -128,16 +140,17 @@ function openCreate() {
     formOpen.value = true;
 }
 
+const text = (n: number | null) => (n !== null ? String(n) : '');
+
 function openEdit() {
     if (!props.selected) return;
-    const f = props.selected.fields;
-    form.chemical_name = f.chemical_name;
-    form.unit = f.unit;
-    form.reorder_threshold = f.reorder_threshold !== null ? String(f.reorder_threshold) : '';
-    form.cost_per_unit = f.cost_per_unit !== null ? String(f.cost_per_unit) : '';
-    form.sell_price = f.sell_price !== null ? String(f.sell_price) : '';
-    form.supplier = f.supplier ?? '';
-    form.is_active = f.is_active;
+    const c = props.selected;
+    form.chemical_name = c.name;
+    form.unit = c.unit;
+    form.reorder_threshold = text(c.reorder_threshold);
+    form.cost_per_unit = text(c.cost_per_unit);
+    form.sell_price = text(c.sell_price);
+    form.supplier = c.supplier ?? '';
     form.photo = null;
     form.clearErrors();
     formMode.value = 'edit';
@@ -164,14 +177,24 @@ function submitForm() {
     }
 }
 
-function destroyChemical() {
+// Archiving keeps the pane open on it, so Restore is right there as an undo.
+function archiveChemical() {
     if (!props.selected) return;
-    if (!confirm('Remove this chemical?')) return;
-    router.delete(`/inventory/${props.selected.id}`, { preserveScroll: true, onSuccess: () => closeDrawer() });
+    if (
+        !confirm(
+            'Archive this chemical? It leaves the list and visits stop taking it from stock. Its history is kept, and you can restore it from the Archived tab.',
+        )
+    )
+        return;
+    router.post(`/inventory/${props.selected.id}/archive`, {}, { preserveScroll: true });
 }
 
-// --- adjust stock (inline in the drawer) ---
-const adjustForm = useForm({ type: 'restock', quantity: '', notes: '' });
+function restoreChemical() {
+    if (props.selected) router.post(`/inventory/${props.selected.id}/restore`, {}, { preserveScroll: true });
+}
+
+// --- update stock (inline in the detail pane) ---
+const adjustForm = useForm({ type: 'restock', quantity: '' });
 function submitAdjust() {
     if (!props.selected || adjustForm.quantity === '') return;
     adjustForm.post(`/inventory/${props.selected.id}/adjust`, { preserveScroll: true, onSuccess: () => adjustForm.reset() });
@@ -181,7 +204,19 @@ function submitAdjust() {
 <template>
     <Head title="Inventory" />
 
-    <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.items.total} chemicals`">
+    <AppLayout :breadcrumbs="breadcrumbs">
+        <template #filters>
+            <button
+                v-for="t in tabs"
+                :key="t.label"
+                class="shrink-0 rounded-md px-2.5 py-1 text-sm font-medium whitespace-nowrap transition-colors"
+                :class="props.filters.archived === t.archived ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
+                @click="showArchived(t.archived)"
+            >
+                {{ t.label }} <span class="opacity-70">{{ t.count }}</span>
+            </button>
+        </template>
+
         <template #actions>
             <Input v-model="search" type="search" placeholder="Search chemicals…" class="h-9 min-w-0 flex-1 sm:w-44 sm:flex-none lg:w-56" />
             <Button v-if="props.canManage" size="sm" title="New chemical" @click="openCreate">
@@ -217,26 +252,18 @@ function submitAdjust() {
                                     <span class="font-medium">{{ item.name }}</span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground px-4 py-2.5">{{ item.stock }} {{ item.unit }}</td>
+                            <td class="text-muted-foreground px-4 py-2.5">{{ formatAmount(item.stock, item.unit) }}</td>
                             <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="
-                                        item.low
-                                            ? 'bg-red-500/15 text-red-600 dark:text-red-400'
-                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                    "
-                                >
-                                    {{ item.low ? 'Low' : 'OK' }}
-                                </span>
+                                <Chip v-if="props.filters.archived" tone="muted">Archived</Chip>
+                                <Chip v-else :tone="item.low ? 'warn' : 'good'">{{ item.low ? 'Running low' : 'In stock' }}</Chip>
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
-                                {{ item.cost_per_unit !== null ? money(item.cost_per_unit) + '/' + item.unit : '—' }}
+                                {{ item.cost_per_unit !== null ? `${formatMoney(item.cost_per_unit)}/${unitFor(1, item.unit)}` : '—' }}
                             </td>
                         </template>
                         <template #empty>
                             <FlaskConical class="mx-auto mb-2 size-6 opacity-50" />
-                            No chemicals in stock.
+                            {{ props.filters.archived ? 'No archived chemicals.' : 'No chemicals yet.' }}
                         </template>
                     </ListTable>
                 </template>
@@ -260,11 +287,25 @@ function submitAdjust() {
                                 <p v-if="form.errors.chemical_name" class="text-xs text-red-600">{{ form.errors.chemical_name }}</p>
                             </div>
                             <div class="grid gap-1.5">
-                                <Label for="cunit">Unit</Label><Input id="cunit" v-model="form.unit" placeholder="gal / lbs" />
+                                <!-- One unit per chemical: liquids by the gallon, dry chemicals by the pound. -->
+                                <Label for="cunit">Unit</Label>
+                                <select
+                                    id="cunit"
+                                    v-model="form.unit"
+                                    :disabled="formMode === 'edit' && props.selected?.unit_locked"
+                                    :title="
+                                        formMode === 'edit' && props.selected?.unit_locked ? 'Can’t change once it has stock or history' : undefined
+                                    "
+                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-60"
+                                >
+                                    <option value="gal">gal</option>
+                                    <option value="lbs">lbs</option>
+                                    <option value="bag">bag (40 lb)</option>
+                                </select>
                             </div>
                         </div>
-                        <div v-if="formMode === 'create'" class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div v-if="formMode === 'create'" class="grid gap-1.5">
                                 <Label for="cstock">Starting stock</Label
                                 ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" />
                             </div>
@@ -273,24 +314,18 @@ function submitAdjust() {
                                 ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
                             </div>
                         </div>
-                        <div v-else class="grid gap-1.5">
-                            <Label for="creorder2">Reorder at</Label
-                            ><Input id="creorder2" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
-                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
-                                <Label for="ccost">Cost / unit ($)</Label
+                                <!-- Both are per the chemical's own unit, named as it's picked above, so a price can't be read as per bag. -->
+                                <Label for="ccost">Cost per {{ unitFor(1, form.unit) }} ($)</Label
                                 ><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" />
                             </div>
                             <div class="grid gap-1.5">
-                                <Label for="csell">Sell price ($)</Label
+                                <Label for="csell">Sell price per {{ unitFor(1, form.unit) }} ($)</Label
                                 ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
                             </div>
                         </div>
                         <div class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
-                        <label v-if="formMode === 'edit'" class="flex items-center gap-2"
-                            ><input v-model="form.is_active" type="checkbox" /> Active</label
-                        >
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add chemical' : 'Save' }}</Button>
@@ -300,7 +335,7 @@ function submitAdjust() {
                     <div v-else-if="chemical" class="space-y-6">
                         <PaneHeader
                             :title="chemical.name"
-                            :summary="`${amount(chemical.stock, chemical.unit)} in stock.${chemical.reorder_threshold !== null ? ` Reorder at ${amount(chemical.reorder_threshold, chemical.unit)}.` : ''}`"
+                            :summary="`${formatAmount(chemical.stock, chemical.unit)} in stock.${chemical.reorder_threshold !== null ? ` Reorder at ${formatAmount(chemical.reorder_threshold, chemical.unit)}.` : ''}`"
                         >
                             <template #media>
                                 <img
@@ -312,17 +347,24 @@ function submitAdjust() {
                                 <IconTile v-else :icon="FlaskConical" size="lg" />
                             </template>
                             <template #badge>
-                                <Chip :tone="chemical.low ? 'warn' : 'good'">{{ chemical.low ? 'Running low' : 'In stock' }}</Chip>
+                                <Chip v-if="!chemical.is_active" tone="muted">Archived</Chip>
+                                <Chip v-else :tone="chemical.low ? 'warn' : 'good'">{{ chemical.low ? 'Running low' : 'In stock' }}</Chip>
                             </template>
-                            <template v-if="props.canManage" #actions>
+                            <template v-if="props.canManage && chemical.is_active" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyChemical"
-                                    ><Trash2 class="mr-1 size-3.5" /> Remove</Button
-                                >
+                                <Button size="sm" variant="outline" @click="archiveChemical"><Archive class="mr-1 size-3.5" /> Archive</Button>
                             </template>
                         </PaneHeader>
 
-                        <PaneSection v-if="props.canManage" title="Update stock">
+                        <div v-if="!chemical.is_active" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
+                            <p class="font-medium">Archived.</p>
+                            <p class="text-muted-foreground mt-0.5">It's off the list, and visits don't take it from stock. Its history is kept.</p>
+                            <Button v-if="props.canManage" size="sm" variant="outline" class="mt-3" @click="restoreChemical"
+                                ><RotateCcw class="mr-1 size-3.5" /> Restore</Button
+                            >
+                        </div>
+
+                        <PaneSection v-if="props.canManage && chemical.is_active" title="Update stock">
                             <form class="flex flex-wrap items-center gap-2" @submit.prevent="submitAdjust">
                                 <select
                                     v-model="adjustForm.type"
@@ -341,20 +383,20 @@ function submitAdjust() {
                                     :aria-label="`Amount in ${chemical.unit}`"
                                     class="w-24"
                                 />
-                                <span class="text-muted-foreground text-sm">{{ chemical.unit }}</span>
+                                <span class="text-muted-foreground text-sm">{{ unitFor(Number(adjustForm.quantity), chemical.unit) }}</span>
                                 <Button type="submit" size="sm" :disabled="adjustForm.processing || adjustForm.quantity === ''">Save</Button>
                             </form>
                         </PaneSection>
 
-                        <PaneSection title="Prices">
+                        <PaneSection v-if="chemical.cost_per_unit !== null || chemical.sell_price !== null || chemical.supplier" title="Prices">
                             <PaneFacts
                                 :facts="[
                                     {
-                                        label: `Cost per ${chemical.unit}`,
+                                        label: `Cost per ${unitFor(1, chemical.unit)}`,
                                         value: chemical.cost_per_unit !== null ? formatMoney(chemical.cost_per_unit) : null,
                                     },
                                     {
-                                        label: `Sell price per ${chemical.unit}`,
+                                        label: `Sell price per ${unitFor(1, chemical.unit)}`,
                                         value: chemical.sell_price !== null ? formatMoney(chemical.sell_price) : null,
                                     },
                                     { label: 'Value on the shelf', value: chemical.value !== null ? formatMoney(chemical.value) : null },
@@ -365,17 +407,37 @@ function submitAdjust() {
 
                         <PaneSection v-if="chemical.transactions.length" title="Recent changes">
                             <PaneList>
-                                <PaneItem v-for="t in chemical.transactions" :key="t.id" :title="movement(t, chemical.unit)">
+                                <PaneItem v-for="t in chemical.transactions" :key="t.id">
+                                    <template #title>
+                                        {{ movement(t, chemical.unit)
+                                        }}<template v-if="t.pool">
+                                            at
+                                            <Link
+                                                v-if="t.pool_id"
+                                                :href="poolLink(t.pool_id)"
+                                                class="text-primary underline-offset-4 hover:underline"
+                                                >{{ t.pool }}</Link
+                                            ><template v-else>{{ t.pool }}</template></template
+                                        >
+                                        <Chip v-if="t.type === 'usage' && t.change === 0" tone="warn" class="ml-1.5">None in stock</Chip>
+                                    </template>
                                     <template #sub>
                                         {{ formatDay(t.on)
-                                        }}<template v-if="t.agent">
+                                        }}<template v-if="t.by">
                                             by
                                             <Link
                                                 v-if="t.agent_id"
                                                 :href="agentLink(t.agent_id)"
                                                 class="text-primary underline-offset-4 hover:underline"
-                                                >{{ t.agent }}</Link
-                                            ><template v-else>{{ t.agent }}</template></template
+                                                >{{ t.by }}</Link
+                                            ><template v-else>{{ t.by }}</template></template
+                                        >
+                                    </template>
+                                    <template v-if="t.report_id" #trailing>
+                                        <Link
+                                            :href="reportLink(t.report_id)"
+                                            class="text-primary text-sm font-medium underline-offset-4 hover:underline"
+                                            >View report</Link
                                         >
                                     </template>
                                 </PaneItem>

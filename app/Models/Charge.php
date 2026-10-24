@@ -11,8 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * One line on a customer's account: a completed visit, a one-off charge, or a
- * credit (negative). Amount and tax are fixed when it's created and never
+ * One line on a customer's account: a completed visit, the chemicals used on
+ * one (for a customer who pays for them), a one-off charge, or a credit
+ * (negative). Amount and tax are fixed when it's created and never
  * re-derived. A charge is never deleted once a customer could have seen it —
  * it's voided, with a reason. invoice_id is set once it's been billed.
  *

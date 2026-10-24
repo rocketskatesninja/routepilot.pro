@@ -38,12 +38,6 @@ class InventoryTransaction extends Model
         return $this->belongsTo(ChemicalInventory::class, 'chemical_inventory_id');
     }
 
-    /** @return BelongsTo<ServiceVisit, $this> */
-    public function visit(): BelongsTo
-    {
-        return $this->belongsTo(ServiceVisit::class, 'service_visit_id');
-    }
-
     /** @return BelongsTo<Pool, $this> */
     public function pool(): BelongsTo
     {
@@ -54,5 +48,15 @@ class InventoryTransaction extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(User::class, 'agent_id');
+    }
+
+    /**
+     * Who logged it: the tech on a visit, or whoever updated the stock in the office.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

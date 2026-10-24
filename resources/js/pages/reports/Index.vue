@@ -21,7 +21,7 @@ import { targetsFor } from '@/lib/chemistry';
 import { agentLink, customerLink, workOrderLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
-import { formatDay, formatMoney } from '@/lib/utils';
+import { formatAmount, formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -65,18 +65,21 @@ interface VisitDetail {
     office_notes: string | null;
     work_order: { id: number; title: string; details: string | null; urgent: boolean; status: string } | null;
     reading: Reading | null;
-    treatments: { name: string; amount: number; unit: string }[];
+    // chemical_id null: typed before the chemical list (kept as written, not billed)
+    treatments: { chemical_id: number | null; name: string; amount: number; unit: string }[];
     tasks: { name: string; done: boolean }[];
     photos: string[];
     trend: { chlorine: number[]; ph: number[]; dates: string[] };
     can_edit?: boolean;
     can_delete?: boolean;
     charge?: { amount: number; invoice: string | null } | null;
+    chemicals_billed?: boolean; // its chemicals are already on the customer's bill
 }
 
 const props = defineProps<{
     visits: Paginated<VisitRow>;
     selected: VisitDetail | null;
+    chemicals: { id: number; name: string; unit: string }[]; // what the edit form picks from
     sort: { key: string; dir: string };
 }>();
 
@@ -137,7 +140,7 @@ const form = useForm<{
     notes: string;
     office_notes: string;
     reading: Record<string, number | string | null>;
-    treatments: { name: string; amount: number | string; unit: string }[];
+    treatments: { chemical_id: number | null; name: string; amount: number | string; unit: string }[];
     tasks: { name: string; done: boolean }[];
 }>({
     completed_on: '',
@@ -166,7 +169,7 @@ function deleteReport() {
     const v = props.selected;
     if (!v) return;
     const charge = v.charge
-        ? ` Its ${formatMoney(v.charge.amount)} charge is cancelled${v.charge.invoice ? ` and ${v.charge.invoice} updates` : ''}.`
+        ? ` The ${formatMoney(v.charge.amount)} it was billed is cancelled${v.charge.invoice ? ` and ${v.charge.invoice} updates` : ''}.`
         : '';
     const ok = confirm(
         `Delete this report?${charge} Its readings, photos and notes are removed, chemicals it used go back into inventory, and the stop opens again. This can't be undone.`,
@@ -248,11 +251,14 @@ function submitEdit() {
                                         class="text-primary font-medium underline-offset-4 hover:underline"
                                         >{{ visit.customer }}</Link
                                     ></template
-                                ><template v-if="visit.agent_id"
+                                ><template v-if="visit.agent"
                                     >{{ visit.customer_id ? ', by ' : 'By ' }}
-                                    <Link :href="agentLink(visit.agent_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
-                                        visit.agent
-                                    }}</Link></template
+                                    <Link
+                                        v-if="visit.agent_id"
+                                        :href="agentLink(visit.agent_id)"
+                                        class="text-primary font-medium underline-offset-4 hover:underline"
+                                        >{{ visit.agent }}</Link
+                                    ><template v-else>{{ visit.agent }}</template></template
                                 >
                             </p>
                             <template v-if="(visit.can_edit || visit.can_delete) && !editing" #actions>
@@ -287,22 +293,49 @@ function submitEdit() {
                             </div>
                             <div>
                                 <div class="mb-1 flex items-center justify-between">
-                                    <span class="text-muted-foreground text-xs font-medium">Treatments</span>
+                                    <span class="text-muted-foreground text-xs font-medium">Chemicals</span>
                                     <Button
+                                        v-if="props.chemicals.length"
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        @click="form.treatments.push({ name: '', amount: '', unit: '' })"
+                                        @click="form.treatments.push({ chemical_id: null, name: '', amount: '', unit: '' })"
                                     >
                                         <Plus class="mr-1 size-3.5" /> Add
                                     </Button>
                                 </div>
+                                <p v-if="visit.chemicals_billed" class="text-muted-foreground mb-1.5 text-xs">
+                                    These are already on the customer's bill. Changes here update stock, not the bill; adjust it on Balances.
+                                </p>
                                 <div class="space-y-1.5">
-                                    <div v-for="(t, i) in form.treatments" :key="i" class="flex gap-2">
-                                        <Input v-model="t.name" placeholder="Chemical" class="flex-1" />
-                                        <Input v-model="t.amount" type="number" step="any" placeholder="Amt" class="w-16" />
-                                        <Input v-model="t.unit" placeholder="Unit" class="w-16" />
-                                        <Button type="button" size="icon" variant="outline" @click="form.treatments.splice(i, 1)"
+                                    <div v-for="(t, i) in form.treatments" :key="i" class="flex items-center gap-2">
+                                        <!-- typed before the chemical list: kept as written -->
+                                        <span v-if="t.chemical_id === null && t.name" class="flex-1 truncate text-sm"
+                                            >{{ t.name }} {{ formatAmount(Number(t.amount), t.unit) }}</span
+                                        >
+                                        <template v-else>
+                                            <select
+                                                v-model="t.chemical_id"
+                                                aria-label="Chemical"
+                                                class="border-input bg-background h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
+                                            >
+                                                <option :value="null" disabled>Pick a chemical</option>
+                                                <option v-for="c in props.chemicals" :key="c.id" :value="c.id">{{ c.name }}</option>
+                                            </select>
+                                            <Input
+                                                v-model="t.amount"
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                placeholder="Amt"
+                                                aria-label="Amount"
+                                                class="w-16"
+                                            />
+                                            <span class="text-muted-foreground w-7 text-sm">{{
+                                                props.chemicals.find((c) => c.id === t.chemical_id)?.unit
+                                            }}</span>
+                                        </template>
+                                        <Button type="button" size="icon" variant="outline" aria-label="Remove" @click="form.treatments.splice(i, 1)"
                                             ><X class="size-4"
                                         /></Button>
                                     </div>
@@ -377,7 +410,7 @@ function submitEdit() {
                                 <PaneList>
                                     <PaneItem v-for="(t, i) in visit.treatments" :key="i" :title="t.name">
                                         <template #trailing
-                                            ><span class="tabular-nums">{{ t.amount }} {{ t.unit }}</span></template
+                                            ><span class="tabular-nums">{{ formatAmount(t.amount, t.unit) }}</span></template
                                         >
                                     </PaneItem>
                                 </PaneList>

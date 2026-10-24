@@ -116,6 +116,9 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('field', fn () => Inertia::render('field/Index'))->name('field.index');
         Route::get('api/field/today', [FieldController::class, 'today'])->name('field.today');
         Route::post('api/field/visits/{stop}/complete', [FieldController::class, 'complete'])->name('field.complete');
+        Route::get('api/field/pools', [FieldController::class, 'pools'])->name('field.pools');
+        Route::post('api/field/pools/{pool}/visit', [FieldController::class, 'addStop'])->name('field.extra.add');
+        Route::delete('api/field/stops/{stop}', [FieldController::class, 'removeStop'])->name('field.extra.remove');
         Route::post('api/field/ping', [FieldController::class, 'ping'])->middleware('throttle:12,1')->name('field.ping');
 
         Route::get('pools', [PoolController::class, 'index'])->name('pools.index');
@@ -176,7 +179,8 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('inventory', [InventoryController::class, 'store'])->name('inventory.store');
         Route::patch('inventory/{chemical}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::post('inventory/{chemical}/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
-        Route::delete('inventory/{chemical}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
+        Route::post('inventory/{chemical}/archive', [InventoryController::class, 'archive'])->name('inventory.archive');
+        Route::post('inventory/{chemical}/restore', [InventoryController::class, 'restore'])->name('inventory.restore');
         Route::get('insights', [AnalyticsController::class, 'index'])->name('insights.index');
         Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
         Route::patch('leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');

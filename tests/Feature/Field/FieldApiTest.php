@@ -6,10 +6,12 @@ use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
@@ -119,4 +121,39 @@ test('each stop sends its own service type\'s visit sections to the field app', 
         ->assertJsonPath('stops.1.service.name', 'Chemistry Check')
         // Never-configured service types keep every section.
         ->assertJsonPath('stops.1.service.modules', ['tasks' => true, 'chemistry' => true, 'treatments' => true, 'photos' => true]);
+});
+
+/** The checklist the field app shows for the test stop, with the pool on a plan with these tasks. */
+function checklistFor(string $sanitizer, array $serviceTasks): array
+{
+    $type = ServiceType::factory()->for(test()->tenant)->create(['tasks' => $serviceTasks]);
+    $plan = ServiceSubscription::factory()->for(test()->tenant)->for(test()->pool)->for($type)->create(['status' => 'active', 'assigned_agent_id' => test()->agent->id]);
+    test()->stop->update(['service_subscription_id' => $plan->id]);
+    test()->pool->update(['sanitizer_type' => $sanitizer]);
+
+    return test()->actingAs(test()->agent)->getJson('/api/field/today')->assertOk()->json('stops.0.service.tasks');
+}
+
+test('every visit checklist ends with the routine check for the pool\'s sanitizer', function () {
+    expect(checklistFor('chlorine', ['Skim surface', 'Brush walls']))->toBe(['Skim surface', 'Brush walls', 'Check and fill the chlorinator'])
+        ->and(checklistFor('salt', ['Skim surface']))->toBe(['Skim surface', 'Check the salt cell'])
+        ->and(checklistFor('bromine', ['Skim surface']))->toBe(['Skim surface']);
+});
+
+test('a sanitizer check the service already lists isn\'t added twice', function () {
+    expect(checklistFor('salt', ['Skim surface', 'check the SALT cell']))->toBe(['Skim surface', 'check the SALT cell']);
+});
+
+test('a refused visit says why in words a tech can read, and the server logs it', function () {
+    Log::spy();
+
+    $this->actingAs($this->agent)
+        ->postJson("/api/field/visits/{$this->stop->id}/complete", ['ph' => 20, 'cyanuric_acid' => 3200])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.ph.0', 'The pH field must not be greater than 14.')
+        ->assertJsonPath('errors.cyanuric_acid.0', 'The CYA field must not be greater than 1000.');
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context) => $message === 'Field visit refused' && $context['stop_id'] === $this->stop->id && isset($context['errors']['ph']))
+        ->once();
 });

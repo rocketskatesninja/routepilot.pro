@@ -1,6 +1,6 @@
 @php
     $done = $tasks->where('is_completed', true);
-    $amount = fn ($t) => rtrim(rtrim(number_format((float) $t->amount, 2, '.', ''), '0'), '.').' '.$t->unit;
+    $amount = fn ($t) => \App\Support\StandardChemicals::amount((float) $t->amount, (string) $t->unit);
 @endphp
 <x-email.layout
     :brand="$brand"

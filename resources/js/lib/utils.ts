@@ -11,6 +11,18 @@ export function formatMoney(value: number | string): string {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number.isFinite(n) ? n : 0);
 }
 
+/** A quantity with its unit, whole numbers without decimals and the unit made to agree: "12 gal", "1 bag", "2.50 lbs". */
+export function formatAmount(n: number, unit: string): string {
+    return `${Number.isInteger(n) ? n : n.toFixed(2)} ${unitFor(n, unit)}`;
+}
+
+/** A unit agreeing with its amount: bag/bags, lb/lbs; others (gal, older typed ones) as given. Matches StandardChemicals::unitFor. */
+export function unitFor(n: number, unit: string): string {
+    if (unit === 'bag' || unit === 'bags') return n === 1 ? 'bag' : 'bags';
+    if (unit === 'lb' || unit === 'lbs') return n === 1 ? 'lb' : 'lbs';
+    return unit;
+}
+
 /** Deep clone a plain (JSON-serializable) value. */
 export function clone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T;
