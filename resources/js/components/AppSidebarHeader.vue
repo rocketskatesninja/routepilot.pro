@@ -27,14 +27,14 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
          spare room — grow-999 — so actions that fit stay compact at the row's end);
          a single fixed-height row on md+. -->
     <header
-        class="border-sidebar-border/70 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b px-4 py-2.5 transition-[width,height] ease-linear md:h-16 md:flex-nowrap md:py-0 group-has-[[data-collapsible=icon]]/sidebar-wrapper:md:h-12"
+        class="border-sidebar-border/70 flex min-h-16 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 border-b px-4 py-2.5 transition-[width,height] ease-linear md:h-16 md:flex-nowrap md:py-0"
     >
         <div class="flex min-w-0 grow-[999] items-center gap-2 md:flex-none">
             <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->
             <SidebarTrigger v-if="isMobile" class="-ml-1" />
             <template v-if="breadcrumbs.length > 0">
                 <Breadcrumb class="min-w-0">
-                    <BreadcrumbList>
+                    <BreadcrumbList class="md:text-[1.3125rem]">
                         <template v-for="(item, index) in breadcrumbs" :key="index">
                             <BreadcrumbItem>
                                 <template v-if="index === breadcrumbs.length - 1">
@@ -46,12 +46,12 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
                                     </BreadcrumbLink>
                                 </template>
                             </BreadcrumbItem>
-                            <BreadcrumbSeparator v-if="index !== breadcrumbs.length - 1" />
+                            <BreadcrumbSeparator v-if="index !== breadcrumbs.length - 1" class="md:[&>svg]:size-5.25" />
                         </template>
                     </BreadcrumbList>
                 </Breadcrumb>
             </template>
-            <span v-if="meta" class="text-muted-foreground truncate text-sm">{{ meta }}</span>
+            <span v-if="meta" class="text-muted-foreground truncate text-sm md:text-[1.3125rem]">{{ meta }}</span>
         </div>
 
         <!-- Field app, search + notifications: the top row's right on a phone, after
@@ -65,7 +65,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
                 title="Field app"
                 aria-label="Field app"
             >
-                <Smartphone class="size-5" />
+                <Smartphone class="size-5 md:size-7.5" />
             </Link>
             <button
                 v-if="isStaff"
@@ -75,7 +75,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
                 aria-label="Search"
                 @click="openCommand()"
             >
-                <Search class="size-5" />
+                <Search class="size-5 md:size-7.5" />
             </button>
             <Link
                 href="/notifications"
@@ -84,10 +84,10 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
                 title="Notifications"
                 aria-label="Notifications"
             >
-                <Bell class="size-5" />
+                <Bell class="size-5 md:size-7.5" />
                 <span
                     v-if="unread > 0"
-                    class="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    class="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white md:h-6 md:min-w-6 md:px-1.5 md:text-[15px]"
                     >{{ unread > 9 ? '9+' : unread }}</span
                 >
             </Link>

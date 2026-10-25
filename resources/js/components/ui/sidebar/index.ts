@@ -39,12 +39,13 @@ export const sidebarMenuButtonVariants = cva(
                 // Nav links: a 44px tap target in the mobile sheet. On desktop the rows,
                 // text and icons grow to fill the panel's height (the --nav-* sizes in
                 // app.css); the fallbacks are for rows outside the nav, like the agent's
-                // footer. The collapsed rail shows only icons, so they grow to fill a 36px
-                // square (and swell on hover: the dock rules in app.css).
+                // footer. The collapsed rail shows only icons: up to 48px, in squares sized by
+                // the --rail-* rules in app.css (and they swell on hover: the dock rules). The
+                // logo and avatar (lg) take the same squares.
                 default:
-                    'h-11 px-2.5 text-base md:h-[var(--nav-row,2.125rem)] md:text-[length:var(--nav-text,1.125rem)] [&>svg]:size-5 md:[&>svg]:size-[var(--nav-icon,1.25rem)] group-data-[collapsible=icon]:!p-0.5 group-data-[collapsible=icon]:[&>span]:hidden group-data-[collapsible=icon]:[&>svg]:size-8',
+                    'h-11 px-2.5 text-base md:h-[var(--nav-row,2.125rem)] md:text-[length:var(--nav-text,1.125rem)] [&>svg]:size-5 md:[&>svg]:size-[var(--nav-icon,1.25rem)] group-data-[collapsible=icon]:!size-[var(--rail-cell,2.25rem)] group-data-[collapsible=icon]:!p-0.5 group-data-[collapsible=icon]:[&>span]:hidden group-data-[collapsible=icon]:[&>svg]:size-[var(--rail-icon,2rem)]',
                 sm: 'h-7 p-2 text-xs [&>svg]:size-4',
-                lg: 'h-12 p-2 text-sm group-data-[collapsible=icon]:!p-0.5',
+                lg: 'h-12 p-2 text-sm group-data-[collapsible=icon]:!size-[var(--rail-cell,2.25rem)] group-data-[collapsible=icon]:!p-0.5',
             },
         },
         defaultVariants: {

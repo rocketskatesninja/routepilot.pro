@@ -9,8 +9,10 @@ defineProps<Props>();
 </script>
 
 <template>
-    <div class="flex aspect-square size-10 items-center justify-center rounded-md bg-orange-500 text-white group-data-[collapsible=icon]:size-8">
-        <AppLogoIcon class="size-7 group-data-[collapsible=icon]:size-5" />
+    <div
+        class="flex aspect-square size-10 items-center justify-center rounded-md bg-orange-500 text-white group-data-[collapsible=icon]:size-[var(--rail-icon,2rem)]"
+    >
+        <AppLogoIcon class="size-7 group-data-[collapsible=icon]:size-[calc(var(--rail-icon,2rem)*0.625)]" />
     </div>
     <div class="ml-2 grid flex-1 text-left text-4xl">
         <span class="mb-0.5 truncate leading-none font-semibold"

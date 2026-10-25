@@ -140,6 +140,28 @@ html {
         --nav-text: clamp(18px, var(--nav-row) * 0.55, 28px);
         --nav-icon: clamp(20px, var(--nav-row) * 0.5, 26px);
     }
+
+    /* The collapsed rail splits the panel's height the same way, across every
+       square in it (logo, links, an agent's status icons, avatar — AppSidebar
+       counts them): 48px icons with room between them when the screen is tall
+       enough, shrinking (to 32px, then the links scroll) rather than scrolling on
+       shorter ones. Each icon sits in a square 2px bigger all round for the hover
+       highlight; what's left of the row is gap. Defined on the header, links and
+       footer alike so the logo and avatar match the icons. */
+    [data-collapsible='icon'] :is([data-sidebar='header'], [data-sidebar='content'], [data-sidebar='footer']) {
+        --rail-row: clamp(36px, (100svh - var(--rail-chrome, 0px)) / var(--rail-cells, 1), 60px);
+        --rail-icon: clamp(32px, var(--rail-row) - 8px, 48px);
+        --rail-cell: calc(var(--rail-icon) + 4px);
+    }
+    [data-collapsible='icon'] [data-sidebar='menu'] {
+        gap: calc(var(--rail-row) - var(--rail-cell));
+    }
+    /* Centre each square in the rail (the logo and avatar too), so the dot that
+       marks a count sits on its icon's corner. */
+    [data-collapsible='icon'] [data-sidebar='menu-item'] {
+        width: fit-content;
+        margin-inline: auto;
+    }
 }
 
 /* No collapse animation on the first paint: `preload` is set on <html> in the

@@ -130,15 +130,21 @@ const navSections = computed<NavSection[]>(() => {
 
 const isAgent = computed(() => page.props.auth.role === 'agent');
 
-// Feeds the panel-filling row height in app.css: how many links share the nav's
-// height, and how much of it the section labels (h-5) and the gaps between
-// sections (gap-1.5) take up.
+// Feeds the panel-filling sizes in app.css. Expanded: how many links share the
+// nav's height, and how much of it the section labels (h-5) and the gaps between
+// sections (gap-1.5) take up. Collapsed: every square in the rail (the links,
+// the logo and avatar, an agent's two status icons) shares the whole panel, less
+// its padding (p-2 on the panel, header and footer), the section gaps (the labels
+// fold away) and an agent's footer gap (gap-2).
 const navFit = computed(() => {
     const sections = navSections.value;
     const labels = sections.filter((section) => section.label).length;
+    const links = sections.reduce((count, section) => count + section.items.length, 0);
     return {
-        '--nav-links': sections.reduce((count, section) => count + section.items.length, 0),
+        '--nav-links': links,
         '--nav-chrome': `${labels * 20 + (sections.length - 1) * 6}px`,
+        '--rail-cells': links + 2 + (isAgent.value ? 2 : 0),
+        '--rail-chrome': `${48 + (sections.length - 1) * 6 + (isAgent.value ? 8 : 0) + 1}px`,
     };
 });
 
@@ -150,7 +156,7 @@ const toggleLabel = computed(() => (state.value === 'collapsed' ? 'Expand sideba
     <!-- Search and notifications live in the page header (AppSidebarHeader) on every
          screen size, so the panel holds only the logo, the nav and the account. -->
     <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
+        <SidebarHeader :style="navFit">
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" type="button" :title="toggleLabel" :aria-label="toggleLabel" @click="toggleSidebar">
@@ -164,7 +170,7 @@ const toggleLabel = computed(() => (state.value === 'collapsed' ? 'Expand sideba
             <NavMain v-for="(section, i) in navSections" :key="section.label ?? `section-${i}`" :label="section.label" :items="section.items" />
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter :style="navFit">
             <NavFieldStatus v-if="isAgent" />
             <NavUser />
         </SidebarFooter>
