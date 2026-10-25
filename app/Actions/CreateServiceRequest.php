@@ -37,11 +37,7 @@ class CreateServiceRequest
         ]);
         $request->forceFill(['service_subscription_id' => $planId])->save();
 
-        $admins = User::query()
-            ->where('tenant_id', $customer->getAttribute('tenant_id'))
-            ->where('role', 'tenant_admin')->where('is_active', true)
-            ->get();
-        Notification::send($admins, new ServiceRequestSubmitted($request));
+        Notification::send(User::adminsOf((int) $customer->getAttribute('tenant_id')), new ServiceRequestSubmitted($request));
 
         return $request;
     }

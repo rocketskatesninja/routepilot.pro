@@ -91,7 +91,7 @@ test('a notification goes to the user’s phones, with its title, text and link'
     $saved = $this->admin->notifications()->sole();
     Queue::assertPushed(SendWebPush::class, fn (SendWebPush $job) => $job->userId === $this->admin->id
         && $job->message['title'] === $saved->data['title']
-        && $job->message['url'] === $saved->data['url']
+        && $job->message['url'] === '/notifications/'.$saved->id.'/open'
         && $job->message['tag'] === $saved->id);
 });
 

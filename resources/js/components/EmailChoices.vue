@@ -2,8 +2,8 @@
 /**
  * The optional emails a customer can turn on or off, as calm rows with a
  * switch each. Used on the page linked from emails, in the customer's portal
- * settings, and on the customer's panel in the office. The notifications page
- * reuses it for in-app types, with its own note.
+ * settings, and on the customer's panel in the office. NotificationSettings
+ * reuses it for this device and the in-app types, with its own notes.
  */
 defineProps<{
     types: Record<string, [string, string]>;

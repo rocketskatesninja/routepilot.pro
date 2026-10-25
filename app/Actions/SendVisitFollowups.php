@@ -11,7 +11,6 @@ use App\Notifications\VisitCompleted;
 use App\Services\BillingService;
 use App\Support\EmailPreferences;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -29,13 +28,7 @@ class SendVisitFollowups
         $customer = $visit->pool?->customer;
 
         // Notify the homeowner's portal user, if any (honors their preferences).
-        $customerUserId = $customer?->getAttribute('user_id');
-        if ($customerUserId !== null) {
-            $customerUser = User::find($customerUserId);
-            if ($customerUser !== null) {
-                Notification::send($customerUser, new VisitCompleted($visit));
-            }
-        }
+        $customer?->user?->notify(new VisitCompleted($visit));
 
         // Per-visit report email, unless they've turned visit reports off.
         if ($customer !== null && is_string($customer->email) && $customer->email !== '' && EmailPreferences::wants($customer, 'visit_reports')) {

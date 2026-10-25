@@ -15,12 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class NotificationPreference extends Model
 {
     /** @var list<string> */
-    protected $fillable = ['user_id', 'category', 'email', 'in_app'];
+    protected $fillable = ['user_id', 'category', 'in_app'];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['email' => 'boolean', 'in_app' => 'boolean'];
+        return ['in_app' => 'boolean'];
     }
 
     /** @return BelongsTo<User, $this> */

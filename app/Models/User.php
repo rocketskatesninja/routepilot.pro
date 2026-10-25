@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Models\Concerns\HasPersonName;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -220,6 +221,17 @@ class User extends Authenticatable implements MustVerifyEmail
     public function pushSubscriptions(): HasMany
     {
         return $this->hasMany(PushSubscription::class);
+    }
+
+    /**
+     * A company's active office admins: who hears about its leads, requests,
+     * declined payments and morning checks.
+     *
+     * @return Collection<int, User>
+     */
+    public static function adminsOf(int $tenantId): Collection
+    {
+        return self::query()->where('tenant_id', $tenantId)->where('role', 'tenant_admin')->where('is_active', true)->get();
     }
 
     /** Whether this user wants a type of in-app notification (see NotificationTypes; default on). */

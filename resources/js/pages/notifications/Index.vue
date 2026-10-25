@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import EmailChoices from '@/components/EmailChoices.vue';
-import HeadingSmall from '@/components/HeadingSmall.vue';
+import NotificationSettings from '@/components/NotificationSettings.vue';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { isDesktop, popupsOn, pushState, setPopups, turnOffPush, turnOnPush, type PushState } from '@/lib/push';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     Banknote,
     Bell,
@@ -21,7 +19,7 @@ import {
     X,
     type LucideIcon,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 type Severity = 'alert' | 'warning' | 'info' | 'success';
 
@@ -29,7 +27,6 @@ interface Note {
     id: string;
     title: string;
     body: string;
-    url: string | null;
     read: boolean;
     severity: Severity;
     icon: string;
@@ -72,70 +69,11 @@ const tab = ref<'all' | 'unread' | 'settings'>('all');
 const unreadCount = computed(() => props.notifications.filter((n) => !n.read).length);
 const shown = computed(() => (tab.value === 'unread' ? props.notifications.filter((n) => !n.read) : props.notifications));
 
-function open(n: Note) {
-    router.post(
-        `/notifications/${n.id}/read`,
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                if (n.url) router.visit(n.url);
-            },
-        },
-    );
-}
 const toggleRead = (n: Note) =>
     router.post(`/notifications/${n.id}/${n.read ? 'unread' : 'read'}`, {}, { preserveScroll: true, preserveState: true });
 const dismiss = (n: Note) => router.delete(`/notifications/${n.id}`, { preserveScroll: true, preserveState: true });
 
-const auth = usePage().props.auth;
-const isCustomer = auth.role === 'customer';
 const hasTypes = Object.keys(props.types).length > 0;
-const busy = ref(false);
-const setType = (type: string, on: boolean) =>
-    router.patch(
-        '/notifications/types',
-        { [type]: on },
-        { preserveScroll: true, preserveState: true, onStart: () => (busy.value = true), onFinish: () => (busy.value = false) },
-    );
-
-// This device: pop-ups on a computer, real notifications on a phone. Known only
-// in the browser, so it's settled after mount (SSR renders neither).
-const device = ref<'computer' | 'phone' | null>(null);
-const popups = ref(true);
-const phone = ref<PushState>('off');
-const deviceBusy = ref(false);
-onMounted(async () => {
-    if (isDesktop()) {
-        device.value = 'computer';
-        popups.value = popupsOn();
-    } else if (props.pushKey && !auth.impersonating) {
-        device.value = 'phone';
-        phone.value = await pushState();
-    }
-});
-const deviceRow = computed((): Record<string, [string, string]> | null => {
-    if (device.value === 'computer')
-        return { device: ['Pop-ups on this computer', 'A note in the corner when one arrives while RoutePilot is open.'] };
-    if (device.value === 'phone') return { device: ['Notifications on this phone', 'On your lock screen, even when RoutePilot is closed.'] };
-    return null;
-});
-const deviceOn = computed(() => (device.value === 'computer' ? popups.value : phone.value === 'on'));
-async function setDevice(_: string, on: boolean) {
-    if (device.value === 'computer') {
-        setPopups(on);
-        popups.value = on;
-        return;
-    }
-    deviceBusy.value = true;
-    try {
-        phone.value = on ? await turnOnPush(props.pushKey as string) : await turnOffPush();
-    } catch {
-        phone.value = await pushState();
-    } finally {
-        deviceBusy.value = false;
-    }
-}
 
 const readAll = () => router.post('/notifications/read-all', {}, { preserveScroll: true });
 const clearAll = () => {
@@ -185,45 +123,7 @@ const clearAll = () => {
         </template>
 
         <div class="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-            <div v-if="tab === 'settings'" class="space-y-8">
-                <section v-if="deviceRow" class="space-y-3">
-                    <HeadingSmall :title="device === 'computer' ? 'This computer' : 'This phone'" />
-                    <EmailChoices
-                        :types="deviceRow"
-                        :preferences="{ device: deviceOn }"
-                        :busy="deviceBusy || phone === 'blocked' || phone === 'unsupported'"
-                        @change="setDevice"
-                    >
-                        <template #note>
-                            <template v-if="device === 'computer'"
-                                >Only affects this computer. To get notifications on your phone, open this Settings tab on your phone and turn them on
-                                there.</template
-                            >
-                            <template v-else-if="phone === 'blocked'">
-                                Notifications are blocked for this site. Allow them in your browser’s site settings, then come back.
-                            </template>
-                            <template v-else-if="phone === 'unsupported'">
-                                This browser can’t show notifications. On an iPhone, add RoutePilot to your Home Screen and open it from there.
-                            </template>
-                            <template v-else>Only affects this phone. It gets the same types you choose below.</template>
-                        </template>
-                    </EmailChoices>
-                </section>
-
-                <section class="space-y-3">
-                    <HeadingSmall title="What to tell me about" description="Each switch saves right away." />
-                    <EmailChoices :types="props.types" :preferences="props.preferences" :busy="busy" @change="setType">
-                        <template #note>
-                            Types you turn off won’t show up here, pop up or reach your phone.
-                            <template v-if="isCustomer">
-                                Emails are set separately in
-                                <Link href="/settings/emails" class="text-foreground underline underline-offset-4">Email settings</Link>.
-                            </template>
-                        </template>
-                    </EmailChoices>
-                </section>
-            </div>
-
+            <NotificationSettings v-if="tab === 'settings'" :types="props.types" :preferences="props.preferences" :push-key="props.pushKey" />
             <div v-else class="border-border overflow-hidden rounded-xl border">
                 <ul class="divide-border divide-y text-sm">
                     <li
@@ -239,14 +139,15 @@ const clearAll = () => {
                             <component :is="iconFor(n)" class="size-4" :class="SEVERITY[n.severity].text" />
                         </span>
 
-                        <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="open(n)">
+                        <!-- Opening marks it read on the way (NotificationController::open). -->
+                        <Link :href="`/notifications/${n.id}/open`" class="min-w-0 flex-1 text-left">
                             <div class="flex items-center gap-2">
                                 <span class="truncate font-medium" :class="{ 'text-muted-foreground': n.read }">{{ n.title }}</span>
                                 <span v-if="!n.read" class="size-2 shrink-0 rounded-full bg-sky-500" aria-label="Unread" />
                             </div>
                             <p class="text-muted-foreground">{{ n.body }}</p>
                             <p class="text-muted-foreground text-xs">{{ n.on }}</p>
-                        </button>
+                        </Link>
 
                         <div class="flex shrink-0 items-center gap-1">
                             <button

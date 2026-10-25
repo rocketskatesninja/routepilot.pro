@@ -42,10 +42,7 @@ class CaptureLead
         });
 
         if ($lead !== null) {
-            $admins = User::query()
-                ->where('tenant_id', $tenantId)->where('role', 'tenant_admin')->where('is_active', true)
-                ->get();
-            Notification::send($admins, new LeadSubmitted($lead));
+            Notification::send(User::adminsOf($tenantId), new LeadSubmitted($lead));
         }
 
         return $lead;

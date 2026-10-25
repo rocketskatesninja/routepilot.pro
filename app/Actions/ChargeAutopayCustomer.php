@@ -114,10 +114,6 @@ class ChargeAutopayCustomer
             Mail::to($email)->queue(new PaymentFailedMail($customer->first_name ?: $customer->displayName(), $amount, $customer->tenant->name, $payUrl, $customer->tenant));
         }
 
-        $admins = User::query()
-            ->where('tenant_id', $customer->getAttribute('tenant_id'))
-            ->where('role', 'tenant_admin')->where('is_active', true)
-            ->get();
-        Notification::send($admins, new AutopayDeclined($customer, $amount));
+        Notification::send(User::adminsOf((int) $customer->getAttribute('tenant_id')), new AutopayDeclined($customer, $amount));
     }
 }

@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Models\VisitPhoto;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderComment;
+use App\Notifications\AutopayDeclined;
 use App\Notifications\LeadSubmitted;
 use App\Notifications\ServiceRequestSubmitted;
 use App\Notifications\WorkOrderAssigned;
@@ -107,6 +108,7 @@ class AnonymizeCustomer
                 ...$requests->pluck('id')->map(fn ($r): string => '/inbox?selected='.$r),
                 ...$leads->pluck('id')->map(fn ($l): string => '/inbox?tab=leads&selected='.$l),
                 ...$orderIds->map(fn ($o): string => '/work-orders?selected='.$o),
+                '/balances?selected='.$id,
             ]);
             $requests->update(['message' => null, 'reply' => null]);
             Invoice::query()->where('customer_id', $id)->update(['notes' => null]);
@@ -147,7 +149,7 @@ class AnonymizeCustomer
 
     /**
      * The office's bell alerts that quote them (a request's message, a lead's name and email, a
-     * work order's title), matched by the link each one opens.
+     * work order's title, a declined payment's name), matched by the link each one opens.
      *
      * @param  list<string>  $urls
      */
@@ -157,7 +159,7 @@ class AnonymizeCustomer
             return;
         }
         $alerts = DB::table('notifications')
-            ->whereIn('type', [ServiceRequestSubmitted::class, LeadSubmitted::class, WorkOrderRaised::class, WorkOrderAssigned::class])
+            ->whereIn('type', [ServiceRequestSubmitted::class, LeadSubmitted::class, WorkOrderRaised::class, WorkOrderAssigned::class, AutopayDeclined::class])
             ->where('notifiable_type', User::class)
             ->whereIn('notifiable_id', User::withTrashed()->where('tenant_id', $tenantId)->select('id'))
             ->get(['id', 'data']);

@@ -126,3 +126,24 @@ test('a user cannot save a type they do not get', function () {
 
     expect($this->user->notificationPreferences()->pluck('category')->all())->toBe(['visit_completed']);
 });
+
+test('opening a notification marks it read and goes where it points', function () {
+    $note = fn (array $data) => $this->admin->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'App\Notifications\OpsAlert', 'data' => $data, 'read_at' => null]);
+
+    $linked = $note(['title' => 'Missed stops', 'url' => '/schedule?date=2026-10-24']);
+    $this->actingAs($this->admin)->get("/notifications/{$linked->id}/open")->assertRedirect('/schedule?date=2026-10-24');
+    expect($linked->fresh()?->read_at)->not->toBeNull();
+
+    $nowhere = $note(['title' => 'No link']);
+    $this->actingAs($this->admin)->get("/notifications/{$nowhere->id}/open")->assertRedirect('/notifications');
+
+    $offsite = $note(['title' => 'Odd', 'url' => '//evil.example/x']);
+    $this->actingAs($this->admin)->get("/notifications/{$offsite->id}/open")->assertRedirect('/notifications');
+});
+
+test('nobody can open someone else\'s notification', function () {
+    $theirs = $this->admin->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'App\Notifications\OpsAlert', 'data' => ['title' => 'A'], 'read_at' => null]);
+
+    $this->actingAs($this->user)->get("/notifications/{$theirs->id}/open")->assertNotFound();
+    expect($theirs->fresh()?->read_at)->toBeNull();
+});

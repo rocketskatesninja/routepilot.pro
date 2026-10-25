@@ -24,6 +24,7 @@ use App\Models\User;
 use App\Models\VisitPhoto;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderComment;
+use App\Notifications\AutopayDeclined;
 use App\Notifications\LeadSubmitted;
 use App\Notifications\ServiceRequestSubmitted;
 use App\Notifications\WorkOrderRaised;
@@ -146,6 +147,7 @@ test('work orders on their pools keep the record but lose what was written, bell
         $alert(WorkOrderRaised::class, '/work-orders?selected='.$order->id),
         $alert(ServiceRequestSubmitted::class, '/inbox?selected='.ServiceRequest::query()->value('id')),
         $alert(LeadSubmitted::class, '/inbox?tab=leads&selected='.Lead::query()->value('id')),
+        $alert(AutopayDeclined::class, '/balances?selected='.$this->customer->id),
     ];
     $kept = $alert(WorkOrderRaised::class, '/work-orders?selected='.$elsewhere->id);
 

@@ -6,22 +6,17 @@ namespace App\Notifications;
 
 use App\Models\User;
 use App\Models\WorkOrder;
-use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 
 /**
  * Someone else put a work order on your plate — in the bell, live.
  */
-class WorkOrderAssigned extends Notification
+class WorkOrderAssigned extends InAppNotification
 {
-    use Queueable;
-
     public function __construct(public WorkOrder $workOrder, public User $assignedBy) {}
 
-    /** @return list<string> */
-    public function via(object $notifiable): array
+    public function type(): string
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('work_order_assigned') ? [] : ['database', 'broadcast'];
+        return 'work_order_assigned';
     }
 
     /** @return array<string, mixed> */

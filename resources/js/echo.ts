@@ -41,10 +41,8 @@ let subscribedUserId: number | null = null;
 /** A notification as it arrives live: its saved data, plus its id and type. */
 export interface LiveNotification {
     id: string;
-    type: string;
     title?: string;
     body?: string;
-    url?: string | null;
 }
 
 /**

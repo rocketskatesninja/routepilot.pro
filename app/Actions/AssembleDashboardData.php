@@ -14,12 +14,12 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Notifications\InAppNotification;
 use App\Policies\WorkOrderPolicy;
 use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Services\WeatherService;
 use Carbon\CarbonInterface;
-use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -200,15 +200,7 @@ class AssembleDashboardData
     /** @return list<array<string, mixed>> */
     private function notifications(User $user): array
     {
-        return $user->notifications()->latest()->limit(8)->get()
-            ->map(fn (DatabaseNotification $n) => [
-                'id' => $n->id,
-                'title' => $n->data['title'] ?? 'Notification',
-                'body' => $n->data['body'] ?? '',
-                'url' => $n->data['url'] ?? null,
-                'read' => $n->read_at !== null,
-                'on' => $n->created_at?->diffForHumans(),
-            ])->all();
+        return $user->notifications()->latest()->limit(8)->get()->map(InAppNotification::row(...))->all();
     }
 
     /** @return array{tiles: list<array<string, mixed>>} */

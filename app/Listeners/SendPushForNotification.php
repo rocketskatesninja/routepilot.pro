@@ -28,7 +28,7 @@ class SendPushForNotification
         SendWebPush::dispatch($user->id, [
             'title' => (string) ($saved->data['title'] ?? 'RoutePilot'),
             'body' => (string) ($saved->data['body'] ?? ''),
-            'url' => (string) ($saved->data['url'] ?? '/notifications'),
+            'url' => '/notifications/'.$saved->id.'/open', // marks it read on the way
             'tag' => (string) $saved->id,
         ]);
     }

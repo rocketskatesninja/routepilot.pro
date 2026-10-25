@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateNotificationTypesRequest;
+use App\Notifications\InAppNotification;
 use App\Support\NotificationTypes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\DatabaseNotification;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,20 +23,8 @@ class NotificationController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $notifications = $user->notifications()->latest()->limit(40)->get()
-            ->map(fn (DatabaseNotification $n): array => [
-                'id' => $n->id,
-                'title' => $n->data['title'] ?? 'Notification',
-                'body' => $n->data['body'] ?? '',
-                'url' => $n->data['url'] ?? null,
-                'read' => $n->read_at !== null,
-                'severity' => self::severityFor($n->type),
-                'icon' => self::iconFor($n->type),
-                'on' => $n->created_at?->diffForHumans(),
-            ])->all();
-
         return Inertia::render('notifications/Index', [
-            'notifications' => $notifications,
+            'notifications' => $user->notifications()->latest()->limit(40)->get()->map(InAppNotification::row(...))->all(),
             'types' => NotificationTypes::for($user),
             'preferences' => NotificationTypes::preferences($user),
             'pushKey' => config('services.webpush.public_key') ?: null,
@@ -50,30 +38,18 @@ class NotificationController extends Controller
         return back()->with('success', 'Saved.');
     }
 
-    /** Color bucket for a notification, derived from its class so it's consistent. */
-    private static function severityFor(?string $type): string
+    /**
+     * Opening one, from anywhere (the list, a pop-up, the dashboard, a tap on a
+     * phone): mark it read and go where it points, or back to the list.
+     */
+    public function open(Request $request, string $id): RedirectResponse
     {
-        return match (class_basename((string) $type)) {
-            'OpsAlert', 'AutopayDeclined' => 'alert',
-            'BalanceReminder', 'ServiceReminder' => 'warning',
-            'VisitCompleted' => 'success',
-            default => 'info',
-        };
-    }
+        $notification = $request->user()?->notifications()->findOrFail($id);
+        $notification->markAsRead();
+        $url = $notification->data['url'] ?? null;
 
-    /** Lucide icon name (resolved to a component on the client) for a notification type. */
-    private static function iconFor(?string $type): string
-    {
-        return match (class_basename((string) $type)) {
-            'OpsAlert' => 'TriangleAlert',
-            'AutopayDeclined' => 'CreditCard',
-            'BalanceReminder' => 'Banknote',
-            'ServiceReminder' => 'CalendarClock',
-            'VisitCompleted' => 'CircleCheck',
-            'LeadSubmitted' => 'UserPlus',
-            'ServiceRequestSubmitted', 'ServiceRequestAnswered' => 'Inbox',
-            default => 'Bell',
-        };
+        // Only ever a path on this site.
+        return redirect(is_string($url) && str_starts_with($url, '/') && ! str_starts_with($url, '//') ? $url : '/notifications');
     }
 
     public function read(Request $request, string $id): RedirectResponse

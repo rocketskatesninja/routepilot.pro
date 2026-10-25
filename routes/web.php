@@ -96,6 +96,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::patch('notifications/types', [NotificationController::class, 'updateTypes'])->name('notifications.types');
     Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:10,1')->name('push.store');
     Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push.destroy');
+    Route::get('notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('notifications/{id}/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readall');

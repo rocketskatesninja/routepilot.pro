@@ -10,7 +10,6 @@ interface Toast {
     type: 'success' | 'error' | 'notification';
     message: string;
     title?: string;
-    url?: string | null;
     notificationId?: string;
 }
 
@@ -49,24 +48,15 @@ watch(
 function onNotification(event: Event) {
     const n = (event as CustomEvent<LiveNotification>).detail;
     if (!isDesktop() || !popupsOn()) return;
-    push({ type: 'notification', title: n.title ?? 'Notification', message: n.body ?? '', url: n.url, notificationId: n.id }, 8000);
+    push({ type: 'notification', title: n.title ?? 'Notification', message: n.body ?? '', notificationId: n.id }, 8000);
 }
 onMounted(() => window.addEventListener('rp:notification', onNotification));
 onBeforeUnmount(() => window.removeEventListener('rp:notification', onNotification));
 
-/** Open it, like the notifications page does: mark it read, then go where it points. */
+/** Open it: marks it read and goes where it points (NotificationController::open). */
 function open(t: Toast) {
     dismiss(t.id);
-    router.post(
-        `/notifications/${t.notificationId}/read`,
-        {},
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                if (t.url) router.visit(t.url);
-            },
-        },
-    );
+    router.visit(`/notifications/${t.notificationId}/open`);
 }
 </script>
 

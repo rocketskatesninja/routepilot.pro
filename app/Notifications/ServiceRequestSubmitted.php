@@ -5,24 +5,18 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\ServiceRequest;
-use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 
 /**
  * In-app notification to tenant admins when a customer sends a request; it
  * opens that request in the inbox.
  */
-class ServiceRequestSubmitted extends Notification
+class ServiceRequestSubmitted extends InAppNotification
 {
-    use Queueable;
-
     public function __construct(public ServiceRequest $serviceRequest) {}
 
-    /** @return list<string> */
-    public function via(object $notifiable): array
+    public function type(): string
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('service_request') ? [] : ['database', 'broadcast'];
+        return 'service_request';
     }
 
     /** @return array<string, mixed> */

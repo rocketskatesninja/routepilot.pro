@@ -35,11 +35,7 @@ class DailyOpsChecks
 {
     public function run(int $tenantId): int
     {
-        $admins = User::query()
-            ->where('tenant_id', $tenantId)
-            ->where('role', 'tenant_admin')
-            ->where('is_active', true)
-            ->get();
+        $admins = User::adminsOf($tenantId);
 
         if ($admins->isEmpty()) {
             return 0;
@@ -79,7 +75,7 @@ class DailyOpsChecks
 
         return $this->alert($admins, 'unassigned_pools', 'Unassigned pools',
             $count.' '.($count === 1 ? 'pool has' : 'pools have').' an active plan but no assigned agent.',
-            '/schedule', 'Waves');
+            '/schedule');
     }
 
     /**
@@ -99,7 +95,7 @@ class DailyOpsChecks
 
         return $this->alert($admins, 'no_routes_tomorrow', 'No routes tomorrow',
             'No stops are scheduled for tomorrow. Open the schedule to materialize routes.',
-            '/schedule', 'CalendarDays');
+            '/schedule');
     }
 
     /**
@@ -116,7 +112,7 @@ class DailyOpsChecks
 
         return $this->alert($admins, 'overdue_balances', 'Overdue balances',
             $count.' '.($count === 1 ? 'customer has a bill' : 'customers have bills').' past due.',
-            '/balances', 'Banknote');
+            '/balances');
     }
 
     /**
@@ -147,7 +143,7 @@ class DailyOpsChecks
 
         return $this->alert($admins, 'stale_chemistry', 'Stale chemistry',
             $count.' '.($count === 1 ? "pool hasn't" : "pools haven't").' been tested in over 2 weeks.',
-            '/pools', 'FlaskConical');
+            '/pools');
     }
 
     /**
@@ -175,7 +171,7 @@ class DailyOpsChecks
 
         return $this->alert($admins, 'idle_agents', 'Idle agents',
             $count.' active '.($count === 1 ? 'agent has' : 'agents have').' no stops scheduled today.',
-            '/schedule', 'Users');
+            '/schedule');
     }
 
     /**
@@ -198,7 +194,7 @@ class DailyOpsChecks
 
         return $this->alert($admins, 'missed_stops', 'Missed stops',
             $count.' '.($count === 1 ? 'stop' : 'stops').' from yesterday '.($count === 1 ? 'was' : 'were').' never finished or skipped.',
-            '/schedule?date='.$yesterday->toDateString(), 'CalendarX');
+            '/schedule?date='.$yesterday->toDateString());
     }
 
     /**
@@ -276,9 +272,9 @@ class DailyOpsChecks
     }
 
     /** @param  Collection<int, User>  $admins */
-    private function alert(Collection $admins, string $kind, string $title, string $body, string $url, string $icon): bool
+    private function alert(Collection $admins, string $kind, string $title, string $body, string $url): bool
     {
-        Notification::send($admins, new OpsAlert($kind, $title, $body, $url, $icon));
+        Notification::send($admins, new OpsAlert($kind, $title, $body, $url));
 
         return true;
     }

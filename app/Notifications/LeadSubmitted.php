@@ -5,23 +5,17 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Lead;
-use App\Models\User;
-use Illuminate\Bus\Queueable;
-use Illuminate\Notifications\Notification;
 
 /**
  * In-app notification to tenant admins when a new public-site lead arrives.
  */
-class LeadSubmitted extends Notification
+class LeadSubmitted extends InAppNotification
 {
-    use Queueable;
-
     public function __construct(public Lead $lead) {}
 
-    /** @return list<string> */
-    public function via(object $notifiable): array
+    public function type(): string
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('lead_submitted') ? [] : ['database', 'broadcast'];
+        return 'lead_submitted';
     }
 
     /** @return array<string, mixed> */
