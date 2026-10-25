@@ -46,6 +46,15 @@ return [
         ],
     ],
 
+    // Web push to phones. Make a key pair once per environment (php -r
+    // with Minishlink\WebPush\VAPID::createVapidKeys()) and keep it: new keys
+    // cut off every phone that turned notifications on. Blank = no phone option.
+    'webpush' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:contact@routepilot.pro'),
+    ],
+
     // Placeholder keys — set the real Stripe test/live keys in .env to enable
     // payments. The webhook fails closed without STRIPE_WEBHOOK_SECRET.
     'stripe' => [

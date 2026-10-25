@@ -237,8 +237,7 @@ class DailyOpsChecks
 
             $email = $customer->email;
             $optedOut = ! EmailPreferences::wants($customer, 'reminders');
-            $emailAllowed = $user === null || $user->wantsNotification('service', 'email');
-            if (is_string($email) && $email !== '' && ! $optedOut && $emailAllowed) {
+            if (is_string($email) && $email !== '' && ! $optedOut) {
                 $date = $stop->route?->scheduled_date;
                 Mail::to($email)->queue(new ServiceReminderMail(
                     customerName: $customer->first_name ?: $customer->displayName(),

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\NotificationTypes;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -82,4 +83,46 @@ test('a user clears all their notifications', function () {
     $this->actingAs($this->admin)->delete('/notifications')->assertRedirect();
 
     expect($this->admin->notifications()->count())->toBe(0);
+});
+
+test('the page lists only the notification types the user gets, all on by default', function () {
+    $this->actingAs($this->admin)
+        ->get('/notifications')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('types.service_request')
+            ->has('types.missed_stops')
+            ->missing('types.visit_completed')
+            ->where('preferences.service_request', true));
+
+    $this->actingAs($this->user)
+        ->get('/notifications')
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('types.visit_completed')
+            ->missing('types.service_request'));
+});
+
+test('only Agent+ agents get the new-work-order type', function () {
+    $agent = User::factory()->agent()->for($this->tenant)->create();
+    $plus = User::factory()->agent()->for($this->tenant)->create(['agent_plus' => true]);
+
+    expect(NotificationTypes::for($agent))->toHaveKey('work_order_assigned')->not->toHaveKey('work_order_raised')
+        ->and(NotificationTypes::for($plus))->toHaveKey('work_order_raised');
+});
+
+test('a user turns a type off and stops getting it, and can turn it back on', function () {
+    $this->actingAs($this->admin)->patch('/notifications/types', ['service_request' => false])->assertRedirect();
+
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Help'])->assertRedirect();
+    expect($this->admin->notifications()->count())->toBe(0);
+
+    $this->actingAs($this->admin)->patch('/notifications/types', ['service_request' => true])->assertRedirect();
+
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Help again'])->assertRedirect();
+    expect($this->admin->notifications()->count())->toBe(1);
+});
+
+test('a user cannot save a type they do not get', function () {
+    $this->actingAs($this->user)->patch('/notifications/types', ['service_request' => false, 'visit_completed' => false])->assertRedirect();
+
+    expect($this->user->notificationPreferences()->pluck('category')->all())->toBe(['visit_completed']);
 });

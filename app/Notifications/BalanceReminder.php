@@ -10,8 +10,8 @@ use Illuminate\Notifications\Notification;
 
 /**
  * In-app reminder to a homeowner who has a bill past its due date — at most
- * once a week. Built by DailyOpsChecks; respects the customer's `billing`
- * notification preference.
+ * once a week. Built by DailyOpsChecks; respects the customer's
+ * `balance_reminder` notification preference.
  */
 class BalanceReminder extends Notification
 {
@@ -20,7 +20,7 @@ class BalanceReminder extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('billing') ? [] : ['database', 'broadcast'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('balance_reminder') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

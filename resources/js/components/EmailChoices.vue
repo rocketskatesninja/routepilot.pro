@@ -2,7 +2,8 @@
 /**
  * The optional emails a customer can turn on or off, as calm rows with a
  * switch each. Used on the page linked from emails, in the customer's portal
- * settings, and on the customer's panel in the office.
+ * settings, and on the customer's panel in the office. The notifications page
+ * reuses it for in-app types, with its own note.
  */
 defineProps<{
     types: Record<string, [string, string]>;
@@ -40,7 +41,9 @@ const emit = defineEmits<{ change: [type: string, on: boolean] }>();
         </li>
     </ul>
     <p class="text-muted-foreground mt-2 text-sm">
-        Receipts, bills and answers to {{ who === 'they' ? 'their' : 'your' }} requests always come, since they’re about
-        {{ who === 'they' ? 'their' : 'your' }} account.
+        <slot name="note">
+            Receipts, bills and answers to {{ who === 'they' ? 'their' : 'your' }} requests always come, since they’re about
+            {{ who === 'they' ? 'their' : 'your' }} account.
+        </slot>
     </p>
 </template>

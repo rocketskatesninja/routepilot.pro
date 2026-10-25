@@ -10,9 +10,9 @@ use Illuminate\Notifications\Notification;
 
 /**
  * A proactive operational alert to tenant admins (unassigned pools, no routes
- * tomorrow, overdue balances, stale chemistry, idle agents) — surfaced in the
- * in-app notification bell. Built by DailyOpsChecks; respects the admin's `ops`
- * notification preference.
+ * tomorrow, overdue balances, stale chemistry, idle agents, missed stops) —
+ * surfaced in the in-app notification bell. Built by DailyOpsChecks; each kind
+ * is its own notification type the admin can turn off.
  */
 class OpsAlert extends Notification
 {
@@ -29,7 +29,7 @@ class OpsAlert extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('ops') ? [] : ['database', 'broadcast'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification($this->kind) ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

@@ -10,9 +10,21 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\View\View as ViewInstance;
 use Laravel\Cashier\Cashier;
+use Minishlink\WebPush\WebPush;
 
 class AppServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        // Web push to phones, signed with this site's VAPID keys. Notifications
+        // older than a day aren't worth delivering.
+        $this->app->bind(WebPush::class, fn (): WebPush => new WebPush(['VAPID' => [
+            'subject' => config('services.webpush.subject'),
+            'publicKey' => config('services.webpush.public_key'),
+            'privateKey' => config('services.webpush.private_key'),
+        ]], ['TTL' => 86400]));
+    }
+
     public function boot(): void
     {
         // The Tenant is the Cashier billable (the company owns its subscription).

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Button } from '@/components/ui/button';
+import { logOut } from '@/lib/push';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { PauseCircle } from 'lucide-vue-next';
@@ -31,9 +32,7 @@ const company = computed(() => page.props.tenant?.name ?? 'This account');
             <Link v-if="isAdmin" :href="route('billing.show')">
                 <Button>Go to billing</Button>
             </Link>
-            <Link method="post" :href="route('logout')" as="button">
-                <Button :variant="isAdmin ? 'outline' : 'default'">Sign out</Button>
-            </Link>
+            <Button :variant="isAdmin ? 'outline' : 'default'" @click="logOut">Sign out</Button>
         </div>
 
         <div class="text-muted-foreground mt-4 flex items-center gap-2 text-sm">

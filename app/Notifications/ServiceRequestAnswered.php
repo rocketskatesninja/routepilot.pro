@@ -21,7 +21,7 @@ class ServiceRequestAnswered extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('service') ? [] : ['database', 'broadcast'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('request_answered') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

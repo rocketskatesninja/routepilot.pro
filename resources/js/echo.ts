@@ -38,13 +38,22 @@ export function initEcho(): Echo<'reverb'> | null {
 
 let subscribedUserId: number | null = null;
 
+/** A notification as it arrives live: its saved data, plus its id and type. */
+export interface LiveNotification {
+    id: string;
+    type: string;
+    title?: string;
+    body?: string;
+    url?: string | null;
+}
+
 /**
  * Keep the private notification subscription in sync with the current user.
  * Idempotent across Inertia navigations; re-subscribes on login / impersonation
  * (user changes) and leaves the channel on logout (userId null). Safe to call
  * every navigation.
  */
-export function ensureUserSubscription(userId: number | null, onNotification: () => void): void {
+export function ensureUserSubscription(userId: number | null, onNotification: (notification: LiveNotification) => void): void {
     if (userId === subscribedUserId) return;
 
     const client = initEcho();
@@ -53,7 +62,7 @@ export function ensureUserSubscription(userId: number | null, onNotification: ()
     if (subscribedUserId !== null) client.leave(`App.Models.User.${subscribedUserId}`);
     subscribedUserId = userId;
 
-    if (userId !== null) client.private(`App.Models.User.${userId}`).notification(() => onNotification());
+    if (userId !== null) client.private(`App.Models.User.${userId}`).notification((notification: LiveNotification) => onNotification(notification));
 }
 
 interface AgentMove {

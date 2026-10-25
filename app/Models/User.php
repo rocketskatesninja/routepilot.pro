@@ -216,11 +216,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(NotificationPreference::class);
     }
 
-    /** Whether this user wants a given notification category on a channel (default on). */
-    public function wantsNotification(string $category, string $channel = 'in_app'): bool
+    /** @return HasMany<PushSubscription, $this> */
+    public function pushSubscriptions(): HasMany
     {
-        $pref = $this->notificationPreferences()->where('category', $category)->first();
+        return $this->hasMany(PushSubscription::class);
+    }
 
-        return $pref === null ? true : (bool) $pref->getAttribute($channel);
+    /** Whether this user wants a type of in-app notification (see NotificationTypes; default on). */
+    public function wantsNotification(string $type): bool
+    {
+        $pref = $this->notificationPreferences()->where('category', $type)->first();
+
+        return $pref === null ? true : (bool) $pref->getAttribute('in_app');
     }
 }

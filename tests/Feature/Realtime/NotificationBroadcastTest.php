@@ -51,7 +51,7 @@ test('a notification respects the opt-out (neither stored nor broadcast)', funct
     Notification::fake();
 
     $customerUser = User::factory()->customer()->for($this->tenant)->create();
-    $customerUser->notificationPreferences()->create(['category' => 'service', 'in_app' => false, 'email' => false]);
+    $customerUser->notificationPreferences()->create(['category' => 'visit_completed', 'in_app' => false]);
     $customer = Customer::factory()->for($this->tenant)->create(['user_id' => $customerUser->id]);
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
     $visit = ServiceVisit::factory()->for($this->tenant)->for($pool)->create(['agent_id' => $this->agent->id]);

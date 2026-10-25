@@ -21,7 +21,7 @@ class AutopayDeclined extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('billing') ? [] : ['database', 'broadcast'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('autopay_declined') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

@@ -10,8 +10,9 @@ use Illuminate\Notifications\Notification;
 
 /**
  * In-app reminder to a homeowner that their pool is scheduled for service
- * tomorrow. Built by DailyOpsChecks; respects the customer's `service`
- * notification preference. (The branded email reminder is sent separately.)
+ * tomorrow. Built by DailyOpsChecks; respects the customer's
+ * `service_reminder` notification preference. (The branded email reminder is
+ * sent separately.)
  */
 class ServiceReminder extends Notification
 {
@@ -22,7 +23,7 @@ class ServiceReminder extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('service') ? [] : ['database', 'broadcast'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('service_reminder') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

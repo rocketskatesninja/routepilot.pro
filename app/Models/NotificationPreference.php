@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * NotificationPreference — a user's per-category channel choices (email /
- * in-app), including the marketing category the mailing composer honours.
- * Belongs to a user, not a tenant.
+ * NotificationPreference — whether a user gets one type of in-app
+ * notification (`category` holds a NotificationTypes key). Customer emails are
+ * chosen separately (EmailPreferences). Belongs to a user, not a tenant.
  */
 class NotificationPreference extends Model
 {

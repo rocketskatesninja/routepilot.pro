@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateNotificationTypesRequest;
+use App\Support\NotificationTypes;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -11,7 +13,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * In-app notification center. Each user sees only their own notifications.
+ * In-app notification center. Each user sees only their own notifications,
+ * and picks which types they get.
  */
 class NotificationController extends Controller
 {
@@ -32,7 +35,19 @@ class NotificationController extends Controller
                 'on' => $n->created_at?->diffForHumans(),
             ])->all();
 
-        return Inertia::render('notifications/Index', ['notifications' => $notifications]);
+        return Inertia::render('notifications/Index', [
+            'notifications' => $notifications,
+            'types' => NotificationTypes::for($user),
+            'preferences' => NotificationTypes::preferences($user),
+            'pushKey' => config('services.webpush.public_key') ?: null,
+        ]);
+    }
+
+    public function updateTypes(UpdateNotificationTypesRequest $request): RedirectResponse
+    {
+        NotificationTypes::set($request->user(), $request->changes());
+
+        return back()->with('success', 'Saved.');
     }
 
     /** Color bucket for a notification, derived from its class so it's consistent. */

@@ -28,6 +28,7 @@ use App\Http\Controllers\PortalController;
 use App\Http\Controllers\PublicChatController;
 use App\Http\Controllers\PublicPayController;
 use App\Http\Controllers\PublicSiteController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
@@ -92,6 +93,9 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'download'])->name('invoices.pdf');
     // In-app notifications + AI assistant.
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('notifications/types', [NotificationController::class, 'updateTypes'])->name('notifications.types');
+    Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->middleware('throttle:10,1')->name('push.store');
+    Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push.destroy');
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('notifications/{id}/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readall');

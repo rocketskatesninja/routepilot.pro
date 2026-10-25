@@ -98,7 +98,7 @@ test('completing a visit notifies the homeowner portal user', function () {
 test('a homeowner who opted out gets no service notification', function () {
     $portalUser = User::factory()->customer()->for($this->tenant)->create();
     $this->pool->customer->forceFill(['user_id' => $portalUser->id])->save();
-    NotificationPreference::create(['user_id' => $portalUser->id, 'category' => 'service', 'email' => false, 'in_app' => false]);
+    NotificationPreference::create(['user_id' => $portalUser->id, 'category' => 'visit_completed', 'in_app' => false]);
 
     $this->actingAs($this->agent)->post("/api/field/visits/{$this->stop->id}/complete", visitPayload())->assertOk();
 

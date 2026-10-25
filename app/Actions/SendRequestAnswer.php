@@ -32,9 +32,8 @@ class SendRequestAnswer
         $user?->notify(new ServiceRequestAnswered($headline, $summary));
 
         $email = $customer->email;
-        $emailAllowed = $user === null || $user->wantsNotification('service', 'email');
         // An answer to something they asked for, so it isn't one of the emails they can turn off.
-        if (is_string($email) && $email !== '' && $emailAllowed) {
+        if (is_string($email) && $email !== '') {
             Mail::to($email)->queue(new ServiceRequestAnsweredMail(
                 customerName: $customer->first_name ?: $customer->displayName(),
                 company: $company,

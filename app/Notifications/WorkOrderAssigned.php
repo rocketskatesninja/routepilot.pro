@@ -21,7 +21,7 @@ class WorkOrderAssigned extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return $notifiable instanceof User && ! $notifiable->wantsNotification('work_orders') ? [] : ['database', 'broadcast'];
+        return $notifiable instanceof User && ! $notifiable->wantsNotification('work_order_assigned') ? [] : ['database', 'broadcast'];
     }
 
     /** @return array<string, mixed> */

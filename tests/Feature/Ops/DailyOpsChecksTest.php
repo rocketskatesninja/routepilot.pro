@@ -98,14 +98,13 @@ test('a bill past its due date raises an overdue-balances alert', function () {
     expect(alertKinds($this->admin))->toContain('overdue_balances');
 });
 
-test('admins who turned off ops notifications are not alerted', function () {
-    $this->admin->notificationPreferences()->create(['category' => 'ops', 'in_app' => false, 'email' => false]);
+test('an admin who turned off one kind of alert still gets the others', function () {
+    $this->admin->notificationPreferences()->create(['category' => 'idle_agents', 'in_app' => false]);
     User::factory()->agent()->for($this->tenant)->create(); // would trigger idle_agents
+    activePlan(Pool::factory()->for($this->tenant)->create()); // triggers unassigned_pools
     Notification::fake();
 
-    app(DailyOpsChecks::class)->run($this->tenant->id);
-
-    Notification::assertNotSentTo($this->admin, OpsAlert::class);
+    expect(alertKinds($this->admin))->toContain('unassigned_pools')->not->toContain('idle_agents');
 });
 
 test('checks are tenant-scoped — a foreign tenant\'s idle agent is not alerted here', function () {

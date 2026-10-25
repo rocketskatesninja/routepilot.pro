@@ -92,3 +92,39 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(staleWhileRevalidate(request, ASSET_CACHE));
     }
 });
+
+/**
+ * Web push: show the notification the server sent (App\Jobs\SendWebPush). The
+ * tag is the notification's id, so a re-sent one replaces itself, not stacks.
+ */
+self.addEventListener('push', (event) => {
+    const data = event.data ? event.data.json() : {};
+    event.waitUntil(
+        self.registration.showNotification(data.title || 'RoutePilot', {
+            body: data.body || '',
+            icon: '/assets/images/pwa/icon-192.png',
+            tag: data.tag,
+            data: { url: data.url || '/notifications' },
+        }),
+    );
+});
+
+/** Tapping it opens where it points: in an open RoutePilot window if there is one, else a new one. */
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = new URL(event.notification.data?.url || '/notifications', self.location.origin).href;
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windows) => {
+            const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
+            if (open) {
+                try {
+                    await open.focus();
+                    return await open.navigate(url);
+                } catch {
+                    // Not ours to steer (e.g. not yet controlled) — fall through to a new window.
+                }
+            }
+            return self.clients.openWindow(url);
+        }),
+    );
+});
