@@ -8,6 +8,7 @@ use App\Jobs\SendWebPush;
 use App\Models\User;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\Events\NotificationSent;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Every in-app notification also goes to the phones its user turned
@@ -30,6 +31,15 @@ class SendPushForNotification
             'body' => (string) ($saved->data['body'] ?? ''),
             'url' => '/notifications/'.$saved->id.'/open', // marks it read on the way
             'tag' => (string) $saved->id,
+            'icon' => $this->logo($user),
         ]);
+    }
+
+    /** The user's company logo shows on the notification (else the phone shows RoutePilot's icon). */
+    private function logo(User $user): ?string
+    {
+        $path = $user->tenant?->logo_path;
+
+        return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
     }
 }

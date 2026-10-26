@@ -23,7 +23,7 @@ class SendWebPush implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable;
 
-    /** @param  array{title: string, body: string, url: string, tag: string}  $message */
+    /** @param  array{title: string, body: string, url: string, tag: string, icon?: string|null}  $message */
     public function __construct(public int $userId, public array $message) {}
 
     public function handle(WebPush $push): void

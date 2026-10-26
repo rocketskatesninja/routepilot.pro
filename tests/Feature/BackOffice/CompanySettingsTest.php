@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
@@ -106,4 +108,19 @@ test('changing the tax rate is audited (and an unchanged rate is not)', function
     ])->assertRedirect();
 
     expect(AuditLog::query()->where('action', 'company.tax_rate.updated')->count())->toBe(1);
+});
+
+test('an uploaded logo is saved as a png, and a file that is not an image is refused', function () {
+    Storage::fake('public');
+    $fields = ['name' => 'Sunshine Pools', 'timezone' => 'America/Chicago', 'brand_color' => '#0ea5e9', 'tax_rate_percent' => 0];
+
+    $this->actingAs($this->admin)->patch('/company', $fields + ['logo' => UploadedFile::fake()->image('logo.png', 300, 300)])->assertSessionHasNoErrors();
+    $logo = $this->tenant->refresh()->logo_path;
+    expect($logo)->toStartWith('tenants/')->toEndWith('.png');
+    Storage::disk('public')->assertExists($logo);
+
+    // An SVG is turned into a PNG in the browser; one that reaches the server raw is refused, not stored.
+    $svg = UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>');
+    $this->actingAs($this->admin)->patch('/company', $fields + ['logo' => $svg])->assertSessionHasErrors('logo');
+    expect($this->tenant->refresh()->logo_path)->toBe($logo);
 });

@@ -565,6 +565,7 @@ function submitTargets() {
                         <ImageUpload
                             :model-value="photoFile"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            :error="form.errors.photo"
                             @update:model-value="(f) => (form.photo = f)"
                         />
                         <div class="grid gap-1.5">

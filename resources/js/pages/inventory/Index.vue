@@ -278,6 +278,7 @@ function submitAdjust() {
                         <ImageUpload
                             :model-value="form.photo"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            :error="form.errors.photo"
                             @update:model-value="(f) => (form.photo = f)"
                         />
                         <div class="grid grid-cols-3 gap-3">

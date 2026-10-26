@@ -10,6 +10,7 @@ use App\Models\User;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Minishlink\WebPush\MessageSentReport;
 use Minishlink\WebPush\WebPush;
 
@@ -93,6 +94,18 @@ test('a notification goes to the user’s phones, with its title, text and link'
         && $job->message['title'] === $saved->data['title']
         && $job->message['url'] === '/notifications/'.$saved->id.'/open'
         && $job->message['tag'] === $saved->id);
+});
+
+test('the notification wears the company logo, or none so the phone shows RoutePilot’s icon', function () {
+    $this->actingAs($this->admin)->post('/push-subscriptions', phone())->assertRedirect();
+    Queue::fake();
+
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Algae bloom'])->assertRedirect();
+    Queue::assertPushed(SendWebPush::class, fn (SendWebPush $job) => $job->message['icon'] === null);
+
+    $this->tenant->forceFill(['logo_path' => 'tenants/logo.png'])->save();
+    $this->actingAs($this->user)->post('/requests', ['type' => 'other', 'message' => 'Still green'])->assertRedirect();
+    Queue::assertPushed(SendWebPush::class, fn (SendWebPush $job) => $job->message['icon'] === Storage::disk('public')->url('tenants/logo.png'));
 });
 
 test('no push for a type the user turned off, or for a user with no phone', function () {

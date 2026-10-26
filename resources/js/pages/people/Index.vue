@@ -626,6 +626,7 @@ function destroyAgent() {
                         <ImageUpload
                             :model-value="form.photo"
                             :current="formMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            :error="form.errors.photo"
                             shape="circle"
                             @update:model-value="(f) => (form.photo = f)"
                         />
@@ -735,6 +736,7 @@ function destroyAgent() {
                         <ImageUpload
                             :model-value="agentForm.photo"
                             :current="agentFormMode === 'edit' ? (props.selected?.photo_url ?? null) : null"
+                            :error="agentForm.errors.photo"
                             shape="circle"
                             @update:model-value="(f) => (agentForm.photo = f)"
                         />

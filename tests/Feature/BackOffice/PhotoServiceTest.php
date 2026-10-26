@@ -33,3 +33,20 @@ test('delete is a safe no-op for null', function () {
     Storage::fake('public');
     app(PhotoService::class)->delete(null);
 })->throwsNoExceptions();
+
+test('a transparent store keeps the see-through background as png', function () {
+    Storage::fake('public');
+
+    $logo = imagecreatetruecolor(400, 400);
+    imagesavealpha($logo, true);
+    imagefill($logo, 0, 0, imagecolorallocatealpha($logo, 0, 0, 0, 127));
+    ob_start();
+    imagepng($logo);
+    $file = UploadedFile::fake()->createWithContent('logo.png', (string) ob_get_clean());
+
+    $path = app(PhotoService::class)->store($file, 'tenants', transparent: true);
+
+    expect($path)->toEndWith('.png');
+    $pixel = imagecolorsforindex($img = imagecreatefromstring(Storage::disk('public')->get($path)), imagecolorat($img, 0, 0));
+    expect($pixel['alpha'])->toBe(127); // fully transparent, not filled white
+});

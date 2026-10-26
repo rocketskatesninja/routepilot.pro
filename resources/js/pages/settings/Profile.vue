@@ -70,6 +70,7 @@ const submit = () => {
                         <ImageUpload
                             :model-value="form.photo"
                             :current="user.avatar ?? null"
+                            :error="form.errors.photo"
                             shape="circle"
                             @update:model-value="(f) => (form.photo = f)"
                         />

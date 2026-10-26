@@ -19,6 +19,10 @@ const unread = computed(() => page.props.auth.unread ?? 0);
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 // Anyone who works routes — techs, and office admins who run one themselves — can open the field app.
 const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.auth.role ?? ''));
+// A phone hides the sidebar, so the portal's header carries the company's logo instead.
+const portalLogo = computed(() =>
+    page.props.auth.role === 'customer' && page.props.tenant?.logo_path ? `/storage/${page.props.tenant.logo_path}` : null,
+);
 </script>
 
 <template>
@@ -32,6 +36,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.au
         <div class="flex min-w-0 grow-[999] items-center gap-2 md:flex-none">
             <!-- Desktop collapses via the sidebar logo; on mobile this opens the off-canvas panel. -->
             <SidebarTrigger v-if="isMobile" class="-ml-1" />
+            <img v-if="isMobile && portalLogo" :src="portalLogo" :alt="page.props.tenant?.name" class="size-8 shrink-0 rounded object-contain" />
             <template v-if="breadcrumbs.length > 0">
                 <Breadcrumb class="min-w-0">
                     <BreadcrumbList class="md:text-[1.3125rem]">

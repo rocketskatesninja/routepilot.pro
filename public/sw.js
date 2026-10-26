@@ -102,7 +102,7 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(data.title || 'RoutePilot', {
             body: data.body || '',
-            icon: '/assets/images/pwa/icon-192.png',
+            icon: data.icon || '/assets/images/pwa/icon-192.png', // the company's logo, when it has one
             tag: data.tag,
             data: { url: data.url || '/notifications' },
         }),

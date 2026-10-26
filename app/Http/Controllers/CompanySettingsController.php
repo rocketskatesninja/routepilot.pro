@@ -176,7 +176,8 @@ class CompanySettingsController extends Controller
         $logo = $data['logo'] ?? null;
         if ($logo instanceof UploadedFile) {
             $old = $tenant->getAttribute('logo_path');
-            $tenant->forceFill(['logo_path' => $photos->replace($logo, is_string($old) ? $old : null, 'tenants')])->save();
+            // PNG keeps a transparent logo clear of a white box on the site footer and in emails.
+            $tenant->forceFill(['logo_path' => $photos->replace($logo, is_string($old) ? $old : null, 'tenants', transparent: true)])->save();
         }
 
         // Audit the billing-sensitive field (the tax rate flows into invoices).

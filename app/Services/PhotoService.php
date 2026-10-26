@@ -12,8 +12,9 @@ use Intervention\Image\ImageManager;
 
 /**
  * Resize + store uploaded images on the public disk. Normalizes everything to
- * JPEG and scales down to fit within a max box (never upscales), so a multi-MB
- * phone photo becomes a reasonable web image. Harvested from the legacy app.
+ * JPEG (or PNG where a transparent background matters, like a logo) and scales
+ * down to fit within a max box (never upscales), so a multi-MB phone photo
+ * becomes a reasonable web image. Harvested from the legacy app.
  *
  * Returns the stored path (relative to the public disk); render it with
  * Storage::url() / asset('storage/...'). All single-photo entities + visit
@@ -22,16 +23,17 @@ use Intervention\Image\ImageManager;
 class PhotoService
 {
     /**
-     * Store a resized JPEG copy of the upload; returns the stored path.
+     * Store a resized JPEG copy of the upload (PNG with $transparent, which JPEG
+     * would fill in white); returns the stored path.
      */
-    public function store(UploadedFile $file, string $directory, int $max = 1200, int $quality = 85): string
+    public function store(UploadedFile $file, string $directory, int $max = 1200, int $quality = 85, bool $transparent = false): string
     {
-        $path = trim($directory, '/').'/'.Str::uuid()->toString().'.jpg';
+        $path = trim($directory, '/').'/'.Str::uuid()->toString().($transparent ? '.png' : '.jpg');
 
         $image = ImageManager::gd()->read($file->getRealPath());
         $image->scaleDown($max, $max);
 
-        Storage::disk('public')->put($path, (string) $image->toJpeg($quality));
+        Storage::disk('public')->put($path, (string) ($transparent ? $image->toPng() : $image->toJpeg($quality)));
 
         return $path;
     }
@@ -39,11 +41,11 @@ class PhotoService
     /**
      * Store the new image and delete the old one; returns the new path.
      */
-    public function replace(UploadedFile $file, ?string $oldPath, string $directory, int $max = 1200, int $quality = 85): string
+    public function replace(UploadedFile $file, ?string $oldPath, string $directory, int $max = 1200, int $quality = 85, bool $transparent = false): string
     {
         $this->delete($oldPath);
 
-        return $this->store($file, $directory, $max, $quality);
+        return $this->store($file, $directory, $max, $quality, $transparent);
     }
 
     /**

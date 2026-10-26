@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { fitImage } from '@/lib/image';
 import { ImagePlus } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
@@ -7,15 +8,18 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
  * Staged image upload. The chosen file is held in the parent form (v-model) and
  * is only uploaded when that form is saved — so the user can pick, preview, and
  * swap as many times as they like beforehand, and "Discard" reverts to the
- * currently-saved image. Pair with a server field that accepts the file on save.
+ * currently-saved image. Pair with a server field that accepts the file on save,
+ * and pass that field's error so a refused file says why.
  */
 const props = withDefaults(
     defineProps<{
         modelValue: File | null;
         current?: string | null; // the already-saved photo URL, if any
         shape?: 'square' | 'circle';
+        transparent?: boolean; // keep a see-through background (a logo)
+        error?: string;
     }>(),
-    { current: null, shape: 'square' },
+    { current: null, shape: 'square', transparent: false, error: undefined },
 );
 const emit = defineEmits<{ 'update:modelValue': [File | null] }>();
 
@@ -45,9 +49,9 @@ const shapeClass = computed(() => (props.shape === 'circle' ? 'rounded-full' : '
 
 const pick = () => fileInput.value?.click();
 
-function onFile(e: Event) {
+async function onFile(e: Event) {
     const file = (e.target as HTMLInputElement).files?.[0] ?? null;
-    emit('update:modelValue', file);
+    emit('update:modelValue', file && (await fitImage(file, props.transparent)));
 }
 
 function discard() {
@@ -68,6 +72,7 @@ function discard() {
                 <Button v-if="staged" type="button" size="sm" variant="ghost" @click="discard">Discard</Button>
             </div>
             <p v-if="staged" class="text-muted-foreground text-xs">New photo — applies when you save.</p>
+            <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
         </div>
         <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFile" />
     </div>

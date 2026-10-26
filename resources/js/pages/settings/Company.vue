@@ -62,7 +62,8 @@ const timezones = [
     'Pacific/Honolulu',
 ];
 
-const submit = () => form.patch('/company', { preserveScroll: true });
+// Saved: drop the staged file so the field shows the stored logo, not "applies when you save".
+const submit = () => form.patch('/company', { preserveScroll: true, onSuccess: () => form.reset('logo') });
 
 const mailForm = useForm({
     host: props.mail.host,
@@ -122,6 +123,8 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                 <ImageUpload
                                     :model-value="form.logo"
                                     :current="props.company.logo_url ?? null"
+                                    transparent
+                                    :error="form.errors.logo"
                                     @update:model-value="(f) => (form.logo = f)"
                                 />
                                 <p class="text-muted-foreground text-sm">
