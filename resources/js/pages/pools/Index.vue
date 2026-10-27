@@ -73,6 +73,7 @@ interface PoolFields {
     zip: string | null;
     gate_code: string | null;
     access_notes: string | null;
+    report_cc_email: string | null;
 }
 
 interface PoolDetail {
@@ -86,6 +87,7 @@ interface PoolDetail {
     equipment: string[];
     features: string[];
     customer: { id: number | null; name: string; email: string | null; phone: string | null };
+    report_cc: string | null; // who else gets every visit report
     location: { address: string | null; city: string | null; gate_code: string | null; access_notes: string | null } | null;
     subscriptions: {
         id: number;
@@ -218,6 +220,7 @@ const form = useForm<Record<string, unknown>>({
     zip: '',
     gate_code: '',
     access_notes: '',
+    report_cc_email: '',
     photo: null,
 });
 
@@ -255,6 +258,7 @@ function openEdit() {
     form.zip = f.zip ?? '';
     form.gate_code = f.gate_code ?? '';
     form.access_notes = f.access_notes ?? '';
+    form.report_cc_email = f.report_cc_email ?? '';
     form.photo = null;
     form.clearErrors();
     formMode.value = 'edit';
@@ -659,6 +663,12 @@ function submitTargets() {
                                 class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             ></textarea>
                         </div>
+                        <div class="grid gap-1.5">
+                            <Label for="report_cc">Also email reports to</Label>
+                            <Input id="report_cc" v-model="form.report_cc_email" type="email" placeholder="Optional, e.g. a landlord" />
+                            <p v-if="form.errors.report_cc_email" class="text-xs text-red-600">{{ form.errors.report_cc_email }}</p>
+                            <p v-else class="text-muted-foreground text-xs">They get a copy of every visit report for this pool.</p>
+                        </div>
 
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
@@ -803,6 +813,7 @@ function submitTargets() {
                                 }}</Link
                                 ><template v-if="pool.location?.city">, {{ pool.location.city }}</template>
                             </p>
+                            <p v-if="pool.report_cc" class="text-muted-foreground mt-1 text-sm">Reports also go to {{ pool.report_cc }}</p>
                             <template v-if="props.canManage" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Button size="sm" variant="outline" @click="openTargets">Water targets</Button>

@@ -30,6 +30,8 @@ use App\Http\Controllers\PublicPayController;
 use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReportCopyController;
+use App\Http\Controllers\ReportMessageController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SearchController;
@@ -63,6 +65,17 @@ Route::middleware(['signed', 'throttle:30,1'])->group(function () {
     Route::post('email-preferences/{customer}', [EmailPreferenceController::class, 'update'])->name('email-preferences.update');
     Route::post('email-preferences/{customer}/one-click/{type}', [EmailPreferenceController::class, 'oneClick'])->name('email-preferences.one-click');
     Route::get('unsubscribe/{customer}', [EmailPreferenceController::class, 'legacy'])->name('unsubscribe'); // links in older emails
+
+    // "Stop these copies" from a copy of someone's visit report; the address is signed into the link.
+    Route::get('report-copies/{pool}', [ReportCopyController::class, 'show'])->name('report-copies.show');
+    Route::post('report-copies/{pool}', [ReportCopyController::class, 'stop'])->name('report-copies.stop');
+    Route::post('report-copies/{pool}/one-click', [ReportCopyController::class, 'oneClick'])->name('report-copies.one-click');
+});
+
+// A customer's message to the company from a visit report email — no login; the link expires.
+Route::middleware(['signed', 'throttle:10,1'])->group(function () {
+    Route::get('report-message/{visit}', [ReportMessageController::class, 'show'])->name('report-message.show');
+    Route::post('report-message/{visit}', [ReportMessageController::class, 'store'])->name('report-message.store');
 });
 
 // Public lead capture from a tenant's landing site (by slug), rate-limited.
@@ -209,6 +222,8 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
         Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
         Route::patch('company/mail', [CompanySettingsController::class, 'updateMail'])->name('company.mail');
+        Route::post('company/mail/test', [CompanySettingsController::class, 'testMail'])->middleware('throttle:5,1')->name('company.mail.test');
+        Route::post('company/mail/off', [CompanySettingsController::class, 'turnOffMail'])->name('company.mail.off');
         Route::post('company/connect', [CompanySettingsController::class, 'connect'])->name('company.connect');
         Route::get('company/connect/return', [CompanySettingsController::class, 'connectReturn'])->name('company.connect.return');
 

@@ -54,6 +54,7 @@ class SendRequestAnswer
             $request->isForService() => $request->plan?->frequency === 'one_time' ? 'You\'re booked' : 'You\'re scheduled',
             $request->type === 'hold' => 'Your pause is set',
             $request->type === 'cancel' => 'Your service is stopping',
+            $request->getAttribute('service_visit_id') !== null => 'About your message',
             default => 'Your request is taken care of',
         };
     }
@@ -63,6 +64,12 @@ class SendRequestAnswer
     {
         $pool = $request->pool?->getAttribute('name') ?? 'your pool';
         $date = fn (?\DateTimeInterface $d): string => $d !== null ? $d->format('l, F j') : '';
+
+        // A message sent from a visit report: it's answered, not "taken care of".
+        $visit = $request->visit;
+        if ($visit !== null) {
+            return $company.' got back to you about your '.($visit->completed_at !== null ? $date(Tenant::local($visit->completed_at)).' ' : '').'visit.';
+        }
 
         if ($request->status === 'declined') {
             return $company.' can\'t take on your request this time: '.$request->title().'.';

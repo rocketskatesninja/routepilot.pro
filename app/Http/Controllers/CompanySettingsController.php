@@ -6,18 +6,23 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateCompanyRequest;
 use App\Http\Requests\UpdateMailConfigRequest;
+use App\Mail\MailSettingsTestMail;
 use App\Models\AuditLog;
 use App\Models\Integration;
 use App\Models\Tenant;
+use App\Models\TenantSetting;
 use App\Services\GeocodingService;
 use App\Services\PhotoService;
 use App\Services\StripeService;
+use App\Services\TenantMailer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 
 /**
  * Company settings (tenant_admin) — brand/timezone/tax on the Tenant, AI
@@ -41,6 +46,8 @@ class CompanySettingsController extends Controller
                 'city' => $tenant->getAttribute('city'),
                 'state' => $tenant->getAttribute('state'),
                 'postal_code' => $tenant->getAttribute('postal_code'),
+                'reply_to_email' => $tenant->reply_to_email,
+                'report_messages' => $tenant->takesReportMessages(),
             ],
             'mail' => $this->mailConfig($tenant),
             'connect' => [
@@ -87,7 +94,7 @@ class CompanySettingsController extends Controller
         );
     }
 
-    public function updateMail(UpdateMailConfigRequest $request): RedirectResponse
+    public function updateMail(UpdateMailConfigRequest $request, TenantMailer $mailer): RedirectResponse
     {
         $tenant = $this->tenant($request);
         $data = $request->validated();
@@ -96,11 +103,12 @@ class CompanySettingsController extends Controller
         $existingConfig = is_array($existing?->getAttribute('config')) ? $existing->getAttribute('config') : [];
         $password = (string) ($data['password'] ?? '');
 
+        // Saved switched off: a test email has to get through before the company's mail goes this way.
         Integration::query()->updateOrCreate(
             ['integration_type' => 'smtp'],
             [
                 'provider' => 'smtp',
-                'is_active' => true,
+                'is_active' => false,
                 'config' => [
                     'host' => $data['host'],
                     'port' => (int) $data['port'],
@@ -114,9 +122,54 @@ class CompanySettingsController extends Controller
             ],
         );
 
+        $mailer->recordSuccess($tenant); // a stale failure belonged to the old settings
         $this->audit($request, $tenant, 'company.mail.updated', ['host' => $data['host']]);
 
-        return back()->with('success', 'Mail settings saved.');
+        return back()->with('success', 'Saved. Send a test email to turn it on.');
+    }
+
+    /**
+     * Send a test through the company's saved mail server to the admin asking. If it
+     * gets through, the company's customer emails go out that way from now on. No
+     * fallback here: the point is to find out whether their server works.
+     */
+    public function testMail(Request $request, TenantMailer $mailer): RedirectResponse
+    {
+        $tenant = $this->tenant($request);
+        $user = $request->user();
+        abort_if($user === null, 403);
+
+        if (! Integration::query()->where('integration_type', 'smtp')->exists()) {
+            return back()->with('error', 'Save your mail server settings first.');
+        }
+        $route = $mailer->prepare($tenant->id, evenIfOff: true);
+        if ($route['from'] === null) {
+            return back()->with('error', 'That mail server address can’t be used.');
+        }
+
+        try {
+            Mail::mailer($route['mailer'])->to($user->email)->send(new MailSettingsTestMail($tenant, $route['from']));
+        } catch (TransportExceptionInterface $e) {
+            $this->audit($request, $tenant, 'company.mail.test_failed', ['reason' => TenantMailer::reason($e)]);
+
+            return back()->with('error', TenantMailer::reason($e));
+        }
+
+        Integration::query()->where('integration_type', 'smtp')->update(['is_active' => true]);
+        $mailer->recordSuccess($tenant);
+        $this->audit($request, $tenant, 'company.mail.tested');
+
+        return back()->with('success', "Test sent to {$user->email}. Your customer emails now go out from {$route['from']['address']}.");
+    }
+
+    /** Stop using the company's mail server; its emails go out from RoutePilot again. */
+    public function turnOffMail(Request $request): RedirectResponse
+    {
+        $tenant = $this->tenant($request);
+        Integration::query()->where('integration_type', 'smtp')->update(['is_active' => false]);
+        $this->audit($request, $tenant, 'company.mail.turned_off');
+
+        return back()->with('success', 'Turned off. Your emails go out from RoutePilot again.');
     }
 
     /**
@@ -137,7 +190,10 @@ class CompanySettingsController extends Controller
             'from_address' => $config['from_address'] ?? '',
             'from_name' => $config['from_name'] ?? '',
             'has_password' => ! empty($config['password']),
+            'saved' => ! empty($config['host']),
             'active' => (bool) ($smtp?->getAttribute('is_active')) && ! empty($config['host']),
+            // The last time the company's server couldn't send (its email went out from RoutePilot).
+            'failure' => json_decode((string) TenantSetting::getFor($tenant->id, TenantMailer::FAILURE_KEY), true),
         ];
     }
 
@@ -155,7 +211,11 @@ class CompanySettingsController extends Controller
             'city' => $data['city'] ?? null,
             'state' => $data['state'] ?? null,
             'postal_code' => $data['postal_code'] ?? null,
+            'reply_to_email' => $data['reply_to_email'] ?? null,
         ]);
+        if (array_key_exists('report_messages', $data)) {
+            TenantSetting::setFor($tenant->id, 'report_messages', $data['report_messages'] ? '1' : '0');
+        }
         // tax_rate is not mass-assignable (billing field) — set deliberately.
         $oldTaxRate = round((float) $tenant->getAttribute('tax_rate'), 4);
         $newTaxRate = round(((float) $data['tax_rate_percent']) / 100, 4);

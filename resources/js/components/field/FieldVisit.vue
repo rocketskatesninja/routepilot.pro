@@ -24,7 +24,7 @@ import { queueCompletion } from '@/lib/field/sync';
 import { deleteJson } from '@/lib/http';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
-import { formatAmount, formatDay, unitFor } from '@/lib/utils';
+import { formatAmount, formatDay, isEmail, unitFor } from '@/lib/utils';
 import { ChevronLeft, LoaderCircle, Lock, Navigation, Plus, Sparkles, Trash2, WifiOff, X } from 'lucide-vue-next';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
@@ -68,6 +68,9 @@ const tasks = reactive((props.stop.service.tasks ?? []).map((name) => ({ name, d
 const treatments = reactive<TreatmentDraft[]>([]);
 const notes = ref('');
 const officeNotes = ref(''); // for the company only; the homeowner never sees it
+// Someone else who gets the report (a landlord, a property manager), remembered on the pool.
+const copyTo = ref(pool.value?.report_cc ?? '');
+const badCopyTo = computed(() => copyTo.value.trim() !== '' && !isEmail(copyTo.value.trim()));
 // Something to do later: becomes a work order on the company's list.
 const workOrder = reactive<WorkOrderDraft>({ title: '', details: '', urgent: false, price: '' });
 const raisesWorkOrder = computed(() => workOrder.title.trim() !== '' || workOrder.details.trim() !== '');
@@ -92,6 +95,7 @@ onMounted(async () => {
             treatments.splice(0, treatments.length, ...restoredTreatments(draft.treatments));
             notes.value = draft.notes;
             officeNotes.value = draft.office_notes ?? '';
+            if (draft.report_cc !== undefined) copyTo.value = draft.report_cc;
             // A draft from the single box keeps its text in Details; the server titles it from the first line.
             Object.assign(workOrder, draft.work_order_form ?? { details: draft.work_order ?? '', urgent: draft.work_order_urgent ?? false });
             if (draft.analyzed) analyze();
@@ -115,6 +119,7 @@ function persist() {
         treatments: treatments.map((t) => ({ ...t })),
         notes: notes.value,
         office_notes: officeNotes.value,
+        report_cc: copyTo.value,
         work_order_form: { ...workOrder },
         analyzed: analysis.value !== null,
         updated_at: Date.now(),
@@ -122,7 +127,7 @@ function persist() {
 }
 
 watch(
-    [reading, tasks, treatments, notes, officeNotes, workOrder, () => analysis.value !== null],
+    [reading, tasks, treatments, notes, officeNotes, copyTo, workOrder, () => analysis.value !== null],
     () => {
         if (!restored || finished) return;
         clearTimeout(saveTimer);
@@ -250,6 +255,11 @@ async function complete() {
         saveError.value = `Check ${bad.label}: it must be between 0 and ${bad.max}${bad.unit ? ` ${bad.unit}` : ''}.`;
         return;
     }
+    // The server would refuse the whole visit over a mistyped address, so catch it here.
+    if (badCopyTo.value) {
+        saveError.value = 'Check the “Also email the report to” address, or clear it.';
+        return;
+    }
     submitting.value = true;
     saveError.value = null;
     try {
@@ -272,6 +282,7 @@ async function saveVisit() {
             : [],
         notes: notes.value || null,
         office_notes: officeNotes.value || null,
+        report_cc_email: copyTo.value.trim(), // always sent: blank clears it for the pool
         work_order_title: workOrder.title.trim() || null,
         work_order_details: workOrder.details.trim() || null,
         work_order_urgent: raisesWorkOrder.value && workOrder.urgent,
@@ -372,6 +383,36 @@ async function removeFromToday() {
                 />
                 <p v-if="pool?.access_notes" class="text-muted-foreground text-sm">{{ pool.access_notes }}</p>
             </section>
+
+            <!-- someone else who gets the report (a landlord, a property manager), remembered for this pool -->
+            <label class="block space-y-1.5">
+                <span class="text-[15px] font-medium">Also email the report to</span>
+                <span class="relative block">
+                    <input
+                        v-model="copyTo"
+                        type="email"
+                        inputmode="email"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        spellcheck="false"
+                        maxlength="255"
+                        placeholder="Optional, if the customer asked"
+                        :aria-invalid="badCopyTo || undefined"
+                        class="border-input bg-background text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary h-12 w-full rounded-xl border px-3 pr-12 text-base focus:ring-1 focus:outline-none"
+                        :class="{ 'border-red-500 ring-1 ring-red-500': badCopyTo }"
+                    />
+                    <button
+                        v-if="copyTo"
+                        type="button"
+                        aria-label="Clear the address"
+                        class="text-muted-foreground hover:text-foreground absolute inset-y-0 right-1 grid w-10 place-items-center"
+                        @click="copyTo = ''"
+                    >
+                        <X class="size-5" />
+                    </button>
+                </span>
+                <span class="text-muted-foreground block text-sm">They get a copy after every visit to this pool. Clear it to stop.</span>
+            </label>
 
             <!-- what's already waiting on this pool (read-only; from the day bundle, so offline too) -->
             <PaneSection v-if="stop.work_orders?.length" title="Open work orders">

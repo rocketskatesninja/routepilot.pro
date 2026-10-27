@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Mail\Concerns\SendsAsCompany;
 use App\Models\Tenant;
 use App\Support\EmailBrand;
 use Illuminate\Bus\Queueable;
@@ -18,7 +19,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class PaymentFailedMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SendsAsCompany, SerializesModels;
 
     public function __construct(
         public string $customerName,
@@ -29,9 +30,14 @@ class PaymentFailedMail extends Mailable
         public ?Tenant $tenant = null,
     ) {}
 
+    protected function company(): ?Tenant
+    {
+        return $this->tenant;
+    }
+
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Payment issue — '.$this->companyName);
+        return new Envelope(subject: 'Payment issue — '.$this->companyName, replyTo: EmailBrand::replyTo($this->tenant));
     }
 
     public function content(): Content

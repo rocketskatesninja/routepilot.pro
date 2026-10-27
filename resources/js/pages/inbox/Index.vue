@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { POOL_TYPES } from '@/lib/labels';
-import { customerLink, poolLink, telLink } from '@/lib/links';
+import { customerLink, poolLink, reportLink, telLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { cap } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
@@ -53,6 +53,7 @@ interface RequestDetail extends RequestRow {
     service: { id: number; name: string; offer: string; description: string | null; is_active: boolean } | null;
     ends_on: string | null;
     message: string | null;
+    visit: { id: number; on: string | null } | null; // sent from this visit's report email
     reply: string | null;
     answered_on: string | null;
     plan: string | null;
@@ -200,6 +201,7 @@ const approveLabel = computed(() => {
     const r = request.value;
     if (!r) return '';
     if (r.for_service) return 'Approve & schedule';
+    if (r.visit) return 'Reply'; // a message from a visit report
     return { hold: 'Set the pause', cancel: 'Stop service' }[r.type] ?? 'Mark done';
 });
 const approveExplainer = computed(() => {
@@ -216,6 +218,7 @@ const approveExplainer = computed(() => {
         const when = r.preferred_date ? `after ${formatDay(r.preferred_date)}` : 'right away';
         return `Ends ${service} ${when}. Their other services carry on, and completed visits and billing history stay.`;
     }
+    if (r.visit) return 'Emails your answer to them and marks the message done.';
     return 'Marks the request as handled. Add a note if you want to reply.';
 });
 
@@ -436,6 +439,12 @@ const submitConvert = () => {
                         <NoteBubble v-if="request.message" :author="`${firstWord(request.customer) ?? 'They'} wrote`">{{
                             request.message
                         }}</NoteBubble>
+                        <p v-if="request.visit" class="text-sm">
+                            Sent from the report for the {{ formatDay(request.visit.on) }} visit.
+                            <Link :href="reportLink(request.visit.id)" class="text-primary font-medium underline-offset-4 hover:underline"
+                                >See the report</Link
+                            >
+                        </p>
 
                         <PaneSection v-if="request.pool_id" title="Already on this pool">
                             <PaneList v-if="request.pool_plans.length">
@@ -478,7 +487,10 @@ const submitConvert = () => {
                                 decline instead if this is a mix-up.
                             </p>
                             <div v-if="mode === 'none'" class="flex flex-wrap gap-2">
-                                <Button size="sm" @click="openApprove"><CalendarCheck class="mr-1 size-3.5" /> {{ approveLabel }}</Button>
+                                <Button size="sm" @click="openApprove"
+                                    ><component :is="request.visit ? MessageSquare : CalendarCheck" class="mr-1 size-3.5" />
+                                    {{ approveLabel }}</Button
+                                >
                                 <Button size="sm" variant="outline" @click="openDecline"><X class="mr-1 size-3.5" /> Decline</Button>
                             </div>
 

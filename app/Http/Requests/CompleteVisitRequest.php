@@ -43,6 +43,9 @@ class CompleteVisitRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:2000'],
             // For the company only; the homeowner never sees it.
             'office_notes' => ['nullable', 'string', 'max:2000'],
+            // A second address that gets a copy of the report, remembered on the pool. Sent
+            // blank to clear it; left out (older copies of the app) to leave it alone.
+            'report_cc_email' => ['nullable', 'string', 'email:rfc', 'max:255'],
             // Something that needs doing later; becomes a work order on the company's list.
             'work_order_title' => ['nullable', 'string', 'max:160'],
             'work_order_details' => ['nullable', 'string', 'max:5000'],
@@ -67,7 +70,7 @@ class CompleteVisitRequest extends FormRequest
             'calcium_hardness' => 'calcium', 'cyanuric_acid' => 'CYA', 'water_temperature' => 'temperature',
             'treatments.*.amount' => 'chemical amount', 'work_order_title' => 'work order title',
             'work_order_details' => 'work order details', 'work_order_price' => 'work order price',
-            'notes' => 'note to the homeowner', 'office_notes' => 'office note', 'photos' => 'photos', 'photos.*' => 'photo',
+            'notes' => 'note to the homeowner', 'office_notes' => 'office note', 'report_cc_email' => 'copy-to email', 'photos' => 'photos', 'photos.*' => 'photo',
         ];
     }
 

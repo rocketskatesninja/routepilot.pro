@@ -31,6 +31,8 @@ class UpdatePoolRequest extends FormRequest
             'has_water_feature' => ['boolean'],
             'has_auto_fill' => ['boolean'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            // Someone who gets a copy of every visit report (a landlord, a property manager).
+            'report_cc_email' => ['nullable', 'string', 'email:rfc', 'max:255'],
             'address_line1' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:120'],
             'state' => ['nullable', 'string', 'size:2'],

@@ -4,8 +4,8 @@
 @endphp
 <x-email.layout
     :brand="$brand"
-    :greeting="'Hi '.$firstName.','"
-    :title="'Your pool was serviced on '.$date.'.'"
+    :greeting="$copy ? null : 'Hi '.$firstName.','"
+    :title="($copy ? $firstName.'’s pool' : 'Your pool').' was serviced on '.$date.'.'"
     :sub="($service ?? 'Service visit').' at '.$pool.($agent ? ' with '.$agent : '').'.'"
     :preheader="trim(($service ?? 'Service visit').' at '.$pool.'. '.$waterSummary)"
 >
@@ -82,7 +82,15 @@
         <x-email.button :brand="$brand" :href="$reportUrl" :secondary="$balance > 0 && $payUrl">See the full report</x-email.button>
     @endif
 
+    @if ($messageUrl)
+        <x-email.button :brand="$brand" :href="$messageUrl" :secondary="true">Message {{ $brand['name'] }}</x-email.button>
+    @endif
+
     <x-slot:footer>
-        <p style="margin: 0;">You get this email after each visit to your pool. <a href="{{ $stopUrl }}" style="color: #475569;">Stop visit reports</a></p>
+        @if ($copy)
+            <p style="margin: 0;">{{ $firstName }} asked {{ $brand['name'] }} to send you a copy of their pool reports. <a href="{{ $stopUrl }}" style="color: #475569;">Stop these copies</a></p>
+        @else
+            <p style="margin: 0;">You get this email after each visit to your pool. <a href="{{ $stopUrl }}" style="color: #475569;">Stop visit reports</a></p>
+        @endif
     </x-slot:footer>
 </x-email.layout>

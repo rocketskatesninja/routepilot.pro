@@ -35,7 +35,7 @@ class CreateServiceRequest
             'preferred_date' => $data['preferred_date'] ?? null,
             'ends_on' => $data['ends_on'] ?? null,
         ]);
-        $request->forceFill(['service_subscription_id' => $planId])->save();
+        $request->forceFill(['service_subscription_id' => $planId, 'service_visit_id' => $data['service_visit_id'] ?? null])->save();
 
         Notification::send(User::adminsOf((int) $customer->getAttribute('tenant_id')), new ServiceRequestSubmitted($request));
 

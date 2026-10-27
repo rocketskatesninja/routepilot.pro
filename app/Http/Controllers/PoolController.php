@@ -223,6 +223,7 @@ class PoolController extends Controller
             'id' => $pool->id,
             'name' => $pool->name,
             'photo_url' => $this->photoUrl($pool->getAttribute('photo_path')),
+            'report_cc' => $pool->report_cc_email, // who else gets every visit report
             'type' => $pool->type,
             'volume_gallons' => $pool->volume_gallons,
             'sanitizer' => $pool->sanitizer_type,
@@ -324,6 +325,7 @@ class PoolController extends Controller
                 'zip' => $location?->getAttribute('zip'),
                 'gate_code' => $location?->getAttribute('gate_code'),
                 'access_notes' => $location?->getAttribute('access_notes'),
+                'report_cc_email' => $pool->report_cc_email,
             ],
         ];
     }

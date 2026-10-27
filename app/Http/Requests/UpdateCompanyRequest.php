@@ -33,6 +33,10 @@ class UpdateCompanyRequest extends FormRequest
             'brand_color' => ['required', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'tax_rate_percent' => ['required', 'numeric', 'min:0', 'max:30'],
             'logo' => ['nullable', 'image', 'max:10240'],
+            // Where customers' replies to the company's emails go (blank = RoutePilot's address).
+            'reply_to_email' => ['nullable', 'string', 'email:rfc', 'max:255'],
+            // Whether customers can message the company from their visit reports.
+            'report_messages' => ['boolean'],
             // Business address (optional) — but a street line requires the
             // city/state/ZIP so it can geocode.
             'address_line1' => ['nullable', 'string', 'max:255'],

@@ -117,6 +117,11 @@ class CompleteVisit
                 ], $agent);
             }
 
+            // Who else gets the report, remembered for the pool's next visits (blank clears it).
+            if (array_key_exists('report_cc_email', $data)) {
+                $visit->pool?->update(['report_cc_email' => $data['report_cc_email'] ?: null]);
+            }
+
             $stop->update(['status' => 'completed', 'completed_at' => now()]);
             $this->billing->chargeVisit($visit); // once, at its plan's price right now
 

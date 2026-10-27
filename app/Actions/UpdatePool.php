@@ -39,6 +39,7 @@ class UpdatePool
             'has_water_feature' => $data['has_water_feature'] ?? false,
             'has_auto_fill' => $data['has_auto_fill'] ?? false,
             'notes' => $data['notes'] ?? null,
+            'report_cc_email' => $data['report_cc_email'] ?? null,
         ]);
 
         $location = $pool->serviceLocation()->updateOrCreate([], [

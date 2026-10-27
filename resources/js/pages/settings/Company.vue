@@ -3,12 +3,13 @@ import HeadingSmall from '@/components/HeadingSmall.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -23,6 +24,8 @@ const props = defineProps<{
         city: string | null;
         state: string | null;
         postal_code: string | null;
+        reply_to_email: string | null;
+        report_messages: boolean;
     };
     mail: {
         host: string;
@@ -32,7 +35,9 @@ const props = defineProps<{
         from_address: string;
         from_name: string;
         has_password: boolean;
-        active: boolean;
+        saved: boolean; // settings are stored (switched on or not)
+        active: boolean; // a test got through: the company's emails go out this way
+        failure: { at: string; reason: string } | null; // the last time it couldn't send
     };
     connect: { available: boolean; connected: boolean; charges_enabled: boolean };
 }>();
@@ -49,6 +54,8 @@ const form = useForm({
     city: props.company.city ?? '',
     state: props.company.state ?? '',
     postal_code: props.company.postal_code ?? '',
+    reply_to_email: props.company.reply_to_email ?? '',
+    report_messages: props.company.report_messages,
     logo: null as File | null,
 });
 
@@ -75,6 +82,13 @@ const mailForm = useForm({
     from_name: props.mail.from_name,
 });
 const submitMail = () => mailForm.patch('/company/mail', { preserveScroll: true, onSuccess: () => mailForm.reset('password') });
+// Turning it on takes a test that gets through; turning it off sends from RoutePilot again.
+const mailAction = useForm({});
+const testMail = () => mailAction.post('/company/mail/test', { preserveScroll: true });
+const turnOffMail = () => mailAction.post('/company/mail/off', { preserveScroll: true });
+const failedOn = computed(() =>
+    props.mail.failure ? new Date(props.mail.failure.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '',
+);
 
 const connectForm = useForm({});
 const connectStripe = () => connectForm.post('/company/connect', { preserveScroll: true });
@@ -87,7 +101,9 @@ const tabs = computed(() => [
     { key: 'email', label: 'Email' },
     ...(props.connect.available ? [{ key: 'payments', label: 'Payments' }] : []),
 ]);
-const activeTab = ref('profile');
+// ?tab=email opens a tab directly (the "Your mail server" alert links there).
+const asked = new URL(usePage().url, 'http://x').searchParams.get('tab');
+const activeTab = ref(asked && ['profile', 'address', 'email', 'payments'].includes(asked) ? asked : 'profile');
 const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.value));
 </script>
 
@@ -164,6 +180,32 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                 </div>
                                 <p v-if="form.errors.brand_color" class="text-sm text-red-600">{{ form.errors.brand_color }}</p>
                             </div>
+
+                            <HeadingSmall title="Customer emails" description="How customers reach you from the emails you send them." />
+                            <div class="grid gap-2">
+                                <Label for="reply_to">Replies go to</Label>
+                                <Input
+                                    id="reply_to"
+                                    v-model="form.reply_to_email"
+                                    type="email"
+                                    placeholder="office@yourcompany.com"
+                                    class="max-w-md"
+                                />
+                                <p v-if="form.errors.reply_to_email" class="text-sm text-red-600">{{ form.errors.reply_to_email }}</p>
+                                <p v-else class="text-muted-foreground text-sm">
+                                    When a customer hits Reply on one of your emails, it lands here. Left blank, replies go to RoutePilot instead of
+                                    you.
+                                </p>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="report_messages" class="flex items-center gap-2 font-normal">
+                                    <Checkbox id="report_messages" v-model:checked="form.report_messages" />
+                                    <span>Let customers message you from their visit reports</span>
+                                </Label>
+                                <p class="text-muted-foreground pl-6 text-sm">
+                                    Each report gets a “Message {{ form.name || 'us' }}” button. Messages land in Requests, with the visit attached.
+                                </p>
+                            </div>
                         </div>
 
                         <div v-show="activeTab === 'address'" class="flex flex-col space-y-6">
@@ -214,13 +256,27 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                     <!-- Email -->
                     <div v-show="activeTab === 'email'" class="flex flex-col space-y-6">
                         <HeadingSmall
-                            title="Outgoing email (SMTP)"
-                            :description="
-                                props.mail.active
-                                    ? 'Active — campaigns + statements send from your own mail server.'
-                                    : 'Send campaigns + statements from your own mail server.'
-                            "
+                            title="Your own mail server (SMTP)"
+                            description="Send your customer emails (visit reports, reminders, invoices, receipts) and campaigns from your own mail server."
                         />
+                        <p class="text-sm" role="status">
+                            <template v-if="props.mail.active"
+                                ><span class="font-medium text-emerald-700 dark:text-emerald-400">On.</span> Your emails go out from
+                                {{ props.mail.from_address }}.</template
+                            >
+                            <template v-else-if="props.mail.saved"
+                                ><span class="font-medium">Saved, not on yet.</span> Send a test email to turn it on.</template
+                            >
+                            <template v-else><span class="font-medium">Off.</span> Your emails go out from RoutePilot.</template>
+                        </p>
+                        <div
+                            v-if="props.mail.failure"
+                            role="alert"
+                            class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
+                        >
+                            On {{ failedOn }}: {{ props.mail.failure.reason }} Those emails went out from RoutePilot instead, so your customers still
+                            got them.
+                        </div>
                         <form class="space-y-6" @submit.prevent="submitMail">
                             <div class="grid gap-4 sm:grid-cols-3">
                                 <div class="grid gap-2 sm:col-span-2">
@@ -258,17 +314,25 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div class="grid gap-2">
                                     <Label for="fromaddr">From address</Label>
-                                    <Input id="fromaddr" v-model="mailForm.from_address" type="email" placeholder="hello@yourco.com" />
+                                    <Input id="fromaddr" v-model="mailForm.from_address" type="email" required placeholder="hello@yourco.com" />
                                     <p v-if="mailForm.errors.from_address" class="text-sm text-red-600">{{ mailForm.errors.from_address }}</p>
                                 </div>
                                 <div class="grid gap-2">
                                     <Label for="fromname">From name</Label><Input id="fromname" v-model="mailForm.from_name" />
                                 </div>
                             </div>
-                            <div class="flex items-center gap-3">
+                            <div class="flex flex-wrap items-center gap-3">
                                 <Button type="submit" :disabled="mailForm.processing">Save mail settings</Button>
-                                <span v-if="mailForm.recentlySuccessful" class="text-sm text-emerald-600">Saved.</span>
+                                <Button v-if="props.mail.saved" type="button" variant="outline" :disabled="mailAction.processing" @click="testMail"
+                                    >Send test email</Button
+                                >
+                                <Button v-if="props.mail.active" type="button" variant="ghost" :disabled="mailAction.processing" @click="turnOffMail"
+                                    >Turn off</Button
+                                >
                             </div>
+                            <p v-if="props.mail.saved" class="text-muted-foreground text-sm">
+                                The test goes to you. Saving changes turns it off until a test gets through again.
+                            </p>
                         </form>
                     </div>
 

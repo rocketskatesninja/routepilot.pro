@@ -50,6 +50,7 @@ class CampaignMail extends Mailable
         return new Envelope(
             subject: $this->subjectLine,
             from: $this->fromAddress !== null ? new Address($this->fromAddress['address'], $this->fromAddress['name']) : null,
+            replyTo: EmailBrand::replyTo($this->tenant),
         );
     }
 

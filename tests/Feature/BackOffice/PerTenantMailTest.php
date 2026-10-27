@@ -17,7 +17,7 @@ beforeEach(function () {
 function smtpPayload(array $overrides = []): array
 {
     return array_merge([
-        'host' => 'smtp.example.com', 'port' => 587, 'encryption' => 'tls',
+        'host' => '203.0.113.10', 'port' => 587, 'encryption' => 'tls', // a public address (smtp.example.com doesn't resolve)
         'username' => 'mailer@example.com', 'password' => 'secret-pass',
         'from_address' => 'hello@example.com', 'from_name' => 'Example Pools',
     ], $overrides);
@@ -28,7 +28,7 @@ test('an admin saves SMTP config, encrypted at rest', function () {
 
     $integration = Integration::query()->where('integration_type', 'smtp')->first();
     $config = $integration?->getAttribute('config');
-    expect($config['host'])->toBe('smtp.example.com');
+    expect($config['host'])->toBe('203.0.113.10');
     expect($config['password'])->toBe('secret-pass');
 });
 
@@ -41,9 +41,14 @@ test('a blank password keeps the stored one', function () {
     expect($config['from_name'])->toBe('Renamed');
 });
 
-test('TenantMailer uses the tenant mailer when SMTP is configured', function () {
+test('TenantMailer uses the tenant mailer once its saved SMTP is switched on', function () {
     $this->actingAs($this->admin)->patch('/company/mail', smtpPayload())->assertRedirect();
 
+    // Saved switched off: only the test email may use it until one gets through.
+    expect(app(TenantMailer::class)->prepare($this->tenant->id)['mailer'])->toBe(config('mail.default'))
+        ->and(app(TenantMailer::class)->prepare($this->tenant->id, evenIfOff: true)['mailer'])->toBe('tenant_'.$this->tenant->id);
+
+    Integration::query()->where('integration_type', 'smtp')->update(['is_active' => true]);
     $prepared = app(TenantMailer::class)->prepare($this->tenant->id);
     expect($prepared['mailer'])->toBe('tenant_'.$this->tenant->id);
     expect($prepared['from']['address'])->toBe('hello@example.com');

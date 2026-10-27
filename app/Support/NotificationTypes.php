@@ -26,6 +26,7 @@ final class NotificationTypes
         'idle_agents' => ['Idle agents', 'Morning check: agents with no stops today.', ['tenant_admin']],
         'stale_chemistry' => ['Stale chemistry', 'Morning check: pools not tested in over 2 weeks.', ['tenant_admin']],
         'overdue_balances' => ['Overdue balances', 'Morning check: customers with bills past due.', ['tenant_admin']],
+        'mail_failed' => ['Your mail server', 'Your mail server couldn’t send, so the email went out from RoutePilot.', ['tenant_admin']],
         'visit_completed' => ['Visit reports', 'After each visit: what was done and your water test.', ['customer']],
         'service_reminder' => ['Visit reminders', 'The day before someone comes.', ['customer']],
         'request_answered' => ['Answers to your requests', 'When we reply to something you asked for.', ['customer']],

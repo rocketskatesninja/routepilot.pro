@@ -23,6 +23,7 @@ export interface FieldStop {
         phone: string | null;
         gate_code: string | null;
         access_notes: string | null;
+        report_cc?: string | null; // who else gets the report (absent on bundles cached before it existed)
         lat: number | null;
         lng: number | null;
     } | null;
@@ -95,6 +96,7 @@ export interface VisitDraft {
     treatments: TreatmentDraft[]; // drafts from before the chemical list hold typed {name, amount, unit} rows
     notes: string;
     office_notes?: string; // absent on drafts saved before the office note existed
+    report_cc?: string; // likewise, before the copy-to address
     work_order_form?: WorkOrderDraft; // likewise, before the work order section
     work_order?: string; // the first version's single box (with work_order_urgent)
     work_order_urgent?: boolean;

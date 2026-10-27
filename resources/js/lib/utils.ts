@@ -34,3 +34,18 @@ export function formatDay(ymd: string | null | undefined): string {
     const [y, m, d] = ymd.split('-').map(Number);
     return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
+
+/**
+ * A plain email address the server will take (it checks against the RFC): a name,
+ * an @, and a domain with a dot — no spaces, and no dot at the name's ends or twice
+ * in a row. Strict on purpose: refusing here beats a visit the server refuses later.
+ */
+export function isEmail(value: string): boolean {
+    const [name, domain, ...rest] = value.split('@');
+    if (rest.length || !name || !domain || name.length > 64 || value.length > 255) return false;
+    return (
+        /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~.-]+$/.test(name) &&
+        !/^\.|\.$|\.\./.test(name) &&
+        /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/.test(domain)
+    );
+}

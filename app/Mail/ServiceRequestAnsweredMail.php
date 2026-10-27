@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Mail\Concerns\SendsAsCompany;
 use App\Models\Tenant;
 use App\Support\EmailBrand;
 use Illuminate\Bus\Queueable;
@@ -18,7 +19,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class ServiceRequestAnsweredMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SendsAsCompany, SerializesModels;
 
     public function __construct(
         public string $customerName,
@@ -32,9 +33,14 @@ class ServiceRequestAnsweredMail extends Mailable
         public ?Tenant $tenant = null,
     ) {}
 
+    protected function company(): ?Tenant
+    {
+        return $this->tenant;
+    }
+
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->headline.' — '.$this->company);
+        return new Envelope(subject: $this->headline.' — '.$this->company, replyTo: EmailBrand::replyTo($this->tenant));
     }
 
     public function content(): Content

@@ -24,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $ends_on
  * @property Carbon|null $resolved_at
  * @property-read ServiceType|null $serviceType older free-text requests have none
+ * @property-read ServiceVisit|null $visit the visit a message from a report email is about
  * @property-read ServiceSubscription|null $plan
  */
 class ServiceRequest extends Model
@@ -80,6 +81,16 @@ class ServiceRequest extends Model
         return $this->belongsTo(ServiceSubscription::class, 'service_subscription_id');
     }
 
+    /**
+     * The visit a customer's message is about, when they sent it from that visit's report.
+     *
+     * @return BelongsTo<ServiceVisit, $this>
+     */
+    public function visit(): BelongsTo
+    {
+        return $this->belongsTo(ServiceVisit::class, 'service_visit_id');
+    }
+
     /** Record the company's answer (approved / declined) and who gave it. */
     public function markAnswered(string $status, ?string $reply, User $by): void
     {
@@ -99,6 +110,7 @@ class ServiceRequest extends Model
             'service' => $this->serviceType->name ?? 'Service request',
             'hold' => 'Pause '.($this->plan->serviceType->name ?? 'service'),
             'cancel' => 'Stop '.($this->plan->serviceType->name ?? 'service'),
+            'other' => $this->getAttribute('service_visit_id') !== null ? 'Message about a visit' : self::TYPES['other'],
             default => self::TYPES[$this->type] ?? ucfirst($this->type),
         };
     }

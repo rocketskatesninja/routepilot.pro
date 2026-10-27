@@ -113,4 +113,12 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    | A company's own mail server must be a public address, so a company can't
+    | point the server at internal services. Staging turns this on to test
+    | against a local mail catcher; never in production.
+    */
+
+    'tenant_private_hosts' => (bool) env('TENANT_SMTP_ALLOW_PRIVATE', false),
+
 ];

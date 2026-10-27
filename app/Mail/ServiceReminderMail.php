@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Mail\Concerns\SendsAsCompany;
 use App\Models\Tenant;
 use App\Support\EmailBrand;
 use App\Support\EmailPreferences;
@@ -20,7 +21,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class ServiceReminderMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SendsAsCompany, SerializesModels;
 
     public function __construct(
         public string $customerName,
@@ -39,9 +40,14 @@ class ServiceReminderMail extends Mailable
         return $this->customerId !== null ? EmailPreferences::headers($this->customerId, 'reminders') : new Headers;
     }
 
+    protected function company(): ?Tenant
+    {
+        return $this->tenant;
+    }
+
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Pool service tomorrow — '.$this->poolName);
+        return new Envelope(subject: 'Pool service tomorrow — '.$this->poolName, replyTo: EmailBrand::replyTo($this->tenant));
     }
 
     public function content(): Content

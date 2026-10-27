@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Mail\Concerns\SendsAsCompany;
 use App\Models\Invoice;
 use App\Models\Tenant;
 use App\Support\EmailBrand;
@@ -21,13 +22,20 @@ use Illuminate\Queue\SerializesModels;
  */
 class InvoiceMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SendsAsCompany, SerializesModels;
 
     public function __construct(public Invoice $invoice, public string $payUrl) {}
 
+    protected function company(): ?Tenant
+    {
+        return $this->invoice->customer->tenant;
+    }
+
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Invoice '.$this->invoice->number.' — '.$this->invoice->customer->tenant->name);
+        $tenant = $this->invoice->customer->tenant;
+
+        return new Envelope(subject: 'Invoice '.$this->invoice->number.' — '.$tenant->name, replyTo: EmailBrand::replyTo($tenant));
     }
 
     public function content(): Content

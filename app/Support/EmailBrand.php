@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Tenant;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -34,6 +35,19 @@ final class EmailBrand
             'logo' => is_string($logo) && $logo !== '' ? Storage::disk('public')->url($logo) : null,
             'address' => $tenant?->formattedAddress(),
         ];
+    }
+
+    /**
+     * Where a reply to the company's email goes: its own address, when it has set one
+     * (else the email's From, which is RoutePilot's).
+     *
+     * @return list<Address>
+     */
+    public static function replyTo(?Tenant $tenant): array
+    {
+        $email = $tenant?->reply_to_email;
+
+        return is_string($email) && $email !== '' ? [new Address($email, (string) $tenant->name)] : [];
     }
 
     /** The brand colour laid over white at the given strength, as hex. */

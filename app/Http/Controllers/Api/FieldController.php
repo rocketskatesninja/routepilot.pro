@@ -50,7 +50,7 @@ class FieldController extends Controller
             ->whereDate('scheduled_date', $date)
             ->with([
                 'stops' => fn ($q) => $q->orderBy('stop_order')->with([
-                    'pool:id,name,type,sanitizer_type,volume_gallons,customer_id,custom_target_ranges',
+                    'pool:id,name,type,sanitizer_type,volume_gallons,customer_id,custom_target_ranges,report_cc_email',
                     'pool.customer:id,first_name,last_name,phone',
                     'pool.serviceLocation',
                     'pool.subscriptions' => fn ($s) => $s->where('status', 'active')->with('serviceType:id,name,tasks,field_modules'),
@@ -179,6 +179,7 @@ class FieldController extends Controller
                 'phone' => $pool->customer?->phone,
                 'gate_code' => $location?->getAttribute('gate_code'),
                 'access_notes' => $location?->getAttribute('access_notes'),
+                'report_cc' => $pool->report_cc_email, // who else gets the report; the tech can change it
                 'lat' => $coords[0] ?? null,
                 'lng' => $coords[1] ?? null,
             ],

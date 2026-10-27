@@ -26,6 +26,7 @@ use Laravel\Cashier\Billable;
  * @property string|null $city
  * @property string|null $state
  * @property string|null $postal_code
+ * @property string|null $reply_to_email where customers' replies to the company's emails go
  * @property float|null $lat
  * @property float|null $lng
  * @property Carbon|null $trial_ends_at
@@ -51,7 +52,7 @@ class Tenant extends Model
     protected $fillable = [
         'name', 'slug', 'primary_domain', 'timezone',
         'logo_path', 'brand_color', 'status', 'settings',
-        'address_line1', 'address_line2', 'city', 'state', 'postal_code',
+        'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'reply_to_email',
     ];
 
     /** @return array<string, string> */
@@ -143,6 +144,12 @@ class Tenant extends Model
         ], static fn (string $part): bool => trim($part) !== '');
 
         return $parts === [] ? null : implode(', ', $parts);
+    }
+
+    /** Whether customers can message the company from their visit reports (on unless turned off). */
+    public function takesReportMessages(): bool
+    {
+        return TenantSetting::getFor($this->id, 'report_messages') !== '0';
     }
 
     /**

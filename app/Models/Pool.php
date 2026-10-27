@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $has_water_feature
  * @property bool $has_auto_fill
  * @property string|null $notes
+ * @property string|null $report_cc_email a second address that gets a copy of every visit report
  * @property array<string, array{min?: float|int, max?: float|int}>|null $custom_target_ranges
  * @property-read ServiceLocation|null $serviceLocation
  */
@@ -54,7 +55,7 @@ class Pool extends Model
         'customer_id', 'name', 'type', 'volume_gallons', 'surface_type',
         'sanitizer_type', 'filter_type', 'pump_type', 'has_heater',
         'has_automation', 'has_pool_cleaner', 'has_cover', 'has_water_feature',
-        'has_auto_fill', 'features', 'custom_target_ranges', 'notes', 'requested_tasks',
+        'has_auto_fill', 'features', 'custom_target_ranges', 'notes', 'requested_tasks', 'report_cc_email',
     ];
 
     /** This pool's routine sanitizer check (see SANITIZER_TASKS), if it has one. */
