@@ -83,3 +83,17 @@ test('an email without a company wears RoutePilot\'s own look, and button text s
         ->and(EmailBrand::for(Tenant::factory()->make(['brand_color' => '#fde047']))['on_color'])->toBe('#111827') // light yellow → dark text
         ->and(EmailBrand::for(Tenant::factory()->make(['brand_color' => '#1e3a8a']))['on_color'])->toBe('#ffffff'); // navy → white text
 });
+
+test('the email header shows the company’s logo with its name beside it, or the name alone', function () {
+    $tenant = Tenant::factory()->create(['name' => 'Glynn Pool Care', 'logo_path' => 'tenants/peach.png']);
+    $mail = fn (Tenant $t) => (new PaymentReceiptMail('Jane', 45.0, $t->name, 'Oct 26, 2026', $t))->render();
+
+    $html = $mail($tenant);
+    $logo = strpos($html, 'tenants/peach.png');
+    $name = strpos($html, 'Glynn Pool Care</span>');
+    expect($logo)->toBeInt()->and($name)->toBeInt()->and($logo)->toBeLessThan($name); // logo first, the name beside it
+    expect($html)->toContain('alt=""'); // the name is right there, so the logo doesn't repeat it
+
+    $tenant->update(['logo_path' => null]);
+    expect($mail($tenant->fresh()))->not->toContain('<img src=')->toContain('Glynn Pool Care</span>');
+});

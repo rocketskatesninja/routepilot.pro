@@ -37,11 +37,19 @@
                     {{-- the company --}}
                     <tr>
                         <td style="padding: 0 6px 14px;">
-                            @if ($brand['logo'])
-                                <img src="{{ $brand['logo'] }}" alt="{{ $brand['name'] }}" height="40" style="height: 40px; max-width: 200px; border: 0; display: block;">
-                            @else
-                                <span style="font-family: {{ $display }}; font-size: 16px; font-weight: 600; color: #0f172a;">{{ $brand['name'] }}</span>
-                            @endif
+                            {{-- the logo with the name beside it (the name alone when there's no logo) --}}
+                            <table role="presentation" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    @if ($brand['logo'])
+                                        <td style="padding-right: 10px; vertical-align: middle;">
+                                            <img src="{{ $brand['logo'] }}" alt="" height="40" style="height: 40px; max-width: 200px; border: 0; display: block;">
+                                        </td>
+                                    @endif
+                                    <td style="vertical-align: middle;">
+                                        <span style="font-family: {{ $display }}; font-size: 18px; font-weight: 600; color: #0f172a;">{{ $brand['name'] }}</span>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                     <tr>

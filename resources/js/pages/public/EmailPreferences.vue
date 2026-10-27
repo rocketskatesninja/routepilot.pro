@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EmailChoices from '@/components/EmailChoices.vue';
+import CompanyMark from '@/components/portal/CompanyMark.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
 import { hexToHslChannels } from '@/composables/useBrand';
@@ -45,8 +46,7 @@ const stopOn = computed(() => (props.stop ? props.preferences[props.stop] : fals
 
     <div class="bg-background text-foreground min-h-svh" :style="brandVars">
         <main class="mx-auto flex max-w-xl flex-col gap-8 px-4 py-10">
-            <img v-if="props.company.logo" :src="props.company.logo" :alt="props.company.name" class="h-10 w-auto self-start" />
-            <p v-else class="font-display text-lg font-semibold">{{ props.company.name }}</p>
+            <CompanyMark :company="props.company" />
 
             <PortalHero :greeting="`Hi ${props.firstName},`">
                 <template v-if="props.stop && stopOn">Stop getting {{ stopName }}?</template>
