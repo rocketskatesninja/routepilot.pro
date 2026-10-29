@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { SCHEDULES } from '@/lib/labels';
-import { agentLink, customerLink, reportLink } from '@/lib/links';
+import { agentLink, customerLink, mapsLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { cap, checkWater, describePool, waterSummary } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
@@ -88,7 +88,15 @@ interface PoolDetail {
     features: string[];
     customer: { id: number | null; name: string; email: string | null; phone: string | null };
     report_cc: string | null; // who else gets every visit report
-    location: { address: string | null; city: string | null; gate_code: string | null; access_notes: string | null } | null;
+    location: {
+        address: string | null;
+        city: string | null;
+        state: string | null;
+        zip: string | null;
+        coords: [number, number] | null;
+        gate_code: string | null;
+        access_notes: string | null;
+    } | null;
     subscriptions: {
         id: number;
         service: string;
@@ -146,6 +154,10 @@ const props = defineProps<{
 }>();
 
 type Subscription = PoolDetail['subscriptions'][number];
+
+// "Getting there": the address opens in Google Maps (the map position when there's no street).
+const poolMapsLink = (l: NonNullable<PoolDetail['location']>): string | null =>
+    mapsLink(l.address ? [l.address, l.city, [l.state, l.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : null, l.coords);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pools', href: '/pools' }];
 
@@ -900,7 +912,11 @@ function submitTargets() {
                         <PaneSection v-if="pool.location" title="Getting there">
                             <PaneFacts
                                 :facts="[
-                                    { label: 'Address', value: [pool.location.address, pool.location.city].filter(Boolean).join(', ') },
+                                    {
+                                        label: 'Address',
+                                        value: [pool.location.address, pool.location.city].filter(Boolean).join(', '),
+                                        href: poolMapsLink(pool.location),
+                                    },
                                     { label: 'Gate code', value: pool.location.gate_code },
                                 ]"
                             />

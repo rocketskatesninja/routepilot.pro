@@ -32,6 +32,15 @@ export function poolLink(id: number | string): string {
     return `/pools?selected=${id}`;
 }
 
+/**
+ * Google Maps, searching for a place: the full address when there is one (Maps
+ * shows its own card for it), otherwise the map position. Null with neither.
+ */
+export function mapsLink(address: string | null, coords?: [number, number] | null): string | null {
+    const query = address?.trim() || (coords ? coords.join(',') : '');
+    return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
+}
+
 /** A device tel: link from a free-form phone string (digits + leading + only). */
 export function telLink(phone: string): string {
     return `tel:${phone.replace(/[^0-9+]/g, '')}`;

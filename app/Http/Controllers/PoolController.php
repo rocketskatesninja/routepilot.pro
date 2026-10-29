@@ -250,6 +250,9 @@ class PoolController extends Controller
             'location' => $location !== null ? [
                 'address' => $location->getAttribute('address_line1'),
                 'city' => $location->getAttribute('city'),
+                'state' => $location->getAttribute('state'),
+                'zip' => $location->getAttribute('zip'),
+                'coords' => $pool->coordinates(), // [lat, lng] or null, for the Google Maps link
                 'gate_code' => $location->getAttribute('gate_code'),
                 'access_notes' => $location->getAttribute('access_notes'),
             ] : null,

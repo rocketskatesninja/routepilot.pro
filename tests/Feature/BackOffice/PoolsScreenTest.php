@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceLocation;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -125,4 +126,18 @@ test('the pool panel has the full latest water test, dated by its visit, and the
             ->where('selected.location.address', '27 Marsh Hen Lane')
             ->where('selected.features', ['cover'])
         );
+});
+
+test('“Getting there” carries the full address and map position, for the Google Maps link', function () {
+    $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
+    ServiceLocation::factory()->create([
+        'pool_id' => $pool->id, 'address_line1' => '27 Marsh Hen Lane', 'city' => 'St. Simons Island', 'state' => 'GA', 'zip' => '31522',
+        'lat' => 31.15, 'lng' => -81.39,
+    ]);
+
+    $this->actingAs($this->admin)->get('/pools?selected='.$pool->id)
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selected.location.state', 'GA')
+            ->where('selected.location.zip', '31522')
+            ->where('selected.location.coords', [31.15, -81.39]));
 });
