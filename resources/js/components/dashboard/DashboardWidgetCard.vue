@@ -4,8 +4,10 @@ import {
     Bell,
     Building2,
     CalendarDays,
+    CalendarPlus,
     CalendarRange,
     CloudSun,
+    CreditCard,
     DollarSign,
     FileText,
     FlaskConical,
@@ -43,6 +45,8 @@ const ICONS: Record<string, LucideIcon> = {
     Wrench,
     FlaskConical,
     TriangleAlert,
+    CreditCard,
+    CalendarPlus,
 };
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>

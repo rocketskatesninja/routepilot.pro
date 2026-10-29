@@ -11,6 +11,7 @@ use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
+use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
@@ -19,6 +20,7 @@ use App\Notifications\InAppNotification;
 use App\Policies\WorkOrderPolicy;
 use App\Services\BillingService;
 use App\Services\ChemistryService;
+use App\Services\StripeService;
 use App\Services\WeatherService;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Storage;
@@ -69,6 +71,8 @@ class AssembleDashboardData
             'next_visit' => fn () => $this->nextVisit($user),
             'account_balance' => fn () => $this->accountBalance($user),
             'customer_visits' => fn () => $this->customerVisits($user),
+            'pay_bill' => fn () => $this->payBill($user),
+            'request_service' => fn () => $this->requestService(),
             // super_admin
             'platform_stats' => fn () => $this->platformStats(),
             'recent_tenants' => fn () => $this->recentTenants(),
@@ -324,6 +328,37 @@ class AssembleDashboardData
         return [
             'balance' => $customer !== null ? app(BillingService::class)->outstandingForCustomer($customer) : 0.0,
             'autopay' => $customer !== null && (bool) $customer->getAttribute('autopay_enabled'),
+        ];
+    }
+
+    /**
+     * Customer: what they owe and whether they can pay it here (online payment set
+     * up, and not already on autopay).
+     *
+     * @return array{balance: float, autopay: bool, can_pay: bool}
+     */
+    private function payBill(User $user): array
+    {
+        $account = $this->accountBalance($user);
+
+        return ['balance' => (float) $account['balance'], 'autopay' => (bool) $account['autopay'], 'can_pay' => app(StripeService::class)->configured()];
+    }
+
+    /**
+     * Customer: a few of the services the company offers them, cheapest first, each
+     * to request from the Services page.
+     *
+     * @return array{services: list<array<string, mixed>>, total: int}
+     */
+    private function requestService(): array
+    {
+        $offered = ServiceType::query()->where('is_active', true)->where('requestable', true)->orderBy('price');
+
+        return [
+            'services' => (clone $offered)->limit(4)->get(['id', 'name', 'price', 'frequency'])
+                ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'price' => (float) $t->price, 'frequency' => $t->frequency])
+                ->values()->all(),
+            'total' => $offered->count(),
         ];
     }
 

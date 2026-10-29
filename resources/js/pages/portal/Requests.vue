@@ -12,7 +12,7 @@ import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { MessageSquare } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 interface ServiceRequest {
     id: number;
@@ -151,6 +151,16 @@ function start(k: Kind, opts: { svc?: Service; target?: Plan } = {}) {
 function submit() {
     form.post('/requests', { preserveScroll: true, onSuccess: () => (open.value = false) });
 }
+
+// A deep link from the dashboard's "Request a service" (?service=3) opens that service's request, then drops the param.
+onMounted(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('service')) return;
+    const svc = props.services.find((s) => s.id === Number(params.get('service')));
+    params.delete('service');
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${params.size ? `?${params}` : ''}`);
+    if (svc && props.pools.length) start('service', { svc });
+});
 
 const heading = computed(() => {
     if (kind.value === 'service') return `Request ${service.value?.name ?? 'a service'}`;

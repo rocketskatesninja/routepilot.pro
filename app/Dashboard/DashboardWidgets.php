@@ -41,6 +41,8 @@ class DashboardWidgets
         'next_visit' => ['label' => 'Next visit', 'icon' => 'CalendarDays', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
         'account_balance' => ['label' => 'Account balance', 'icon' => 'Banknote', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
         'customer_visits' => ['label' => 'Recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
+        'pay_bill' => ['label' => 'Pay your bill', 'icon' => 'CreditCard', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 4, 'roles' => ['customer']],
+        'request_service' => ['label' => 'Request a service', 'icon' => 'CalendarPlus', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['customer']],
 
         // super_admin (platform)
         'platform_stats' => ['label' => 'Platform overview', 'icon' => 'LayoutGrid', 'minW' => 4, 'minH' => 2, 'w' => 12, 'h' => 3, 'roles' => ['super_admin']],
@@ -72,7 +74,8 @@ class DashboardWidgets
         'customer' => [
             ['i' => 'customer_visits', 'x' => 3, 'y' => 0, 'w' => 6, 'h' => 5],
             ['i' => 'next_visit', 'x' => 3, 'y' => 5, 'w' => 3, 'h' => 4],
-            ['i' => 'account_balance', 'x' => 6, 'y' => 5, 'w' => 3, 'h' => 4],
+            ['i' => 'pay_bill', 'x' => 6, 'y' => 5, 'w' => 3, 'h' => 4],
+            ['i' => 'request_service', 'x' => 3, 'y' => 9, 'w' => 6, 'h' => 5],
         ],
         'super_admin' => [
             ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 3],
@@ -105,8 +108,9 @@ class DashboardWidgets
         'customer' => [
             ['i' => 'my_pools', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 4],
             ['i' => 'next_visit', 'x' => 0, 'y' => 4, 'w' => 12, 'h' => 3],
-            ['i' => 'account_balance', 'x' => 0, 'y' => 7, 'w' => 12, 'h' => 3],
-            ['i' => 'customer_visits', 'x' => 0, 'y' => 10, 'w' => 12, 'h' => 4],
+            ['i' => 'pay_bill', 'x' => 0, 'y' => 7, 'w' => 12, 'h' => 4],
+            ['i' => 'request_service', 'x' => 0, 'y' => 11, 'w' => 12, 'h' => 5],
+            ['i' => 'customer_visits', 'x' => 0, 'y' => 16, 'w' => 12, 'h' => 4],
         ],
         'super_admin' => [
             ['i' => 'platform_stats', 'x' => 0, 'y' => 0, 'w' => 12, 'h' => 5],

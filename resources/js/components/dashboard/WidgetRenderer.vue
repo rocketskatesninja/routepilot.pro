@@ -7,8 +7,10 @@ import MyPoolsWidget from './widgets/MyPoolsWidget.vue';
 import MyRouteWidget from './widgets/MyRouteWidget.vue';
 import NextVisitWidget from './widgets/NextVisitWidget.vue';
 import NotificationsWidget from './widgets/NotificationsWidget.vue';
+import PayBillWidget from './widgets/PayBillWidget.vue';
 import RecentTenantsWidget from './widgets/RecentTenantsWidget.vue';
 import RecentVisitsWidget from './widgets/RecentVisitsWidget.vue';
+import RequestServiceWidget from './widgets/RequestServiceWidget.vue';
 import RequestsWidget from './widgets/RequestsWidget.vue';
 import RouteMapWidget from './widgets/RouteMapWidget.vue';
 import RunningLowWidget from './widgets/RunningLowWidget.vue';
@@ -45,6 +47,8 @@ const registry: Record<string, Component> = {
     next_visit: NextVisitWidget,
     account_balance: AccountBalanceWidget,
     customer_visits: RecentVisitsWidget,
+    pay_bill: PayBillWidget,
+    request_service: RequestServiceWidget,
     // super_admin
     platform_stats: StatsWidget,
     recent_tenants: RecentTenantsWidget,
