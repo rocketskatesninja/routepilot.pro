@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import Hint from '@/components/Hint.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import RecordPaymentForm from '@/components/RecordPaymentForm.vue';
@@ -296,9 +297,11 @@ function closePane() {
             <Button v-if="props.canManage" size="sm" variant="outline" title="Add charge" @click="openCharge">
                 <Plus class="size-4 sm:mr-1" /><span class="hidden sm:inline">Charge</span>
             </Button>
-            <Button v-if="props.canManage" size="sm" variant="outline" title="Export CSV" @click="exportCsv">
-                <Download class="size-4 sm:mr-1" /><span class="hidden sm:inline">Export</span>
-            </Button>
+            <Hint v-if="props.canManage" text="Downloads every invoice as a spreadsheet (CSV) you can bring into QuickBooks.">
+                <Button size="sm" variant="outline" aria-label="Export invoices" @click="exportCsv">
+                    <Download class="size-4 sm:mr-1" /><span class="hidden sm:inline">Export</span>
+                </Button>
+            </Hint>
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
@@ -545,13 +548,11 @@ function closePane() {
                                 >Open customer</Link
                             >
                             <template v-if="props.canManage && owing.total > 0" #actions>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    title="Put everything not yet billed on an invoice and email it"
-                                    @click="generateInvoice"
-                                    ><FileText class="mr-1 size-3.5" /> Invoice now</Button
-                                >
+                                <Hint text="Puts everything this customer owes that isn’t on an invoice yet onto a new one, and emails it.">
+                                    <Button size="sm" variant="outline" @click="generateInvoice"
+                                        ><FileText class="mr-1 size-3.5" /> Invoice now</Button
+                                    >
+                                </Hint>
                             </template>
                         </PaneHeader>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Combobox from '@/components/Combobox.vue';
+import Hint from '@/components/Hint.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import NoteBubble from '@/components/NoteBubble.vue';
@@ -352,7 +353,9 @@ function addNote() {
                                 It goes on their balance and their next invoice{{ order.price ? `, at ${formatMoney(order.price)}` : '' }}.
                             </p>
                             <div class="mt-3 flex gap-2">
-                                <Button as-child size="sm"><Link :href="billWorkOrderLink(order.id)">Add a charge</Link></Button>
+                                <Hint text="Opens Balances with a charge for this job filled in. You can invoice and email it from there too.">
+                                    <Button as-child size="sm"><Link :href="billWorkOrderLink(order.id)">Add a charge</Link></Button>
+                                </Hint>
                                 <Button size="sm" variant="outline" @click="billPrompt = null">No thanks</Button>
                             </div>
                         </div>

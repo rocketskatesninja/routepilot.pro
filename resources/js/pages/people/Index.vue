@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EmailChoices from '@/components/EmailChoices.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import Hint from '@/components/Hint.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -861,10 +862,20 @@ function destroyAgent() {
                                 <Button v-else-if="customer.portal_status === 'revoked'" size="sm" variant="outline" @click="restorePortal"
                                     ><RotateCcw class="mr-1 size-3.5" /> Restore access</Button
                                 >
-                                <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
-                                <Button size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="destroyCustomer"
-                                    ><Trash2 class="mr-1 size-3.5" /> Archive</Button
+                                <Hint text="Downloads everything RoutePilot holds about this customer, for when they ask for their data.">
+                                    <Button size="sm" variant="outline" @click="exportCustomer">Export</Button>
+                                </Hint>
+                                <Hint
+                                    text="Ends their service plans and moves them to the Archived tab. Their history and billing are kept, and you can restore them."
                                 >
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        class="text-red-600 hover:text-red-600 dark:text-red-400"
+                                        @click="destroyCustomer"
+                                        ><Trash2 class="mr-1 size-3.5" /> Archive</Button
+                                    >
+                                </Hint>
                             </template>
                         </PaneHeader>
 

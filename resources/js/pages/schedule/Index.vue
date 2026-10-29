@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import Hint from '@/components/Hint.vue';
 import ScheduleMap from '@/components/schedule/ScheduleMap.vue';
 import StopRow from '@/components/schedule/StopRow.vue';
 import { Button } from '@/components/ui/button';
@@ -278,9 +279,12 @@ const prettyDate = computed(() =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
-            <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
-                ><Sparkles class="mr-1 size-4" /> Generate</Button
+            <Hint
+                v-if="props.canManage"
+                text="Fills the next 8 weeks of routes from every active service plan. Stops already on the schedule stay as they are."
             >
+                <Button size="sm" variant="outline" :disabled="busy" @click="materialize"><Sparkles class="mr-1 size-4" /> Generate</Button>
+            </Hint>
             <Button v-if="!isToday" size="sm" variant="ghost" @click="go()">Today</Button>
             <div class="flex items-center gap-1">
                 <button class="border-border hover:bg-muted rounded-md border p-1.5" aria-label="Previous day" @click="shift(-1)">
@@ -309,9 +313,14 @@ const prettyDate = computed(() =>
                 >
                     <CalendarDays class="size-8 opacity-50" />
                     <p>No routes scheduled for this day.</p>
-                    <Button v-if="props.canManage" size="sm" variant="outline" :disabled="busy" @click="materialize"
-                        ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
+                    <Hint
+                        v-if="props.canManage"
+                        text="Fills the next 8 weeks of routes from every active service plan. Stops already on the schedule stay as they are."
                     >
+                        <Button size="sm" variant="outline" :disabled="busy" @click="materialize"
+                            ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
+                        >
+                    </Hint>
                 </div>
 
                 <!-- Unassigned bucket: the day's stops on no agent. A persistent
@@ -381,14 +390,18 @@ const prettyDate = computed(() =>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-muted-foreground text-xs">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
-                            <button
+                            <Hint
                                 v-if="canManageRoute(route) && route.stops.length > 1"
-                                class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1"
-                                title="Optimize order"
-                                @click="optimize(route.id)"
+                                text="Reorders the stops still to do for the shortest drive. Finished ones keep their place."
                             >
-                                <Wand2 class="size-3.5" />
-                            </button>
+                                <button
+                                    class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1"
+                                    aria-label="Optimize order"
+                                    @click="optimize(route.id)"
+                                >
+                                    <Wand2 class="size-3.5" />
+                                </button>
+                            </Hint>
                         </div>
                     </div>
 

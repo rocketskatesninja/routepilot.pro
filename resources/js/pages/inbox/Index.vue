@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Hint from '@/components/Hint.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import NoteBubble from '@/components/NoteBubble.vue';
@@ -522,7 +523,9 @@ const submitConvert = () => {
                                     ><component :is="request.visit ? MessageSquare : CalendarCheck" class="mr-1 size-3.5" />
                                     {{ approveLabel }}</Button
                                 >
-                                <Button size="sm" variant="outline" @click="openDecline"><X class="mr-1 size-3.5" /> Decline</Button>
+                                <Hint text="Say no to this request, with a note the customer sees. It moves to Closed.">
+                                    <Button size="sm" variant="outline" @click="openDecline"><X class="mr-1 size-3.5" /> Decline</Button>
+                                </Hint>
                             </div>
 
                             <!-- approve: a service request gets its plan -->
@@ -647,7 +650,9 @@ const submitConvert = () => {
 
                         <template v-if="!lead.customer">
                             <div v-if="mode !== 'convert'" class="flex flex-wrap items-center gap-2">
-                                <Button size="sm" @click="openConvert"><UserPlus class="mr-1 size-3.5" /> Convert to customer</Button>
+                                <Hint text="Opens a customer form with this lead’s details already filled in. Nothing is saved until you add them.">
+                                    <Button size="sm" @click="openConvert"><UserPlus class="mr-1 size-3.5" /> Convert to customer</Button>
+                                </Hint>
                                 <select
                                     :value="lead.status"
                                     class="border-input bg-background h-8 w-36 rounded-md border px-2 text-sm"

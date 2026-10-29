@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import Hint from '@/components/Hint.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -353,7 +354,11 @@ function submitAdjust() {
                             </template>
                             <template v-if="props.canManage && chemical.is_active" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                                <Button size="sm" variant="outline" @click="archiveChemical"><Archive class="mr-1 size-3.5" /> Archive</Button>
+                                <Hint
+                                    text="Takes it off the list, and visits stop taking it from stock. Its history stays, and you can restore it from the Archived tab."
+                                >
+                                    <Button size="sm" variant="outline" @click="archiveChemical"><Archive class="mr-1 size-3.5" /> Archive</Button>
+                                </Hint>
                             </template>
                         </PaneHeader>
 
