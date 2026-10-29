@@ -26,6 +26,8 @@ class StoreManualChargeRequest extends FormRequest
             'amount' => ['required', 'numeric', 'min:0.01', 'max:100000'],
             'taxable' => ['boolean'],
             'occurred_on' => ['nullable', 'date'],
+            // Put it on an invoice and email it right away, like "Invoice now".
+            'invoice_now' => ['boolean'],
             // Billing a work order: this customer's, and billable (WorkOrderPolicy::bill).
             'work_order_id' => ['nullable', 'integer', Rule::exists('work_orders', 'id')->where('tenant_id', $this->user()?->tenant_id), $this->billable(...)],
         ];

@@ -276,21 +276,23 @@ class BalanceController extends Controller
         ];
     }
 
-    public function addCharge(StoreManualChargeRequest $request, AddManualCharge $action): RedirectResponse
+    public function addCharge(StoreManualChargeRequest $request, AddManualCharge $action, GenerateInvoice $generate, SendInvoice $send): RedirectResponse
     {
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $charge = $action->handle($request->validated(), (int) $user->id);
+        $charge = $action->handle($request->safe()->except('invoice_now'), (int) $user->id);
         AuditLog::record($user, 'charge.created', $charge, ['amount' => (float) $charge->amount, 'customer_id' => $charge->customer_id, 'work_order_id' => $charge->work_order_id]);
 
         // Billed from a work order: back to it, where it now shows as billed.
-        if ($charge->work_order_id !== null) {
-            return redirect()->route('work-orders.index', ['status' => 'done', 'selected' => $charge->work_order_id])
-                ->with('success', 'Charge added to '.$charge->customer?->displayName().'’s balance.');
+        $message = $charge->work_order_id !== null ? 'Charge added to '.$charge->customer?->displayName().'’s balance.' : 'Charge added.';
+        if ($request->boolean('invoice_now') && $charge->customer !== null) {
+            $message .= ' '.($this->invoiceAndEmail($request, $charge->customer, $generate, $send) ?? '');
         }
 
-        return back()->with('success', 'Charge added.');
+        return $charge->work_order_id !== null
+            ? redirect()->route('work-orders.index', ['status' => 'done', 'selected' => $charge->work_order_id])->with('success', trim($message))
+            : back()->with('success', trim($message));
     }
 
     public function recordPayment(RecordPaymentRequest $request, Customer $customer, RecordPayment $action, BillingService $billing): RedirectResponse
@@ -317,17 +319,27 @@ class BalanceController extends Controller
     {
         $this->authorizeAdmin($request);
 
+        $done = $this->invoiceAndEmail($request, $customer, $generate, $send);
+
+        return $done === null
+            ? back()->with('error', 'Everything this customer owes is already on an invoice.')
+            : back()->with('success', $done);
+    }
+
+    /** Bill what isn't on an invoice yet and email it; what happened, in words (null: nothing to bill). */
+    private function invoiceAndEmail(Request $request, Customer $customer, GenerateInvoice $generate, SendInvoice $send): ?string
+    {
         $invoice = $generate->handle($customer);
         if ($invoice === null) {
-            return back()->with('error', 'Everything this customer owes is already on an invoice.');
+            return null;
         }
         AuditLog::record($request->user(), 'invoice.created', $invoice, ['customer_id' => $customer->id, 'total' => (float) $invoice->total]);
 
         $email = $send->handle($invoice);
 
-        return back()->with('success', $email !== null
+        return $email !== null
             ? "Invoice {$invoice->number} emailed to {$email}."
-            : "Invoice {$invoice->number} created. There's no email address on file, so it's a draft. Download the PDF to send it.");
+            : "Invoice {$invoice->number} created. There's no email address on file, so it's a draft. Download the PDF to send it.";
     }
 
     /** QuickBooks-friendly CSV of every invoice (tenant-scoped). */

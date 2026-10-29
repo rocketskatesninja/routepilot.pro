@@ -215,12 +215,20 @@ function voidInvoice(id: number) {
 
 // --- add manual charge ---
 const chargeOpen = ref(false);
-const chargeForm = useForm<{ customer_id: number | string; description: string; amount: string; taxable: boolean; work_order_id: number | null }>({
+const chargeForm = useForm<{
+    customer_id: number | string;
+    description: string;
+    amount: string;
+    taxable: boolean;
+    work_order_id: number | null;
+    invoice_now: boolean;
+}>({
     customer_id: '',
     description: '',
     amount: '',
     taxable: true,
     work_order_id: null,
+    invoice_now: false,
 });
 // Filled in after creation, so "Charge" (which resets the form) still starts blank.
 if (props.chargePrefill) {
@@ -409,9 +417,20 @@ function closePane() {
                             <p v-if="chargeForm.errors.amount" class="text-xs text-red-600">{{ chargeForm.errors.amount }}</p>
                         </div>
                         <label class="flex items-center gap-2"><input v-model="chargeForm.taxable" type="checkbox" /> Taxable</label>
+                        <label class="flex items-start gap-2">
+                            <input v-model="chargeForm.invoice_now" type="checkbox" class="mt-0.5" />
+                            <span
+                                >Invoice and email it now
+                                <span class="text-muted-foreground block text-xs"
+                                    >Puts it, and anything else they owe that isn’t on an invoice yet, on an invoice and emails it.</span
+                                ></span
+                            >
+                        </label>
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="chargeOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="chargeForm.processing">Add charge</Button>
+                            <Button type="submit" :disabled="chargeForm.processing">{{
+                                chargeForm.invoice_now ? 'Add and email' : 'Add charge'
+                            }}</Button>
                         </div>
                     </form>
 
