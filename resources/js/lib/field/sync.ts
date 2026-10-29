@@ -185,6 +185,7 @@ function draftFrom(item: QueuedVisit): VisitDraft {
         treatments: rows(p.treatments).map((t) =>
             t.chemical_id != null ? { chemical_id: Number(t.chemical_id), amount: t.amount != null ? String(t.amount) : '' } : t,
         ) as VisitDraft['treatments'],
+        parts: rows(p.parts).map((t) => ({ chemical_id: Number(t.part_id), amount: t.amount != null ? String(t.amount) : '' })),
         notes: text(p.notes),
         office_notes: text(p.office_notes),
         work_order_form: {

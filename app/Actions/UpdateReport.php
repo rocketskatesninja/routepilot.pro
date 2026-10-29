@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Models\ChemicalTreatment;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Services\ChemistryService;
@@ -60,7 +61,12 @@ class UpdateReport
             }
 
             $rows = is_array($data['treatments'] ?? null) ? array_values(array_filter($data['treatments'], 'is_array')) : [];
-            $this->treatments->handle($visit, $rows, $byUserId);
+            // An edit that doesn't send parts (a page opened before parts existed) keeps the visit's own.
+            $parts = array_key_exists('parts', $data)
+                ? array_values(array_filter(is_array($data['parts']) ? $data['parts'] : [], 'is_array'))
+                : $visit->treatments()->whereHas('chemical', fn ($q) => $q->where('kind', 'part'))->get()
+                    ->map(fn (ChemicalTreatment $t): array => ['part_id' => $t->getAttribute('chemical_inventory_id'), 'amount' => (float) $t->amount])->all();
+            $this->treatments->handle($visit, $rows, $byUserId, $parts);
 
             $visit->tasks()->delete();
             foreach (is_array($data['tasks'] ?? null) ? $data['tasks'] : [] as $task) {

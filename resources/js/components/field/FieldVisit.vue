@@ -69,6 +69,7 @@ const reading = reactive<Record<string, string>>(Object.fromEntries(readingField
 
 const tasks = reactive((props.stop.service.tasks ?? []).map((name) => ({ name, done: false })));
 const treatments = reactive<TreatmentDraft[]>([]);
+const parts = reactive<TreatmentDraft[]>([]); // repair parts used; chemical_id is the part's id
 const notes = ref('');
 const officeNotes = ref(''); // for the company only; the homeowner never sees it
 // Someone else who gets the report (a landlord, a property manager), remembered on the pool.
@@ -96,6 +97,7 @@ onMounted(async () => {
                 if (draft.tasks[i]?.name === t.name) t.done = draft.tasks[i].done;
             });
             treatments.splice(0, treatments.length, ...restoredTreatments(draft.treatments));
+            parts.splice(0, parts.length, ...(draft.parts ?? []));
             notes.value = draft.notes;
             officeNotes.value = draft.office_notes ?? '';
             if (draft.report_cc !== undefined) copyTo.value = draft.report_cc;
@@ -120,6 +122,7 @@ function persist() {
         reading: { ...reading },
         tasks: tasks.map((t) => ({ name: t.name, done: t.done })),
         treatments: treatments.map((t) => ({ ...t })),
+        parts: parts.map((p) => ({ ...p })),
         notes: notes.value,
         office_notes: officeNotes.value,
         report_cc: copyTo.value,
@@ -130,7 +133,7 @@ function persist() {
 }
 
 watch(
-    [reading, tasks, treatments, notes, officeNotes, copyTo, workOrder, () => analysis.value !== null],
+    [reading, tasks, treatments, parts, notes, officeNotes, copyTo, workOrder, () => analysis.value !== null],
     () => {
         if (!restored || finished) return;
         clearTimeout(saveTimer);
@@ -180,6 +183,8 @@ function analyze() {
 
 // --- chemicals: picked from the company's list, each a whole number of its own unit ---
 const unitOf = (id: number | null): string => props.chemicals.find((c) => c.id === id)?.unit ?? '';
+// The list holds repair parts too (bundles from before parts have no kind: all chemicals).
+const chemicalList = computed(() => props.chemicals.filter((c) => c.kind !== 'part'));
 
 /**
  * Each suggestion with what Add would record: the company chemical it calls for
@@ -211,10 +216,16 @@ const removeTreatment = (i: number) => treatments.splice(i, 1);
 function restoredTreatments(rows: (TreatmentDraft | { name?: string; amount?: string })[]): TreatmentDraft[] {
     return rows.flatMap((row) => {
         if ('chemical_id' in row) return [row];
-        const match = props.chemicals.find((c) => c.name.toLowerCase() === (row.name ?? '').trim().toLowerCase());
+        const match = chemicalList.value.find((c) => c.name.toLowerCase() === (row.name ?? '').trim().toLowerCase());
         return match ? [{ chemical_id: match.id, amount: String(Math.ceil(Number(row.amount) || 0) || '') }] : [];
     });
 }
+
+// --- repair parts used: on any visit, whenever the company keeps parts; counted in whole units ---
+const partList = computed(() => props.chemicals.filter((c) => c.kind === 'part'));
+const partLabel = (c: FieldChemical): string => (c.part_number ? `${c.name} · #${c.part_number}` : c.name);
+const addPart = () => parts.push({ chemical_id: null, amount: '1' });
+const removePart = (i: number) => parts.splice(i, 1);
 
 // Directions to the pool (works offline — the maps app handles the route).
 const navUrl = computed(() =>
@@ -286,6 +297,7 @@ async function saveVisit() {
                   .filter((t) => t.chemical_id !== null && t.amount !== '')
                   .map((t) => ({ chemical_id: t.chemical_id, amount: Number(t.amount) }))
             : [],
+        parts: parts.filter((p) => p.chemical_id !== null && p.amount !== '').map((p) => ({ part_id: p.chemical_id, amount: Number(p.amount) })),
         notes: notes.value || null,
         office_notes: officeNotes.value || null,
         report_cc_email: copyTo.value.trim(), // always sent: blank clears it for the pool
@@ -532,10 +544,10 @@ async function removeFromToday() {
 
             <!-- chemicals added -->
             <PaneSection v-if="show.treatments" title="Chemicals added">
-                <template v-if="chemicals.length" #action>
+                <template v-if="chemicalList.length" #action>
                     <PaneAction :icon="Plus" @click="addTreatment">Add one</PaneAction>
                 </template>
-                <p v-if="!chemicals.length" class="text-muted-foreground text-sm">
+                <p v-if="!chemicalList.length" class="text-muted-foreground text-sm">
                     No chemicals set up yet. The office adds them on the Inventory page.
                 </p>
                 <p v-else-if="!treatments.length" class="text-muted-foreground text-sm">None yet. Add one from “What to add”, or pick your own.</p>
@@ -546,7 +558,7 @@ async function removeFromToday() {
                         class="border-input bg-background text-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
                     >
                         <option :value="null" disabled>Pick a chemical</option>
-                        <option v-for="c in chemicals" :key="c.id" :value="c.id">{{ c.name }}</option>
+                        <option v-for="c in chemicalList" :key="c.id" :value="c.id">{{ c.name }}</option>
                     </select>
                     <!-- Whole units only: anything less is rounded up when it's saved. -->
                     <input
@@ -564,6 +576,42 @@ async function removeFromToday() {
                         class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
                         aria-label="Remove"
                         @click="removeTreatment(i)"
+                    >
+                        <X class="size-5" />
+                    </button>
+                </div>
+            </PaneSection>
+
+            <!-- repair parts used: on every visit, whatever the service -->
+            <PaneSection v-if="partList.length" title="Parts used">
+                <template #action>
+                    <PaneAction :icon="Plus" @click="addPart">Add a part</PaneAction>
+                </template>
+                <p v-if="!parts.length" class="text-muted-foreground text-sm">Replaced something? Add the part so it comes off the shelf.</p>
+                <div v-for="(p, i) in parts" :key="i" class="mb-2 flex items-center gap-2">
+                    <select
+                        v-model="p.chemical_id"
+                        aria-label="Part"
+                        class="border-input bg-background text-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
+                    >
+                        <option :value="null" disabled>Pick a part</option>
+                        <option v-for="c in partList" :key="c.id" :value="c.id">{{ partLabel(c) }}</option>
+                    </select>
+                    <input
+                        v-model="p.amount"
+                        type="number"
+                        inputmode="numeric"
+                        min="1"
+                        step="1"
+                        placeholder="Qty"
+                        aria-label="How many"
+                        class="border-input bg-background text-foreground placeholder:text-muted-foreground h-11 w-20 rounded-xl border px-3 text-base"
+                    />
+                    <span class="text-muted-foreground w-12 shrink-0 text-base">{{ unitFor(Number(p.amount), 'unit') }}</span>
+                    <button
+                        class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
+                        aria-label="Remove"
+                        @click="removePart(i)"
                     >
                         <X class="size-5" />
                     </button>

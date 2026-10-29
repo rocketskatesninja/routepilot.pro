@@ -40,6 +40,10 @@ class CompleteVisitRequest extends FormRequest
             'treatments.*.name' => ['nullable', 'string', 'max:255'],
             'treatments.*.amount' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'treatments.*.unit' => ['nullable', 'string', 'max:50'],
+            // Repair parts used, from the company's list (another company's id is ignored).
+            'parts' => ['array'],
+            'parts.*.part_id' => ['nullable', 'integer'],
+            'parts.*.amount' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'notes' => ['nullable', 'string', 'max:2000'],
             // For the company only; the homeowner never sees it.
             'office_notes' => ['nullable', 'string', 'max:2000'],

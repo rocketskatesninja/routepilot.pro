@@ -80,15 +80,17 @@ class FieldController extends Controller
             // The office's tech picker; agents only ever see their own route.
             'techs' => $user->role === 'tenant_admin' ? $this->techs($user)->map(fn (User $t): array => ['id' => $t->id, 'name' => $t->displayName()])->values()->all() : null,
             'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop, $workOrders->get($stop->pool_id, collect()), $user))->values()->all(),
-            // The chemicals a tech picks from; `key` lets a water-test suggestion find its chemical.
+            // The chemicals and repair parts a tech picks from; `key` lets a water-test suggestion find its chemical.
             'inventory' => ChemicalInventory::query()->active()
                 ->orderBy('chemical_name')
-                ->get(['id', 'chemical_name', 'standard_key', 'unit'])
+                ->get(['id', 'chemical_name', 'kind', 'part_number', 'standard_key', 'unit'])
                 ->map(fn (ChemicalInventory $c): array => [
                     'id' => $c->id,
                     'name' => $c->chemical_name,
                     'unit' => $c->unit,
                     'key' => $c->standard_key,
+                    'kind' => $c->kind,
+                    'part_number' => $c->part_number,
                 ])->all(),
         ]);
     }

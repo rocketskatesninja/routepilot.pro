@@ -21,7 +21,7 @@ import { targetsFor } from '@/lib/chemistry';
 import { agentLink, customerLink, workOrderLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
-import { formatAmount, formatDay, formatMoney } from '@/lib/utils';
+import { formatAmount, formatDay, formatMoney, unitFor } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
@@ -68,6 +68,7 @@ interface VisitDetail {
     reading: Reading | null;
     // chemical_id null: typed before the chemical list (kept as written, not billed)
     treatments: { chemical_id: number | null; name: string; amount: number; unit: string }[];
+    parts: { part_id: number | null; name: string; part_number: string | null; amount: number }[]; // repair parts used
     tasks: { name: string; done: boolean }[];
     photos: string[];
     trend: { chlorine: number[]; ph: number[]; dates: string[] };
@@ -81,6 +82,7 @@ const props = defineProps<{
     visits: Paginated<VisitRow>;
     selected: VisitDetail | null;
     chemicals: { id: number; name: string; unit: string }[]; // what the edit form picks from
+    parts: { id: number; name: string; part_number: string | null }[]; // likewise, repair parts
     sort: { key: string; dir: string };
 }>();
 
@@ -142,6 +144,7 @@ const form = useForm<{
     office_notes: string;
     reading: Record<string, number | string | null>;
     treatments: { chemical_id: number | null; name: string; amount: number | string; unit: string }[];
+    parts: { part_id: number | null; amount: number | string }[];
     tasks: { name: string; done: boolean }[];
 }>({
     completed_on: '',
@@ -149,6 +152,7 @@ const form = useForm<{
     office_notes: '',
     reading: {},
     treatments: [],
+    parts: [],
     tasks: [],
 });
 
@@ -160,6 +164,7 @@ function openEdit() {
     form.office_notes = s.office_notes ?? '';
     form.reading = Object.fromEntries(editReadingKeys.map((k) => [k, s.reading?.[k] ?? null]));
     form.treatments = s.treatments.map((t) => ({ ...t }));
+    form.parts = s.parts.map((p) => ({ part_id: p.part_id, amount: p.amount }));
     form.tasks = s.tasks.map((t) => ({ ...t }));
     form.clearErrors();
     editing.value = true;
@@ -352,6 +357,41 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                     </div>
                                 </div>
                             </div>
+                            <div v-if="props.parts.length || form.parts.length">
+                                <div class="mb-1 flex items-center justify-between">
+                                    <span class="text-muted-foreground text-xs font-medium">Parts used</span>
+                                    <Button type="button" size="sm" variant="outline" @click="form.parts.push({ part_id: null, amount: 1 })">
+                                        <Plus class="mr-1 size-3.5" /> Add
+                                    </Button>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <div v-for="(p, i) in form.parts" :key="i" class="flex items-center gap-2">
+                                        <select
+                                            v-model="p.part_id"
+                                            aria-label="Part"
+                                            class="border-input bg-background h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
+                                        >
+                                            <option :value="null" disabled>Pick a part</option>
+                                            <option v-for="c in props.parts" :key="c.id" :value="c.id">
+                                                {{ c.part_number ? `${c.name} · #${c.part_number}` : c.name }}
+                                            </option>
+                                        </select>
+                                        <Input
+                                            v-model="p.amount"
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            placeholder="Qty"
+                                            aria-label="How many"
+                                            class="w-16"
+                                        />
+                                        <span class="text-muted-foreground w-7 text-sm">{{ unitFor(Number(p.amount), 'unit') }}</span>
+                                        <Button type="button" size="icon" variant="outline" aria-label="Remove" @click="form.parts.splice(i, 1)"
+                                            ><X class="size-4"
+                                        /></Button>
+                                    </div>
+                                </div>
+                            </div>
                             <div>
                                 <div class="mb-1 flex items-center justify-between">
                                     <span class="text-muted-foreground text-xs font-medium">Tasks</span>
@@ -422,6 +462,21 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                     <PaneItem v-for="(t, i) in visit.treatments" :key="i" :title="t.name">
                                         <template #trailing
                                             ><span class="tabular-nums">{{ formatAmount(t.amount, t.unit) }}</span></template
+                                        >
+                                    </PaneItem>
+                                </PaneList>
+                            </PaneSection>
+
+                            <PaneSection v-if="visit.parts.length" title="Parts used">
+                                <PaneList>
+                                    <PaneItem
+                                        v-for="(p, i) in visit.parts"
+                                        :key="i"
+                                        :title="p.name"
+                                        :sub="p.part_number ? `Part #${p.part_number}` : null"
+                                    >
+                                        <template #trailing
+                                            ><span class="tabular-nums">{{ formatAmount(p.amount, 'unit') }}</span></template
                                         >
                                     </PaneItem>
                                 </PaneList>

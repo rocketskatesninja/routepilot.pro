@@ -9,8 +9,9 @@ use App\Models\ServiceVisit;
 use App\Services\BillingService;
 
 /**
- * Record the chemicals used on a visit — from the field app or an office edit,
- * the same way. Whatever the visit took off the shelf before goes back; then
+ * Record the chemicals and repair parts used on a visit — from the field app or
+ * an office edit, the same way (parts come in their own list, but they're rows
+ * of the same kind: an inventory item and a whole number of it). Whatever the visit took off the shelf before goes back; then
  * each chemical picked from the company's list is recorded in its own unit,
  * rounded up to a whole one, taken off the shelf, and billed if the customer
  * pays for chemicals.
@@ -28,9 +29,12 @@ class RecordTreatments
 
     /**
      * @param  list<array<string, mixed>>  $rows  {chemical_id, amount} or a typed {name, amount, unit}
+     * @param  list<array<string, mixed>>  $parts  repair parts used: {part_id, amount}
      */
-    public function handle(ServiceVisit $visit, array $rows, int $byUserId): void
+    public function handle(ServiceVisit $visit, array $rows, int $byUserId, array $parts = []): void
     {
+        $rows = [...$rows, ...array_map(fn (array $p): array => ['chemical_id' => $p['part_id'] ?? null, 'amount' => $p['amount'] ?? null], $parts)];
+
         $this->reverseInventory->handle($visit);
         $visit->treatments()->delete();
 

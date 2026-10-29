@@ -113,7 +113,7 @@ class CompleteVisit
                 }
             }
 
-            $this->treatments->handle($visit, $this->rows($data['treatments'] ?? null), $agent->id);
+            $this->treatments->handle($visit, $this->rows($data['treatments'] ?? null), $agent->id, $this->rows($data['parts'] ?? null));
 
             foreach ($photos as $photo) {
                 $visit->photos()->create(['photo_path' => $this->photos->store($photo, 'visit-photos/'.$visit->id)]);

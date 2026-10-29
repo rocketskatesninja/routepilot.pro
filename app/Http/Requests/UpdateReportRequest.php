@@ -50,6 +50,10 @@ class UpdateReportRequest extends FormRequest
             'treatments.*.name' => ['nullable', 'string', 'max:120'],
             'treatments.*.amount' => ['nullable', 'numeric', 'min:0'],
             'treatments.*.unit' => ['nullable', 'string', 'max:30'],
+            // Repair parts used, from the company's list.
+            'parts' => ['array'],
+            'parts.*.part_id' => ['nullable', 'integer'],
+            'parts.*.amount' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'tasks' => ['array'],
             'tasks.*.name' => ['nullable', 'string', 'max:160'],
             'tasks.*.done' => ['boolean'],

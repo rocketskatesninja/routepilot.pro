@@ -84,6 +84,8 @@ export interface FieldChemical {
     name: string;
     unit: string;
     key?: string | null; // absent on bundles cached before the chemical list
+    kind?: 'chemical' | 'part'; // absent on bundles cached before parts: all chemicals then
+    part_number?: string | null;
 }
 
 /** A chemical on the visit: picked from the list, a whole number of its unit. */
@@ -98,6 +100,7 @@ export interface VisitDraft {
     reading: Record<string, string>;
     tasks: { name: string; done: boolean }[];
     treatments: TreatmentDraft[]; // drafts from before the chemical list hold typed {name, amount, unit} rows
+    parts?: TreatmentDraft[]; // repair parts used (absent on drafts from before parts); chemical_id is the part's id
     notes: string;
     office_notes?: string; // absent on drafts saved before the office note existed
     report_cc?: string; // likewise, before the copy-to address

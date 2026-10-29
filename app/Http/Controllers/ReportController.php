@@ -80,7 +80,7 @@ class ReportController extends Controller
                 ->when($ownOnly, fn ($q) => $q->where('agent_id', $user?->id))
                 ->with([
                     'pool:id,name,customer_id,custom_target_ranges', 'pool.customer:id,first_name,last_name', 'agent:id,first_name,last_name,role',
-                    'serviceSubscription.serviceType:id,name', 'chemicalReading', 'treatments', 'tasks', 'photos',
+                    'serviceSubscription.serviceType:id,name', 'chemicalReading', 'treatments.chemical:id,kind,part_number', 'tasks', 'photos',
                     'workOrder:id,service_visit_id,title,details,urgent,status',
                 ])
                 ->find($selectedId);
@@ -113,9 +113,12 @@ class ReportController extends Controller
             'visits' => $visits,
             'selected' => $selected,
             // What the edit form picks chemicals from (only needed with a report open).
-            'chemicals' => $selected === null ? [] : ChemicalInventory::query()->active()->orderBy('chemical_name')
+            'chemicals' => $selected === null ? [] : ChemicalInventory::query()->active()->chemicals()->orderBy('chemical_name')
                 ->get(['id', 'chemical_name', 'unit'])
                 ->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'unit' => $c->unit])->all(),
+            'parts' => $selected === null ? [] : ChemicalInventory::query()->active()->parts()->orderBy('chemical_name')
+                ->get(['id', 'chemical_name', 'part_number'])
+                ->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'part_number' => $c->part_number])->all(),
             'sort' => $sort,
         ]);
     }
@@ -176,12 +179,19 @@ class ReportController extends Controller
                 'water_temperature' => $reading->water_temperature,
                 'lsi_score' => $reading->lsi_score,
             ] : null,
-            'treatments' => $visit->treatments->map(fn ($t) => [
+            // Chemicals added, and repair parts used (rows of the same table, told apart by their item).
+            'treatments' => $visit->treatments->reject(fn ($t) => $t->chemical?->isPart() === true)->map(fn ($t) => [
                 'chemical_id' => $t->getAttribute('chemical_inventory_id'), // null: typed before the chemical list
                 'name' => $t->getAttribute('chemical_name'),
                 'amount' => (float) $t->getAttribute('amount'),
                 'unit' => $t->getAttribute('unit'),
-            ])->all(),
+            ])->values()->all(),
+            'parts' => $visit->treatments->filter(fn ($t) => $t->chemical?->isPart() === true)->map(fn ($t) => [
+                'part_id' => $t->getAttribute('chemical_inventory_id'),
+                'name' => $t->getAttribute('chemical_name'),
+                'part_number' => $t->chemical?->part_number,
+                'amount' => (float) $t->getAttribute('amount'),
+            ])->values()->all(),
             'tasks' => $visit->tasks->map(fn ($t) => [
                 'name' => $t->getAttribute('task_name'),
                 'done' => (bool) $t->getAttribute('is_completed'),
