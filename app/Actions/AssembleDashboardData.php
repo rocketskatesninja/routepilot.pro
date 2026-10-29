@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions;
 
+use App\Dashboard\Advisories;
 use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\Pool;
@@ -57,6 +58,7 @@ class AssembleDashboardData
             'notifications' => fn () => $this->notifications($user),
             'work_orders' => fn () => $this->workOrders($user),
             'running_low' => fn () => $this->runningLow(),
+            'advisories' => fn () => $this->advisories($user),
             // agent
             'agent_stats' => fn () => $this->agentStats($user),
             'agent_route' => fn () => $this->agentRoute($user),
@@ -558,6 +560,22 @@ class AssembleDashboardData
                     'reorder_at' => (float) $c->reorder_threshold,
                 ])->values()->all(),
             'tracked' => $chemicals->count(),
+        ];
+    }
+
+    /**
+     * What needs attention now, worst first: the company's for an admin, their own day's for a tech.
+     *
+     * @return array{items: list<array<string, mixed>>, tech: bool}
+     */
+    private function advisories(User $user): array
+    {
+        $tech = $user->getAttribute('role') === 'agent';
+        $weather = $this->weather($user);
+
+        return [
+            'items' => $tech ? Advisories::forAgent($user, $weather) : Advisories::forAdmin($user, $weather),
+            'tech' => $tech,
         ];
     }
 

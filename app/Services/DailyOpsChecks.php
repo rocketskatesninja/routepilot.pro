@@ -6,18 +6,14 @@ namespace App\Services;
 
 use App\Mail\ServiceReminderMail;
 use App\Models\Customer;
-use App\Models\Invoice;
-use App\Models\Pool;
-use App\Models\Route;
 use App\Models\RouteStop;
-use App\Models\ServiceSubscription;
-use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Notifications\BalanceReminder;
 use App\Notifications\OpsAlert;
 use App\Notifications\ServiceReminder;
 use App\Support\EmailPreferences;
+use App\Support\OpsSignals;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
@@ -63,11 +59,7 @@ class DailyOpsChecks
      */
     private function unassignedPools(Collection $admins): bool
     {
-        $count = ServiceSubscription::query()
-            ->where('status', 'active')
-            ->whereNull('assigned_agent_id')
-            ->distinct()
-            ->count('pool_id');
+        $count = OpsSignals::unassignedPools()->count();
 
         if ($count === 0) {
             return false;
@@ -85,11 +77,7 @@ class DailyOpsChecks
      */
     private function noRoutesTomorrow(Collection $admins): bool
     {
-        $hasStops = RouteStop::query()
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', Tenant::localToday()->addDay()))
-            ->exists();
-
-        if ($hasStops || ! ServiceSubscription::query()->where('status', 'active')->exists()) {
+        if (! OpsSignals::nothingTomorrow()) {
             return false;
         }
 
@@ -105,7 +93,7 @@ class DailyOpsChecks
      */
     private function overdueBalances(Collection $admins): bool
     {
-        $count = Invoice::query()->where('status', 'overdue')->distinct()->count('customer_id');
+        $count = OpsSignals::overdueCustomers()->count();
         if ($count === 0) {
             return false;
         }
@@ -122,21 +110,7 @@ class DailyOpsChecks
      */
     private function staleChemistry(Collection $admins): bool
     {
-        $activePoolIds = Pool::query()
-            ->whereHas('subscriptions', fn ($q) => $q->where('status', 'active'))
-            ->pluck('id');
-
-        if ($activePoolIds->isEmpty()) {
-            return false;
-        }
-
-        $testedPoolIds = ServiceVisit::query()
-            ->whereIn('pool_id', $activePoolIds)
-            ->whereHas('chemicalReading', fn ($q) => $q->where('created_at', '>=', now()->subDays(14)))
-            ->distinct()
-            ->pluck('pool_id');
-
-        $count = $activePoolIds->diff($testedPoolIds)->count();
+        $count = OpsSignals::untestedPools()->count();
         if ($count === 0) {
             return false;
         }
@@ -153,18 +127,7 @@ class DailyOpsChecks
      */
     private function idleAgents(Collection $admins): bool
     {
-        $activeAgentIds = User::query()
-            ->where('tenant_id', $admins->first()?->getAttribute('tenant_id'))
-            ->where('role', 'agent')
-            ->where('is_active', true)
-            ->pluck('id');
-
-        if ($activeAgentIds->isEmpty()) {
-            return false;
-        }
-
-        $busyAgentIds = Route::query()->whereDate('scheduled_date', Tenant::localToday())->pluck('agent_id')->unique();
-        $count = $activeAgentIds->diff($busyAgentIds)->count();
+        $count = OpsSignals::idleTechs((int) $admins->first()?->getAttribute('tenant_id'))->count();
         if ($count === 0) {
             return false;
         }
@@ -183,10 +146,7 @@ class DailyOpsChecks
     private function missedYesterday(Collection $admins): bool
     {
         $yesterday = Tenant::localToday()->subDay();
-        $count = RouteStop::query()
-            ->where('status', 'missed')
-            ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', $yesterday))
-            ->count();
+        $count = OpsSignals::missedYesterday()->count();
 
         if ($count === 0) {
             return false;

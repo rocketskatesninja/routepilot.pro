@@ -14,6 +14,7 @@ import {
     LayoutGrid,
     ListChecks,
     Map,
+    TriangleAlert,
     Waves,
     Wrench,
     X,
@@ -41,6 +42,7 @@ const ICONS: Record<string, LucideIcon> = {
     Building2,
     Wrench,
     FlaskConical,
+    TriangleAlert,
 };
 const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
 </script>

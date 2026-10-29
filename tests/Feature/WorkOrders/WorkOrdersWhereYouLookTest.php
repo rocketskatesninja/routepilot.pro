@@ -73,7 +73,7 @@ test('Agent+ sees the whole list on the dashboard; a tech sees only theirs', fun
 });
 
 test('the widget is on the office and agent grids by default', function () {
-    expect(DashboardWidgets::layoutsFor($this->admin)['desktop'])->toContain(['i' => 'work_orders', 'x' => 6, 'y' => 9, 'w' => 6, 'h' => 5])
+    expect(DashboardWidgets::layoutsFor($this->admin)['desktop'])->toContain(['i' => 'work_orders', 'x' => 8, 'y' => 9, 'w' => 4, 'h' => 5])
         ->and(collect(DashboardWidgets::layoutsFor($this->tech)['mobile'])->pluck('i'))->toContain('work_orders');
 });
 
