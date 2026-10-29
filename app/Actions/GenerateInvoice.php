@@ -9,8 +9,10 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Tenant;
 use App\Services\BillingService;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Bill a customer: put every charge not yet on an invoice onto a new one. The
@@ -41,7 +43,7 @@ class GenerateInvoice
 
             $invoice = Invoice::create([
                 'customer_id' => $customer->id,
-                'number' => $this->nextNumber(),
+                'number' => $this->numberFor($customer, $localToday),
                 'status' => 'draft',
                 'period_end' => $localToday->toDateString(),
                 'issued_at' => now(),
@@ -55,16 +57,25 @@ class GenerateInvoice
     }
 
     /**
-     * Next per-company sequential invoice number (the query is tenant-scoped).
-     * Derived from the highest issued number, not count(), so it's robust
-     * against deletes; the lock in handle() keeps two runs from reading the
-     * same one, and the (tenant_id, number) unique index is the final guard.
+     * The customer's last name and the invoice date, e.g. "RODRIGUEZ-20261101";
+     * another one with the same name that day gets "-2", "-3"… (the query is
+     * tenant-scoped). The lock in handle() keeps two runs from taking the same
+     * number, and the (tenant_id, number) unique index is the final guard.
+     * Invoices made before this kept their "INV-00001" numbers.
      */
-    private function nextNumber(): string
+    private function numberFor(Customer $customer, CarbonInterface $date): string
     {
-        $last = Invoice::query()->orderByDesc('number')->value('number');
-        $n = is_string($last) ? ((int) substr($last, 4)) + 1 : 1;
+        $name = collect([$customer->last_name, $customer->first_name])
+            ->map(fn ($n) => substr((string) preg_replace('/[^A-Z0-9]/', '', strtoupper(Str::ascii((string) $n))), 0, 20))
+            ->first(fn (string $n) => $n !== '') ?? 'INVOICE';
+        $base = $name.'-'.$date->format('Ymd');
 
-        return 'INV-'.str_pad((string) $n, 5, '0', STR_PAD_LEFT);
+        $taken = Invoice::query()->where('number', 'like', $base.'%')->pluck('number')->all();
+        $number = $base;
+        for ($n = 2; in_array($number, $taken, true); $n++) {
+            $number = $base.'-'.$n;
+        }
+
+        return $number;
     }
 }
