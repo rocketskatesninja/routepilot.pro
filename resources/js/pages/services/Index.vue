@@ -293,6 +293,22 @@ function destroyService() {
                             <p class="text-muted-foreground text-xs">Fills in everything below — change whatever you like.</p>
                         </div>
 
+                        <!-- first: these two decide whether customers see it at all (the preview below follows them) -->
+                        <section class="space-y-2">
+                            <h3 class="font-display text-base font-semibold tracking-tight">1. Availability</h3>
+                            <label class="flex items-start gap-2"
+                                ><input v-model="form.is_active" type="checkbox" class="mt-0.5" />
+                                <span>Active <span class="text-muted-foreground">— can be added to pools</span></span></label
+                            >
+                            <label class="flex items-start gap-2" :class="form.is_active ? '' : 'opacity-50'"
+                                ><input v-model="form.requestable" type="checkbox" class="mt-0.5" :disabled="!form.is_active" />
+                                <span
+                                    >Customers can request this
+                                    <span class="text-muted-foreground">— shown in their portal and on your website</span></span
+                                ></label
+                            >
+                        </section>
+
                         <!-- live preview: the same card customers see in their portal -->
                         <div class="border-border rounded-2xl border p-5">
                             <p class="text-muted-foreground mb-3 flex items-center gap-1.5 text-xs font-medium">
@@ -303,7 +319,7 @@ function destroyService() {
                         </div>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">1. What it is</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">2. What it is</h3>
                             <div class="grid gap-1.5">
                                 <Label for="name">Name</Label>
                                 <Input id="name" v-model="form.name" placeholder="e.g. Weekly pool service" />
@@ -325,7 +341,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">2. How it's sold</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">3. How it's sold</h3>
                             <div class="flex gap-2">
                                 <Button type="button" size="sm" :variant="recurring ? 'default' : 'outline'" @click="recurring = true"
                                     >Recurring</Button
@@ -348,7 +364,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">3. Price</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">4. Price</h3>
                             <div class="flex items-center gap-2">
                                 <span class="text-muted-foreground">$</span>
                                 <Input id="price" v-model="form.price" type="number" step="0.01" min="0" class="w-28" />
@@ -359,7 +375,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">4. What the tech does</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">5. What the tech does</h3>
                             <div>
                                 <span class="text-muted-foreground text-xs">Sections on the tech's visit screen</span>
                                 <div class="mt-1 grid grid-cols-2 gap-1">
@@ -388,7 +404,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">5. Time on site</h3>
+                            <h3 class="font-display text-base font-semibold tracking-tight">6. Time on site</h3>
                             <div class="flex items-center gap-2">
                                 <Input id="duration" v-model="form.estimated_duration_minutes" type="number" min="5" max="600" class="w-24" />
                                 <span class="text-muted-foreground">minutes</span>
@@ -397,21 +413,6 @@ function destroyService() {
                                 {{ form.errors.estimated_duration_minutes }}
                             </p>
                             <p v-else class="text-muted-foreground text-xs">Customers see it as how long a visit takes.</p>
-                        </section>
-
-                        <section class="space-y-2">
-                            <h3 class="font-display text-base font-semibold tracking-tight">6. Availability</h3>
-                            <label class="flex items-start gap-2"
-                                ><input v-model="form.is_active" type="checkbox" class="mt-0.5" />
-                                <span>Active <span class="text-muted-foreground">— can be added to pools</span></span></label
-                            >
-                            <label class="flex items-start gap-2" :class="form.is_active ? '' : 'opacity-50'"
-                                ><input v-model="form.requestable" type="checkbox" class="mt-0.5" :disabled="!form.is_active" />
-                                <span
-                                    >Customers can request this
-                                    <span class="text-muted-foreground">— shown in their portal and on your website</span></span
-                                ></label
-                            >
                         </section>
 
                         <div class="flex justify-end gap-2 pt-1">
