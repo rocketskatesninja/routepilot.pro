@@ -18,6 +18,7 @@ use App\Models\TenantSetting;
 use App\Models\User;
 use App\Services\BillingService;
 use App\Services\SubscriptionMaterializer;
+use App\Support\DemoParts;
 use App\Support\LandingConfig;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -115,6 +116,9 @@ class DemoSeeder extends Seeder
                 'reorder_threshold' => $reorder, 'cost_per_unit' => $cost, 'sell_price' => $sell, 'is_active' => true,
             ]);
         }
+
+        // Common repair parts, stocked and priced, with the skimmer lid running low.
+        DemoParts::addTo();
 
         $firstCustomer = null;
         $names = [

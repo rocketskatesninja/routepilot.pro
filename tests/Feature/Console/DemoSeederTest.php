@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\ChemicalInventory;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
+use App\Support\DemoParts;
 use Database\Seeders\DemoSeeder;
 
 /**
@@ -48,4 +50,15 @@ test('nothing in the demo company\'s past is left pending', function () {
         ->count();
 
     expect($pastPending)->toBe(0);
+});
+
+test('the demo company keeps common repair parts, stocked through the log, with one running low', function () {
+    $parts = ChemicalInventory::query()->parts()->get();
+
+    expect($parts)->toHaveCount(count(DemoParts::LIST))
+        ->and($parts->every(fn ($p) => $p->unit === 'unit' && $p->part_number === null))->toBeTrue()
+        ->and((float) $parts->firstWhere('chemical_name', 'Pump lid O-ring')?->current_stock)->toBe(8.0)
+        ->and($parts->firstWhere('chemical_name', 'Pump lid O-ring')?->transactions()->sole()->only(['type', 'quantity']))->toBe(['type' => 'restock', 'quantity' => '8.00'])
+        ->and($parts->filter->isLowStock()->pluck('chemical_name')->all())->toBe(['Skimmer lid'])
+        ->and($parts->firstWhere('chemical_name', 'Thread seal tape')?->sell_price)->toBeNull();
 });
