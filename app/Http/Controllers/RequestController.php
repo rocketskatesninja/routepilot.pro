@@ -7,8 +7,10 @@ namespace App\Http\Controllers;
 use App\Actions\ApproveServiceRequest;
 use App\Actions\CreateServiceRequest;
 use App\Actions\DeclineServiceRequest;
+use App\Actions\DeleteFromInbox;
 use App\Http\Requests\ApproveServiceRequestRequest;
 use App\Http\Requests\DeclineServiceRequestRequest;
+use App\Http\Requests\DeleteInboxItemsRequest;
 use App\Http\Requests\StoreServiceRequestRequest;
 use App\Models\Customer;
 use App\Models\ServiceRequest;
@@ -51,5 +53,16 @@ class RequestController extends Controller
         }
 
         return back()->with('success', 'Declined — the customer has been told why.');
+    }
+
+    /** Delete one request (from its pane) or several (ticked in the list). */
+    public function destroy(DeleteInboxItemsRequest $request, DeleteFromInbox $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+        $user = $request->user();
+        abort_if($user === null, 403);
+        $count = $action->requests($request->ids(), $user);
+
+        return back()->with('success', $count === 1 ? 'Request deleted.' : "{$count} requests deleted.");
     }
 }

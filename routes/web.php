@@ -203,6 +203,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('inbox', [InboxController::class, 'index'])->name('inbox.index');
         Route::patch('leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
         Route::post('leads/{lead}/convert', [LeadController::class, 'convert'])->name('leads.convert');
+        Route::delete('leads', [LeadController::class, 'destroy'])->name('leads.destroy'); // ids[]: one or several
         Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
         Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
         Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
@@ -212,6 +213,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::post('invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void');
         Route::post('requests/{serviceRequest}/approve', [RequestController::class, 'approve'])->name('requests.approve');
         Route::post('requests/{serviceRequest}/decline', [RequestController::class, 'decline'])->name('requests.decline');
+        Route::delete('requests', [RequestController::class, 'destroy'])->name('requests.destroy'); // ids[]: one or several
 
         // Platform billing for the tenant (trial/subscription + Stripe Checkout/portal).
         Route::get('billing', [BillingController::class, 'show'])->name('billing.show');

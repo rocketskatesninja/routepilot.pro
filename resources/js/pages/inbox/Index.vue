@@ -22,7 +22,7 @@ import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Check, CirclePause, CircleStop, ClipboardList, Inbox, MessageSquare, UserPlus, X } from 'lucide-vue-next';
+import { CalendarCheck, Check, CirclePause, CircleStop, ClipboardList, Inbox, MessageSquare, Trash2, UserPlus, X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 interface RequestRow {
@@ -119,6 +119,23 @@ const closePane = () => {
     if (mode.value !== 'none') mode.value = 'none';
     else visitQuery({ selected: undefined });
 };
+
+// Deleting: the ticked rows (this tab, this page) from the header, or the open one from its pane.
+const ticked = ref<(string | number)[]>([]);
+watch(
+    () => [props.tab, props.status, props.rows.current_page],
+    () => (ticked.value = []),
+);
+function remove(ids: (string | number)[]) {
+    const noun = props.tab === 'leads' ? 'lead' : 'request';
+    const what = ids.length === 1 ? `this ${noun}` : `these ${ids.length} ${noun}s`;
+    if (!confirm(`Delete ${what}? This can’t be undone.`)) return;
+    router.delete(props.tab === 'leads' ? '/leads' : '/requests', {
+        data: { ids },
+        preserveScroll: true,
+        onSuccess: () => (ticked.value = ticked.value.filter((k) => !ids.includes(k))),
+    });
+}
 
 const tabs = computed(() => [
     { key: 'requests', label: 'Customer requests', count: props.counts.requests },
@@ -274,6 +291,9 @@ const submitConvert = () => {
         </template>
 
         <template #actions>
+            <Button v-if="ticked.length" size="sm" variant="outline" class="text-red-600 hover:text-red-600 dark:text-red-400" @click="remove(ticked)"
+                ><Trash2 class="mr-1 size-3.5" /> Delete {{ ticked.length }} selected</Button
+            >
             <div class="border-input flex rounded-md border p-0.5">
                 <button
                     v-for="s in ['open', 'closed']"
@@ -300,6 +320,7 @@ const submitConvert = () => {
                         v-if="props.tab === 'requests'"
                         :meta="requestRows"
                         :columns="4"
+                        v-model:checked="ticked"
                         :row-key="(r) => r.id"
                         :selected-key="props.selected?.id ?? null"
                         @select="(r) => open(r.id)"
@@ -337,6 +358,7 @@ const submitConvert = () => {
                         v-else
                         :meta="leadRows"
                         :columns="4"
+                        v-model:checked="ticked"
                         :row-key="(l) => l.id"
                         :selected-key="props.selected?.id ?? null"
                         @select="(l) => open(l.id)"
@@ -372,6 +394,15 @@ const submitConvert = () => {
                     <div v-if="request" class="space-y-6">
                         <PaneHeader :title="request.title" :summary="`Received ${formatDay(request.on)}.`">
                             <template #media><IconTile :icon="requestIcon[request.type] ?? MessageSquare" size="lg" /></template>
+                            <template #actions>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    class="text-red-600 hover:text-red-600 dark:text-red-400"
+                                    @click="remove([request.id])"
+                                    ><Trash2 class="mr-1 size-3.5" /> Delete</Button
+                                >
+                            </template>
                             <template #badge>
                                 <Chip :tone="request.status === 'pending' ? 'warn' : request.status === 'approved' ? 'good' : 'muted'">{{
                                     request.status_label
@@ -560,6 +591,15 @@ const submitConvert = () => {
                     <div v-else-if="lead" class="space-y-6">
                         <PaneHeader :title="lead.name" :summary="`${sources[lead.source] ?? lead.source}, ${formatDay(lead.on)}.`">
                             <template #media><IconTile :icon="UserPlus" size="lg" /></template>
+                            <template #actions>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    class="text-red-600 hover:text-red-600 dark:text-red-400"
+                                    @click="remove([lead.id])"
+                                    ><Trash2 class="mr-1 size-3.5" /> Delete</Button
+                                >
+                            </template>
                             <template #badge>
                                 <Chip
                                     :tone="

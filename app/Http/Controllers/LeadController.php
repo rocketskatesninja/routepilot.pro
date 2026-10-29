@@ -6,7 +6,9 @@ namespace App\Http\Controllers;
 
 use App\Actions\CaptureLead;
 use App\Actions\ConvertLead;
+use App\Actions\DeleteFromInbox;
 use App\Http\Requests\ConvertLeadRequest;
+use App\Http\Requests\DeleteInboxItemsRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Models\Lead;
 use App\Models\Tenant;
@@ -55,5 +57,16 @@ class LeadController extends Controller
         return $result['request'] !== null
             ? redirect('/inbox?selected='.$result['request']->id)->with('success', 'Customer added — approve their request to schedule it.')
             : redirect('/people?selected='.$result['customer']->id.'&selected_type=customer')->with('success', 'Customer added.');
+    }
+
+    /** Delete one lead (from its pane) or several (ticked in the list). */
+    public function destroy(DeleteInboxItemsRequest $request, DeleteFromInbox $action): RedirectResponse
+    {
+        $this->authorizeAdmin($request);
+        $user = $request->user();
+        abort_if($user === null, 403);
+        $count = $action->leads($request->ids(), $user);
+
+        return back()->with('success', $count === 1 ? 'Lead deleted.' : "{$count} leads deleted.");
     }
 }
