@@ -24,6 +24,7 @@ const props = defineProps<{
         city: string | null;
         state: string | null;
         postal_code: string | null;
+        unlocated: boolean; // a saved address that couldn't be placed on the map
         reply_to_email: string | null;
         report_messages: boolean;
     };
@@ -210,6 +211,14 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
 
                         <div v-show="activeTab === 'address'" class="flex flex-col space-y-6">
                             <HeadingSmall title="Business address" description="Used to center your public service-area map." />
+                            <p
+                                v-if="props.company.unlocated"
+                                role="alert"
+                                class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
+                            >
+                                This address couldn’t be placed on the map, so your website’s “Where we serve” map can’t show. Check it’s complete,
+                                then save it again. If it still won’t place, the map lookup itself is failing; let RoutePilot know.
+                            </p>
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div class="grid gap-2">
                                     <Label for="addr1">Street address</Label>

@@ -46,6 +46,8 @@ class CompanySettingsController extends Controller
                 'city' => $tenant->getAttribute('city'),
                 'state' => $tenant->getAttribute('state'),
                 'postal_code' => $tenant->getAttribute('postal_code'),
+                // An address that couldn't be placed on the map (its website's service-area map can't show).
+                'unlocated' => $tenant->formattedAddress() !== null && $tenant->getAttribute('lat') === null,
                 'reply_to_email' => $tenant->reply_to_email,
                 'report_messages' => $tenant->takesReportMessages(),
             ],

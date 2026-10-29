@@ -535,6 +535,14 @@ function save() {
                             </template>
 
                             <template v-else-if="s.key === 'service_area'">
+                                <p
+                                    v-if="typeof props.live.serviceArea?.lat !== 'number'"
+                                    role="alert"
+                                    class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400"
+                                >
+                                    The map isn’t showing: your business address hasn’t been placed on the map yet. Check it in
+                                    <Link href="/company" class="font-medium underline underline-offset-4">Company settings</Link> and save it again.
+                                </p>
                                 <EditorField label="Area caption"
                                     ><Input v-model="s.radius_label" placeholder="Serving a 25-mile radius"
                                 /></EditorField>

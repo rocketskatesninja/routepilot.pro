@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\GeocodingService;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 beforeEach(function () {
     config(['services.google.server_maps_key' => 'test-key']);
@@ -85,4 +86,25 @@ test('the backfill command geocodes locations missing coordinates', function () 
     $this->artisan('app:geocode-locations')->assertSuccessful();
 
     expect($location->fresh()?->lat)->toBe(29.7);
+});
+
+test('a refused lookup logs Google’s reason, and the office is told the address isn’t on the map', function () {
+    Http::fake(['maps.googleapis.com/*' => Http::response([
+        'status' => 'REQUEST_DENIED',
+        'error_message' => 'API keys with referer restrictions cannot be used with this API.',
+    ], 200)]);
+    Log::spy();
+
+    $this->actingAs($this->admin)->patch('/company', [
+        'name' => 'Glynn Pool Care', 'timezone' => 'America/New_York', 'brand_color' => '#0ea5e9', 'tax_rate_percent' => 0,
+        'address_line1' => '3875 Darien Hwy', 'city' => 'Brunswick', 'state' => 'GA', 'postal_code' => '31525',
+    ])->assertSessionHasNoErrors();
+
+    Log::shouldHaveReceived('warning')->withArgs(fn (string $msg, array $ctx) => $msg === 'Geocoding non-OK status'
+        && $ctx['reason'] === 'API keys with referer restrictions cannot be used with this API.');
+    $this->actingAs($this->admin)->get('/company')->assertInertia(fn ($page) => $page->where('company.unlocated', true));
+
+    $this->tenant->forceFill(['lat' => 31.18, 'lng' => -81.49])->save();
+    // A fresh user: the one above still carries the company as it was loaded before.
+    $this->actingAs($this->admin->fresh())->get('/company')->assertInertia(fn ($page) => $page->where('company.unlocated', false));
 });

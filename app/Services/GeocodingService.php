@@ -61,7 +61,8 @@ class GeocodingService
         $data = $response->json();
         $status = data_get($data, 'status');
         if ($status !== 'OK') {
-            Log::warning('Geocoding non-OK status', ['status' => $status, 'address' => $address]);
+            // Google says why (e.g. the key's restrictions refused this server).
+            Log::warning('Geocoding non-OK status', ['status' => $status, 'reason' => data_get($data, 'error_message'), 'address' => $address]);
 
             return null;
         }
