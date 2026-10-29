@@ -559,7 +559,7 @@ async function removeFromToday() {
                         aria-label="Amount"
                         class="border-input bg-background text-foreground placeholder:text-muted-foreground h-11 w-20 rounded-xl border px-3 text-base"
                     />
-                    <span class="text-muted-foreground w-10 shrink-0 text-base">{{ unitFor(Number(t.amount), unitOf(t.chemical_id)) }}</span>
+                    <span class="text-muted-foreground w-12 shrink-0 text-base">{{ unitFor(Number(t.amount), unitOf(t.chemical_id)) }}</span>
                     <button
                         class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
                         aria-label="Remove"

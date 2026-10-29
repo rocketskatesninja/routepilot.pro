@@ -16,11 +16,20 @@ export function formatAmount(n: number, unit: string): string {
     return `${Number.isInteger(n) ? n : n.toFixed(2)} ${unitFor(n, unit)}`;
 }
 
-/** A unit agreeing with its amount: bag/bags, lb/lbs; others (gal, older typed ones) as given. Matches StandardChemicals::unitFor. */
+/** A unit agreeing with its amount: bag/bags, lb/lbs, puck/pucks, tab/tabs; others (gal, older typed ones) as given. Matches StandardChemicals::unitFor. */
 export function unitFor(n: number, unit: string): string {
-    if (unit === 'bag' || unit === 'bags') return n === 1 ? 'bag' : 'bags';
-    if (unit === 'lb' || unit === 'lbs') return n === 1 ? 'lb' : 'lbs';
-    return unit;
+    const counted: Record<string, [string, string]> = {
+        bag: ['bag', 'bags'],
+        bags: ['bag', 'bags'],
+        lb: ['lb', 'lbs'],
+        lbs: ['lb', 'lbs'],
+        puck: ['puck', 'pucks'],
+        pucks: ['puck', 'pucks'],
+        tab: ['tab', 'tabs'],
+        tabs: ['tab', 'tabs'],
+    };
+    const forms = counted[unit];
+    return forms ? forms[n === 1 ? 0 : 1] : unit;
 }
 
 /** Deep clone a plain (JSON-serializable) value. */

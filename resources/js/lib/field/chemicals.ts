@@ -1,7 +1,8 @@
 /**
  * Turning a water-test suggestion into a chemical from the company's list.
  * The chemistry engine names chemicals its own way and doses in oz or lbs; each
- * company chemical has one unit (gal or lbs) and is recorded in whole ones.
+ * company chemical has one unit (gal, lbs, bag, puck or tab) and is recorded in
+ * whole ones. The engine never suggests tablets, so pucks and tabs aren't converted.
  */
 
 /**

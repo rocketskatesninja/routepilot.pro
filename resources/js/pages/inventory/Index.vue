@@ -303,6 +303,8 @@ function submitAdjust() {
                                     <option value="gal">gal</option>
                                     <option value="lbs">lbs</option>
                                     <option value="bag">bag (40 lb)</option>
+                                    <option value="puck">puck (3″ tablet)</option>
+                                    <option value="tab">tab (1″ tablet)</option>
                                 </select>
                             </div>
                         </div>

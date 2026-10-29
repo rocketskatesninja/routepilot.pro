@@ -61,6 +61,17 @@ test('adding a pool puts an extra visit at the end of today\'s route, making the
         ->assertJsonPath('stops.0.service.name', 'Weekly Clean'); // the pool's own tasks and sections
 });
 
+test('pucks are counted out of stock like any chemical', function () {
+    $pucks = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Chlorine Pucks', 'unit' => 'puck', 'current_stock' => 50]);
+    $stop = addExtra($this->agent, $this->pool);
+
+    $this->actingAs($this->agent)->post("/api/field/visits/{$stop->id}/complete", [
+        'treatments' => [['chemical_id' => $pucks->id, 'amount' => 3]],
+    ])->assertOk();
+
+    expect((float) $pucks->fresh()?->current_stock)->toBe(47.0);
+});
+
 test('finishing an extra visit files a report and takes chemicals from stock, but charges nothing', function () {
     $chlorine = ChemicalInventory::factory()->for($this->tenant)->create(['chemical_name' => 'Liquid Chlorine', 'unit' => 'gal', 'current_stock' => 10]);
     $stop = addExtra($this->agent, $this->pool);
