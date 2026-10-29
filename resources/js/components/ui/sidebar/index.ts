@@ -27,7 +27,7 @@ export { default as SidebarTrigger } from './SidebarTrigger.vue';
 export { useSidebar } from './utils';
 
 export const sidebarMenuButtonVariants = cva(
-    'peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md text-left outline-none ring-sidebar-ring transition-[width,height,padding,background-color,color] duration-200 ease-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-9 [&>span:last-child]:truncate [&>svg]:shrink-0',
+    'peer/menu-button flex w-full items-center gap-3 overflow-hidden rounded-md text-left outline-none ring-sidebar-ring transition-[width,height,padding,background-color,color] duration-[var(--sidebar-duration)] ease-[var(--sidebar-ease)] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-9 [&>span:last-child]:truncate [&>svg]:shrink-0',
     {
         variants: {
             variant: {
@@ -43,7 +43,7 @@ export const sidebarMenuButtonVariants = cva(
                 // the --rail-* rules in app.css (and they swell on hover: the dock rules). The
                 // logo and avatar (lg) take the same squares.
                 default:
-                    'h-11 px-2.5 text-base md:h-[var(--nav-row,2.125rem)] md:text-[length:var(--nav-text,1.125rem)] [&>svg]:size-5 md:[&>svg]:size-[var(--nav-icon,1.25rem)] group-data-[collapsible=icon]:!size-[var(--rail-cell,2.25rem)] group-data-[collapsible=icon]:!p-0.5 group-data-[collapsible=icon]:[&>span]:hidden group-data-[collapsible=icon]:[&>svg]:size-[var(--rail-icon,2rem)]',
+                    'h-11 px-2.5 text-base md:h-[var(--nav-row,2.125rem)] md:text-[length:var(--nav-text,1.125rem)] [&>svg]:size-5 md:[&>svg]:size-[var(--nav-icon,1.25rem)] group-data-[collapsible=icon]:!size-[var(--rail-cell,2.25rem)] group-data-[collapsible=icon]:!p-0.5 [&>span]:whitespace-nowrap [&>span]:transition-opacity [&>span]:duration-[var(--sidebar-duration)] group-data-[collapsible=icon]:[&>span]:opacity-0 group-data-[collapsible=icon]:[&>svg]:size-[var(--rail-icon,2rem)]',
                 sm: 'h-7 p-2 text-xs [&>svg]:size-4',
                 lg: 'h-12 p-2 text-sm group-data-[collapsible=icon]:!size-[var(--rail-cell,2.25rem)] group-data-[collapsible=icon]:!p-0.5',
             },

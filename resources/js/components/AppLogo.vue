@@ -22,15 +22,17 @@ const company = computed(() => (page.props.auth.role === 'customer' ? (page.prop
         v-if="logo"
         :src="logo"
         alt=""
-        class="aspect-square size-10 shrink-0 rounded-md object-contain group-data-[collapsible=icon]:size-[var(--rail-icon,2rem)]"
+        class="aspect-square size-10 shrink-0 rounded-md object-contain transition-[width,height] duration-[var(--sidebar-duration)] ease-[var(--sidebar-ease)] group-data-[collapsible=icon]:size-[var(--rail-icon,2rem)]"
     />
     <div
         v-else
-        class="flex aspect-square size-10 items-center justify-center rounded-md bg-orange-500 text-white group-data-[collapsible=icon]:size-[var(--rail-icon,2rem)]"
+        class="flex aspect-square size-10 shrink-0 items-center justify-center rounded-md bg-orange-500 text-white transition-[width,height] duration-[var(--sidebar-duration)] ease-[var(--sidebar-ease)] group-data-[collapsible=icon]:size-[var(--rail-icon,2rem)]"
     >
         <AppLogoIcon class="size-7 group-data-[collapsible=icon]:size-[calc(var(--rail-icon,2rem)*0.625)]" />
     </div>
-    <div class="ml-2 grid flex-1 text-left text-4xl">
+    <div
+        class="ml-2 grid flex-1 text-left text-4xl whitespace-nowrap transition-opacity duration-[var(--sidebar-duration)] group-data-[collapsible=icon]:opacity-0"
+    >
         <span v-if="company" class="line-clamp-2 text-xl leading-[1.1] font-semibold" :title="company">{{ company }}</span>
         <span v-else class="mb-0.5 truncate leading-none font-semibold"
             ><span class="text-sky-500 dark:text-sky-300">Route</span><span class="text-orange-500">Pilot</span></span

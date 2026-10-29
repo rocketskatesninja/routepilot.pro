@@ -102,6 +102,24 @@ html {
     }
 }
 
+/* ── Sidebar collapse timing ─────────────────────────────────────────────────
+   One duration and curve for everything that moves when the sidebar collapses
+   or expands — the panel's width, the links' size, icons, logo, gaps, and the
+   labels fading out — so it moves as one piece instead of the inside snapping
+   while the panel slides. Reduced motion: no animation at all. */
+:root {
+    --sidebar-duration: 280ms;
+    --sidebar-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --sidebar-duration: 0ms;
+    }
+}
+[data-sidebar='menu'] {
+    transition: gap var(--sidebar-duration) var(--sidebar-ease);
+}
+
 /* ── Collapsed sidebar: dock-style icon magnification ─────────────────────────
    Left unlayered on purpose so these win over Tailwind's layered utilities
    (e.g. the button's overflow-hidden) without !important. Scoped by button size
@@ -113,7 +131,10 @@ html {
     overflow: visible; /* let a magnified icon spill past its cell */
 }
 [data-sidebar='menu-button'][data-size='default'] > svg {
-    transition: transform 180ms ease;
+    transition:
+        transform 180ms ease,
+        width var(--sidebar-duration) var(--sidebar-ease),
+        height var(--sidebar-duration) var(--sidebar-ease);
 }
 [data-collapsible='icon'] [data-sidebar='menu-item']:hover [data-sidebar='menu-button'][data-size='default'] > svg {
     transform: scale(1.3); /* peak — under the cursor */
