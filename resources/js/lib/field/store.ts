@@ -48,9 +48,13 @@ export interface FieldWorkOrder {
 export interface TodayBundle {
     date: string;
     generated_at: string;
-    agent: { id: number; name: string };
+    agent: { id: number; name: string }; // whose route it is
     stops: FieldStop[];
     inventory: FieldChemical[];
+    // The office filling in a tech's route / an earlier day (absent on bundles cached before it existed).
+    office?: boolean;
+    past?: boolean;
+    techs?: { id: number; name: string }[] | null; // the office's tech picker; null for agents
 }
 
 export interface QueuedVisit {

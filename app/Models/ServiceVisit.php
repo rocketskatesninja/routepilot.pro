@@ -24,6 +24,7 @@ use Illuminate\Support\Collection;
  * @property string|null $office_notes office-only; the homeowner never sees it
  * @property Carbon|null $visited_at
  * @property Carbon|null $completed_at
+ * @property int|null $entered_by_id the office user who typed it in for the tech (null = the tech did)
  */
 class ServiceVisit extends Model
 {
@@ -84,6 +85,16 @@ class ServiceVisit extends Model
     public function agent(): BelongsTo
     {
         return $this->belongsTo(User::class, 'agent_id');
+    }
+
+    /**
+     * Who typed the report in when it wasn't the tech (the office, from the desktop field app).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function enteredBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'entered_by_id');
     }
 
     /** @return HasOne<ChemicalReading, $this> */

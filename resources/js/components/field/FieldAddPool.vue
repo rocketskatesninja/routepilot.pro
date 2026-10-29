@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isSignedOut, SIGNED_OUT } from '@/lib/field/session';
 import { postJson } from '@/lib/http';
 import { ChevronLeft, LoaderCircle, Plus, Search } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -15,6 +16,8 @@ interface PoolHit {
  * visit. Needs a connection (the stop is made on the server); the visit itself
  * then works offline like any other.
  */
+// The office adds to a tech's route on a picked day; a tech adds to their own today.
+const props = defineProps<{ agent?: number | null; date?: string | null }>();
 const emit = defineEmits<{ (e: 'added', stopId: number): void; (e: 'close'): void }>();
 
 const search = ref('');
@@ -56,7 +59,14 @@ async function add(pool: PoolHit) {
     adding.value = pool.id;
     error.value = null;
     try {
-        const res = await postJson(`/api/field/pools/${pool.id}/visit`);
+        const res = await postJson(
+            `/api/field/pools/${pool.id}/visit`,
+            props.agent || props.date ? { agent: props.agent, date: props.date } : undefined,
+        );
+        if (isSignedOut(res)) {
+            error.value = SIGNED_OUT;
+            return;
+        }
         if (!res.ok) throw new Error(String(res.status));
         emit('added', ((await res.json()) as { stop_id: number }).stop_id);
     } catch {
@@ -70,7 +80,9 @@ const line = (p: PoolHit): string => [p.customer, p.address].filter(Boolean).joi
 </script>
 
 <template>
-    <div class="bg-background text-foreground fixed inset-0 z-50 flex flex-col">
+    <div
+        class="bg-background text-foreground lg:border-border fixed inset-0 z-50 flex flex-col lg:relative lg:inset-auto lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-2xl lg:border"
+    >
         <header class="border-border bg-background flex items-center gap-2 border-b px-3 py-2.5">
             <button class="hover:bg-muted grid size-10 shrink-0 place-items-center rounded-xl" aria-label="Back to the route" @click="emit('close')">
                 <ChevronLeft class="size-6" />

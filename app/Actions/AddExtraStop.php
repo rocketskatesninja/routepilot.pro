@@ -20,9 +20,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AddExtraStop
 {
-    public function handle(Pool $pool, User $tech): RouteStop
+    public function handle(Pool $pool, User $tech, ?string $date = null): RouteStop
     {
-        $route = Route::forDay((int) $tech->tenant_id, $tech->id, Tenant::localToday()->toDateString());
+        // Today, unless the office is filling in a tech's earlier day.
+        $route = Route::forDay((int) $tech->tenant_id, $tech->id, $date ?? Tenant::localToday()->toDateString());
 
         $stop = DB::transaction(function () use ($route, $pool): RouteStop {
             // Lock the route so two taps can't both add the pool or take the same place in line.

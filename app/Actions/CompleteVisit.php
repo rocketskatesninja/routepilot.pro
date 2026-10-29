@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Events\RouteUpdated;
+use App\Models\AuditLog;
+use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceVisit;
 use App\Models\User;
@@ -12,6 +14,7 @@ use App\Services\BillingService;
 use App\Services\ChemistryService;
 use App\Services\PhotoService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,6 +27,10 @@ use Illuminate\Support\Facades\DB;
  * creating a second one: the reading/tasks/chemicals are replaced and any newly
  * uploaded photos appended. What the chemicals took from stock is put back before
  * they're recorded again, so editing never double-deducts.
+ *
+ * The stop's route says whose visit it is and which day: the office can fill one
+ * in for a tech, after the fact (the visit is then the tech's, on that day, and
+ * remembers who typed it in), and a visit that syncs the day after stays on its day.
  */
 class CompleteVisit
 {
@@ -41,13 +48,20 @@ class CompleteVisit
      */
     public function handle(RouteStop $stop, array $data, User $agent, array $photos = []): ServiceVisit
     {
-        $visit = DB::transaction(function () use ($stop, $data, $agent, $photos): ServiceVisit {
+        $route = $stop->route()->with('tenant')->first();
+        $techId = $route?->getAttribute('agent_id');
+        $tech = $techId !== null && (int) $techId !== $agent->id ? (User::query()->find($techId) ?? $agent) : $agent;
+        $office = $tech->id !== $agent->id; // the office typing it in for the tech
+        [$at, $pastDay] = $this->when($route);
+
+        $visit = DB::transaction(function () use ($stop, $data, $agent, $photos, $tech, $office, $at, $pastDay): ServiceVisit {
             // One visit per stop: lock the stop so two syncs of the same visit (a retry
             // racing its original) queue up, and the second edits what the first made.
             RouteStop::query()->whereKey($stop->id)->lockForUpdate()->first();
             $visit = $stop->serviceVisit()->first();
 
-            $gps = [
+            // Proof of presence only means something from the tech, at the pool, that day.
+            $gps = $office || $pastDay ? ['completed_lat' => null, 'completed_lng' => null] : [
                 'completed_lat' => $data['completed_lat'] ?? null,
                 'completed_lng' => $data['completed_lng'] ?? null,
             ];
@@ -57,9 +71,9 @@ class CompleteVisit
                     'route_stop_id' => $stop->id,
                     'pool_id' => $stop->getAttribute('pool_id'),
                     'service_subscription_id' => $stop->getAttribute('service_subscription_id'),
-                    'agent_id' => $agent->id,
-                    'visited_at' => now(),
-                    'completed_at' => now(),
+                    'agent_id' => $tech->id,
+                    'visited_at' => $at,
+                    'completed_at' => $at,
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
                     'office_notes' => $data['office_notes'] ?? null,
@@ -72,7 +86,7 @@ class CompleteVisit
                 $visit->chemicalReading()->delete();
                 $visit->update([
                     'service_subscription_id' => $visit->getAttribute('service_subscription_id') ?? $stop->getAttribute('service_subscription_id'),
-                    'completed_at' => now(),
+                    'completed_at' => $at,
                     'status' => 'completed',
                     'notes' => $data['notes'] ?? null,
                     'office_notes' => $data['office_notes'] ?? null,
@@ -122,7 +136,12 @@ class CompleteVisit
                 $visit->pool?->update(['report_cc_email' => $data['report_cc_email'] ?: null]);
             }
 
-            $stop->update(['status' => 'completed', 'completed_at' => now()]);
+            if ($office) {
+                $visit->forceFill(['entered_by_id' => $agent->id])->save();
+                AuditLog::record($agent, 'report.entered', $visit, ['tech' => $tech->id, 'day' => $at->copy()->setTimezone($this->zone($stop))->toDateString()]);
+            }
+
+            $stop->update(['status' => 'completed', 'completed_at' => $at]);
             $this->billing->chargeVisit($visit); // once, at its plan's price right now
 
             return $visit;
@@ -185,5 +204,27 @@ class CompleteVisit
         }
 
         return ['title' => $title, 'details' => $details ?: null];
+    }
+
+    /**
+     * When the visit happened: now, on today's route; on an earlier route, that day
+     * at noon company time (the time isn't known — the day is what matters).
+     *
+     * @return array{0: Carbon, 1: bool} the moment, and whether it's an earlier day
+     */
+    private function when(?Route $route): array
+    {
+        $tenant = $route?->tenant;
+        $day = $route?->scheduled_date;
+        if ($tenant === null || $day === null || ! $day->lt($tenant->today()->toDateString())) {
+            return [now(), false];
+        }
+
+        return [Carbon::parse($day->toDateString().' 12:00', $tenant->timezoneName())->utc(), true];
+    }
+
+    private function zone(RouteStop $stop): string
+    {
+        return $stop->route?->tenant?->timezoneName() ?? (string) config('app.timezone');
     }
 }

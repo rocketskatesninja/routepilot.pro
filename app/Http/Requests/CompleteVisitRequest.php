@@ -46,6 +46,8 @@ class CompleteVisitRequest extends FormRequest
             // A second address that gets a copy of the report, remembered on the pool. Sent
             // blank to clear it; left out (older copies of the app) to leave it alone.
             'report_cc_email' => ['nullable', 'string', 'email:rfc', 'max:255'],
+            // The office typing a report in for a tech can hold back the customer's email.
+            'email_customer' => ['boolean'],
             // Something that needs doing later; becomes a work order on the company's list.
             'work_order_title' => ['nullable', 'string', 'max:160'],
             'work_order_details' => ['nullable', 'string', 'max:5000'],

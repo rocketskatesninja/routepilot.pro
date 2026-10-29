@@ -22,6 +22,7 @@ use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\WorkOrder;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -43,10 +44,11 @@ class FieldController extends Controller
 
         // The agent's "today" is the tenant's local day — matching the dashboard
         // and schedule (which use Tenant::localToday()), not the server/UTC date.
-        $date = $request->date('date')?->toImmutable() ?? Tenant::localToday()->toImmutable();
+        // The office can open any tech's route on any day up to today.
+        [$tech, $date] = $this->routeFor($request, $user);
 
         $route = Route::query()
-            ->where('agent_id', $user->id)
+            ->where('agent_id', $tech->id)
             ->whereDate('scheduled_date', $date)
             ->with([
                 'stops' => fn ($q) => $q->orderBy('stop_order')->with([
@@ -71,7 +73,12 @@ class FieldController extends Controller
         return response()->json([
             'date' => $date->toDateString(),
             'generated_at' => now()->toIso8601String(),
-            'agent' => ['id' => $user->id, 'name' => $user->displayName()],
+            'agent' => ['id' => $tech->id, 'name' => $tech->displayName()],
+            // Filling in someone else's route, or an earlier day: no GPS, and the office picks whether to email.
+            'office' => $tech->id !== $user->id,
+            'past' => $date->lt(Tenant::localToday()->toDateString()),
+            // The office's tech picker; agents only ever see their own route.
+            'techs' => $user->role === 'tenant_admin' ? $this->techs($user)->map(fn (User $t): array => ['id' => $t->id, 'name' => $t->displayName()])->values()->all() : null,
             'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop, $workOrders->get($stop->pool_id, collect()), $user))->values()->all(),
             // The chemicals a tech picks from; `key` lets a water-test suggestion find its chemical.
             'inventory' => ChemicalInventory::query()->active()
@@ -229,7 +236,8 @@ class FieldController extends Controller
 
         $photos = $request->file('photos');
         $visit = $action->handle($stop, $request->validated(), $user, is_array($photos) ? $photos : []);
-        $followups->handle($visit);
+        // The office may hold back the customer's email for a report it typed in; a tech can't.
+        $followups->handle($visit, email: $visit->entered_by_id === null || $request->boolean('email_customer', true));
 
         if ($key !== '') {
             FieldSyncKey::query()->create([
@@ -274,8 +282,47 @@ class FieldController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 403);
+        [$tech, $date] = $this->routeFor($request, $user);
 
-        return response()->json(['stop_id' => $action->handle($pool, $user)->id]);
+        return response()->json(['stop_id' => $action->handle($pool, $tech, $date->toDateString())->id]);
+    }
+
+    /**
+     * Whose route, which day: the signed-in tech's today by default. The office
+     * (tenant_admin) may pick any of its active techs (`agent`) and any day up to
+     * today (`date`); an agent's `agent` is ignored.
+     *
+     * @return array{0: User, 1: CarbonImmutable}
+     */
+    private function routeFor(Request $request, User $user): array
+    {
+        $today = Tenant::localToday()->toImmutable();
+        $date = $request->date('date')?->toImmutable() ?? $today;
+        if ($user->role !== 'tenant_admin') {
+            return [$user, $date];
+        }
+
+        abort_if($date->gt($today), 422, 'Pick today or an earlier day.');
+        $agentId = $request->integer('agent');
+        if ($agentId <= 0 || $agentId === $user->id) {
+            return [$user, $date];
+        }
+        $tech = $this->techs($user)->firstWhere('id', $agentId);
+        abort_if($tech === null, 422, 'That isn’t one of your techs.');
+
+        return [$tech, $date];
+    }
+
+    /**
+     * The company's people who can have a route: its active techs and admins.
+     * (User isn't tenant-scoped, so the company is checked here.)
+     *
+     * @return Collection<int, User>
+     */
+    private function techs(User $user): Collection
+    {
+        return User::query()->where('tenant_id', $user->tenant_id)->whereIn('role', ['agent', 'tenant_admin'])
+            ->where('is_active', true)->orderBy('first_name')->orderBy('last_name')->get();
     }
 
     /** Take an extra visit that hasn't been done back off the route. */

@@ -63,6 +63,7 @@ interface VisitDetail {
     completed_on: string | null;
     notes: string | null;
     office_notes: string | null;
+    entered_by: string | null; // the office typed it in for the tech
     work_order: { id: number; title: string; details: string | null; urgent: boolean; status: string } | null;
     reading: Reading | null;
     // chemical_id null: typed before the chemical list (kept as written, not billed)
@@ -261,6 +262,7 @@ function submitEdit() {
                                     ><template v-else>{{ visit.agent }}</template></template
                                 >
                             </p>
+                            <p v-if="visit.entered_by" class="text-muted-foreground mt-1 text-sm">Entered by {{ visit.entered_by }}</p>
                             <template v-if="(visit.can_edit || visit.can_delete) && !editing" #actions>
                                 <Button v-if="visit.can_edit" size="sm" variant="outline" @click="openEdit"
                                     ><Pencil class="mr-1 size-3.5" /> Edit</Button

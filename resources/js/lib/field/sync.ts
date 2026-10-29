@@ -5,6 +5,7 @@
  * request / not authorized) marks an item failed.
  */
 import { postForm, postJson } from '@/lib/http';
+import { isSignedOut } from './session';
 import {
     allQueued,
     enqueue,
@@ -24,20 +25,26 @@ export interface LoadResult {
     source: 'network' | 'cache' | 'none';
 }
 
-/** Load today's route: try the network, fall back to the last cached bundle. */
-export async function loadToday(date?: string): Promise<LoadResult> {
+/**
+ * Load today's route: try the network, fall back to the last cached bundle. The
+ * office can ask for a tech's route (`agent`) — that's online only, and never
+ * cached, so it can't replace the office person's own route on this device.
+ */
+export async function loadToday(date?: string, agent?: number): Promise<LoadResult> {
     const today = date ?? new Date().toISOString().slice(0, 10);
+    const query = new URLSearchParams({ ...(date ? { date } : {}), ...(agent ? { agent: String(agent) } : {}) }).toString();
     try {
-        const res = await fetch(`/api/field/today${date ? `?date=${date}` : ''}`, {
+        const res = await fetch(`/api/field/today${query ? `?${query}` : ''}`, {
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
+        isSignedOut(res); // the page says so, and shows the last saved route meanwhile
         if (!res.ok) throw new Error(String(res.status));
         const bundle = (await res.json()) as TodayBundle;
-        await saveBundle(bundle);
+        if (!agent) await saveBundle(bundle);
         return { bundle, source: 'network' };
     } catch {
-        const cached = await getBundle(today);
+        const cached = agent ? null : await getBundle(today);
         return { bundle: cached, source: cached ? 'cache' : 'none' };
     }
 }
@@ -120,6 +127,8 @@ async function sync(item: QueuedVisit): Promise<void> {
         await removeQueued(item.idempotency_key);
         return;
     }
+    // Signed out: the visit is fine, it just needs the person signed in again — keep it waiting.
+    if (isSignedOut(res)) return;
     // A definitive client error won't succeed on retry — surface it (with the server's reason), stop retrying.
     if (res.status >= 400 && res.status < 500 && res.status !== 419) {
         await patchQueued(item.idempotency_key, { status: 'failed', error: await refusal(res) });

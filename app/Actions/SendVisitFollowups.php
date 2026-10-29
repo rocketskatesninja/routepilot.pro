@@ -24,7 +24,8 @@ class SendVisitFollowups
 {
     public function __construct(private readonly BillingService $billing) {}
 
-    public function handle(ServiceVisit $visit): void
+    /** @param  bool  $email  false = the office held back the emails for a report it typed in */
+    public function handle(ServiceVisit $visit, bool $email = true): void
     {
         $customer = $visit->pool?->customer;
 
@@ -32,7 +33,7 @@ class SendVisitFollowups
         $customer?->user?->notify(new VisitCompleted($visit));
 
         // Per-visit report email, unless they've turned visit reports off.
-        if ($customer !== null && is_string($customer->email) && $customer->email !== '' && EmailPreferences::wants($customer, 'visit_reports')) {
+        if ($email && $customer !== null && is_string($customer->email) && $customer->email !== '' && EmailPreferences::wants($customer, 'visit_reports')) {
             $balance = $this->billing->outstandingForCustomer($customer);
             $payUrl = $balance > 0 ? URL::signedRoute('pay.link', ['customer' => $customer->id]) : null;
             Mail::to($customer->email)->queue(new VisitRecapMail($visit, $balance, $payUrl));
@@ -41,7 +42,7 @@ class SendVisitFollowups
         // A copy for the pool's second address, if the customer asked for one. It goes even when
         // they've turned their own reports off: it's that person's to stop, with its own link.
         $copyTo = $visit->pool?->report_cc_email;
-        if ($customer !== null && is_string($copyTo) && $copyTo !== '' && strcasecmp($copyTo, (string) $customer->email) !== 0) {
+        if ($email && $customer !== null && is_string($copyTo) && $copyTo !== '' && strcasecmp($copyTo, (string) $customer->email) !== 0) {
             Mail::to($copyTo)->queue(new VisitRecapMail($visit, 0.0, null, copyTo: $copyTo));
         }
     }

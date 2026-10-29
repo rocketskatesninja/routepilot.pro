@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading, type Recommendation } from '@/lib/chemistry';
 import { SUGGESTION_KEYS, toStockAmount } from '@/lib/field/chemicals';
 import { shrinkPhoto } from '@/lib/field/photo';
+import { isSignedOut, SIGNED_OUT } from '@/lib/field/session';
 import {
     deleteDraft,
     getDraft,
@@ -29,7 +30,9 @@ import { ChevronLeft, LoaderCircle, Lock, Navigation, Plus, Sparkles, Trash2, Wi
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 // `chemicals`: the company's list (from the day bundle, so it works offline).
-const props = defineProps<{ stop: FieldStop; online: boolean; chemicals: FieldChemical[] }>();
+// `office`: the office filling in a tech's route (no GPS; it picks whether the customer is emailed).
+// `past`: an earlier day (no GPS either — it wouldn't be where the visit happened).
+const props = defineProps<{ stop: FieldStop; online: boolean; chemicals: FieldChemical[]; office?: boolean; past?: boolean }>();
 const emit = defineEmits<{ (e: 'done', stopId: number, raisedWorkOrder: boolean): void; (e: 'removed'): void; (e: 'close'): void }>();
 
 const pool = computed(() => props.stop.pool);
@@ -246,6 +249,9 @@ const liveChecks = computed(() => {
     return checkWater(entered, pool.value?.custom_target_ranges ?? null);
 });
 
+// The office typing a report in can hold back the customer's email (say, an old paper sheet).
+const emailCustomer = ref(true);
+
 // While it saves, the form is locked and the button says so; if the phone can't save it, say that and unlock.
 const saveError = ref<string | null>(null);
 
@@ -293,7 +299,8 @@ async function saveVisit() {
             if (reading[f.key] !== '') payload[f.key] = Number(reading[f.key]);
         }
     }
-    const loc = await captureLocation();
+    const loc = props.office || props.past ? null : await captureLocation();
+    if (props.office) payload.email_customer = emailCustomer.value;
     if (loc) {
         payload.completed_lat = loc.lat;
         payload.completed_lng = loc.lng;
@@ -316,6 +323,10 @@ async function removeFromToday() {
     removeError.value = null;
     try {
         const res = await deleteJson(`/api/field/stops/${props.stop.id}`);
+        if (isSignedOut(res)) {
+            removeError.value = SIGNED_OUT;
+            return;
+        }
         if (!res.ok) throw new Error(String(res.status));
         finished = true;
         clearTimeout(saveTimer);
@@ -330,7 +341,10 @@ async function removeFromToday() {
 </script>
 
 <template>
-    <div class="bg-background text-foreground fixed inset-0 z-50 flex flex-col">
+    <!-- A full-screen sheet on a phone; on a desktop, a pane docked beside the route. -->
+    <div
+        class="bg-background text-foreground lg:border-border fixed inset-0 z-50 flex flex-col lg:relative lg:inset-auto lg:z-auto lg:h-full lg:overflow-hidden lg:rounded-2xl lg:border"
+    >
         <!-- header -->
         <header class="border-border bg-background flex items-center gap-2 border-b px-3 py-2.5">
             <button
@@ -339,7 +353,7 @@ async function removeFromToday() {
                 :disabled="submitting"
                 @click="emit('close')"
             >
-                <ChevronLeft class="size-6" />
+                <ChevronLeft class="size-6 lg:hidden" /><X class="hidden size-6 lg:block" />
             </button>
             <div class="min-w-0 flex-1">
                 <h1 class="font-display truncate text-xl leading-tight font-semibold tracking-tight">{{ pool?.name }}</h1>
@@ -368,8 +382,8 @@ async function removeFromToday() {
 
         <!-- Locked while the visit saves (inert: no taps, no typing, no focus). -->
         <div
-            class="flex-1 space-y-7 overflow-y-auto p-4 pb-28 transition-opacity"
-            :class="{ 'opacity-60': submitting }"
+            class="flex-1 space-y-7 overflow-y-auto p-4 transition-opacity lg:px-8 lg:*:mx-auto lg:*:max-w-3xl"
+            :class="[{ 'opacity-60': submitting }, office ? 'pb-44' : 'pb-28']"
             :inert="submitting || undefined"
         >
             <!-- getting in -->
@@ -637,18 +651,25 @@ async function removeFromToday() {
                     :disabled="!online || removing"
                     @click="removeFromToday"
                 >
-                    <Trash2 class="size-5" /> {{ online ? 'Remove from today' : 'Remove from today (needs a connection)' }}
+                    <Trash2 class="size-5" />
+                    {{ online ? (past ? 'Remove from this day' : 'Remove from today') : 'Remove from today (needs a connection)' }}
                 </button>
             </section>
         </div>
 
         <!-- complete -->
-        <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4">
-            <p v-if="saveError" role="alert" class="mb-2 text-sm font-medium text-red-700 dark:text-red-400">{{ saveError }}</p>
-            <Button class="h-12 w-full rounded-xl text-base" :disabled="submitting || shrinking" @click="complete">
-                <template v-if="submitting"><LoaderCircle class="mr-2 size-5 animate-spin" /> Saving…</template>
-                <template v-else>{{ online ? 'Finish visit' : 'Finish visit (sends when you’re back online)' }}</template>
-            </Button>
+        <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4 lg:px-8">
+            <div class="lg:mx-auto lg:max-w-3xl">
+                <label v-if="office" class="mb-3 flex items-center gap-2 text-[15px]">
+                    <input v-model="emailCustomer" type="checkbox" class="border-input accent-primary size-5 shrink-0 rounded" />
+                    Email this report to the customer
+                </label>
+                <p v-if="saveError" role="alert" class="mb-2 text-sm font-medium text-red-700 dark:text-red-400">{{ saveError }}</p>
+                <Button class="h-12 w-full rounded-xl text-base" :disabled="submitting || shrinking" @click="complete">
+                    <template v-if="submitting"><LoaderCircle class="mr-2 size-5 animate-spin" /> Saving…</template>
+                    <template v-else>{{ online ? 'Finish visit' : 'Finish visit (sends when you’re back online)' }}</template>
+                </Button>
+            </div>
         </footer>
     </div>
 </template>

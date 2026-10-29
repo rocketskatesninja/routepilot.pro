@@ -158,6 +158,8 @@ class ReportController extends Controller
             'customer_id' => $visit->pool?->customer?->getKey(),
             'agent' => $visit->agent?->displayName(),
             'agent_id' => $visit->agent?->role === 'agent' ? $visit->agent->id : null, // People opens techs only, so only they're linked
+            // The office typed this in for the tech (staff see it; the customer sees the tech).
+            'entered_by' => $visit->entered_by_id !== null && $visit->entered_by_id !== $visit->agent_id ? $visit->enteredBy?->displayName() : null,
             'completed_on' => Tenant::localDate($visit->completed_at), // the company's day, not UTC's
             'notes' => $visit->notes,
             'office_notes' => $visit->office_notes,
