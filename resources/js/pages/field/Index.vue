@@ -187,11 +187,16 @@ onMounted(async () => {
     await load();
     restoreLocation();
     pruneDrafts(2 * 24 * 60 * 60 * 1000).catch(() => {});
-    // Deep-link: /field?stop=<id> opens that stop directly (e.g. from the dashboard
-    // route widget), then strips the param; otherwise reopen the stop that was open
-    // before a refresh.
-    const linked = Number(new URLSearchParams(window.location.search).get('stop'));
-    if (linked) window.history.replaceState({}, '', '/field');
+    // Deep-links, stripped once read: /field?stop=<id> opens that stop (e.g. from the
+    // dashboard route widget); /field?new=1 opens New report (from the Reports page).
+    // Otherwise reopen the stop that was open before a refresh.
+    const params = new URLSearchParams(window.location.search);
+    const linked = Number(params.get('stop'));
+    if (linked || params.has('new')) window.history.replaceState({}, '', '/field');
+    if (params.get('new') === '1' && online.value) {
+        addingPool.value = true;
+        return;
+    }
     const stopId = linked || rememberedStop();
     if (stopId) {
         const target = stops.value.find((s) => s.id === stopId);

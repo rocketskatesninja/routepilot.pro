@@ -22,9 +22,9 @@ import { agentLink, customerLink, workOrderLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
 import { formatAmount, formatDay, formatMoney } from '@/lib/utils';
-import { type BreadcrumbItem } from '@/types';
+import { type BreadcrumbItem, type SharedData } from '@/types';
 import { type Paginated } from '@/types/pagination';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Check, FileText, Lock, Minus, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
@@ -185,12 +185,21 @@ function submitEdit() {
         onSuccess: () => (editing.value = false),
     });
 }
+
+// A new report is filled in on the field app (the office picks the tech and day there).
+const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<SharedData>().props.auth.role ?? ''));
 </script>
 
 <template>
     <Head title="Reports" />
 
     <AppLayout :breadcrumbs="breadcrumbs" :meta="`${props.visits.total} completed visits`">
+        <template v-if="canField" #actions>
+            <Button as-child size="sm" title="New report">
+                <Link href="/field?new=1"><Plus class="size-4 sm:mr-1" /><span class="hidden sm:inline">New report</span></Link>
+            </Button>
+        </template>
+
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
                 :has-selection="props.selected !== null"
