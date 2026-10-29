@@ -295,7 +295,23 @@ function addNote() {
                     </form>
 
                     <div v-else-if="order" class="space-y-6">
-                        <PaneHeader :title="order.title" :summary="where(order) ?? 'Not tied to a pool.'">
+                        <PaneHeader :title="order.title" :summary="order.pool_id || order.customer_id ? null : 'Not tied to a pool.'">
+                            <!-- the pool and its customer, each a link (like a report's "For …, by …") -->
+                            <p v-if="order.pool_id || order.customer_id" class="mt-2 text-[15px]">
+                                <Link
+                                    v-if="order.pool_id"
+                                    :href="poolLink(order.pool_id)"
+                                    class="text-primary font-medium underline-offset-4 hover:underline"
+                                    >{{ order.pool }}</Link
+                                ><template v-if="order.customer_id"
+                                    >{{ order.pool_id ? ', for ' : 'For ' }}
+                                    <Link
+                                        :href="customerLink(order.customer_id)"
+                                        class="text-primary font-medium underline-offset-4 hover:underline"
+                                        >{{ order.customer }}</Link
+                                    ></template
+                                >
+                            </p>
                             <template #badge>
                                 <span class="flex flex-wrap gap-1.5">
                                     <Chip v-if="order.urgent" tone="bad">Urgent</Chip>
@@ -362,20 +378,11 @@ function addNote() {
                                     },
                                 ]"
                             />
-                            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                                <Link v-if="order.visit_id" :href="reportLink(order.visit_id)" class="text-primary underline-offset-4 hover:underline"
+                            <p v-if="order.visit_id" class="mt-3 text-sm">
+                                <Link :href="reportLink(order.visit_id)" class="text-primary underline-offset-4 hover:underline"
                                     >From the visit on {{ formatDay(order.visit_on) }}</Link
                                 >
-                                <Link v-if="order.pool_id" :href="poolLink(order.pool_id)" class="text-primary underline-offset-4 hover:underline"
-                                    >See the pool</Link
-                                >
-                                <Link
-                                    v-if="order.customer_id"
-                                    :href="customerLink(order.customer_id)"
-                                    class="text-primary underline-offset-4 hover:underline"
-                                    >See the customer</Link
-                                >
-                            </div>
+                            </p>
                         </PaneSection>
 
                         <PaneSection title="Notes">
