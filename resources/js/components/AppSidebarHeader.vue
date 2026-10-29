@@ -2,6 +2,7 @@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
+import { pageDescription } from '@/lib/pageDescriptions';
 import type { BreadcrumbItemType, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { Bell, Search, Smartphone } from 'lucide-vue-next';
@@ -16,6 +17,8 @@ const page = usePage<SharedData>();
 const { isMobile } = useSidebar();
 const { open: openCommand } = useCommandPalette();
 const unread = computed(() => page.props.auth.unread ?? 0);
+// What this page is for, in the middle of the header on a desktop.
+const description = computed(() => pageDescription(page.component, page.props.auth.role));
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 // Anyone who works routes — techs, and office admins who run one themselves — can open the field app.
 const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.auth.role ?? ''));
@@ -103,6 +106,11 @@ const portalLogo = computed(() =>
             <div class="bg-sidebar-border/70 hidden h-5 w-px shrink-0 md:block"></div>
             <slot name="filters" />
         </div>
+
+        <!-- What the page is for: desktop only, between the title and the actions, cut short with … when tight. -->
+        <p v-if="description" class="text-muted-foreground hidden min-w-0 flex-1 truncate px-2 text-center text-sm lg:block" :title="description">
+            {{ description }}
+        </p>
 
         <!-- Page actions: on the title's row if they fit, else a full-width row (mobile); inline on the right on desktop. -->
         <div v-if="$slots.actions" class="flex grow flex-wrap items-center gap-2 md:ml-auto md:grow-0 md:flex-nowrap">
