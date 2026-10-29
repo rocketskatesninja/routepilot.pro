@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { GridItem, GridLayout } from 'grid-layout-plus';
-import { computed, onMounted, ref, watch } from 'vue';
+import interact from 'interactjs';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import DashboardWidgetCard from './DashboardWidgetCard.vue';
 import WidgetRenderer from './WidgetRenderer.vue';
 
@@ -57,10 +58,22 @@ const commit = () =>
         'update:layout',
         work.value.map((i) => ({ ...i })),
     );
+
+// Dragging a widget near the top or bottom of the screen scrolls the page, so on a
+// phone (where the widgets are a tall stack) one can travel past what's visible.
+// Set straight on each box's interactjs options: calling draggable() would also
+// switch dragging on, outside editing.
+const root = ref<HTMLElement | null>(null);
+function scrollWhileDragging() {
+    root.value?.querySelectorAll<HTMLElement>('.vgl-item:not(.vgl-item--placeholder)').forEach((el) => {
+        Object.assign(interact(el).options.drag.autoScroll ?? {}, { enabled: true, container: window, margin: 72, speed: 700 });
+    });
+}
+watch([mounted, () => props.editing, () => work.value.length], () => nextTick(scrollWhileDragging));
 </script>
 
 <template>
-    <div class="dashboard-grid" :class="{ 'is-editing': editing }">
+    <div ref="root" class="dashboard-grid" :class="{ 'is-editing': editing }">
         <!-- Both desktop and phone use the same 12-col drag grid — on a phone the
              layout is full-width widgets, so it reads as a stack you can still
              drag to reorder and drag the corner to resize. -->
@@ -132,11 +145,39 @@ const commit = () =>
 .vgl-item__resizer {
     z-index: 10;
 }
-/* A bigger, easier-to-grab resize target on touch screens (phones/tablets). */
+
+/*
+ * Touch: only the grip and the resize corner take hold of a widget; everywhere
+ * else a swipe scrolls the page. grid-layout-plus sets touch-action: none on the
+ * whole box, and only on Android — so on a Pixel the page couldn't scroll while
+ * editing, and on an iPhone a drag on the grip could turn into a scroll.
+ */
+.dashboard-grid .vgl-item--no-touch {
+    touch-action: auto;
+}
+.widget-drag-handle,
+.vgl-item__resizer {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+/* Finger-sized targets on touch screens (phones/tablets). */
 @media (pointer: coarse) {
+    .widget-tool {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+    }
+    .widget-tool svg {
+        width: 20px;
+        height: 20px;
+    }
     .vgl-item__resizer {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
     }
 }
 </style>

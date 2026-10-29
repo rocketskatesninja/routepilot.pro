@@ -55,15 +55,17 @@ const iconComponent = computed(() => ICONS[props.icon] ?? LayoutGrid);
             <div v-if="editing" class="flex shrink-0 items-center gap-1">
                 <button
                     type="button"
-                    class="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1"
+                    class="widget-tool text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1"
                     title="Remove widget"
+                    aria-label="Remove widget"
                     @click="$emit('remove')"
                 >
                     <X class="size-4" />
                 </button>
                 <span
-                    class="widget-drag-handle text-muted-foreground hover:bg-muted hover:text-foreground cursor-move rounded p-1"
+                    class="widget-tool widget-drag-handle text-muted-foreground hover:bg-muted hover:text-foreground cursor-move rounded p-1"
                     title="Drag to move"
+                    aria-label="Drag to move"
                 >
                     <GripVertical class="size-4" />
                 </span>
