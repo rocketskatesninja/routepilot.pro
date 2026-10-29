@@ -28,7 +28,7 @@ const props = defineProps<{ service: Offer }>();
 const expanded = ref(false);
 const longList = computed(() => props.service.tasks.length > 6);
 const shownTasks = computed(() => (longList.value && !expanded.value ? props.service.tasks.slice(0, 4) : props.service.tasks));
-const included = computed(() => extras(props.service.modules));
+const included = computed(() => extras(props.service.modules, props.service.tasks));
 </script>
 
 <template>

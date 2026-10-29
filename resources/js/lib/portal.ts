@@ -59,12 +59,16 @@ export const price = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`
 export const iconFor = (modules: string[], frequency: string) =>
     frequency === 'one_time' ? Wrench : !modules.includes('tasks') && modules.includes('chemistry') ? FlaskConical : Waves;
 
-/** What the tech does on a visit, in a homeowner's words (from the service's visit sections). */
-export function extras(modules: string[]): string[] {
+/**
+ * What the tech does on a visit, in a homeowner's words (from the service's visit
+ * sections), leaving out what its checklist already says, so nothing shows twice.
+ */
+export function extras(modules: string[], tasks: string[] = []): string[] {
+    const said = (re: RegExp) => tasks.some((t) => re.test(t));
     const out: string[] = [];
-    if (modules.includes('chemistry')) out.push('Water tested and balanced');
-    if (modules.includes('treatments')) out.push('Chemicals added as needed');
-    if (modules.includes('photos')) out.push('Photos of your pool after each visit');
+    if (modules.includes('chemistry') && !said(/\b(test|balanc)/i)) out.push('Water tested and balanced');
+    if (modules.includes('treatments') && !said(/chemical/i)) out.push('Chemicals added as needed');
+    if (modules.includes('photos') && !said(/photo/i)) out.push('Photos of your pool after each visit');
     return out;
 }
 
