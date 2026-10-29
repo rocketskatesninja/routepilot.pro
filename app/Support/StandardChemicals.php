@@ -39,7 +39,10 @@ class StandardChemicals
         return trim(rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.').' '.self::unitFor($n, $unit));
     }
 
-    /** A unit agreeing with its amount: bag/bags, lb/lbs, puck/pucks, tab/tabs; others (gal, older typed ones) as given. */
+    /** What a repair part is counted in: "1 unit", "3 units". */
+    public const PART_UNIT = 'unit';
+
+    /** A unit agreeing with its amount: bag/bags, lb/lbs, puck/pucks, tab/tabs, unit/units; others (gal, older typed ones) as given. */
     public static function unitFor(float $n, string $unit): string
     {
         return match ($unit) {
@@ -47,6 +50,7 @@ class StandardChemicals
             'lb', 'lbs' => $n == 1 ? 'lb' : 'lbs',
             'puck', 'pucks' => $n == 1 ? 'puck' : 'pucks',
             'tab', 'tabs' => $n == 1 ? 'tab' : 'tabs',
+            'unit', 'units' => $n == 1 ? 'unit' : 'units',
             default => $unit,
         };
     }

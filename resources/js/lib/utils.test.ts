@@ -29,3 +29,9 @@ describe('isEmail', () => {
             expect(isEmail(bad)).toBe(false);
     });
 });
+
+describe('unitFor, parts', () => {
+    it('counts parts in units', () => {
+        expect([unitFor(1, 'unit'), unitFor(3, 'unit'), formatAmount(2, 'unit')]).toEqual(['unit', 'units', '2 units']);
+    });
+});

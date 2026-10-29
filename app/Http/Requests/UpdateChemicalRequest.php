@@ -20,11 +20,15 @@ class UpdateChemicalRequest extends FormRequest
     public function rules(): array
     {
         $locked = $this->lockedChemical();
+        $chemical = $this->route('chemical');
+        $part = $chemical instanceof ChemicalInventory && $chemical->isPart();
 
         return [
             'chemical_name' => ['required', 'string', 'max:255'],
-            // One unit per chemical (gal, lbs or bag), fixed once it has stock or history.
-            'unit' => ['required', Rule::in($locked !== null ? [$locked->unit] : StandardChemicals::UNITS)],
+            // Its kind never changes. A part keeps its part number (and is always counted in units)…
+            'part_number' => $part ? ['nullable', 'string', 'max:60'] : ['exclude'],
+            // …a chemical has one unit (gal, lbs, bag, puck or tab), fixed once it has stock or history.
+            'unit' => ['required', Rule::in($part ? [StandardChemicals::PART_UNIT] : ($locked !== null ? [$locked->unit] : StandardChemicals::UNITS))],
             'reorder_threshold' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'cost_per_unit' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'sell_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],

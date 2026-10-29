@@ -15,12 +15,25 @@ class StoreChemicalRequest extends FormRequest
         return $this->user()?->role === 'tenant_admin';
     }
 
+    /** A part is always counted in units; only a part has a part number. */
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('kind') === 'part') {
+            $this->merge(['unit' => StandardChemicals::PART_UNIT]);
+        } else {
+            $this->merge(['kind' => 'chemical', 'part_number' => null]);
+        }
+    }
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
             'chemical_name' => ['required', 'string', 'max:255'],
-            'unit' => ['required', Rule::in(StandardChemicals::UNITS)], // one unit per chemical: gal, lbs, bag, puck or tab
+            'kind' => ['required', 'in:chemical,part'],
+            'part_number' => ['nullable', 'string', 'max:60'],
+            // One unit per chemical: gal, lbs, bag, puck or tab (a part: unit).
+            'unit' => ['required', Rule::in($this->input('kind') === 'part' ? [StandardChemicals::PART_UNIT] : StandardChemicals::UNITS)],
             'current_stock' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'reorder_threshold' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'cost_per_unit' => ['nullable', 'numeric', 'min:0', 'max:100000'],

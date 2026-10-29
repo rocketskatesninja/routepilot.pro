@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Building2, FlaskConical, User, Waves } from 'lucide-vue-next';
+import { Building2, FlaskConical, User, Waves, Wrench } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{
         src?: string | null;
-        type?: 'pool' | 'person' | 'inventory' | 'tenant';
+        type?: 'pool' | 'person' | 'inventory' | 'part' | 'tenant';
         name?: string | null;
         size?: 'sm' | 'md' | 'lg';
         shape?: 'square' | 'circle';
@@ -13,7 +13,7 @@ const props = withDefaults(
     { src: null, type: 'person', name: null, size: 'md', shape: 'square' },
 );
 
-const icons = { pool: Waves, person: User, inventory: FlaskConical, tenant: Building2 };
+const icons = { pool: Waves, person: User, inventory: FlaskConical, part: Wrench, tenant: Building2 };
 const icon = computed(() => icons[props.type]);
 const sizeClass = computed(() => ({ sm: 'size-7', md: 'size-10', lg: 'size-20' })[props.size]);
 const iconClass = computed(() => ({ sm: 'size-3.5', md: 'size-5', lg: 'size-9' })[props.size]);

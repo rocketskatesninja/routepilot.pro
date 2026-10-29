@@ -13,13 +13,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 /**
- * ChemicalInventory — central tenant stock of a chemical. Treatments deduct
- * from it; stock at/below `reorder_threshold` shows it as running low. Every
+ * ChemicalInventory — central tenant stock of a chemical, or of a repair part
+ * (kind "part": counted in units, with an optional part number). What a visit
+ * uses deducts from it; stock at/below `reorder_threshold` shows it as running low. Every
  * change goes through move(), so its transactions always add up to the stock.
  * Archiving (is_active false) takes it off the list and out of visit
  * deductions; its history stays.
  *
  * @property string $chemical_name
+ * @property string $kind chemical | part
+ * @property string|null $part_number a part's own number (parts only)
  * @property string|null $standard_key which standard chemical this is (App\Support\StandardChemicals), if any
  * @property string $unit
  * @property string|null $supplier
@@ -34,7 +37,7 @@ class ChemicalInventory extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'chemical_name', 'unit', 'current_stock', 'reorder_threshold',
+        'chemical_name', 'kind', 'part_number', 'unit', 'current_stock', 'reorder_threshold',
         'cost_per_unit', 'sell_price', 'supplier', 'notes', 'is_active',
     ];
 
@@ -58,6 +61,31 @@ class ChemicalInventory extends Model
     public function scopeActive(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    /**
+     * Chemicals only (not repair parts).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeChemicals(Builder $query): void
+    {
+        $query->where('kind', 'chemical');
+    }
+
+    /**
+     * Repair parts only.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeParts(Builder $query): void
+    {
+        $query->where('kind', 'part');
+    }
+
+    public function isPart(): bool
+    {
+        return $this->kind === 'part';
     }
 
     /** @return HasMany<InventoryTransaction, $this> */
