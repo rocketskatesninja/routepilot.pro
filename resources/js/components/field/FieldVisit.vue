@@ -237,14 +237,21 @@ const navUrl = computed(() =>
 /**
  * Best-effort GPS proof-of-presence — never blocks completion if denied/unavailable.
  * A fix from the last couple of minutes is still at the pool, so take that rather
- * than make the tech wait; a fresh one gets 3 seconds at most.
+ * than make the tech wait; a fresh one gets 3 seconds at most. The browser only
+ * starts that clock once location is allowed, so an unanswered "Allow location?"
+ * prompt would hold the visit forever: after 5 seconds in all, it finishes without.
  */
 function captureLocation(): Promise<{ lat: number; lng: number } | null> {
     return new Promise((resolve) => {
         if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(null);
+        const giveUp = setTimeout(() => resolve(null), 5000);
+        const done = (loc: { lat: number; lng: number } | null) => {
+            clearTimeout(giveUp);
+            resolve(loc);
+        };
         navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            () => resolve(null),
+            (pos) => done({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => done(null),
             { enableHighAccuracy: true, timeout: 3000, maximumAge: 120000 },
         );
     });
