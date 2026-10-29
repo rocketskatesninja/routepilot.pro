@@ -88,9 +88,9 @@
 
     <x-slot:footer>
         @if ($copy)
-            <p style="margin: 0;">{{ $firstName }} asked {{ $brand['name'] }} to send you a copy of their pool reports. <a href="{{ $stopUrl }}" style="color: #475569;">Stop these copies</a></p>
+            <p style="margin: 0;">{{ $firstName }} asked {{ $brand['name'] }} to send you a copy of their pool reports. <a href="{{ $stopUrl }}" style="color: #475569; text-decoration: underline;">Stop these copies</a></p>
         @else
-            <p style="margin: 0;">You get this email after each visit to your pool. <a href="{{ $stopUrl }}" style="color: #475569;">Stop visit reports</a></p>
+            <p style="margin: 0;">You get this email after each visit to your pool. <a href="{{ $stopUrl }}" style="color: #475569; text-decoration: underline;">Stop visit reports</a></p>
         @endif
     </x-slot:footer>
 </x-email.layout>

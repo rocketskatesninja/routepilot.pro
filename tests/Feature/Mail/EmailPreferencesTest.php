@@ -82,6 +82,19 @@ test('optional emails carry the inbox unsubscribe header and a stop link; requir
     expect($staffBroadcast->headers()->text)->toBe([]);
 });
 
+test('every stop link is underlined, so it reads as a link in any inbox', function () {
+    $pool = Pool::factory()->for($this->tenant)->for($this->customer)->create();
+    $visit = ServiceVisit::factory()->for($this->tenant)->for($pool)->create([
+        'status' => 'completed', 'agent_id' => User::factory()->agent()->for($this->tenant)->create()->id,
+    ]);
+    $link = fn (string $html, string $text) => preg_match('/<a [^>]*style="[^"]*text-decoration: underline;[^"]*"[^>]*>'.preg_quote($text, '/').'<\/a>/', $html);
+
+    expect($link((new VisitRecapMail($visit, 0.0, null))->render(), 'Stop visit reports'))->toBe(1)
+        ->and($link((new VisitRecapMail($visit, 0.0, null, copyTo: 'manager@example.com'))->render(), 'Stop these copies'))->toBe(1)
+        ->and($link((new ServiceReminderMail('Robert', 'Blue Lagoon Pools', 'Backyard Pool', 'Monday', null, $this->tenant, $this->customer->id))->render(), 'Stop reminders'))->toBe(1)
+        ->and($link((new CampaignMail('Spring', 'Hi', 'Robert', EmailPreferences::pageUrl($this->customer->id, 'news'), null, $this->tenant))->render(), 'Unsubscribe'))->toBe(1);
+});
+
 test('a customer manages their emails in their portal settings', function () {
     $this->actingAs($this->portalUser)->get('/settings/emails')
         ->assertInertia(fn (Assert $page) => $page->component('settings/Emails')->where('preferences.reminders', true));
