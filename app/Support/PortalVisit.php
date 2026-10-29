@@ -18,7 +18,7 @@ final class PortalVisit
     public const WITH = [
         'pool:id,name,custom_target_ranges',
         'agent:id,first_name,last_name',
-        'chemicalReading', 'treatments', 'tasks', 'photos',
+        'chemicalReading', 'treatments.chemical:id,kind', 'tasks', 'photos',
         'serviceSubscription.serviceType:id,name',
     ];
 
@@ -36,11 +36,16 @@ final class PortalVisit
             'reading' => self::reading($visit),
             // The pool's own chemistry targets, so "good / low / high" matches what the tech works to.
             'targets' => $visit->pool?->custom_target_ranges,
-            'treatments' => $visit->treatments->map(fn ($t): array => [
+            'treatments' => $visit->treatments->reject(fn ($t): bool => $t->chemical?->isPart() === true)->map(fn ($t): array => [
                 'name' => $t->getAttribute('chemical_name'),
                 'amount' => (float) $t->amount,
                 'unit' => $t->getAttribute('unit'),
-            ])->all(),
+            ])->values()->all(),
+            // Repair parts replaced (their part numbers are the office's business).
+            'parts' => $visit->treatments->filter(fn ($t): bool => $t->chemical?->isPart() === true)->map(fn ($t): array => [
+                'name' => $t->getAttribute('chemical_name'),
+                'amount' => (float) $t->amount,
+            ])->values()->all(),
             'tasks' => $visit->tasks->map(fn ($t): array => [
                 'name' => $t->getAttribute('task_name'),
                 'done' => (bool) $t->getAttribute('is_completed'),

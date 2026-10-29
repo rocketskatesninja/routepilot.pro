@@ -139,7 +139,7 @@ class BillingService
      * line, each chemical's whole units at its sell price. Like the visit charge it's
      * made once, the first time the visit has any to bill; editing the report later
      * doesn't re-price it. Chemicals with no sell price, and typed ones that aren't
-     * from the company's list, aren't billed.
+     * from the company's list, aren't billed. Repair parts are billed apart (chargeParts).
      */
     public function chargeChemicals(ServiceVisit $visit): ?Charge
     {
@@ -149,8 +149,8 @@ class BillingService
             return $existing;
         }
 
-        $lines = $visit->treatments()->with('chemical:id,sell_price')->get()
-            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->getAttribute('sell_price') !== null);
+        $lines = $visit->treatments()->with('chemical:id,kind,sell_price')->get()
+            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->isPart() === false && $t->chemical->getAttribute('sell_price') !== null);
         $amount = round($lines->sum(fn (ChemicalTreatment $t): float => (float) $t->amount * (float) $t->chemical?->getAttribute('sell_price')), 2);
         if ($amount <= 0) {
             return null;
@@ -166,6 +166,46 @@ class BillingService
             'amount' => $amount,
             'taxable' => false,
             'tax' => 0,
+            'occurred_on' => $this->localDate($visit),
+        ]);
+        $charge->forceFill(['tenant_id' => $visit->getAttribute('tenant_id')])->save();
+
+        return $charge;
+    }
+
+    /**
+     * Charge the repair parts used on a visit: one line, each part's units at its sell
+     * price. Every customer pays for a replaced part (unlike chemicals, which only
+     * some do); parts with no sell price aren't billed. Parts are goods, so it's taxed
+     * at the company's rate like an added charge. Made once, the first time the visit
+     * has parts to bill; editing the report later doesn't re-price it.
+     */
+    public function chargeParts(ServiceVisit $visit): ?Charge
+    {
+        $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'parts')->first();
+        $pool = $visit->pool()->with('customer.tenant')->first(['id', 'name', 'customer_id']);
+        if ($existing !== null || $pool === null || $pool->customer === null) {
+            return $existing;
+        }
+
+        $lines = $visit->treatments()->with('chemical:id,kind,sell_price')->get()
+            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->isPart() === true && $t->chemical->getAttribute('sell_price') !== null);
+        $amount = round($lines->sum(fn (ChemicalTreatment $t): float => (float) $t->amount * (float) $t->chemical?->getAttribute('sell_price')), 2);
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $used = $lines->map(fn (ChemicalTreatment $t): string => $t->chemical_name.' ×'.(int) $t->amount)->join(', ');
+        $rate = (float) ($pool->customer->tenant?->getAttribute('tax_rate') ?? 0);
+        $charge = new Charge([
+            'customer_id' => $pool->getAttribute('customer_id'),
+            'pool_id' => $pool->id,
+            'service_visit_id' => $visit->id,
+            'kind' => 'parts',
+            'description' => Str::limit('Parts — '.$pool->getAttribute('name').': '.$used, 250),
+            'amount' => $amount,
+            'taxable' => true,
+            'tax' => round($amount * $rate, 2),
             'occurred_on' => $this->localDate($visit),
         ]);
         $charge->forceFill(['tenant_id' => $visit->getAttribute('tenant_id')])->save();

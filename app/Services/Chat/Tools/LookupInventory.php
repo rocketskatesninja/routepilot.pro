@@ -43,7 +43,7 @@ class LookupInventory extends AiTool
 
         $items = ChemicalInventory::query()
             ->active()
-            ->when($search !== '', fn ($q) => $q->where('chemical_name', 'like', "%{$search}%"))
+            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('chemical_name', 'like', "%{$search}%")->orWhere('part_number', 'like', "%{$search}%")))
             ->orderBy('chemical_name')
             ->get();
 
@@ -60,7 +60,9 @@ class LookupInventory extends AiTool
             $cost = $item->cost_per_unit !== null ? '$'.number_format((float) $item->cost_per_unit, 2).'/'.StandardChemicals::unitFor(1, $item->unit) : '';
             $supplier = $item->supplier !== null ? " (from {$item->supplier})" : '';
 
-            return "- **{$item->chemical_name}** [id:{$item->id}]: {$stock} (reorder at: {$threshold}){$low}"
+            $part = $item->isPart() ? ' (repair part'.($item->part_number !== null ? ", #{$item->part_number}" : '').')' : '';
+
+            return "- **{$item->chemical_name}**{$part} [id:{$item->id}]: {$stock} (reorder at: {$threshold}){$low}"
                 .($cost !== '' ? "\n  Cost: {$cost}{$supplier}" : '');
         })->join("\n");
 

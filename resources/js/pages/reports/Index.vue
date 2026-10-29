@@ -76,6 +76,7 @@ interface VisitDetail {
     can_delete?: boolean;
     charge?: { amount: number; invoice: string | null } | null;
     chemicals_billed?: boolean; // its chemicals are already on the customer's bill
+    parts_billed?: boolean; // likewise its parts
 }
 
 const props = defineProps<{
@@ -364,6 +365,9 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                         <Plus class="mr-1 size-3.5" /> Add
                                     </Button>
                                 </div>
+                                <p v-if="visit.parts_billed" class="text-muted-foreground mb-1.5 text-xs">
+                                    These are already on the customer's bill. Changes here update stock, not the bill; adjust it on Balances.
+                                </p>
                                 <div class="space-y-1.5">
                                     <div v-for="(p, i) in form.parts" :key="i" class="flex items-center gap-2">
                                         <select

@@ -13,8 +13,8 @@ use App\Services\BillingService;
  * an office edit, the same way (parts come in their own list, but they're rows
  * of the same kind: an inventory item and a whole number of it). Whatever the visit took off the shelf before goes back; then
  * each chemical picked from the company's list is recorded in its own unit,
- * rounded up to a whole one, taken off the shelf, and billed if the customer
- * pays for chemicals.
+ * rounded up to a whole one, taken off the shelf, and billed: chemicals if the
+ * customer pays for them, parts (with a sell price) always.
  *
  * A row with no chemical picked but a name was typed: by a copy of the field
  * app from before the list (still in a phone's offline queue), or on an older
@@ -73,5 +73,6 @@ class RecordTreatments
         }
 
         $this->billing->chargeChemicals($visit);
+        $this->billing->chargeParts($visit);
     }
 }

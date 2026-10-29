@@ -65,7 +65,7 @@ class VisitRecapMail extends Mailable
     public function content(): Content
     {
         $visit = $this->visit->load([
-            'pool.customer.tenant', 'chemicalReading', 'treatments', 'tasks', 'photos',
+            'pool.customer.tenant', 'chemicalReading', 'treatments.chemical:id,kind', 'tasks', 'photos',
             'agent:id,first_name,last_name', 'serviceSubscription.serviceType:id,name',
         ]);
         $customer = $visit->pool->customer;
@@ -84,7 +84,9 @@ class VisitRecapMail extends Mailable
             'tasks' => $visit->tasks,
             'checks' => $checks,
             'waterSummary' => WaterReport::summary($checks),
-            'treatments' => $visit->treatments,
+            // Chemicals added, and repair parts replaced (part numbers stay with the office).
+            'treatments' => $visit->treatments->reject(fn ($t): bool => $t->chemical?->isPart() === true)->values(),
+            'parts' => $visit->treatments->filter(fn ($t): bool => $t->chemical?->isPart() === true)->values(),
             'notes' => $visit->notes,
             // Absolute URLs — email clients can't resolve relative paths.
             'photos' => $visit->photos

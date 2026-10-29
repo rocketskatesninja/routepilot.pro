@@ -23,6 +23,7 @@ interface Visit {
     reading: WaterReading | null;
     targets: WaterTargets;
     treatments: { name: string; amount: number; unit: string }[];
+    parts: { name: string; amount: number }[]; // repair parts replaced
     tasks: { name: string; done: boolean }[];
     photos: string[];
 }
@@ -66,6 +67,7 @@ function summary(v: Visit): string {
     }
     if (v.reading) parts.push('water tested');
     if (v.treatments.length) parts.push(`${v.treatments.length} chemical${v.treatments.length === 1 ? '' : 's'} added`);
+    if (v.parts.length) parts.push(`${v.parts.length} part${v.parts.length === 1 ? '' : 's'} replaced`);
     if (v.photos.length) parts.push(`${v.photos.length} photo${v.photos.length === 1 ? '' : 's'}`);
     const s = parts.join(', ');
     return s ? `${s.charAt(0).toUpperCase()}${s.slice(1)}.` : 'Visit completed.';
@@ -153,6 +155,16 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
                                     <li v-for="t in v.treatments" :key="t.name" class="flex justify-between gap-4 sm:max-w-sm">
                                         <span>{{ t.name }}</span
                                         ><span class="text-muted-foreground tabular-nums">{{ amount(t) }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div v-if="v.parts.length">
+                                <h3 class="text-sm font-medium">Parts replaced</h3>
+                                <ul class="mt-2 space-y-1 text-sm">
+                                    <li v-for="p in v.parts" :key="p.name" class="flex justify-between gap-4 sm:max-w-sm">
+                                        <span>{{ p.name }}</span
+                                        ><span class="text-muted-foreground tabular-nums">×{{ p.amount }}</span>
                                     </li>
                                 </ul>
                             </div>

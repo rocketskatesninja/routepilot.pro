@@ -29,6 +29,7 @@ interface Visit {
     reading: WaterReading | null;
     targets: WaterTargets;
     treatments: { name: string; amount: number; unit: string }[];
+    parts: { name: string; amount: number }[]; // repair parts replaced
     tasks: { name: string; done: boolean }[];
     photos: string[];
 }
@@ -181,7 +182,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                     </p>
 
                     <ul
-                        v-if="doneTasks.length || props.lastVisit.reading || props.lastVisit.treatments.length"
+                        v-if="doneTasks.length || props.lastVisit.reading || props.lastVisit.treatments.length || props.lastVisit.parts.length"
                         class="mt-4 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2"
                     >
                         <li v-for="t in doneTasks" :key="t.name" class="flex gap-2">
@@ -193,6 +194,11 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                                 props.lastVisit.treatments.length === 1 ? '' : 's'
                             }}
                             added
+                        </li>
+                        <li v-for="p in props.lastVisit.parts" :key="p.name" class="flex gap-2">
+                            <Check class="text-primary mt-0.5 size-4 shrink-0" />{{ p.name }} replaced<template v-if="p.amount > 1">
+                                (×{{ p.amount }})</template
+                            >
                         </li>
                     </ul>
 

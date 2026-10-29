@@ -10,7 +10,7 @@
     :preheader="trim(($service ?? 'Service visit').' at '.$pool.'. '.$waterSummary)"
 >
     {{-- what was done --}}
-    @if ($tasks->count() || count($checks) || $treatments->count())
+    @if ($tasks->count() || count($checks) || $treatments->count() || $parts->count())
         <x-email.section title="What was done">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 @foreach ($tasks->chunk(2) as $pair)
@@ -27,6 +27,9 @@
                 @endif
                 @if ($treatments->count())
                     <tr><td colspan="2" style="padding: 3px 0; font-size: 13px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; {{ $treatments->count() }} chemical{{ $treatments->count() === 1 ? '' : 's' }} added</td></tr>
+                @endif
+                @if ($parts->count())
+                    <tr><td colspan="2" style="padding: 3px 0; font-size: 13px;"><span style="color: {{ $brand['color'] }}; font-weight: 600;">✓</span>&nbsp; {{ $parts->count() }} part{{ $parts->count() === 1 ? '' : 's' }} replaced</td></tr>
                 @endif
             </table>
         </x-email.section>
@@ -53,6 +56,20 @@
                     <tr>
                         <td style="padding: 12px 18px; font-size: 13px; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $t->chemical_name }}</td>
                         <td align="right" style="padding: 12px 18px; font-size: 13px; color: #475569; white-space: nowrap; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $amount($t) }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        </x-email.section>
+    @endif
+
+    {{-- repair parts replaced --}}
+    @if ($parts->count())
+        <x-email.section title="Parts replaced">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e7eb; border-radius: 16px; border-collapse: separate;">
+                @foreach ($parts as $i => $p)
+                    <tr>
+                        <td style="padding: 12px 18px; font-size: 13px; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">{{ $p->chemical_name }}</td>
+                        <td align="right" style="padding: 12px 18px; font-size: 13px; color: #475569; white-space: nowrap; {{ $i > 0 ? 'border-top: 1px solid #e5e7eb;' : '' }}">×{{ (int) $p->amount }}</td>
                     </tr>
                 @endforeach
             </table>

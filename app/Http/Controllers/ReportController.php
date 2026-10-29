@@ -98,6 +98,7 @@ class ReportController extends Controller
                 ];
                 // Billed once (see BillingService::chargeChemicals), so the edit form says changes won't follow.
                 $selected['chemicals_billed'] = $charges->contains('kind', 'chemicals');
+                $selected['parts_billed'] = $charges->contains('kind', 'parts');
                 // Recent chlorine/pH for this pool → the drawer's chemistry trend.
                 $trendVisits = ServiceVisit::query()
                     ->where('pool_id', $visit->getAttribute('pool_id'))

@@ -33,7 +33,7 @@ beforeEach(function () {
 });
 
 /** The report's chemicals and parts as the office sees them. */
-function reportLists(User $admin, ServiceVisit $visit): array
+function partsReportLists(User $admin, ServiceVisit $visit): array
 {
     $out = [];
     test()->actingAs($admin)->get('/reports?selected='.$visit->id)->assertInertia(function (Assert $page) use (&$out) {
@@ -59,7 +59,7 @@ test('parts used come off the shelf in whole units and show on the report apart 
         'parts' => [['part_id' => $this->oring->id, 'amount' => 1.2], ['part_id' => $other->id, 'amount' => 1]],
     ])->assertOk();
 
-    [$chemicals, $parts, $partChoices, $chemicalChoices] = reportLists($this->admin, ServiceVisit::query()->sole());
+    [$chemicals, $parts, $partChoices, $chemicalChoices] = partsReportLists($this->admin, ServiceVisit::query()->sole());
     expect((float) $this->oring->fresh()?->current_stock)->toBe(8.0) // 1.2 rounds up to 2
         ->and((float) $this->chlorine->fresh()?->current_stock)->toBe(18.0)
         ->and((float) $other->fresh()?->current_stock)->toBe(5.0) // another company's: ignored
@@ -81,9 +81,9 @@ test('the office edits a report’s parts, and editing without them keeps them',
     // A page from before parts sends only the chemicals: the part stays, and so does its stock.
     $this->actingAs($this->admin)->patch("/reports/{$visit->id}", ['treatments' => [['chemical_id' => $this->chlorine->id, 'amount' => 1]]])->assertRedirect();
     expect((float) $this->oring->fresh()?->current_stock)->toBe(9.0)
-        ->and(reportLists($this->admin, $visit)[1])->toHaveCount(1);
+        ->and(partsReportLists($this->admin, $visit)[1])->toHaveCount(1);
 
     $this->actingAs($this->admin)->patch("/reports/{$visit->id}", ['treatments' => [], 'parts' => []])->assertRedirect();
     expect((float) $this->oring->fresh()?->current_stock)->toBe(10.0)
-        ->and(reportLists($this->admin, $visit)[1])->toBe([]);
+        ->and(partsReportLists($this->admin, $visit)[1])->toBe([]);
 });
