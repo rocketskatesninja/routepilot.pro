@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Actions\CreatePool;
+use App\Actions\CreateSubscription;
 use App\Actions\UpdatePool;
 use App\Http\Requests\StorePoolRequest;
 use App\Http\Requests\UpdatePoolRequest;
@@ -22,6 +23,7 @@ use App\Services\ChemistryService;
 use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -87,9 +89,17 @@ class PoolController extends Controller
         ]);
     }
 
-    public function store(StorePoolRequest $request, CreatePool $action): RedirectResponse
+    public function store(StorePoolRequest $request, CreatePool $action, CreateSubscription $plans): RedirectResponse
     {
-        $action->handle($request->validated());
+        $data = $request->validated();
+        $pool = $action->handle($data);
+
+        // Its service plan too, when one was picked (both were validated together, so a bad plan adds neither).
+        if (isset($data['service_type_id'])) {
+            $plans->handle([...Arr::only($data, ['service_type_id', 'assigned_agent_id', 'frequency', 'preferred_day', 'day_of_month', 'starts_on', 'ends_on']), 'pool_id' => $pool->id]);
+
+            return back()->with('success', 'Pool added, with its service plan on the schedule.');
+        }
 
         return back()->with('success', 'Pool added.');
     }

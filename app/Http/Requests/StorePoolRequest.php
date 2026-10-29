@@ -17,7 +17,12 @@ class StorePoolRequest extends FormRequest
     /** @return array<string, mixed> */
     public function rules(): array
     {
+        // An optional service plan, added with the pool: checked like any plan when a service is picked, else ignored.
+        $plan = SubscriptionRequest::planRules($this->user()?->tenant_id, $this->input('starts_on'));
+        $plan = $this->filled('service_type_id') ? $plan : array_map(fn () => ['exclude'], $plan);
+
         return [
+            ...$plan,
             // Customer must belong to this tenant.
             'customer_id' => ['required', Rule::exists('customers', 'id')->where('tenant_id', $this->user()?->tenant_id)],
             'name' => ['required', 'string', 'max:255'],

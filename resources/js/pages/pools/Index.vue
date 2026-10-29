@@ -234,12 +234,43 @@ const form = useForm<Record<string, unknown>>({
     access_notes: '',
     report_cc_email: '',
     photo: null,
+    // A new pool's optional first service plan (left out unless a service is picked).
+    service_type_id: '',
+    assigned_agent_id: '',
+    frequency: 'weekly',
+    preferred_day: '',
+    day_of_month: '',
+    starts_on: '',
+    ends_on: '',
 });
 
 const photoFile = computed(() => form.photo as File | null);
 
+// The new pool's plan fields, in the shape PlanScheduleFields edits (in place, on this same form).
+const newPlan = computed(
+    () =>
+        form as unknown as {
+            assigned_agent_id: number | string;
+            frequency: string;
+            preferred_day: string;
+            day_of_month: number | string;
+            starts_on: string;
+            ends_on: string;
+            errors: Partial<Record<string, string>>;
+        },
+);
+// …starting from how the picked service is sold, like the plan form.
+watch(
+    () => form.service_type_id,
+    (id) => {
+        const service = props.serviceTypes.find((t) => t.id === Number(id));
+        if (formMode.value === 'create' && service && SCHEDULES[service.frequency]) form.frequency = service.frequency;
+    },
+);
+
 function openCreate() {
     form.reset();
+    form.starts_on = new Date().toLocaleDateString('en-CA'); // a plan, if one's picked, starts today
     form.clearErrors();
     formMode.value = 'create';
     formId.value = null;
@@ -680,6 +711,29 @@ function submitTargets() {
                             <Input id="report_cc" v-model="form.report_cc_email" type="email" placeholder="Optional, e.g. a landlord" />
                             <p v-if="form.errors.report_cc_email" class="text-xs text-red-600">{{ form.errors.report_cc_email }}</p>
                             <p v-else class="text-muted-foreground text-xs">They get a copy of every visit report for this pool.</p>
+                        </div>
+
+                        <!-- a new pool can start with its service plan -->
+                        <div v-if="formMode === 'create'" class="border-border space-y-4 rounded-2xl border p-4">
+                            <div>
+                                <p class="font-medium">Service plan <span class="text-muted-foreground font-normal">(optional)</span></p>
+                                <p class="text-muted-foreground text-xs">
+                                    Pick a service to put this pool on the routes now. You can add more plans later.
+                                </p>
+                            </div>
+                            <div class="grid gap-1.5">
+                                <Label for="new_service">Service</Label>
+                                <select
+                                    id="new_service"
+                                    v-model="form.service_type_id"
+                                    class="border-input bg-background h-9 w-64 max-w-full rounded-md border px-2 text-sm"
+                                >
+                                    <option value="">None for now</option>
+                                    <option v-for="t in props.serviceTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+                                </select>
+                                <p v-if="form.errors.service_type_id" class="text-xs text-red-600">{{ form.errors.service_type_id }}</p>
+                            </div>
+                            <PlanScheduleFields v-if="form.service_type_id" :model-value="newPlan" :agents="props.agents" id-prefix="new" />
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
