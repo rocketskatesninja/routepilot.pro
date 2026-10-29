@@ -31,7 +31,7 @@ abstract class InAppNotification extends Notification
      * A saved one as the bell list and the dashboard widget show it. Opening it
      * goes through /notifications/{id}/open, which marks it read on the way.
      *
-     * @return array{id: string, title: string, body: string, read: bool, severity: string, icon: string, on: string|null}
+     * @return array{id: string, title: string, body: string, read: bool, severity: string, icon: string, on: string|null, at: string|null}
      */
     public static function row(DatabaseNotification $n): array
     {
@@ -59,6 +59,7 @@ abstract class InAppNotification extends Notification
                 default => 'Bell',
             },
             'on' => $n->created_at?->diffForHumans(),
+            'at' => $n->created_at?->toIso8601String(), // the page shows the exact time and groups by day
         ];
     }
 }

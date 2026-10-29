@@ -71,9 +71,9 @@ test('the index exposes a severity and icon derived from the notification type',
     $this->actingAs($this->admin)
         ->get('/notifications')
         ->assertInertia(fn (Assert $page) => $page
-            ->has('notifications', 1)
-            ->where('notifications.0.severity', 'alert')
-            ->where('notifications.0.icon', 'TriangleAlert'));
+            ->has('notifications.list.data', 1)
+            ->where('notifications.list.data.0.severity', 'alert')
+            ->where('notifications.list.data.0.icon', 'TriangleAlert'));
 });
 
 test('a user clears all their notifications', function () {
@@ -146,4 +146,61 @@ test('nobody can open someone else\'s notification', function () {
 
     $this->actingAs($this->user)->get("/notifications/{$theirs->id}/open")->assertNotFound();
     expect($theirs->fresh()?->read_at)->toBeNull();
+});
+
+/** Give the admin $n notifications of a type, newest last; $read marks them read. */
+function giveNotes(int $n, string $type = 'App\Notifications\OpsAlert', bool $read = false): void
+{
+    for ($i = 0; $i < $n; $i++) {
+        test()->admin->notifications()->create([
+            'id' => (string) Str::uuid(), 'type' => $type, 'data' => ['title' => "Note {$i}"], 'read_at' => $read ? now() : null,
+            'created_at' => now()->subMinutes(100 - $i),
+        ]);
+    }
+}
+
+test('every notification is reachable a page at a time, with true counts', function () {
+    giveNotes(30);
+    giveNotes(5, read: true);
+
+    $this->actingAs($this->admin)->get('/notifications')->assertInertia(fn (Assert $page) => $page
+        ->has('notifications.list.data', 25)
+        ->where('notifications.list.total', 35)
+        ->where('notifications.all', 35)
+        ->where('notifications.unread', 30)
+        ->has('notifications.list.data.0.at'));
+
+    $this->actingAs($this->admin)->get('/notifications?page=2')->assertInertia(fn (Assert $page) => $page->has('notifications.list.data', 10));
+    $this->actingAs($this->admin)->get('/notifications?filter=unread')->assertInertia(fn (Assert $page) => $page
+        ->where('filter', 'unread')->where('notifications.list.total', 30));
+});
+
+test('notifications filter by kind, offering only the kinds the person has', function () {
+    giveNotes(2);
+    giveNotes(3, 'App\Notifications\LeadSubmitted');
+
+    $this->actingAs($this->admin)->get('/notifications?kind=leads')->assertInertia(fn (Assert $page) => $page
+        ->where('kind', 'leads')
+        ->where('notifications.list.total', 3)
+        ->where('kinds', ['leads' => 'Website leads', 'alerts' => 'Alerts']));
+});
+
+test('several notifications are marked read, unread or dismissed at once — only the person’s own', function () {
+    giveNotes(3);
+    $ids = $this->admin->notifications()->pluck('id')->all();
+    $other = User::factory()->for($this->tenant)->create();
+    $theirs = $other->notifications()->create(['id' => (string) Str::uuid(), 'type' => 'App\Notifications\OpsAlert', 'data' => ['title' => 'Theirs'], 'read_at' => null]);
+
+    $this->actingAs($this->admin)->post('/notifications/bulk', ['ids' => [...$ids, $theirs->id], 'action' => 'read'])->assertRedirect();
+    expect($this->admin->unreadNotifications()->count())->toBe(0)
+        ->and($theirs->fresh()?->read_at)->toBeNull();
+
+    $this->actingAs($this->admin)->post('/notifications/bulk', ['ids' => [$ids[0]], 'action' => 'unread']);
+    expect($this->admin->unreadNotifications()->count())->toBe(1);
+
+    $this->actingAs($this->admin)->post('/notifications/bulk', ['ids' => [...$ids, $theirs->id], 'action' => 'dismiss']);
+    expect($this->admin->notifications()->count())->toBe(0)
+        ->and($other->notifications()->count())->toBe(1);
+
+    $this->actingAs($this->admin)->post('/notifications/bulk', ['ids' => [$ids[0]], 'action' => 'explode'])->assertSessionHasErrors('action');
 });

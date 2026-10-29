@@ -113,6 +113,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('notifications/{id}/unread', [NotificationController::class, 'unread'])->name('notifications.unread');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readall');
+    Route::post('notifications/bulk', [NotificationController::class, 'bulk'])->name('notifications.bulk'); // ids[] + read|unread|dismiss
     Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
     Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
