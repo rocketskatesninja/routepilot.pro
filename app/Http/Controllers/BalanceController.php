@@ -281,18 +281,18 @@ class BalanceController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        $charge = $action->handle($request->safe()->except('invoice_now'), (int) $user->id);
+        $charge = $action->handle($request->validated(), (int) $user->id);
         AuditLog::record($user, 'charge.created', $charge, ['amount' => (float) $charge->amount, 'customer_id' => $charge->customer_id, 'work_order_id' => $charge->work_order_id]);
 
-        // Billed from a work order: back to it, where it now shows as billed.
-        $message = $charge->work_order_id !== null ? 'Charge added to '.$charge->customer?->displayName().'’s balance.' : 'Charge added.';
-        if ($request->boolean('invoice_now') && $charge->customer !== null) {
-            $message .= ' '.($this->invoiceAndEmail($request, $charge->customer, $generate, $send) ?? '');
-        }
+        $fromOrder = $charge->work_order_id !== null;
+        $message = implode(' ', array_filter([
+            $fromOrder ? 'Charge added to '.$charge->customer?->displayName().'’s balance.' : 'Charge added.',
+            $request->boolean('invoice_now') && $charge->customer !== null ? $this->invoiceAndEmail($request, $charge->customer, $generate, $send) : null,
+        ]));
 
-        return $charge->work_order_id !== null
-            ? redirect()->route('work-orders.index', ['status' => 'done', 'selected' => $charge->work_order_id])->with('success', trim($message))
-            : back()->with('success', trim($message));
+        // Billed from a work order: back to it, where it now shows as billed.
+        return ($fromOrder ? redirect()->route('work-orders.index', ['status' => 'done', 'selected' => $charge->work_order_id]) : back())
+            ->with('success', $message);
     }
 
     public function recordPayment(RecordPaymentRequest $request, Customer $customer, RecordPayment $action, BillingService $billing): RedirectResponse

@@ -39,4 +39,13 @@ class ServiceLocation extends Model
     {
         return $this->belongsTo(Pool::class);
     }
+
+    /** "27 Marsh Hen Lane, St. Simons Island, GA 31522" (what's set of it), or null with none. */
+    public function formattedAddress(): ?string
+    {
+        $stateZip = trim((string) $this->getAttribute('state').' '.(string) $this->getAttribute('zip'));
+        $parts = array_filter([$this->getAttribute('address_line1'), $this->getAttribute('city'), $stateZip !== '' ? $stateZip : null]);
+
+        return $parts !== [] ? implode(', ', $parts) : null;
+    }
 }

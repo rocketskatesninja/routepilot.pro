@@ -60,16 +60,16 @@ const weekday = (ymd: string | null) => {
 
 /** "Checklist done, water tested, 2 chemicals added." */
 function summary(v: Visit): string {
-    const parts: string[] = [];
+    const said: string[] = [];
     if (v.tasks.length) {
         const done = v.tasks.filter((t) => t.done).length;
-        parts.push(done === v.tasks.length ? 'checklist done' : `${done} of ${v.tasks.length} checklist steps done`);
+        said.push(done === v.tasks.length ? 'checklist done' : `${done} of ${v.tasks.length} checklist steps done`);
     }
-    if (v.reading) parts.push('water tested');
-    if (v.treatments.length) parts.push(`${v.treatments.length} chemical${v.treatments.length === 1 ? '' : 's'} added`);
-    if (v.parts.length) parts.push(`${v.parts.length} part${v.parts.length === 1 ? '' : 's'} replaced`);
-    if (v.photos.length) parts.push(`${v.photos.length} photo${v.photos.length === 1 ? '' : 's'}`);
-    const s = parts.join(', ');
+    if (v.reading) said.push('water tested');
+    if (v.treatments.length) said.push(`${v.treatments.length} chemical${v.treatments.length === 1 ? '' : 's'} added`);
+    if (v.parts.length) said.push(`${v.parts.length} part${v.parts.length === 1 ? '' : 's'} replaced`);
+    if (v.photos.length) said.push(`${v.photos.length} photo${v.photos.length === 1 ? '' : 's'}`);
+    const s = said.join(', ');
     return s ? `${s.charAt(0).toUpperCase()}${s.slice(1)}.` : 'Visit completed.';
 }
 

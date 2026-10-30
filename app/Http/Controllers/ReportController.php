@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateReportRequest;
 use App\Models\AuditLog;
 use App\Models\Charge;
 use App\Models\ChemicalInventory;
+use App\Models\ChemicalTreatment;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
@@ -96,7 +97,7 @@ class ReportController extends Controller
                     'amount' => round((float) $charges->sum(fn (Charge $c): float => $c->total()), 2),
                     'invoice' => $charges->first(fn (Charge $c): bool => $c->invoice !== null)?->invoice?->number,
                 ];
-                // Billed once (see BillingService::chargeChemicals), so the edit form says changes won't follow.
+                // Billed once (see BillingService::chargeSupplies), so the edit form says changes won't follow.
                 $selected['chemicals_billed'] = $charges->contains('kind', 'chemicals');
                 $selected['parts_billed'] = $charges->contains('kind', 'parts');
                 // Recent chlorine/pH for this pool → the drawer's chemistry trend.
@@ -113,13 +114,8 @@ class ReportController extends Controller
         return Inertia::render('reports/Index', [
             'visits' => $visits,
             'selected' => $selected,
-            // What the edit form picks chemicals from (only needed with a report open).
-            'chemicals' => $selected === null ? [] : ChemicalInventory::query()->active()->chemicals()->orderBy('chemical_name')
-                ->get(['id', 'chemical_name', 'unit'])
-                ->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'unit' => $c->unit])->all(),
-            'parts' => $selected === null ? [] : ChemicalInventory::query()->active()->parts()->orderBy('chemical_name')
-                ->get(['id', 'chemical_name', 'part_number'])
-                ->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'part_number' => $c->part_number])->all(),
+            // What the edit form picks chemicals and parts from (only needed with a report open).
+            ...$this->pickers($selected !== null),
             'sort' => $sort,
         ]);
     }
@@ -147,10 +143,27 @@ class ReportController extends Controller
         return back()->with('success', 'Report deleted.'.($cancelled > 0 ? ' What it was billed was cancelled.' : ''));
     }
 
+    /**
+     * The active chemicals and repair parts the edit form picks from, in one query.
+     *
+     * @return array{chemicals: list<array<string, mixed>>, parts: list<array<string, mixed>>}
+     */
+    private function pickers(bool $needed): array
+    {
+        [$parts, $chemicals] = ($needed ? ChemicalInventory::query()->active()->orderBy('chemical_name')->get(['id', 'chemical_name', 'kind', 'part_number', 'unit']) : collect())
+            ->partition(fn (ChemicalInventory $c): bool => $c->isPart());
+
+        return [
+            'chemicals' => $chemicals->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'unit' => $c->unit])->values()->all(),
+            'parts' => $parts->map(fn (ChemicalInventory $c): array => ['id' => $c->id, 'name' => $c->chemical_name, 'part_number' => $c->part_number])->values()->all(),
+        ];
+    }
+
     /** @return array<string, mixed> */
     private function toDetail(ServiceVisit $visit): array
     {
         $reading = $visit->chemicalReading;
+        [$parts, $chemicals] = $visit->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
 
         return [
             'id' => $visit->id,
@@ -181,13 +194,13 @@ class ReportController extends Controller
                 'lsi_score' => $reading->lsi_score,
             ] : null,
             // Chemicals added, and repair parts used (rows of the same table, told apart by their item).
-            'treatments' => $visit->treatments->reject(fn ($t) => $t->chemical?->isPart() === true)->map(fn ($t) => [
+            'treatments' => $chemicals->map(fn ($t) => [
                 'chemical_id' => $t->getAttribute('chemical_inventory_id'), // null: typed before the chemical list
                 'name' => $t->getAttribute('chemical_name'),
                 'amount' => (float) $t->getAttribute('amount'),
                 'unit' => $t->getAttribute('unit'),
             ])->values()->all(),
-            'parts' => $visit->treatments->filter(fn ($t) => $t->chemical?->isPart() === true)->map(fn ($t) => [
+            'parts' => $parts->map(fn ($t) => [
                 'part_id' => $t->getAttribute('chemical_inventory_id'),
                 'name' => $t->getAttribute('chemical_name'),
                 'part_number' => $t->chemical?->part_number,

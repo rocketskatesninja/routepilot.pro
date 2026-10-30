@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\ChemicalTreatment;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,8 @@ final class PortalVisit
     /** @return array<string, mixed> */
     public static function toArray(ServiceVisit $visit): array
     {
+        [$parts, $chemicals] = $visit->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
+
         return [
             'id' => $visit->id,
             'pool' => $visit->pool?->getAttribute('name'),
@@ -36,13 +39,13 @@ final class PortalVisit
             'reading' => self::reading($visit),
             // The pool's own chemistry targets, so "good / low / high" matches what the tech works to.
             'targets' => $visit->pool?->custom_target_ranges,
-            'treatments' => $visit->treatments->reject(fn ($t): bool => $t->chemical?->isPart() === true)->map(fn ($t): array => [
+            'treatments' => $chemicals->map(fn ($t): array => [
                 'name' => $t->getAttribute('chemical_name'),
                 'amount' => (float) $t->amount,
                 'unit' => $t->getAttribute('unit'),
             ])->values()->all(),
             // Repair parts replaced (their part numbers are the office's business).
-            'parts' => $visit->treatments->filter(fn ($t): bool => $t->chemical?->isPart() === true)->map(fn ($t): array => [
+            'parts' => $parts->map(fn ($t): array => [
                 'name' => $t->getAttribute('chemical_name'),
                 'amount' => (float) $t->amount,
             ])->values()->all(),

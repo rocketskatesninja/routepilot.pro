@@ -32,7 +32,11 @@ class InventoryController extends Controller
         $archived = $request->boolean('archived');
         // Chemicals and repair parts are listed apart (?type=parts); a link to one item opens its own list.
         $selectedItem = $request->integer('selected') > 0 ? ChemicalInventory::query()->find($request->integer('selected')) : null;
-        $kind = $request->has('type') ? ($request->string('type')->toString() === 'parts' ? 'part' : 'chemical') : ($selectedItem->kind ?? 'chemical');
+        $kind = match ($request->string('type')->toString()) {
+            'parts' => 'part',
+            'chemicals' => 'chemical',
+            default => $selectedItem->kind ?? 'chemical',
+        };
 
         $query = ChemicalInventory::query()
             ->where('kind', $kind)
@@ -60,17 +64,17 @@ class InventoryController extends Controller
                 'cost_per_unit' => self::number($i->cost_per_unit),
             ]);
 
-        $selected = $selectedItem !== null ? $this->toDetail($selectedItem) : null;
+        $inUse = ['chemical' => ChemicalInventory::query()->chemicals()->active()->count(), 'part' => ChemicalInventory::query()->parts()->active()->count()];
 
         return Inertia::render('inventory/Index', [
             'items' => $items,
-            'selected' => $selected,
-            'filters' => ['search' => $search, 'archived' => $archived, 'type' => $kind === 'part' ? 'parts' : 'chemicals'],
+            'selected' => $selectedItem !== null ? $this->toDetail($selectedItem) : null,
+            'filters' => ['search' => $search, 'archived' => $archived, 'type' => $kind.'s'],
             'counts' => [
-                'active' => ChemicalInventory::query()->where('kind', $kind)->active()->count(),
+                'active' => $inUse[$kind],
                 'archived' => ChemicalInventory::query()->where('kind', $kind)->where('is_active', false)->count(),
-                'chemicals' => ChemicalInventory::query()->chemicals()->active()->count(),
-                'parts' => ChemicalInventory::query()->parts()->active()->count(),
+                'chemicals' => $inUse['chemical'],
+                'parts' => $inUse['part'],
             ],
             'sort' => $sort,
             'canManage' => $this->canManage($request->user()),
@@ -81,14 +85,14 @@ class InventoryController extends Controller
     {
         $item = $action->handle($request->validated(), (int) $request->user()?->id);
 
-        return back()->with('success', $item->isPart() ? 'Part added.' : 'Chemical added.');
+        return back()->with('success', ucfirst($item->kind).' added.');
     }
 
     public function update(UpdateChemicalRequest $request, ChemicalInventory $chemical, UpdateChemical $action): RedirectResponse
     {
         $action->handle($chemical, $request->validated());
 
-        return back()->with('success', $chemical->isPart() ? 'Part updated.' : 'Chemical updated.');
+        return back()->with('success', ucfirst($chemical->kind).' updated.');
     }
 
     public function adjust(AdjustStockRequest $request, ChemicalInventory $chemical, AdjustStock $action): RedirectResponse
@@ -104,7 +108,7 @@ class InventoryController extends Controller
         $this->authorizeAdmin($request);
         $chemical->update(['is_active' => false]);
 
-        return back()->with('success', $chemical->isPart() ? 'Part archived.' : 'Chemical archived.');
+        return back()->with('success', ucfirst($chemical->kind).' archived.');
     }
 
     public function restore(Request $request, ChemicalInventory $chemical): RedirectResponse
@@ -112,7 +116,7 @@ class InventoryController extends Controller
         $this->authorizeAdmin($request);
         $chemical->update(['is_active' => true]);
 
-        return back()->with('success', $chemical->isPart() ? 'Part restored.' : 'Chemical restored.');
+        return back()->with('success', ucfirst($chemical->kind).' restored.');
     }
 
     /** @return array<string, mixed> */

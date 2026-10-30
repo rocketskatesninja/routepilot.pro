@@ -10,7 +10,6 @@ use App\Events\RouteUpdated;
 use App\Models\AgentLocation;
 use App\Models\Route;
 use App\Models\RouteStop;
-use App\Models\ServiceLocation;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\RouteOptimizer;
@@ -315,7 +314,7 @@ class ScheduleController extends Controller
             foreach ($route->stops as $stop) {
                 $c = $stop->pool->coordinates();
                 if ($c !== null) {
-                    $coords[$stop->id] = ['lat' => $c[0], 'lng' => $c[1], 'address' => $this->formatAddress($stop->pool->serviceLocation)];
+                    $coords[$stop->id] = ['lat' => $c[0], 'lng' => $c[1], 'address' => $stop->pool->serviceLocation?->formattedAddress()];
                 }
             }
         }
@@ -324,20 +323,6 @@ class ScheduleController extends Controller
     }
 
     /** A one-line "street, city, ST zip" address for the map info window. */
-    private function formatAddress(?ServiceLocation $loc): ?string
-    {
-        if ($loc === null) {
-            return null;
-        }
-        $cityState = trim((string) $loc->getAttribute('state').' '.(string) $loc->getAttribute('zip'));
-        $parts = array_filter([
-            $loc->getAttribute('address_line1'),
-            $loc->getAttribute('city'),
-            $cityState !== '' ? $cityState : null,
-        ]);
-
-        return $parts !== [] ? implode(', ', $parts) : null;
-    }
 
     /** An agent's chosen route colour, falling back to the brand sky. */
     private function agentColor(?User $agent): string

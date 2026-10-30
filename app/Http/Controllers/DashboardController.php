@@ -54,10 +54,11 @@ class DashboardController extends Controller
             'layouts' => $layouts,
             'catalog' => DashboardWidgets::meta(),
             'palette' => DashboardWidgets::palette($user),
-            'widgets' => app(AssembleDashboardData::class)->handle($user, $enabled),
+            // Lazy, so a partial reload (the live notification refresh: `auth` + `notifications`) skips them.
+            'widgets' => fn (): array => app(AssembleDashboardData::class)->handle($user, $enabled),
             // First-run setup checklist — only the tenant admin sees it, and only
             // the client shows it while incomplete + not dismissed (see Grid.vue).
-            'onboarding' => ($user->role === 'tenant_admin' && $tenant instanceof Tenant)
+            'onboarding' => fn () => ($user->role === 'tenant_admin' && $tenant instanceof Tenant)
                 ? OnboardingStatus::for($tenant)
                 : null,
         ];

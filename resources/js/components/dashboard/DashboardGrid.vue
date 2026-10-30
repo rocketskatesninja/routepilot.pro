@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { GridItem, GridLayout } from 'grid-layout-plus';
-import interact from 'interactjs';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import DashboardWidgetCard from './DashboardWidgetCard.vue';
 import WidgetRenderer from './WidgetRenderer.vue';
 
@@ -59,21 +58,14 @@ const commit = () =>
         work.value.map((i) => ({ ...i })),
     );
 
-// Dragging a widget near the top or bottom of the screen scrolls the page, so on a
-// phone (where the widgets are a tall stack) one can travel past what's visible.
-// Set straight on each box's interactjs options: calling draggable() would also
-// switch dragging on, outside editing.
-const root = ref<HTMLElement | null>(null);
-function scrollWhileDragging() {
-    root.value?.querySelectorAll<HTMLElement>('.vgl-item:not(.vgl-item--placeholder)').forEach((el) => {
-        Object.assign(interact(el).options.drag.autoScroll ?? {}, { enabled: true, container: window, margin: 72, speed: 700 });
-    });
-}
-watch([mounted, () => props.editing, () => work.value.length], () => nextTick(scrollWhileDragging));
+// Dragging a widget near the top or bottom of the screen scrolls the page (interactjs
+// autoScroll; with no container it scrolls the window), so on a phone, where the
+// widgets are a tall stack, one can travel past what's visible.
+const dragOption = { autoScroll: { enabled: true, margin: 72, speed: 700 } };
 </script>
 
 <template>
-    <div ref="root" class="dashboard-grid" :class="{ 'is-editing': editing }">
+    <div class="dashboard-grid" :class="{ 'is-editing': editing }">
         <!-- Both desktop and phone use the same 12-col drag grid — on a phone the
              layout is full-width widgets, so it reads as a stack you can still
              drag to reorder and drag the corner to resize. -->
@@ -99,6 +91,7 @@ watch([mounted, () => props.editing, () => work.value.length], () => nextTick(sc
                 :min-w="meta(item.i).minW"
                 :min-h="meta(item.i).minH"
                 drag-allow-from=".widget-drag-handle"
+                :drag-option="dragOption"
                 :class="editing ? 'ring-primary/40 rounded-xl ring-1' : ''"
                 @moved="commit"
                 @resized="commit"

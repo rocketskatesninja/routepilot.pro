@@ -9,6 +9,7 @@ use App\Models\ChemicalTreatment;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Support\StandardChemicals;
@@ -135,82 +136,59 @@ class BillingService
     }
 
     /**
-     * Charge the chemicals used on a visit, for a customer who pays for them: one
-     * line, each chemical's whole units at its sell price. Like the visit charge it's
-     * made once, the first time the visit has any to bill; editing the report later
-     * doesn't re-price it. Chemicals with no sell price, and typed ones that aren't
-     * from the company's list, aren't billed. Repair parts are billed apart (chargeParts).
+     * Bill what a visit took off the shelf, one line each: its chemicals, for a
+     * customer who pays for them, and its repair parts, for every customer (taxed at
+     * the company's rate like an added charge: parts are goods). A line is its items'
+     * whole units at their sell prices; items with no sell price, and chemicals typed
+     * before the list, aren't billed. Like the visit charge each line is made once,
+     * the first time the visit has any to bill; editing the report doesn't re-price it.
      */
-    public function chargeChemicals(ServiceVisit $visit): ?Charge
+    public function chargeSupplies(ServiceVisit $visit): void
     {
-        $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'chemicals')->first();
-        $pool = $visit->pool()->with('customer:id,bill_chemicals')->first(['id', 'name', 'customer_id']);
-        if ($existing !== null || $pool === null || $pool->customer?->getAttribute('bill_chemicals') !== true) {
-            return $existing;
+        $billed = Charge::query()->where('service_visit_id', $visit->id)->whereIn('kind', ['chemicals', 'parts'])->pluck('kind')->all();
+        $pool = count($billed) < 2 ? $visit->pool()->with('customer.tenant')->first(['id', 'name', 'customer_id']) : null;
+        if ($pool?->customer === null) {
+            return;
         }
 
-        $lines = $visit->treatments()->with('chemical:id,kind,sell_price')->get()
-            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->isPart() === false && $t->chemical->getAttribute('sell_price') !== null);
-        $amount = round($lines->sum(fn (ChemicalTreatment $t): float => (float) $t->amount * (float) $t->chemical?->getAttribute('sell_price')), 2);
-        if ($amount <= 0) {
-            return null;
+        [$parts, $chemicals] = $visit->treatments()->with('chemical:id,kind,sell_price')->get()
+            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->getAttribute('sell_price') !== null)
+            ->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
+
+        if (! in_array('chemicals', $billed, true) && $pool->customer->getAttribute('bill_chemicals') === true) {
+            $this->chargeLine($visit, $pool, 'chemicals', $chemicals, fn (ChemicalTreatment $t): string => $t->chemical_name.' '.StandardChemicals::amount((float) $t->amount, (string) $t->unit), false);
         }
-
-        $used = $lines->map(fn (ChemicalTreatment $t): string => $t->chemical_name.' '.StandardChemicals::amount((float) $t->amount, (string) $t->unit))->join(', ');
-        $charge = new Charge([
-            'customer_id' => $pool->getAttribute('customer_id'),
-            'pool_id' => $pool->id,
-            'service_visit_id' => $visit->id,
-            'kind' => 'chemicals',
-            'description' => Str::limit('Chemicals — '.$pool->getAttribute('name').': '.$used, 250),
-            'amount' => $amount,
-            'taxable' => false,
-            'tax' => 0,
-            'occurred_on' => $this->localDate($visit),
-        ]);
-        $charge->forceFill(['tenant_id' => $visit->getAttribute('tenant_id')])->save();
-
-        return $charge;
+        if (! in_array('parts', $billed, true)) {
+            $this->chargeLine($visit, $pool, 'parts', $parts, fn (ChemicalTreatment $t): string => $t->chemical_name.' ×'.(int) $t->amount, true);
+        }
     }
 
     /**
-     * Charge the repair parts used on a visit: one line, each part's units at its sell
-     * price. Every customer pays for a replaced part (unlike chemicals, which only
-     * some do); parts with no sell price aren't billed. Parts are goods, so it's taxed
-     * at the company's rate like an added charge. Made once, the first time the visit
-     * has parts to bill; editing the report later doesn't re-price it.
+     * One supplies line ("Parts — Cruz Pool: Pump lid O-ring ×2"), unless it comes to nothing.
+     *
+     * @param  Collection<int, ChemicalTreatment>  $lines
+     * @param  callable(ChemicalTreatment): string  $describe
      */
-    public function chargeParts(ServiceVisit $visit): ?Charge
+    private function chargeLine(ServiceVisit $visit, Pool $pool, string $kind, Collection $lines, callable $describe, bool $taxable): void
     {
-        $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'parts')->first();
-        $pool = $visit->pool()->with('customer.tenant')->first(['id', 'name', 'customer_id']);
-        if ($existing !== null || $pool === null || $pool->customer === null) {
-            return $existing;
-        }
-
-        $lines = $visit->treatments()->with('chemical:id,kind,sell_price')->get()
-            ->filter(fn (ChemicalTreatment $t): bool => $t->chemical?->isPart() === true && $t->chemical->getAttribute('sell_price') !== null);
         $amount = round($lines->sum(fn (ChemicalTreatment $t): float => (float) $t->amount * (float) $t->chemical?->getAttribute('sell_price')), 2);
         if ($amount <= 0) {
-            return null;
+            return;
         }
 
-        $used = $lines->map(fn (ChemicalTreatment $t): string => $t->chemical_name.' ×'.(int) $t->amount)->join(', ');
-        $rate = (float) ($pool->customer->tenant?->getAttribute('tax_rate') ?? 0);
+        $rate = $taxable ? (float) ($pool->customer?->tenant?->getAttribute('tax_rate') ?? 0) : 0.0;
         $charge = new Charge([
             'customer_id' => $pool->getAttribute('customer_id'),
             'pool_id' => $pool->id,
             'service_visit_id' => $visit->id,
-            'kind' => 'parts',
-            'description' => Str::limit('Parts — '.$pool->getAttribute('name').': '.$used, 250),
+            'kind' => $kind,
+            'description' => Str::limit(ucfirst($kind).' — '.$pool->getAttribute('name').': '.$lines->map($describe)->join(', '), 250),
             'amount' => $amount,
-            'taxable' => true,
+            'taxable' => $taxable,
             'tax' => round($amount * $rate, 2),
             'occurred_on' => $this->localDate($visit),
         ]);
         $charge->forceFill(['tenant_id' => $visit->getAttribute('tenant_id')])->save();
-
-        return $charge;
     }
 
     /** Add a one-off charge (or a credit, with a negative amount), taxed at today's rate. */

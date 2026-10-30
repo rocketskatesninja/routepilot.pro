@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\ServiceTypeFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -60,6 +61,16 @@ class ServiceType extends Model
         return $this->frequency === 'one_time'
             ? $price.' one-time job'
             : $price.' per visit · '.strtolower(ServiceSubscription::FREQUENCIES[$this->frequency] ?? $this->frequency);
+    }
+
+    /**
+     * What customers can ask for: active, and offered to them.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeRequestable(Builder $query): void
+    {
+        $query->where('is_active', true)->where('requestable', true);
     }
 
     /**

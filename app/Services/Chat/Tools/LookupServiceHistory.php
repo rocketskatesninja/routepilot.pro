@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
+use App\Models\ChemicalTreatment;
 use App\Models\Pool;
 use App\Models\ServiceVisit;
 use App\Services\Chat\AiTool;
@@ -73,12 +74,13 @@ class LookupServiceHistory extends AiTool
             $when = $v->visited_at?->format('M j, Y g:ia') ?? 'Unknown date';
             $agent = $v->agent?->displayName() ?? 'Unknown';
 
+            [$parts, $chemicals] = $v->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
+            $used = $parts->map(fn (ChemicalTreatment $t): string => $t->chemical_name.($t->chemical?->part_number !== null ? ' #'.$t->chemical->part_number : '').' ×'.(int) $t->amount);
+
             $extras = collect([
                 $v->chemicalReading !== null ? 'Readings recorded' : null,
-                ($n = $v->treatments->reject(fn ($t): bool => $t->chemical?->isPart() === true)->count()) > 0 ? $n.' treatment(s)' : null,
-                ($used = $v->treatments->filter(fn ($t): bool => $t->chemical?->isPart() === true)
-                    ->map(fn ($t): string => $t->chemical_name.($t->chemical?->part_number !== null ? ' #'.$t->chemical->part_number : '').' ×'.(int) $t->amount)->join(', ')) !== ''
-                    ? 'Parts: '.$used : null,
+                $chemicals->isNotEmpty() ? $chemicals->count().' treatment(s)' : null,
+                $used->isNotEmpty() ? 'Parts: '.$used->join(', ') : null,
                 $this->billed($v),
             ])->filter()->join(' | ');
 

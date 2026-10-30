@@ -171,7 +171,7 @@ class PortalController extends Controller
             })->all();
 
         // What the company offers customers (active + "customers can request this").
-        $services = ServiceType::query()->where('is_active', true)->where('requestable', true)->orderBy('price')->get()
+        $services = ServiceType::query()->requestable()->orderBy('price')->get()
             ->map(function (ServiceType $t): array {
                 $modules = $t->modules();
 

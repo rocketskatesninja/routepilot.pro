@@ -21,6 +21,9 @@ export const SUGGESTION_KEYS: Record<string, string> = {
     'Pool Salt': 'salt',
 };
 
+/** A repair part as it's picked: "Pump lid O-ring · #R172009" (the name alone with no part number). */
+export const partLabel = (p: { name: string; part_number?: string | null }): string => (p.part_number ? `${p.name} · #${p.part_number}` : p.name);
+
 // How many of the chemical's unit one of the suggestion's unit is. Salt comes in standard 40-lb bags.
 const PER: Record<string, Record<string, number>> = {
     gal: { oz: 1 / 128, gal: 1 },

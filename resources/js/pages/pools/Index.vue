@@ -4,7 +4,7 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import PlanScheduleFields from '@/components/PlanScheduleFields.vue';
+import PlanScheduleFields, { type ScheduleForm } from '@/components/PlanScheduleFields.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
@@ -91,8 +91,7 @@ interface PoolDetail {
     location: {
         address: string | null;
         city: string | null;
-        state: string | null;
-        zip: string | null;
+        full_address: string | null; // with state and ZIP, for Google Maps (null with no street)
         coords: [number, number] | null;
         gate_code: string | null;
         access_notes: string | null;
@@ -154,10 +153,6 @@ const props = defineProps<{
 }>();
 
 type Subscription = PoolDetail['subscriptions'][number];
-
-// "Getting there": the address opens in Google Maps (the map position when there's no street).
-const poolMapsLink = (l: NonNullable<PoolDetail['location']>): string | null =>
-    mapsLink(l.address ? [l.address, l.city, [l.state, l.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') : null, l.coords);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Pools', href: '/pools' }];
 
@@ -247,30 +242,19 @@ const form = useForm<Record<string, unknown>>({
 const photoFile = computed(() => form.photo as File | null);
 
 // The new pool's plan fields, in the shape PlanScheduleFields edits (in place, on this same form).
-const newPlan = computed(
-    () =>
-        form as unknown as {
-            assigned_agent_id: number | string;
-            frequency: string;
-            preferred_day: string;
-            day_of_month: number | string;
-            starts_on: string;
-            ends_on: string;
-            errors: Partial<Record<string, string>>;
-        },
-);
+const newPlan = form as unknown as ScheduleForm;
 // …starting from how the picked service is sold, like the plan form.
 watch(
     () => form.service_type_id,
     (id) => {
-        const service = props.serviceTypes.find((t) => t.id === Number(id));
-        if (formMode.value === 'create' && service && SCHEDULES[service.frequency]) form.frequency = service.frequency;
+        const schedule = soldAs(id);
+        if (formMode.value === 'create' && schedule) form.frequency = schedule;
     },
 );
 
 function openCreate() {
     form.reset();
-    form.starts_on = new Date().toLocaleDateString('en-CA'); // a plan, if one's picked, starts today
+    form.starts_on = localToday(); // a plan, if one's picked, starts today
     form.clearErrors();
     formMode.value = 'create';
     formId.value = null;
@@ -340,6 +324,11 @@ const subFormMode = ref<'create' | 'edit'>('create');
 const subFormId = ref<number | null>(null);
 const planStatus: Record<string, string> = { active: 'Active', paused: 'Paused', cancelled: 'Ended' };
 const localToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the office's time zone
+/** How a service is sold, as a plan schedule (a one-time job → One-time); null when it isn't one. */
+const soldAs = (id: unknown): string | null => {
+    const service = props.serviceTypes.find((t) => t.id === Number(id));
+    return service && SCHEDULES[service.frequency] ? service.frequency : null;
+};
 
 const subForm = useForm<{
     pool_id: number | null;
@@ -371,9 +360,8 @@ const subForm = useForm<{
 watch(
     () => subForm.service_type_id,
     (id) => {
-        if (subFormMode.value !== 'create') return;
-        const service = props.serviceTypes.find((t) => t.id === Number(id));
-        if (service && SCHEDULES[service.frequency]) subForm.frequency = service.frequency;
+        const schedule = soldAs(id);
+        if (subFormMode.value === 'create' && schedule) subForm.frequency = schedule;
     },
 );
 
@@ -969,7 +957,7 @@ function submitTargets() {
                                     {
                                         label: 'Address',
                                         value: [pool.location.address, pool.location.city].filter(Boolean).join(', '),
-                                        href: poolMapsLink(pool.location),
+                                        href: mapsLink(pool.location.full_address, pool.location.coords),
                                     },
                                     { label: 'Gate code', value: pool.location.gate_code },
                                 ]"

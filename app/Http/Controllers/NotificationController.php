@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateNotificationTypesRequest;
+use App\Models\User;
 use App\Notifications\AutopayDeclined;
 use App\Notifications\BalanceReminder;
 use App\Notifications\InAppNotification;
@@ -54,15 +55,6 @@ class NotificationController extends Controller
             ->paginate(25)->withQueryString()
             ->through(InAppNotification::row(...));
 
-        // Only the kinds this person actually has, to filter by.
-        $types = $user->notifications()->distinct()->pluck('type')->all();
-        $kinds = [];
-        foreach (self::KINDS as $key => [$label, $classes]) {
-            if (array_intersect($classes, $types) !== []) {
-                $kinds[$key] = $label;
-            }
-        }
-
         return Inertia::render('notifications/Index', [
             // One prop with its counts, so the live refresh (app.ts reloads `notifications`) keeps them current.
             'notifications' => [
@@ -72,11 +64,24 @@ class NotificationController extends Controller
             ],
             'filter' => $unread ? 'unread' : 'all',
             'kind' => $kind,
-            'kinds' => $kinds,
-            'types' => NotificationTypes::for($user),
-            'preferences' => NotificationTypes::preferences($user),
+            // Lazy, so the live refresh (only `auth` + `notifications`) doesn't rebuild them.
+            'kinds' => fn (): array => $this->kindsOf($user),
+            'types' => fn () => NotificationTypes::for($user),
+            'preferences' => fn () => NotificationTypes::preferences($user),
             'pushKey' => config('services.webpush.public_key') ?: null,
         ]);
+    }
+
+    /**
+     * The kinds this person actually has notifications of, to filter by.
+     *
+     * @return array<string, string> key => label
+     */
+    private function kindsOf(User $user): array
+    {
+        $types = $user->notifications()->distinct()->pluck('type')->all();
+
+        return array_map(fn (array $kind): string => $kind[0], array_filter(self::KINDS, fn (array $kind): bool => array_intersect($kind[1], $types) !== []));
     }
 
     public function updateTypes(UpdateNotificationTypesRequest $request): RedirectResponse

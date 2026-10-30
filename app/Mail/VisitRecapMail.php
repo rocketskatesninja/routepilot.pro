@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Mail\Concerns\SendsAsCompany;
+use App\Models\ChemicalTreatment;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Support\EmailBrand;
@@ -69,6 +70,7 @@ class VisitRecapMail extends Mailable
             'agent:id,first_name,last_name', 'serviceSubscription.serviceType:id,name',
         ]);
         $customer = $visit->pool->customer;
+        [$parts, $chemicals] = $visit->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
         $tenant = $customer->tenant;
         $checks = WaterReport::checks($visit->chemicalReading, $visit->pool);
         // The company's own calendar day — a queued email has no request to tell it.
@@ -85,8 +87,8 @@ class VisitRecapMail extends Mailable
             'checks' => $checks,
             'waterSummary' => WaterReport::summary($checks),
             // Chemicals added, and repair parts replaced (part numbers stay with the office).
-            'treatments' => $visit->treatments->reject(fn ($t): bool => $t->chemical?->isPart() === true)->values(),
-            'parts' => $visit->treatments->filter(fn ($t): bool => $t->chemical?->isPart() === true)->values(),
+            'treatments' => $chemicals->values(),
+            'parts' => $parts->values(),
             'notes' => $visit->notes,
             // Absolute URLs — email clients can't resolve relative paths.
             'photos' => $visit->photos

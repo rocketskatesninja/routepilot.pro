@@ -50,15 +50,10 @@ const addingPool = ref(false);
 const page = usePage<SharedData>();
 const pickedTech = ref<number | null>(null);
 const pickedDay = ref<string | null>(null);
-const todayIso = (() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-})();
-const title = computed(() => {
-    const b = bundle.value;
-    if (b?.office) return `${b.agent.name.split(' ')[0]}’s route`;
-    return b?.past ? 'Your route' : 'Today’s route';
-});
+const todayIso = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, this device's day
+// Whose route it is, when the office has another tech's open.
+const techFirst = computed(() => (bundle.value?.office ? bundle.value.agent.name.split(' ')[0] : null));
+const title = computed(() => (techFirst.value ? `${techFirst.value}’s route` : bundle.value?.past ? 'Your route' : 'Today’s route'));
 async function pick(tech: number | null, day: string | null) {
     pickedTech.value = tech === page.props.auth.user?.id ? null : tech;
     pickedDay.value = day === todayIso ? null : day;
@@ -395,9 +390,7 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                     <section class="rounded-2xl bg-[hsl(var(--brand)/0.08)] p-5">
                         <p class="font-display text-2xl leading-tight font-semibold tracking-tight">
                             <template v-if="!stops.length"
-                                >No stops on {{ bundle?.office ? `${bundle.agent.name.split(' ')[0]}’s` : 'your' }} route{{
-                                    source === 'none' ? ' yet' : ''
-                                }}.</template
+                                >No stops on {{ techFirst ? `${techFirst}’s` : 'your' }} route{{ source === 'none' ? ' yet' : '' }}.</template
                             >
                             <template v-else-if="!remaining">All done for {{ bundle?.past ? 'that day' : 'today' }}.</template>
                             <template v-else>{{ remaining }} stop{{ remaining === 1 ? '' : 's' }} to go.</template>

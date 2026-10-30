@@ -48,13 +48,12 @@ class CompleteVisit
      */
     public function handle(RouteStop $stop, array $data, User $agent, array $photos = []): ServiceVisit
     {
-        $route = $stop->route()->with('tenant')->first();
-        $techId = $route?->getAttribute('agent_id');
-        $tech = $techId !== null && (int) $techId !== $agent->id ? (User::query()->find($techId) ?? $agent) : $agent;
+        $route = $stop->route()->with(['tenant', 'agent'])->first();
+        $tech = $route->agent ?? $agent;
         $office = $tech->id !== $agent->id; // the office typing it in for the tech
         [$at, $pastDay] = $this->when($route);
 
-        $visit = DB::transaction(function () use ($stop, $data, $agent, $photos, $tech, $office, $at, $pastDay): ServiceVisit {
+        $visit = DB::transaction(function () use ($stop, $route, $data, $agent, $photos, $tech, $office, $at, $pastDay): ServiceVisit {
             // One visit per stop: lock the stop so two syncs of the same visit (a retry
             // racing its original) queue up, and the second edits what the first made.
             RouteStop::query()->whereKey($stop->id)->lockForUpdate()->first();
@@ -138,7 +137,8 @@ class CompleteVisit
 
             if ($office) {
                 $visit->forceFill(['entered_by_id' => $agent->id])->save();
-                AuditLog::record($agent, 'report.entered', $visit, ['tech' => $tech->id, 'day' => $at->copy()->setTimezone($this->zone($stop))->toDateString()]);
+                $zone = $route?->tenant?->timezoneName() ?? (string) config('app.timezone');
+                AuditLog::record($agent, 'report.entered', $visit, ['tech' => $tech->id, 'day' => $at->copy()->setTimezone($zone)->toDateString()]);
             }
 
             $stop->update(['status' => 'completed', 'completed_at' => $at]);
@@ -148,7 +148,6 @@ class CompleteVisit
         });
 
         // Live-refresh the office schedule board (and any other dispatcher).
-        $route = $stop->route()->first();
         if ($route !== null) {
             event(RouteUpdated::for($route));
         }
@@ -221,10 +220,5 @@ class CompleteVisit
         }
 
         return [Carbon::parse($day->toDateString().' 12:00', $tenant->timezoneName())->utc(), true];
-    }
-
-    private function zone(RouteStop $stop): string
-    {
-        return $stop->route?->tenant?->timezoneName() ?? (string) config('app.timezone');
     }
 }

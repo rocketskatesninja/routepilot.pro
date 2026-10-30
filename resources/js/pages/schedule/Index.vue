@@ -159,6 +159,8 @@ const onPickDate = (e: Event) => {
     if (value) go(value);
 };
 
+// What Generate does (both its buttons say it).
+const generateHint = 'Fills the next 8 weeks of routes from every active service plan. Stops already on the schedule stay as they are.';
 function materialize() {
     if (busy.value) return;
     busy.value = true;
@@ -279,10 +281,7 @@ const prettyDate = computed(() =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
-            <Hint
-                v-if="props.canManage"
-                text="Fills the next 8 weeks of routes from every active service plan. Stops already on the schedule stay as they are."
-            >
+            <Hint v-if="props.canManage" :text="generateHint">
                 <Button size="sm" variant="outline" :disabled="busy" @click="materialize"><Sparkles class="mr-1 size-4" /> Generate</Button>
             </Hint>
             <Button v-if="!isToday" size="sm" variant="ghost" @click="go()">Today</Button>
@@ -313,10 +312,7 @@ const prettyDate = computed(() =>
                 >
                     <CalendarDays class="size-8 opacity-50" />
                     <p>No routes scheduled for this day.</p>
-                    <Hint
-                        v-if="props.canManage"
-                        text="Fills the next 8 weeks of routes from every active service plan. Stops already on the schedule stay as they are."
-                    >
+                    <Hint v-if="props.canManage" :text="generateHint">
                         <Button size="sm" variant="outline" :disabled="busy" @click="materialize"
                             ><Sparkles class="mr-1 size-4" /> Generate from subscriptions</Button
                         >

@@ -137,7 +137,6 @@ test('“Getting there” carries the full address and map position, for the Goo
 
     $this->actingAs($this->admin)->get('/pools?selected='.$pool->id)
         ->assertInertia(fn (Assert $page) => $page
-            ->where('selected.location.state', 'GA')
-            ->where('selected.location.zip', '31522')
+            ->where('selected.location.full_address', '27 Marsh Hen Lane, St. Simons Island, GA 31522')
             ->where('selected.location.coords', [31.15, -81.39]));
 });

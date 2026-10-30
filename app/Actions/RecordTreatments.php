@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions;
 
 use App\Models\ChemicalInventory;
+use App\Models\ChemicalTreatment;
 use App\Models\ServiceVisit;
 use App\Services\BillingService;
 
@@ -29,10 +30,13 @@ class RecordTreatments
 
     /**
      * @param  list<array<string, mixed>>  $rows  {chemical_id, amount} or a typed {name, amount, unit}
-     * @param  list<array<string, mixed>>  $parts  repair parts used: {part_id, amount}
+     * @param  list<array<string, mixed>>|null  $parts  repair parts used, {part_id, amount}; null (not sent,
+     *                                                  e.g. a page opened before parts existed) keeps the visit's own
      */
-    public function handle(ServiceVisit $visit, array $rows, int $byUserId, array $parts = []): void
+    public function handle(ServiceVisit $visit, array $rows, int $byUserId, ?array $parts = []): void
     {
+        $parts ??= $visit->treatments()->with('chemical:id,kind')->get()->filter(fn (ChemicalTreatment $t): bool => $t->isPart())
+            ->map(fn (ChemicalTreatment $t): array => ['part_id' => $t->getAttribute('chemical_inventory_id'), 'amount' => $t->amount])->values()->all();
         $rows = [...$rows, ...array_map(fn (array $p): array => ['chemical_id' => $p['part_id'] ?? null, 'amount' => $p['amount'] ?? null], $parts)];
 
         $this->reverseInventory->handle($visit);
@@ -72,7 +76,6 @@ class RecordTreatments
             }
         }
 
-        $this->billing->chargeChemicals($visit);
-        $this->billing->chargeParts($visit);
+        $this->billing->chargeSupplies($visit);
     }
 }

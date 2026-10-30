@@ -26,8 +26,7 @@ const external = (href: string) => /^(mailto:|tel:|https?:)/.test(href);
                 <a
                     v-if="f.href && external(f.href)"
                     :href="f.href"
-                    :target="f.href.startsWith('http') ? '_blank' : undefined"
-                    :rel="f.href.startsWith('http') ? 'noopener' : undefined"
+                    v-bind="f.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {}"
                     class="text-primary underline-offset-4 hover:underline"
                     >{{ f.value }}</a
                 >

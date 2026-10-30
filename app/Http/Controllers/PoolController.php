@@ -23,7 +23,6 @@ use App\Services\ChemistryService;
 use App\Support\OptionLists;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -96,7 +95,7 @@ class PoolController extends Controller
 
         // Its service plan too, when one was picked (both were validated together, so a bad plan adds neither).
         if (isset($data['service_type_id'])) {
-            $plans->handle([...Arr::only($data, ['service_type_id', 'assigned_agent_id', 'frequency', 'preferred_day', 'day_of_month', 'starts_on', 'ends_on']), 'pool_id' => $pool->id]);
+            $plans->handle([...$data, 'pool_id' => $pool->id]); // it reads only its own fields
 
             return back()->with('success', 'Pool added, with its service plan on the schedule.');
         }
@@ -260,9 +259,9 @@ class PoolController extends Controller
             'location' => $location !== null ? [
                 'address' => $location->getAttribute('address_line1'),
                 'city' => $location->getAttribute('city'),
-                'state' => $location->getAttribute('state'),
-                'zip' => $location->getAttribute('zip'),
-                'coords' => $pool->coordinates(), // [lat, lng] or null, for the Google Maps link
+                // For the Google Maps link: the full address, or its map position when there's no street.
+                'full_address' => $location->getAttribute('address_line1') !== null ? $location->formattedAddress() : null,
+                'coords' => $pool->coordinates(), // [lat, lng] or null
                 'gate_code' => $location->getAttribute('gate_code'),
                 'access_notes' => $location->getAttribute('access_notes'),
             ] : null,

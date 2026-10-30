@@ -319,14 +319,14 @@ class AssembleDashboardData
     /**
      * Customer: outstanding balance + autopay state.
      *
-     * @return array<string, mixed>
+     * @return array{balance: float, autopay: bool}
      */
     private function accountBalance(User $user): array
     {
         $customer = $this->customerFor($user);
 
         return [
-            'balance' => $customer !== null ? app(BillingService::class)->outstandingForCustomer($customer) : 0.0,
+            'balance' => $customer !== null ? (float) app(BillingService::class)->outstandingForCustomer($customer) : 0.0,
             'autopay' => $customer !== null && (bool) $customer->getAttribute('autopay_enabled'),
         ];
     }
@@ -339,9 +339,7 @@ class AssembleDashboardData
      */
     private function payBill(User $user): array
     {
-        $account = $this->accountBalance($user);
-
-        return ['balance' => (float) $account['balance'], 'autopay' => (bool) $account['autopay'], 'can_pay' => app(StripeService::class)->configured()];
+        return [...$this->accountBalance($user), 'can_pay' => app(StripeService::class)->configured()];
     }
 
     /**
@@ -352,7 +350,7 @@ class AssembleDashboardData
      */
     private function requestService(): array
     {
-        $offered = ServiceType::query()->where('is_active', true)->where('requestable', true)->orderBy('price');
+        $offered = ServiceType::query()->requestable()->orderBy('price');
 
         return [
             'services' => (clone $offered)->limit(4)->get(['id', 'name', 'price', 'frequency'])

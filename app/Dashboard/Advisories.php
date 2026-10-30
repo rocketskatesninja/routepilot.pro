@@ -87,7 +87,7 @@ final class Advisories
             $a->add('amber', 'FlaskConical', self::names($low->pluck('chemical_name')).' '.self::verb($low, 'is', 'are').' running low.',
                 self::link($low, fn (ChemicalInventory $c) => '/inventory?selected='.$c->id, '/inventory'));
         }
-        if ($tenant !== null && $tenant->formattedAddress() !== null && $tenant->lat === null) {
+        if ($tenant?->isUnlocated() === true) {
             $a->add('amber', 'MapPinOff', 'Your business address couldn’t be placed on the map, so the weather and your website’s service-area map can’t show.', '/company?tab=address');
         }
 
@@ -167,7 +167,7 @@ final class Advisories
         $msg = $sev === 'red'
             ? ($orders->count() === 1 ? 'Urgent work order: ' : 'Urgent work orders: ').$titles.'.'
             : ($orders->count() === 1 ? 'Work order '.$titles.' is past its due date.' : 'Work orders '.$titles.' are past their due dates.');
-        $this->add($sev === 'red' ? 'red' : 'amber', 'Wrench', $msg, self::link($orders, fn (WorkOrder $o) => '/work-orders?selected='.$o->id, '/work-orders'));
+        $this->add($sev, 'Wrench', $msg, self::link($orders, fn (WorkOrder $o) => '/work-orders?selected='.$o->id, '/work-orders'));
     }
 
     /**

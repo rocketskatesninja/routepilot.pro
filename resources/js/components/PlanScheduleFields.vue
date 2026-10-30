@@ -8,7 +8,7 @@ import { SCHEDULES, WEEKDAYS } from '@/lib/labels';
  * ends. Shared by the pool's plan form and approving a customer's request, so
  * both ask the same way. Bind it to a useForm() that has these fields.
  */
-interface ScheduleForm {
+export interface ScheduleForm {
     assigned_agent_id: number | string;
     frequency: string;
     preferred_day: string;

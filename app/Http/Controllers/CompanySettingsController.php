@@ -47,7 +47,7 @@ class CompanySettingsController extends Controller
                 'state' => $tenant->getAttribute('state'),
                 'postal_code' => $tenant->getAttribute('postal_code'),
                 // An address that couldn't be placed on the map (its website's service-area map can't show).
-                'unlocated' => $tenant->formattedAddress() !== null && $tenant->getAttribute('lat') === null,
+                'unlocated' => $tenant->isUnlocated(),
                 'reply_to_email' => $tenant->reply_to_email,
                 'report_messages' => $tenant->takesReportMessages(),
             ],
@@ -229,7 +229,7 @@ class CompanySettingsController extends Controller
         $addressChanged = $tenant->isDirty(['address_line1', 'city', 'state', 'postal_code']);
         $tenant->save();
 
-        if ($addressChanged || ($tenant->getAttribute('lat') === null && $tenant->formattedAddress() !== null)) {
+        if ($addressChanged || $tenant->isUnlocated()) {
             $address = $tenant->formattedAddress();
             $coords = $address !== null ? $geocoder->geocode($address) : null;
             $tenant->forceFill(['lat' => $coords['lat'] ?? null, 'lng' => $coords['lng'] ?? null])->save();

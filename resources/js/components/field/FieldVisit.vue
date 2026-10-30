@@ -7,7 +7,7 @@ import PaneSection from '@/components/pane/PaneSection.vue';
 import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading, type Recommendation } from '@/lib/chemistry';
-import { SUGGESTION_KEYS, toStockAmount } from '@/lib/field/chemicals';
+import { partLabel, SUGGESTION_KEYS, toStockAmount } from '@/lib/field/chemicals';
 import { shrinkPhoto } from '@/lib/field/photo';
 import { isSignedOut, SIGNED_OUT } from '@/lib/field/session';
 import {
@@ -223,7 +223,6 @@ function restoredTreatments(rows: (TreatmentDraft | { name?: string; amount?: st
 
 // --- repair parts used: on any visit, whenever the company keeps parts; counted in whole units ---
 const partList = computed(() => props.chemicals.filter((c) => c.kind === 'part'));
-const partLabel = (c: FieldChemical): string => (c.part_number ? `${c.name} · #${c.part_number}` : c.name);
 const addPart = () => parts.push({ chemical_id: null, amount: '1' });
 const removePart = (i: number) => parts.splice(i, 1);
 

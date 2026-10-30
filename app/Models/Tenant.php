@@ -146,6 +146,12 @@ class Tenant extends Model
         return $parts === [] ? null : implode(', ', $parts);
     }
 
+    /** It has an address that couldn't be placed on the map, so its service-area map and weather can't show. */
+    public function isUnlocated(): bool
+    {
+        return $this->formattedAddress() !== null && $this->getAttribute('lat') === null;
+    }
+
     /** Whether customers can message the company from their visit reports (on unless turned off). */
     public function takesReportMessages(): bool
     {

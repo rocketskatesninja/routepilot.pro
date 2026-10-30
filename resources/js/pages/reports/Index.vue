@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { targetsFor } from '@/lib/chemistry';
+import { partLabel } from '@/lib/field/chemicals';
 import { agentLink, customerLink, workOrderLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { checkWater, waterSummary, type WaterTargets } from '@/lib/portal';
@@ -377,7 +378,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                         >
                                             <option :value="null" disabled>Pick a part</option>
                                             <option v-for="c in props.parts" :key="c.id" :value="c.id">
-                                                {{ c.part_number ? `${c.name} · #${c.part_number}` : c.name }}
+                                                {{ partLabel(c) }}
                                             </option>
                                         </select>
                                         <Input
