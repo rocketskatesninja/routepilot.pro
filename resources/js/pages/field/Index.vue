@@ -48,6 +48,16 @@ const addingPool = ref(false);
 // The office can open any tech's route on any day up to today (the server checks it's an admin).
 // null = the signed-in person's own route, today — the only one kept on the device for offline use.
 const page = usePage<SharedData>();
+
+// The company's logo, once uploaded, as on the sidebar. Without signal it may not load, so
+// the RoutePilot mark stands in. The page is server-rendered: an image that failed before
+// Vue started never reaches @error, hence the check on mount.
+const logoEl = ref<HTMLImageElement | null>(null);
+const logoFailed = ref(false);
+const logo = computed(() => (page.props.tenant?.logo_path && !logoFailed.value ? `/storage/${page.props.tenant.logo_path}` : null));
+onMounted(() => {
+    if (logoEl.value?.complete && logoEl.value.naturalWidth === 0) logoFailed.value = true;
+});
 const pickedTech = ref<number | null>(null);
 const pickedDay = ref<string | null>(null);
 const todayIso = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, this device's day
@@ -262,10 +272,12 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                 <div class="flex items-center gap-2 px-4 py-2.5">
                     <Link
                         href="/dashboard"
-                        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white"
+                        class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                        :class="logo ? '' : 'bg-orange-500 text-white'"
                         aria-label="Back to Today"
                     >
-                        <AppLogoIcon class="size-5" />
+                        <img v-if="logo" ref="logoEl" :src="logo" alt="" class="size-full object-contain" @error="logoFailed = true" />
+                        <AppLogoIcon v-else class="size-5" />
                     </Link>
                     <div class="min-w-0 flex-1 pl-1">
                         <h1 class="font-display truncate text-lg leading-tight font-semibold tracking-tight">{{ title }}</h1>
