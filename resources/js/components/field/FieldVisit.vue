@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Combobox from '@/components/Combobox.vue';
 import MultiImageUpload from '@/components/MultiImageUpload.vue';
 import Chip from '@/components/pane/Chip.vue';
 import PaneAction from '@/components/pane/PaneAction.vue';
@@ -224,6 +225,7 @@ function restoredTreatments(rows: (TreatmentDraft | { name?: string; amount?: st
 
 // --- repair parts used: on any visit, whenever the company keeps parts; counted in whole units ---
 const partList = computed(() => props.chemicals.filter((c) => c.kind === 'part'));
+const partOptions = computed(() => partList.value.map((c) => ({ id: c.id, name: partLabel(c) })));
 const addPart = () => parts.push({ chemical_id: null, amount: '1' });
 const removePart = (i: number) => parts.splice(i, 1);
 
@@ -558,15 +560,17 @@ async function removeFromToday() {
                     No chemicals set up yet. The office adds them on the Inventory page.
                 </p>
                 <p v-else-if="!treatments.length" class="text-muted-foreground text-sm">None yet. Add one from “What to add”, or pick your own.</p>
-                <div v-for="(t, i) in treatments" :key="i" class="mb-2 flex items-center gap-2">
-                    <select
-                        v-model="t.chemical_id"
-                        aria-label="Chemical"
-                        class="border-input bg-background text-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
-                    >
-                        <option :value="null" disabled>Pick a chemical</option>
-                        <option v-for="c in chemicalList" :key="c.id" :value="c.id">{{ c.name }}</option>
-                    </select>
+                <!-- The search box has its own line on a phone: beside the amount it's too narrow to read a name. -->
+                <div v-for="(t, i) in treatments" :key="i" class="mb-3 flex flex-wrap items-center gap-2">
+                    <Combobox
+                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                        touch
+                        label="Chemical"
+                        placeholder="Search chemicals…"
+                        :options="chemicalList"
+                        :model-value="t.chemical_id ?? ''"
+                        @update:model-value="(id) => (t.chemical_id = Number(id))"
+                    />
                     <!-- Whole units only: anything less is rounded up when it's saved. -->
                     <input
                         v-model="t.amount"
@@ -580,7 +584,7 @@ async function removeFromToday() {
                     />
                     <span class="text-muted-foreground w-12 shrink-0 text-base">{{ unitFor(Number(t.amount), unitOf(t.chemical_id)) }}</span>
                     <button
-                        class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
+                        class="text-muted-foreground hover:bg-muted ml-auto grid size-11 place-items-center rounded-xl sm:ml-0"
                         aria-label="Remove"
                         @click="removeTreatment(i)"
                     >
@@ -595,15 +599,16 @@ async function removeFromToday() {
                     <PaneAction :icon="Plus" @click="addPart">Add a part</PaneAction>
                 </template>
                 <p v-if="!parts.length" class="text-muted-foreground text-sm">Replaced something? Add the part so it comes off the shelf.</p>
-                <div v-for="(p, i) in parts" :key="i" class="mb-2 flex items-center gap-2">
-                    <select
-                        v-model="p.chemical_id"
-                        aria-label="Part"
-                        class="border-input bg-background text-foreground h-11 min-w-0 flex-1 rounded-xl border px-3 text-base"
-                    >
-                        <option :value="null" disabled>Pick a part</option>
-                        <option v-for="c in partList" :key="c.id" :value="c.id">{{ partLabel(c) }}</option>
-                    </select>
+                <div v-for="(p, i) in parts" :key="i" class="mb-3 flex flex-wrap items-center gap-2">
+                    <Combobox
+                        class="min-w-0 basis-full sm:flex-1 sm:basis-0"
+                        touch
+                        label="Part"
+                        placeholder="Search parts by name or number…"
+                        :options="partOptions"
+                        :model-value="p.chemical_id ?? ''"
+                        @update:model-value="(id) => (p.chemical_id = Number(id))"
+                    />
                     <input
                         v-model="p.amount"
                         type="number"
@@ -616,7 +621,7 @@ async function removeFromToday() {
                     />
                     <span class="text-muted-foreground w-12 shrink-0 text-base">{{ unitFor(Number(p.amount), 'unit') }}</span>
                     <button
-                        class="text-muted-foreground hover:bg-muted grid size-11 place-items-center rounded-xl"
+                        class="text-muted-foreground hover:bg-muted ml-auto grid size-11 place-items-center rounded-xl sm:ml-0"
                         aria-label="Remove"
                         @click="removePart(i)"
                     >
