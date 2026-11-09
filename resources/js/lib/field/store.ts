@@ -51,6 +51,7 @@ export interface TodayBundle {
     agent: { id: number; name: string }; // whose route it is
     stops: FieldStop[];
     inventory: FieldChemical[];
+    billing?: boolean; // bills its customers here (absent on bundles cached before the switch: yes)
     // The office filling in a tech's route / an earlier day (absent on bundles cached before it existed).
     office?: boolean;
     past?: boolean;

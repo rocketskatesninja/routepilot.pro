@@ -44,7 +44,7 @@
                         <th>Address</th>
                         <th>Portal</th>
                         <th>Last visit</th>
-                        <th class="right">Balance</th>
+                        @if ($billing)<th class="right">Balance</th>@endif
                     </tr>
                 </thead>
                 <tbody>
@@ -57,7 +57,7 @@
                             <td>{{ $r['address'] }}</td>
                             <td>{{ $r['portal'] }}</td>
                             <td>{{ $r['last_visit'] ? \Illuminate\Support\Carbon::parse($r['last_visit'])->format('M j, Y') : '' }}</td>
-                            <td class="right {{ ($r['balance'] ?? 0) > 0 ? 'owes' : '' }}">{{ $r['balance'] === null ? '' : '$'.number_format((float) $r['balance'], 2) }}</td>
+                            @if ($billing)<td class="right {{ ($r['balance'] ?? 0) > 0 ? 'owes' : '' }}">{{ $r['balance'] === null ? '' : '$'.number_format((float) $r['balance'], 2) }}</td>@endif
                         </tr>
                     @endforeach
                 </tbody>

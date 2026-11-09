@@ -2,6 +2,7 @@
 import BarChart from '@/components/charts/BarChart.vue';
 import LineChart from '@/components/charts/LineChart.vue';
 import Sparkline from '@/components/charts/Sparkline.vue';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { inboxLeadLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
@@ -52,7 +53,8 @@ const AR_COLORS = ['hsl(160 84% 39%)', 'hsl(43 80% 50%)', 'hsl(38 92% 50%)', 'hs
 const arBars = computed(() => props.ar_aging.map((b, i) => ({ label: b.label, value: b.value, color: AR_COLORS[i] ?? AR_COLORS[0] })));
 const techBars = computed(() => props.top_agents.map((a) => ({ label: a.name, value: a.visits })));
 
-const cards = computed(() => [
+const billing = useCustomerBilling();
+const moneyCards = computed(() => [
     {
         label: 'Revenue this month',
         value: money(props.revenue_month),
@@ -66,6 +68,9 @@ const cards = computed(() => [
         value: String(props.overdue_invoices),
         accent: props.overdue_invoices > 0 ? 'text-red-600 dark:text-red-400' : '',
     },
+]);
+const cards = computed(() => [
+    ...(billing.value ? moneyCards.value : []),
     { label: 'Visits this month', value: String(props.visits_month), accent: '', series: visitValues.value, spark: 'hsl(var(--chart-2))' },
     { label: 'Visits this week', value: String(props.visits_week), accent: '' },
     { label: 'Active pools', value: String(props.active_pools), accent: '' },
@@ -101,7 +106,7 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                     </div>
 
                     <div class="grid gap-4 lg:grid-cols-2">
-                        <div class="border-border rounded-xl border p-4">
+                        <div v-if="billing" class="border-border rounded-xl border p-4">
                             <h2 class="mb-3 text-sm font-medium">Revenue · last 12 months</h2>
                             <LineChart :values="revenueValues" :labels="revenueLabels" :format="compactMoney" color="hsl(var(--chart-1))" />
                         </div>
@@ -109,7 +114,7 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                             <h2 class="mb-3 text-sm font-medium">Completed visits · last 12 weeks</h2>
                             <LineChart :values="visitValues" :labels="visitLabels" :format="(v) => String(v)" color="hsl(var(--chart-2))" />
                         </div>
-                        <div class="border-border rounded-xl border p-4">
+                        <div v-if="billing" class="border-border rounded-xl border p-4">
                             <h2 class="mb-3 text-sm font-medium">Accounts receivable · aging</h2>
                             <BarChart :bars="arBars" :format="money" empty-text="Nothing outstanding." />
                         </div>

@@ -1,17 +1,27 @@
 <script setup lang="ts">
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { computed } from 'vue';
+
 /**
  * The optional emails a customer can turn on or off, as calm rows with a
  * switch each. Used on the page linked from emails, in the customer's portal
  * settings, and on the customer's panel in the office. NotificationSettings
  * reuses it for this device and the in-app types, with its own notes.
  */
-defineProps<{
-    types: Record<string, [string, string]>;
-    preferences: Record<string, boolean>;
-    busy?: boolean;
-    /** "you" for the customer, "they" for the office. */
-    who?: 'you' | 'they';
-}>();
+const props = withDefaults(
+    defineProps<{
+        types: Record<string, [string, string]>;
+        preferences: Record<string, boolean>;
+        busy?: boolean;
+        /** "you" for the customer, "they" for the office. */
+        who?: 'you' | 'they';
+        /** Whether the company bills here, for the signed-out page that has no company of its own. */
+        billing?: boolean;
+    }>(),
+    { billing: undefined },
+);
+const companyBills = useCustomerBilling();
+const bills = computed(() => props.billing ?? companyBills.value);
 const emit = defineEmits<{ change: [type: string, on: boolean] }>();
 </script>
 
@@ -42,8 +52,8 @@ const emit = defineEmits<{ change: [type: string, on: boolean] }>();
     </ul>
     <p class="text-muted-foreground mt-2 text-sm">
         <slot name="note">
-            Receipts, bills and answers to {{ who === 'they' ? 'their' : 'your' }} requests always come, since they’re about
-            {{ who === 'they' ? 'their' : 'your' }} account.
+            {{ bills ? 'Receipts, bills and answers' : 'Answers' }} to {{ who === 'they' ? 'their' : 'your' }} requests always come, since they’re
+            about {{ who === 'they' ? 'their' : 'your' }} account.
         </slot>
     </p>
 </template>

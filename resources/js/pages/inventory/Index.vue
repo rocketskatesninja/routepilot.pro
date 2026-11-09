@@ -15,6 +15,7 @@ import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, poolLink, reportLink } from '@/lib/links';
@@ -76,6 +77,8 @@ const props = defineProps<{
     sort: { key: string; dir: string };
     canManage: boolean;
 }>();
+
+const billing = useCustomerBilling();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Inventory', href: '/inventory' }];
 
@@ -374,7 +377,7 @@ function submitAdjust() {
                                 <Label for="ccost">Cost per {{ unitFor(1, form.unit) }} ($)</Label
                                 ><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" />
                             </div>
-                            <div class="grid gap-1.5">
+                            <div v-if="billing" class="grid gap-1.5">
                                 <Label for="csell">Sell price per {{ unitFor(1, form.unit) }} ($)</Label
                                 ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
                             </div>
@@ -446,7 +449,10 @@ function submitAdjust() {
                             </form>
                         </PaneSection>
 
-                        <PaneSection v-if="chemical.cost_per_unit !== null || chemical.sell_price !== null || chemical.supplier" title="Prices">
+                        <PaneSection
+                            v-if="chemical.cost_per_unit !== null || (billing && chemical.sell_price !== null) || chemical.supplier"
+                            title="Prices"
+                        >
                             <PaneFacts
                                 :facts="[
                                     {
@@ -455,7 +461,7 @@ function submitAdjust() {
                                     },
                                     {
                                         label: `Sell price per ${unitFor(1, chemical.unit)}`,
-                                        value: chemical.sell_price !== null ? formatMoney(chemical.sell_price) : null,
+                                        value: billing && chemical.sell_price !== null ? formatMoney(chemical.sell_price) : null,
                                     },
                                     { label: 'Value on the shelf', value: chemical.value !== null ? formatMoney(chemical.value) : null },
                                     { label: 'Supplier', value: chemical.supplier },

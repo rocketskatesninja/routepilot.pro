@@ -28,8 +28,11 @@ export const HERO_BADGES = [
 /** More than this crowds the hero. Mirrors LandingConfig::MAX_BADGES. */
 export const MAX_BADGES = 6;
 
-/** The picked badges' labels, in catalog order. */
-export function badgeLabels(picked: unknown): string[] {
+/** Only true of a company billing its customers through RoutePilot. */
+export const BILLING_BADGES: readonly string[] = ['pay_online', 'autopay'];
+
+/** The picked badges' labels, in catalog order, less the ones that aren't true without billing. */
+export function badgeLabels(picked: unknown, billing = true): string[] {
     const keys = Array.isArray(picked) ? picked : [];
-    return HERO_BADGES.filter((b) => keys.includes(b.key)).map((b) => b.label);
+    return HERO_BADGES.filter((b) => keys.includes(b.key) && (billing || !BILLING_BADGES.includes(b.key))).map((b) => b.label);
 }

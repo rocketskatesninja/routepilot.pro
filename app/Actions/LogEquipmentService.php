@@ -34,7 +34,7 @@ class LogEquipmentService
             ]);
 
             $customerId = $equipment->pool?->getAttribute('customer_id');
-            if (! empty($data['bill']) && $cost > 0 && $customerId !== null) {
+            if (! empty($data['bill']) && $cost > 0 && $customerId !== null && $equipment->pool->tenant?->customer_billing !== false) {
                 app(BillingService::class)->addCharge(
                     Customer::query()->findOrFail($customerId),
                     'manual',

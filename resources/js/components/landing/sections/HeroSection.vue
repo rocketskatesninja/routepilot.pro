@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { computed } from 'vue';
 import { badgeLabels } from '../badges';
 import { button, frame } from '../layout';
@@ -59,7 +60,8 @@ const headlineStyle = computed(() => `font-size: ${HEADLINE_SIZES[c.value.headli
 const widthStyle = computed(() => `max-width: ${c.value.headline_max_width || 56}rem`);
 const overlayStyle = computed(() => `opacity: ${(fx.value.overlay_opacity ?? 40) / 100}`);
 
-const badges = computed(() => badgeLabels(c.value.badges));
+const billing = useCustomerBilling();
+const badges = computed(() => badgeLabels(c.value.badges, billing.value));
 
 // Where the words sit, and the shade behind them that keeps them readable on any photo.
 const ALIGN = {

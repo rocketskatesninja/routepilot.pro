@@ -57,6 +57,7 @@ class WorkOrderPolicy
     public function bill(User $user, WorkOrder $order): bool
     {
         return $this->ours($user, $order) && $user->role === 'tenant_admin' && $order->status === 'done'
+            && $user->tenant?->customer_billing !== false
             && $order->pool?->customer !== null && $order->billedCharge() === null;
     }
 

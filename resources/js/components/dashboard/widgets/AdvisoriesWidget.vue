@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { Link } from '@inertiajs/vue3';
 import {
     CalendarClock,
@@ -67,7 +68,6 @@ const ADMIN_TIPS = [
     'Tick several leads or requests to delete them together.',
     'The office can fill in a report for any tech: open the field app, then pick the tech and the day.',
     'Let customers message you from their visit reports, in Company settings. Their messages land in Requests.',
-    'Mark a work order done and bill it in one go: the charge comes up already filled in.',
     'Each kind of notification has its own switch, on the Notifications page under Settings.',
     'Tick notifications to mark them read or dismiss them all at once.',
 ];
@@ -79,7 +79,9 @@ const TECH_TIPS = [
     'Photos are shrunk on your phone before they upload, so take as many as you need.',
     'Your phone and desktop dashboards are arranged separately; drag a widget by its grip to move it.',
 ];
-const tips = computed(() => (props.data.tech ? TECH_TIPS : ADMIN_TIPS));
+const BILLING_TIP = 'Mark a work order done and bill it in one go: the charge comes up already filled in.';
+const billing = useCustomerBilling();
+const tips = computed(() => (props.data.tech ? TECH_TIPS : billing.value ? [...ADMIN_TIPS, BILLING_TIP] : ADMIN_TIPS));
 
 // A new tip every 9 seconds; with reduced motion, one tip that stays put.
 const tipIdx = ref(0);

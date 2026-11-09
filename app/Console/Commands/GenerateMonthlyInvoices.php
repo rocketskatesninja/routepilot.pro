@@ -26,7 +26,7 @@ class GenerateMonthlyInvoices extends Command
         $generated = 0;
         $emailed = 0;
 
-        Tenant::query()->where('status', 'active')->each(function (Tenant $tenant) use ($generate, $send, $billing, &$generated, &$emailed): void {
+        Tenant::query()->where('status', 'active')->where('customer_billing', true)->each(function (Tenant $tenant) use ($generate, $send, $billing, &$generated, &$emailed): void {
             app()->instance('tenant_id', $tenant->id);
             foreach ($billing->outstandingBalances() as $row) {
                 $invoice = $generate->handle($row['customer']);

@@ -36,6 +36,7 @@ class EmailPreferenceController extends Controller
             'types' => EmailPreferences::TYPES,
             'stop' => isset(EmailPreferences::TYPES[$stop]) ? $stop : null,
             'updateUrl' => URL::signedRoute('email-preferences.update', ['customer' => $customer->id]),
+            'billing' => $customer->tenant?->customer_billing !== false,
         ]);
     }
 

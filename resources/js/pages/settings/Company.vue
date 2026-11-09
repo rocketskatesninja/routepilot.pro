@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CustomerBillingSwitch from '@/components/CustomerBillingSwitch.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
@@ -7,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
@@ -96,15 +98,17 @@ const connectStripe = () => connectForm.post('/company/connect', { preserveScrol
 
 // Left-hand tabs. Profile/address share one form (PATCH /company); email and
 // payments are their own concerns. (AI is platform-managed by the super-admin.)
+const billing = useCustomerBilling();
 const tabs = computed(() => [
     { key: 'profile', label: 'Profile' },
     { key: 'address', label: 'Business address' },
     { key: 'email', label: 'Email' },
-    ...(props.connect.available ? [{ key: 'payments', label: 'Payments' }] : []),
+    { key: 'features', label: 'Features' },
+    ...(props.connect.available && billing.value ? [{ key: 'payments', label: 'Payments' }] : []),
 ]);
 // ?tab=email opens a tab directly (the "Your mail server" alert links there).
 const asked = new URL(usePage().url, 'http://x').searchParams.get('tab');
-const activeTab = ref(asked && ['profile', 'address', 'email', 'payments'].includes(asked) ? asked : 'profile');
+const activeTab = ref(tabs.value.some((tab) => tab.key === asked) ? (asked as string) : 'profile');
 const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.value));
 </script>
 
@@ -134,7 +138,10 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                     <!-- Profile / address / AI all save together via PATCH /company -->
                     <form v-show="onCompanyTab" class="space-y-6" @submit.prevent="submit">
                         <div v-show="activeTab === 'profile'" class="flex flex-col space-y-6">
-                            <HeadingSmall title="Company profile" description="Your brand, identity, and tax rate." />
+                            <HeadingSmall
+                                title="Company profile"
+                                :description="billing ? 'Your brand, identity, and tax rate.' : 'Your brand and identity.'"
+                            />
                             <div class="grid gap-2">
                                 <Label>Company logo</Label>
                                 <ImageUpload
@@ -167,7 +174,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                         <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
                                     </select>
                                 </div>
-                                <div class="grid gap-2">
+                                <div v-if="billing" class="grid gap-2">
                                     <Label for="tax">Sales tax %</Label>
                                     <Input id="tax" v-model="form.tax_rate_percent" type="number" step="0.01" min="0" max="30" class="max-w-32" />
                                     <p v-if="form.errors.tax_rate_percent" class="text-sm text-red-600">{{ form.errors.tax_rate_percent }}</p>
@@ -343,6 +350,12 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                 The test goes to you. Saving changes turns it off until a test gets through again.
                             </p>
                         </form>
+                    </div>
+
+                    <!-- Features: what the company uses RoutePilot for -->
+                    <div v-show="activeTab === 'features'" class="flex flex-col space-y-6">
+                        <HeadingSmall title="Features" description="Turn off the parts of RoutePilot your company doesn’t use." />
+                        <CustomerBillingSwitch />
                     </div>
 
                     <!-- Payments -->

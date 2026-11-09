@@ -18,6 +18,7 @@ import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { SCHEDULES } from '@/lib/labels';
@@ -151,6 +152,8 @@ const props = defineProps<{
     agents: { id: number; name: string }[];
     canManage: boolean;
 }>();
+
+const billing = useCustomerBilling();
 
 type Subscription = PoolDetail['subscriptions'][number];
 
@@ -809,7 +812,10 @@ function submitTargets() {
 
                     <!-- log service -->
                     <form v-else-if="serviceOpen" class="space-y-4 text-sm" @submit.prevent="submitService">
-                        <PaneHeader title="Log service" summary="Record a repair or maintenance, and bill it if you like." />
+                        <PaneHeader
+                            title="Log service"
+                            :summary="billing ? 'Record a repair or maintenance, and bill it if you like.' : 'Record a repair or maintenance.'"
+                        />
                         <div class="grid grid-cols-2 gap-3">
                             <div class="grid gap-1.5">
                                 <Label for="sv_on">Date</Label><Input id="sv_on" v-model="serviceForm.serviced_on" type="date" />
@@ -824,7 +830,7 @@ function submitTargets() {
                             <Input id="sv_desc" v-model="serviceForm.description" />
                             <p v-if="serviceForm.errors.description" class="text-xs text-red-600">{{ serviceForm.errors.description }}</p>
                         </div>
-                        <label class="flex items-center gap-2"
+                        <label v-if="billing" class="flex items-center gap-2"
                             ><input v-model="serviceForm.bill" type="checkbox" /> Bill this repair to the customer</label
                         >
                         <div class="flex justify-end gap-2 pt-2">

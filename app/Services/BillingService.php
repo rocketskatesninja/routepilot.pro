@@ -109,13 +109,13 @@ class BillingService
         return ['visits' => $visits, 'charges' => $charges, 'total' => $this->outstandingForCustomer($customer)];
     }
 
-    /** Charge a completed visit at its own plan's price — once. No plan, no charge. */
+    /** Charge a completed visit at its own plan's price — once. No plan, no charge; nor when the company doesn't bill here. */
     public function chargeVisit(ServiceVisit $visit): ?Charge
     {
         $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'visit')->first();
         $plan = $visit->serviceSubscription()->with('serviceType:id,name,price')->first();
         $pool = $visit->pool()->first(['id', 'name', 'customer_id']);
-        if ($existing !== null || $plan === null || $pool === null) {
+        if ($existing !== null || $plan === null || $pool === null || ! $this->bills($visit)) {
             return $existing;
         }
 
@@ -145,6 +145,10 @@ class BillingService
      */
     public function chargeSupplies(ServiceVisit $visit): void
     {
+        if (! $this->bills($visit)) {
+            return;
+        }
+
         $billed = Charge::query()->where('service_visit_id', $visit->id)->whereIn('kind', ['chemicals', 'parts'])->pluck('kind')->all();
         $pool = count($billed) < 2 ? $visit->pool()->with('customer.tenant')->first(['id', 'name', 'customer_id']) : null;
         if ($pool?->customer === null) {
@@ -335,6 +339,11 @@ class BillingService
     }
 
     /** The visit's date in the company's own time zone. */
+    private function bills(ServiceVisit $visit): bool
+    {
+        return $visit->tenant?->customer_billing !== false;
+    }
+
     private function localDate(ServiceVisit $visit): string
     {
         $tz = $visit->tenant?->timezoneName() ?? (string) config('app.timezone');

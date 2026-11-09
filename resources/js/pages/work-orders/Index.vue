@@ -11,6 +11,7 @@ import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { billWorkOrderLink, customerLink, poolLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
@@ -69,6 +70,8 @@ const props = defineProps<{
     pools: { id: number; name: string }[];
     people: { id: number; name: string }[];
 }>();
+
+const billing = useCustomerBilling();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Work orders', href: '/work-orders' }];
 
@@ -280,7 +283,7 @@ function addNote() {
                                 <Label for="wo_due">Due</Label>
                                 <Input id="wo_due" v-model="form.due_on" type="date" class="w-40" />
                             </div>
-                            <div class="grid gap-1.5">
+                            <div v-if="billing" class="grid gap-1.5">
                                 <Label for="wo_price">Price</Label>
                                 <Input id="wo_price" v-model="form.price" type="number" min="0" step="0.01" placeholder="Optional" class="w-32" />
                                 <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
@@ -369,10 +372,10 @@ function addNote() {
                                 :facts="[
                                     { label: 'Assigned to', value: order.assignee ?? 'Nobody yet' },
                                     { label: 'Due', value: order.due_on ? `${formatDay(order.due_on)}${order.overdue ? ', overdue' : ''}` : null },
-                                    { label: 'Price', value: order.price ? formatMoney(order.price) : null },
+                                    { label: 'Price', value: billing && order.price ? formatMoney(order.price) : null },
                                     {
                                         label: 'Billed',
-                                        value: order.billed ? `${formatMoney(order.billed.amount)}, ${formatDay(order.billed.on)}` : null,
+                                        value: billing && order.billed ? `${formatMoney(order.billed.amount)}, ${formatDay(order.billed.on)}` : null,
                                     },
                                     { label: 'Raised', value: [order.raised_by, formatDay(order.raised_on)].filter(Boolean).join(', ') || null },
                                     {

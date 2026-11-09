@@ -3,6 +3,7 @@ import NoteBubble from '@/components/NoteBubble.vue';
 import DashboardStyleToggle from '@/components/dashboard/DashboardStyleToggle.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
 import { Button } from '@/components/ui/button';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { andList, cap, checkWater, longDay, waterSummary, when, type WaterReading, type WaterTargets } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
@@ -47,6 +48,8 @@ const props = defineProps<{
     pendingRequests: number;
     today: string;
 }>();
+
+const billing = useCustomerBilling();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Home', href: '/dashboard' }];
 const page = usePage<SharedData>();
@@ -124,7 +127,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
                     >
                 </div>
 
-                <div class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 p-4 sm:grid-cols-[auto_1fr_auto] sm:p-5">
+                <div v-if="billing" class="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 p-4 sm:grid-cols-[auto_1fr_auto] sm:p-5">
                     <span class="text-primary grid size-10 shrink-0 place-items-center self-start rounded-xl bg-[hsl(var(--brand)/0.1)]"
                         ><Banknote class="size-5"
                     /></span>

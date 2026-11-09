@@ -32,6 +32,7 @@ use Laravel\Cashier\Billable;
  * @property Carbon|null $trial_ends_at
  * @property bool $billing_free
  * @property string|null $billing_note
+ * @property bool $customer_billing whether it bills its customers through RoutePilot (not its own subscription)
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  */
@@ -55,6 +56,13 @@ class Tenant extends Model
         'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'reply_to_email',
     ];
 
+    /**
+     * The column's default, so a tenant just created reads true before it's reloaded.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = ['customer_billing' => true];
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -64,6 +72,7 @@ class Tenant extends Model
             'lng' => 'float',
             'trial_ends_at' => 'datetime',
             'billing_free' => 'boolean',
+            'customer_billing' => 'boolean',
         ];
     }
 

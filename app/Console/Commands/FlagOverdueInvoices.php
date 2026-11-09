@@ -25,7 +25,7 @@ class FlagOverdueInvoices extends Command
     public function handle(BillingService $billing): int
     {
         $count = 0;
-        Tenant::query()->where('status', 'active')->each(function (Tenant $tenant) use ($billing, &$count): void {
+        Tenant::query()->where('status', 'active')->where('customer_billing', true)->each(function (Tenant $tenant) use ($billing, &$count): void {
             app()->instance('tenant_id', $tenant->id);
 
             $pastDue = Invoice::query()->whereIn('status', ['draft', 'sent'])

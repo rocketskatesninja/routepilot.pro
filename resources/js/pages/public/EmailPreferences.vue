@@ -20,6 +20,7 @@ const props = defineProps<{
     types: Record<string, [string, string]>;
     stop: string | null;
     updateUrl: string;
+    billing: boolean;
 }>();
 
 const page = usePage<SharedData>();
@@ -69,7 +70,13 @@ const stopOn = computed(() => (props.stop ? props.preferences[props.stop] : fals
                     <h2 id="all" class="font-display text-xl font-semibold tracking-tight">All your emails</h2>
                     <p v-if="page.props.flash?.success" class="text-sm text-emerald-700 dark:text-emerald-400" role="status">Saved.</p>
                 </div>
-                <EmailChoices :types="props.types" :preferences="props.preferences" :busy="busy" @change="(type, on) => save({ [type]: on })" />
+                <EmailChoices
+                    :types="props.types"
+                    :preferences="props.preferences"
+                    :busy="busy"
+                    :billing="props.billing"
+                    @change="(type, on) => save({ [type]: on })"
+                />
             </section>
         </main>
     </div>

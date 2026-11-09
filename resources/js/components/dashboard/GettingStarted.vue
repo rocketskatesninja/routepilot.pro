@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CustomerBillingSwitch from '@/components/CustomerBillingSwitch.vue';
 import { Card } from '@/components/ui/card';
 import { type Onboarding } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
@@ -49,6 +50,14 @@ const dismiss = () => {
                     Dismiss for now
                 </button>
             </div>
+        </div>
+
+        <!-- A choice, not a task: either answer is fine, so it isn't a numbered step. -->
+        <div class="border-border/60 border-b px-4 py-3">
+            <CustomerBillingSwitch label="Do you bill customers through RoutePilot?">
+                Leave this on to send invoices and take payments here. Turn it off if you bill another way. You can change it any time in Company
+                settings.
+            </CustomerBillingSwitch>
         </div>
 
         <ul class="divide-border/60 divide-y">

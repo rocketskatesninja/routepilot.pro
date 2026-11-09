@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Chat\Tools;
 
 use App\Models\Customer;
+use App\Models\Tenant;
 use App\Services\BillingService;
 use App\Services\Chat\AiTool;
 
@@ -39,6 +40,10 @@ class LookupBalance extends AiTool
 
     public function execute(array $params, int $tenantId): string
     {
+        if (Tenant::query()->find($tenantId)?->customer_billing === false) {
+            return 'This company doesn’t bill its customers through RoutePilot, so there are no balances here.';
+        }
+
         $billing = app(BillingService::class);
         $name = trim((string) ($params['customer_name'] ?? ''));
 

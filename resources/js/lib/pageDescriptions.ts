@@ -51,9 +51,18 @@ export const PAGE_DESCRIPTIONS: Record<string, Description> = {
 };
 
 /** What the page is for, for this person; null when there's nothing to say. */
-export function pageDescription(component: string, role: string | null | undefined): string | null {
-    const d = PAGE_DESCRIPTIONS[component];
+/** Where a page says something else for a company that doesn't bill its customers here. */
+const WITHOUT_BILLING: Record<string, Description> = {
+    'dashboards/Grid': { customer: 'Your pools and your next visit at a glance.' },
+    'settings/Company': 'Your company’s details, logo and email.',
+};
+
+function pick(d: Description | undefined, role: string | null | undefined): string | null {
     if (d === undefined) return null;
     if (typeof d === 'string') return d;
     return (role ? d[role as Role] : undefined) ?? d.default ?? null;
+}
+
+export function pageDescription(component: string, role: string | null | undefined, billing = true): string | null {
+    return (billing ? null : pick(WITHOUT_BILLING[component], role)) ?? pick(PAGE_DESCRIPTIONS[component], role);
 }

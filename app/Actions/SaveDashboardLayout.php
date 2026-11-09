@@ -19,7 +19,7 @@ class SaveDashboardLayout
     public function handle(User $user, string $mode, array $layout): void
     {
         $mode = in_array($mode, ['desktop', 'mobile'], true) ? $mode : 'desktop';
-        $allowed = DashboardWidgets::keysForRole((string) $user->getAttribute('role'));
+        $allowed = DashboardWidgets::keysFor($user);
 
         $layouts = DashboardWidgets::layoutsFor($user);
         $layouts[$mode] = DashboardWidgets::sanitize($layout, $allowed);

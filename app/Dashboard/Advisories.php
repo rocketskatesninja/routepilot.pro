@@ -58,7 +58,7 @@ final class Advisories
         if (OpsSignals::nothingTomorrow()) {
             $a->add('amber', 'CalendarClock', 'Nothing is scheduled for tomorrow.', '/schedule?date='.$today->copy()->addDay()->toDateString());
         }
-        $owing = OpsSignals::overdueCustomers();
+        $owing = $tenant?->customer_billing !== false ? OpsSignals::overdueCustomers() : collect();
         if ($owing->isNotEmpty()) {
             $a->add('amber', 'DollarSign', self::names($owing->map->displayName()).' '.self::verb($owing, 'has a bill', 'have bills').' past due.',
                 self::link($owing, fn ($c) => '/balances?selected='.$c->id, '/balances'));

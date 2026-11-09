@@ -37,7 +37,9 @@ class PeopleExportController extends Controller
         $title = self::TITLES[$filters['type']];
         $file = str($title)->slug().'-'.Tenant::localToday()->toDateString().'.'.$format;
 
-        return $format === 'pdf' ? $this->pdf($rows, $title, $filters, $file) : $this->csv($rows, $file);
+        $billing = $user->tenant?->customer_billing !== false; // no Balance column for a company that doesn't bill here
+
+        return $format === 'pdf' ? $this->pdf($rows, $title, $filters, $file, $billing) : $this->csv($rows, $file, $billing);
     }
 
     /**
@@ -72,19 +74,19 @@ class PeopleExportController extends Controller
     }
 
     /** @param  Collection<int, covariant Row>  $rows */
-    private function csv(Collection $rows, string $file): Response
+    private function csv(Collection $rows, string $file, bool $billing): Response
     {
-        return response()->streamDownload(function () use ($rows): void {
+        return response()->streamDownload(function () use ($rows, $billing): void {
             $out = fopen('php://output', 'w');
             if ($out === false) {
                 return;
             }
             fwrite($out, "\xEF\xBB\xBF"); // so Excel reads names with accents right
-            fputcsv($out, ['Name', 'Type', 'Email', 'Phone', 'Address', 'Portal', 'Last visit', 'Balance']);
+            fputcsv($out, ['Name', 'Type', 'Email', 'Phone', 'Address', 'Portal', 'Last visit', ...($billing ? ['Balance'] : [])]);
             foreach ($rows as $r) {
                 fputcsv($out, [
                     ...array_map($this->cell(...), [$r['name'], $r['type'], $r['email'], $r['phone'], $r['address'], $r['portal'], $r['last_visit']]),
-                    $r['balance'] === null ? '' : number_format((float) $r['balance'], 2, '.', ''),
+                    ...($billing ? [$r['balance'] === null ? '' : number_format((float) $r['balance'], 2, '.', '')] : []),
                 ]);
             }
             fclose($out);
@@ -95,7 +97,7 @@ class PeopleExportController extends Controller
      * @param  Collection<int, covariant Row>  $rows
      * @param  array{type: string, search: string, sort: string, dir: string}  $filters
      */
-    private function pdf(Collection $rows, string $title, array $filters, string $file): Response
+    private function pdf(Collection $rows, string $title, array $filters, string $file, bool $billing): Response
     {
         $tenant = app()->has('tenant') ? app('tenant') : null;
         $summary = implode(', ', array_filter([
@@ -114,6 +116,7 @@ class PeopleExportController extends Controller
             'summary' => $summary,
             'rows' => $rows,
             'showAgents' => $filters['type'] === 'all' || $filters['type'] === 'agents',
+            'billing' => $billing,
         ])->setPaper('letter', 'landscape')->download($file);
     }
 

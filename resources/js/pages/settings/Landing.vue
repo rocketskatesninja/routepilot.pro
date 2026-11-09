@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { HERO_BADGES, MAX_BADGES } from '@/components/landing/badges';
+import { BILLING_BADGES, HERO_BADGES, MAX_BADGES } from '@/components/landing/badges';
 import { useSiteBrand } from '@/components/landing/brand';
 import { choice } from '@/components/landing/editor/choice';
 import EditorField from '@/components/landing/editor/EditorField.vue';
@@ -27,6 +27,7 @@ import {
 import type { LiveData, SectionConfig, TitleConfig } from '@/components/landing/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
@@ -66,6 +67,9 @@ const props = defineProps<{
     agents: Agent[];
     recentPhotos: RecentPhoto[];
 }>();
+
+const billing = useCustomerBilling();
+const pickableBadges = computed(() => HERO_BADGES.filter((b) => billing.value || !BILLING_BADGES.includes(b.key)));
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Landing page', href: '/company/landing' }];
 const brand = useSiteBrand();
@@ -360,7 +364,7 @@ function save() {
                                     <template #label>Badges · {{ s.badges.length }} of {{ MAX_BADGES }}</template>
                                     <div class="flex flex-wrap gap-1.5">
                                         <button
-                                            v-for="b in HERO_BADGES"
+                                            v-for="b in pickableBadges"
                                             :key="b.key"
                                             type="button"
                                             :aria-pressed="s.badges.includes(b.key)"

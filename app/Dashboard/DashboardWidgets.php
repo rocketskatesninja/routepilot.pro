@@ -49,6 +49,9 @@ class DashboardWidgets
         'recent_tenants' => ['label' => 'Recent tenants', 'icon' => 'Building2', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 5, 'roles' => ['super_admin']],
     ];
 
+    /** Widgets that only make sense for a company billing its customers here. */
+    private const BILLING = ['billing_summary', 'account_balance', 'pay_bill'];
+
     /** Default starter grid per role, desktop (12-col grid). */
     private const DEFAULTS = [
         'tenant_admin' => [
@@ -139,16 +142,26 @@ class DashboardWidgets
      *
      * @return list<string>
      */
-    public static function keysForRole(string $role): array
+    public static function keysForRole(string $role, bool $billing = true): array
     {
         $out = [];
         foreach (self::CATALOG as $key => $w) {
-            if (in_array($role, $w['roles'], true)) {
+            if (in_array($role, $w['roles'], true) && ($billing || ! in_array($key, self::BILLING, true))) {
                 $out[] = $key;
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Widget keys this user may use: their role's, less the billing ones if their company doesn't bill here.
+     *
+     * @return list<string>
+     */
+    public static function keysFor(User $user): array
+    {
+        return self::keysForRole((string) $user->getAttribute('role'), $user->tenant?->customer_billing !== false);
     }
 
     /**
@@ -161,7 +174,7 @@ class DashboardWidgets
     public static function layoutsFor(User $user): array
     {
         $role = (string) $user->getAttribute('role');
-        $allowed = self::keysForRole($role);
+        $allowed = self::keysFor($user);
         $saved = $user->getAttribute('dashboard_layout');
 
         // Legacy flat-array shape → treat as the desktop layout.
@@ -196,7 +209,9 @@ class DashboardWidgets
         $out = [];
         foreach ($source as $item) {
             if (in_array($item['i'], $allowed, true)) {
-                $out[] = $item;
+                // The customer's next visit shares its row with their bill: alone, it takes the whole row.
+                $wide = $role === 'customer' && $mode === 'desktop' && $item['i'] === 'next_visit' && ! in_array('pay_bill', $allowed, true);
+                $out[] = $wide ? [...$item, 'w' => 6] : $item;
             }
         }
 
@@ -211,10 +226,10 @@ class DashboardWidgets
      */
     public static function palette(User $user): array
     {
-        $role = (string) $user->getAttribute('role');
+        $allowed = self::keysFor($user);
         $out = [];
         foreach (self::CATALOG as $key => $w) {
-            if (in_array($role, $w['roles'], true)) {
+            if (in_array($key, $allowed, true)) {
                 $out[] = ['key' => $key, 'label' => $w['label'], 'icon' => $w['icon'], 'w' => $w['w'], 'h' => $w['h'], 'minW' => $w['minW'], 'minH' => $w['minH']];
             }
         }

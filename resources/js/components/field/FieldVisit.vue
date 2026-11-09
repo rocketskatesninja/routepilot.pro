@@ -32,7 +32,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 // `chemicals`: the company's list (from the day bundle, so it works offline).
 // `office`: the office filling in a tech's route (no GPS; it picks whether the customer is emailed).
 // `past`: an earlier day (no GPS either — it wouldn't be where the visit happened).
-const props = defineProps<{ stop: FieldStop; online: boolean; chemicals: FieldChemical[]; office?: boolean; past?: boolean }>();
+// `billing`: the company bills its customers here, so a work order can carry a price (from the bundle, for offline).
+const props = defineProps<{ stop: FieldStop; online: boolean; chemicals: FieldChemical[]; office?: boolean; past?: boolean; billing: boolean }>();
 const emit = defineEmits<{ (e: 'done', stopId: number, raisedWorkOrder: boolean): void; (e: 'removed'): void; (e: 'close'): void }>();
 
 const pool = computed(() => props.stop.pool);
@@ -681,7 +682,7 @@ async function removeFromToday() {
                         <input v-model="workOrder.urgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
                         <span class="text-[15px]">Urgent</span>
                     </label>
-                    <label class="flex items-center gap-2 text-[15px]">
+                    <label v-if="billing" class="flex items-center gap-2 text-[15px]">
                         Price $
                         <input
                             v-model="workOrder.price"

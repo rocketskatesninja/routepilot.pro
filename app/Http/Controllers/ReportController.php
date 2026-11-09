@@ -92,7 +92,9 @@ class ReportController extends Controller
                     || (int) $visit->getAttribute('agent_id') === $request->user()?->id;
                 $selected['can_delete'] = $this->canManage($request->user());
                 // What deleting it would cancel on the bill (the visit, and its chemicals), for the confirm prompt.
-                $charges = Charge::query()->active()->where('service_visit_id', $visit->id)->with('invoice:id,number')->get();
+                $charges = $request->user()?->tenant?->customer_billing !== false
+                    ? Charge::query()->active()->where('service_visit_id', $visit->id)->with('invoice:id,number')->get()
+                    : collect();
                 $selected['charge'] = $charges->isEmpty() ? null : [
                     'amount' => round((float) $charges->sum(fn (Charge $c): float => $c->total()), 2),
                     'invoice' => $charges->first(fn (Charge $c): bool => $c->invoice !== null)?->invoice?->number,

@@ -62,7 +62,7 @@ class TenantContext
             : $todayStops->map(fn (RouteStop $s): string => '- '.($s->pool?->customer?->displayName() ?? '?')." / {$s->pool?->name} → ".($s->route?->agent?->displayName() ?? '?')." ({$s->status})")->join("\n");
 
         $unassigned = ServiceSubscription::query()->where('status', 'active')->whereNull('assigned_agent_id')->count();
-        $overdue = Invoice::query()->where('status', 'overdue')->count();
+        $overdue = Tenant::query()->find($tenantId)?->customer_billing !== false ? Invoice::query()->where('status', 'overdue')->count() : 0;
         $warnings = '';
         if ($unassigned > 0) {
             $warnings .= "⚠ {$unassigned} active subscriptions have no assigned agent\n";

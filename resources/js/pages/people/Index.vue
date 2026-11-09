@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { POOL_TYPES } from '@/lib/labels';
@@ -116,6 +117,8 @@ const props = defineProps<{
     audiences: { key: string; label: string; count: number }[];
     recent: { id: number; subject: string; audience: string; recipients: number; sent: number; failed: number; sent_on: string | null }[];
 }>();
+
+const billing = useCustomerBilling();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'People', href: '/people' }];
 
@@ -551,7 +554,7 @@ function destroyAgent() {
                             >
                             <th class="hidden px-4 py-2 font-medium min-[1680px]:table-cell md:table-cell xl:hidden">Portal</th>
                             <th class="hidden px-4 py-2 font-medium lg:table-cell xl:hidden 2xl:table-cell">Last visit</th>
-                            <th class="px-4 py-2 text-right font-medium">Balance</th>
+                            <th v-if="billing" class="px-4 py-2 text-right font-medium">Balance</th>
                         </template>
                         <template #row="{ item: person }">
                             <td v-if="emailOpen" class="px-4 py-2.5" @click.stop>
@@ -604,6 +607,7 @@ function destroyAgent() {
                                 {{ person.last_visit ?? '—' }}
                             </td>
                             <td
+                                v-if="billing"
                                 class="px-4 py-2.5 text-right font-medium"
                                 :class="person.balance && person.balance > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'"
                             >
@@ -672,7 +676,7 @@ function destroyAgent() {
                             </div>
                         </div>
                         <!-- Billed per visit: each visit's chemicals go on their bill at the chemicals' sell prices. -->
-                        <div class="grid gap-1.5">
+                        <div v-if="billing" class="grid gap-1.5">
                             <Label for="chemicals">Chemicals</Label>
                             <select
                                 id="chemicals"
@@ -843,7 +847,7 @@ function destroyAgent() {
                                     ><template v-if="customer.pools.length > 1"> at {{ customer.next_visit.pool }}</template
                                     >.
                                 </p>
-                                <p>
+                                <p v-if="billing">
                                     <template v-if="customer.balance > 0">Owes {{ formatMoney(customer.balance) }}.</template>
                                     <template v-else-if="customer.balance < 0">{{ formatMoney(-customer.balance) }} in credit.</template>
                                     <template v-else>All paid up.</template>

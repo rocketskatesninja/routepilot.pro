@@ -43,6 +43,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Middleware\EnsureBillingActive;
+use App\Http\Middleware\EnsureCustomerBilling;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -145,7 +146,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
         Route::patch('reports/{visit}', [ReportController::class, 'update'])->name('reports.update'); // admin or own agent
-        Route::get('balances', [BalanceController::class, 'index'])->name('balances.index');
+        Route::get('balances', [BalanceController::class, 'index'])->middleware(EnsureCustomerBilling::class)->name('balances.index');
         Route::get('people', [PeopleController::class, 'index'])->name('people.index'); // super → platform view
         Route::get('search', [SearchController::class, 'index'])->name('search'); // ⌘K command palette
 
@@ -205,13 +206,15 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::patch('leads/{lead}', [LeadController::class, 'updateStatus'])->name('leads.status');
         Route::post('leads/{lead}/convert', [LeadController::class, 'convert'])->name('leads.convert');
         Route::delete('leads', [LeadController::class, 'destroy'])->name('leads.destroy'); // ids[]: one or several
-        Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
-        Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
-        Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
-        Route::get('balances/export', [BalanceController::class, 'exportCsv'])->name('balances.export');
-        Route::post('invoices/{invoice}/email', [InvoiceController::class, 'email'])->name('invoices.email');
-        Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.markpaid');
-        Route::post('invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void');
+        Route::middleware(EnsureCustomerBilling::class)->group(function () {
+            Route::post('balances/charges', [BalanceController::class, 'addCharge'])->name('balances.charge');
+            Route::post('balances/{customer}/pay', [BalanceController::class, 'recordPayment'])->name('balances.pay');
+            Route::post('balances/{customer}/invoice', [BalanceController::class, 'generateInvoice'])->name('balances.invoice');
+            Route::get('balances/export', [BalanceController::class, 'exportCsv'])->name('balances.export');
+            Route::post('invoices/{invoice}/email', [InvoiceController::class, 'email'])->name('invoices.email');
+            Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.markpaid');
+            Route::post('invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('invoices.void');
+        });
         Route::post('requests/{serviceRequest}/approve', [RequestController::class, 'approve'])->name('requests.approve');
         Route::post('requests/{serviceRequest}/decline', [RequestController::class, 'decline'])->name('requests.decline');
         Route::delete('requests', [RequestController::class, 'destroy'])->name('requests.destroy'); // ids[]: one or several
@@ -224,6 +227,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         // Company settings.
         Route::get('company', [CompanySettingsController::class, 'edit'])->name('company.edit');
         Route::patch('company', [CompanySettingsController::class, 'update'])->name('company.update');
+        Route::patch('company/features', [CompanySettingsController::class, 'updateFeatures'])->name('company.features');
         Route::patch('company/mail', [CompanySettingsController::class, 'updateMail'])->name('company.mail');
         Route::post('company/mail/test', [CompanySettingsController::class, 'testMail'])->middleware('throttle:5,1')->name('company.mail.test');
         Route::post('company/mail/off', [CompanySettingsController::class, 'turnOffMail'])->name('company.mail.off');
@@ -249,11 +253,13 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('my-pools', [PortalController::class, 'pools'])->name('portal.pools');
         Route::get('requests', [PortalController::class, 'requests'])->name('portal.requests');
         Route::post('requests', [RequestController::class, 'store'])->name('requests.store');
-        Route::get('balance', [PortalController::class, 'balance'])->name('portal.balance');
-        Route::post('balance/pay', [PortalController::class, 'pay'])->name('portal.pay');
-        Route::post('autopay/setup', [PortalController::class, 'setupAutopay'])->name('portal.autopay.setup');
-        Route::get('autopay/complete', [PortalController::class, 'autopayComplete'])->name('portal.autopay.complete');
-        Route::post('autopay/disable', [PortalController::class, 'disableAutopay'])->name('portal.autopay.disable');
+        Route::middleware(EnsureCustomerBilling::class)->group(function () {
+            Route::get('balance', [PortalController::class, 'balance'])->name('portal.balance');
+            Route::post('balance/pay', [PortalController::class, 'pay'])->name('portal.pay');
+            Route::post('autopay/setup', [PortalController::class, 'setupAutopay'])->name('portal.autopay.setup');
+            Route::get('autopay/complete', [PortalController::class, 'autopayComplete'])->name('portal.autopay.complete');
+            Route::post('autopay/disable', [PortalController::class, 'disableAutopay'])->name('portal.autopay.disable');
+        });
         Route::post('dashboard/style', [DashboardController::class, 'updateStyle'])->name('dashboard.style');
         Route::get('settings/emails', [EmailsController::class, 'edit'])->name('settings.emails');
         Route::patch('settings/emails', [EmailsController::class, 'update'])->name('settings.emails.update');

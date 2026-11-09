@@ -22,6 +22,7 @@ export interface Tenant {
     brand_color: string | null;
     logo_path: string | null;
     timezone: string;
+    customer_billing: boolean; // bills its customers through RoutePilot (not its own subscription)
 }
 
 export interface BreadcrumbItem {

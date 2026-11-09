@@ -33,11 +33,18 @@ final class NotificationTypes
         'balance_reminder' => ['Balance reminders', 'Once a week while a bill is past due.', ['customer']],
     ];
 
+    /** Only sent to a company billing its customers here. */
+    private const BILLING = ['autopay_declined', 'overdue_balances', 'balance_reminder'];
+
     /** @return array<string, array{string, string}> type => [name, what it is], only the types this user gets */
     public static function for(User $user): array
     {
+        $billing = $user->tenant?->customer_billing !== false;
         $types = [];
         foreach (self::TYPES as $type => [$name, $about, $who]) {
+            if (! $billing && in_array($type, self::BILLING, true)) {
+                continue;
+            }
             if (in_array($user->role, $who, true) || (in_array('agent_plus', $who, true) && $user->isAgentPlus())) {
                 $types[$type] = [$name, $about];
             }

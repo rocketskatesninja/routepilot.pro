@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
@@ -45,10 +46,12 @@ const NAV: Item[] = [
     { type: 'page', label: 'Assistant', url: '/assistant' },
 ];
 
+const billing = useCustomerBilling();
+
 // Pages only surface once you type (so an empty palette isn't a clone of the sidebar).
 const navMatches = computed<Item[]>(() => {
     const t = q.value.trim().toLowerCase();
-    return t ? NAV.filter((n) => n.label.toLowerCase().includes(t)) : [];
+    return t ? NAV.filter((n) => n.label.toLowerCase().includes(t) && (billing.value || n.url !== '/balances')) : [];
 });
 
 const groups = computed<Group[]>(() => {

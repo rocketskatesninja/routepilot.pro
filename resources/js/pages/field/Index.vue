@@ -487,6 +487,7 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                 :chemicals="bundle?.inventory ?? []"
                 :office="!!bundle?.office"
                 :past="!!bundle?.past"
+                :billing="bundle?.billing !== false"
                 @done="onCompleted"
                 @removed="onRemoved"
                 @close="selected = null"

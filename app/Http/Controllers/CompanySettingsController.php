@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateCompanyFeaturesRequest;
 use App\Http\Requests\UpdateCompanyRequest;
 use App\Http\Requests\UpdateMailConfigRequest;
 use App\Mail\MailSettingsTestMail;
@@ -58,6 +59,20 @@ class CompanySettingsController extends Controller
                 'charges_enabled' => (bool) $tenant->getAttribute('stripe_connect_charges_enabled'),
             ],
         ]);
+    }
+
+    /** The company's feature switches, saved the moment they're flipped. */
+    public function updateFeatures(UpdateCompanyFeaturesRequest $request): RedirectResponse
+    {
+        $tenant = $this->tenant($request);
+        $on = $request->boolean('customer_billing');
+
+        if ($tenant->customer_billing !== $on) {
+            $tenant->forceFill(['customer_billing' => $on])->save();
+            $this->audit($request, $tenant, 'company.customer_billing', ['customer_billing' => $on]);
+        }
+
+        return back()->with('success', $on ? 'Customer billing is on.' : 'Customer billing is off.');
     }
 
     /** Start (or resume) Stripe Connect onboarding for the tenant. */

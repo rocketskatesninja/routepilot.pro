@@ -74,6 +74,8 @@ class FieldController extends Controller
             'date' => $date->toDateString(),
             'generated_at' => now()->toIso8601String(),
             'agent' => ['id' => $tech->id, 'name' => $tech->displayName()],
+            // Whether work orders take a price (the app reads this offline, so it comes with the bundle).
+            'billing' => $user->tenant?->customer_billing !== false,
             // Filling in someone else's route, or an earlier day: no GPS, and the office picks whether to email.
             'office' => $tech->id !== $user->id,
             'past' => $date->lt(Tenant::localToday()->toDateString()),

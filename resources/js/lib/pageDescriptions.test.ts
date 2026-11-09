@@ -23,3 +23,15 @@ describe('page descriptions', () => {
         expect(pageDescription('nope/Missing', 'agent')).toBeNull();
     });
 });
+
+describe('pageDescription without customer billing', () => {
+    it('leaves the balance out of what a customer is told', () => {
+        expect(pageDescription('dashboards/Grid', 'customer')).toContain('balance');
+        expect(pageDescription('dashboards/Grid', 'customer', false)).not.toContain('balance');
+    });
+
+    it('falls back to the usual sentence everywhere else', () => {
+        expect(pageDescription('dashboards/Grid', 'tenant_admin', false)).toBe(pageDescription('dashboards/Grid', 'tenant_admin'));
+        expect(pageDescription('schedule/Index', 'tenant_admin', false)).toBe(pageDescription('schedule/Index', 'tenant_admin'));
+    });
+});

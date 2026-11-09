@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\URL;
  * The notifications that fire after a visit is completed — shared by the
  * web (Inertia) and the offline-field (JSON) completion paths so both behave
  * identically: notify the homeowner's portal user and queue the recap email
- * (with an outstanding-balance pay link), honoring opt-out, plus a copy for the
- * pool's second address.
+ * (with an outstanding-balance pay link, if the company bills here), honoring
+ * opt-out, plus a copy for the pool's second address.
  */
 class SendVisitFollowups
 {
@@ -34,7 +34,7 @@ class SendVisitFollowups
 
         // Per-visit report email, unless they've turned visit reports off.
         if ($email && $customer !== null && is_string($customer->email) && $customer->email !== '' && EmailPreferences::wants($customer, 'visit_reports')) {
-            $balance = $this->billing->outstandingForCustomer($customer);
+            $balance = $customer->tenant?->customer_billing !== false ? $this->billing->outstandingForCustomer($customer) : 0.0;
             $payUrl = $balance > 0 ? URL::signedRoute('pay.link', ['customer' => $customer->id]) : null;
             Mail::to($customer->email)->queue(new VisitRecapMail($visit, $balance, $payUrl));
         }

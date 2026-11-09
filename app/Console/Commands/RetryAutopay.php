@@ -30,7 +30,7 @@ class RetryAutopay extends Command
         $retried = 0;
         $recovered = 0;
 
-        Tenant::query()->where('status', 'active')->each(function (Tenant $tenant) use ($charger, &$retried, &$recovered): void {
+        Tenant::query()->where('status', 'active')->where('customer_billing', true)->each(function (Tenant $tenant) use ($charger, &$retried, &$recovered): void {
             app()->instance('tenant_id', $tenant->id);
 
             Customer::query()

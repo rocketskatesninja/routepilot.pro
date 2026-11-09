@@ -37,17 +37,19 @@ class DailyOpsChecks
             return 0;
         }
 
+        $billing = Tenant::query()->find($tenantId)?->customer_billing !== false;
+
         $alerts = 0;
         $alerts += $this->unassignedPools($admins) ? 1 : 0;
         $alerts += $this->noRoutesTomorrow($admins) ? 1 : 0;
-        $alerts += $this->overdueBalances($admins) ? 1 : 0;
+        $alerts += $billing && $this->overdueBalances($admins) ? 1 : 0;
         $alerts += $this->staleChemistry($admins) ? 1 : 0;
         $alerts += $this->idleAgents($admins) ? 1 : 0;
         $alerts += $this->missedYesterday($admins) ? 1 : 0;
 
         // Customer-facing reminders (one per affected homeowner, not per tenant).
         $alerts += $this->serviceTomorrow($tenantId);
-        $alerts += $this->overdueCustomerBalances();
+        $alerts += $billing ? $this->overdueCustomerBalances() : 0;
 
         return $alerts;
     }
