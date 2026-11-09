@@ -30,7 +30,7 @@ const emit = defineEmits<{ change: [type: string, on: boolean] }>();
         <li v-for="(meta, type) in types" :key="type" class="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
             <span class="min-w-0">
                 <span :id="`email-${type}`" class="block font-medium">{{ meta[0] }}</span>
-                <span class="text-muted-foreground block text-sm">{{ meta[1] }}</span>
+                <span class="text-muted-foreground block text-sm text-balance">{{ meta[1] }}</span>
             </span>
             <button
                 type="button"

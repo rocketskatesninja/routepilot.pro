@@ -93,6 +93,22 @@ html {
 }
 
 @layer base {
+    /* Keep a lone word off the last line. `pretty` leaves a paragraph's shape alone, but
+       Firefox doesn't have it yet, so it gets `balance`. Only the style, not `text-wrap` itself,
+       which would switch wrapping back on inside anything set to stay on one line. */
+    :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt, blockquote, figcaption) {
+        text-wrap-style: balance;
+    }
+    @supports (text-wrap-style: pretty) {
+        :where(p, li, dd, blockquote, figcaption) {
+            text-wrap-style: pretty;
+        }
+    }
+    /* A company's own website is theirs to lay out: it keeps the browser's normal wrapping. */
+    .tenant-site :where(h1, h2, h3, h4, h5, h6, p, li, dd, dt, blockquote, figcaption) {
+        text-wrap-style: auto;
+    }
+
     * {
         @apply border-border;
     }

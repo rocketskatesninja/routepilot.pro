@@ -28,7 +28,7 @@ const brandVars = computed(() => {
             <PortalHero>
                 Welcome to {{ props.company.name }}
                 <template #sub>
-                    <p>Already a customer? Log in to see your visit reports and request a service.</p>
+                    <p class="text-balance">Already a customer? Log in to see your visit reports and request a service.</p>
                 </template>
                 <template #actions>
                     <Button as-child><a href="/login">Customer log in</a></Button>

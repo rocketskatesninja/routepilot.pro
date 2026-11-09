@@ -105,7 +105,7 @@ onBeforeUnmount(() => clearInterval(timer));
                     :class="a.href ? 'hover:bg-muted/50' : ''"
                 >
                     <component :is="ICONS[a.icon] ?? Info" class="mt-0.5 size-4 shrink-0" :class="tone(a.sev)" />
-                    <span class="min-w-0 flex-1">{{ a.msg }}</span>
+                    <span class="min-w-0 flex-1 text-balance">{{ a.msg }}</span>
                 </component>
             </li>
         </ul>
@@ -122,7 +122,7 @@ onBeforeUnmount(() => clearInterval(timer));
                 enter-active-class="transition-opacity duration-300"
                 leave-active-class="transition-opacity duration-300"
             >
-                <span :key="tipIdx">{{ tips[tipIdx] }}</span>
+                <span :key="tipIdx" class="text-balance">{{ tips[tipIdx] }}</span>
             </Transition>
         </div>
     </div>

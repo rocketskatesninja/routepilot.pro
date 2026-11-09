@@ -11,6 +11,6 @@ defineProps<{ data: { pool: string | null; date: string | null } | null }>();
             <div class="text-lg font-semibold">{{ data.date }}</div>
             <div class="text-muted-foreground text-sm">{{ data.pool }}</div>
         </template>
-        <div v-else class="text-muted-foreground text-sm">No upcoming visit scheduled.</div>
+        <div v-else class="text-muted-foreground text-sm text-balance">No upcoming visit scheduled.</div>
     </div>
 </template>
