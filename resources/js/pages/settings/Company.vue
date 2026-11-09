@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { useFeature } from '@/composables/useFeature';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
@@ -99,6 +100,7 @@ const connectStripe = () => connectForm.post('/company/connect', { preserveScrol
 // Left-hand tabs. Profile/address share one form (PATCH /company); email and
 // payments are their own concerns. (AI is platform-managed by the super-admin.)
 const billing = useCustomerBilling();
+const website = useFeature('landing_page');
 const tabs = computed(() => [
     { key: 'profile', label: 'Profile' },
     { key: 'address', label: 'Business address' },
@@ -152,11 +154,13 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                     @update:model-value="(f) => (form.logo = f)"
                                 />
                                 <p class="text-muted-foreground text-sm">
-                                    Shown on your emails, customer portal and website. Square logos look best: a wide one gets shrunk to fit. To
-                                    choose how it sits beside your name on your website, open
-                                    <Link href="/company/landing?panel=title" class="text-primary underline-offset-4 hover:underline"
-                                        >Landing page → Company title</Link
-                                    >.
+                                    Shown on your emails, customer portal and website. Square logos look best: a wide one gets shrunk to fit.
+                                    <template v-if="website">
+                                        To choose how it sits beside your name on your website, open
+                                        <Link href="/company/landing?panel=title" class="text-primary underline-offset-4 hover:underline"
+                                            >Landing page → Company title</Link
+                                        >.
+                                    </template>
                                 </p>
                             </div>
                             <div class="grid gap-2">
@@ -363,6 +367,14 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                         <FeatureSwitch feature="inventory_tracking" label="Track inventory in RoutePilot">
                             Stock counts, low-stock alerts and repair parts. Turn this off if you don’t keep count here: techs still record the
                             chemicals they add, and your counts and parts stay on record in case you turn it back on.
+                        </FeatureSwitch>
+                        <FeatureSwitch feature="landing_page" label="Your website from RoutePilot">
+                            A public page with a contact form and online chat. Turn this off if you already have a website: your address will show
+                            your name and a customer login, and your page stays saved in case you turn it back on.
+                        </FeatureSwitch>
+                        <FeatureSwitch feature="ai_assistant" label="AI assistant">
+                            Lets your team and customers ask questions in plain words inside RoutePilot. Turn this off to hide it for everyone. The
+                            chat on your website has its own switch in the landing page editor.
                         </FeatureSwitch>
                     </div>
 

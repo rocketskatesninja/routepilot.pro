@@ -67,7 +67,7 @@ class CompanySettingsController extends Controller
         $tenant = $this->tenant($request);
         $message = '';
 
-        foreach (['customer_billing' => 'Customer billing', 'inventory_tracking' => 'Inventory tracking'] as $feature => $name) {
+        foreach (Tenant::FEATURES as $feature => $name) {
             if (! $request->has($feature)) {
                 continue;
             }

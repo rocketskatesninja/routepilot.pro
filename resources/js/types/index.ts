@@ -24,7 +24,12 @@ export interface Tenant {
     timezone: string;
     customer_billing: boolean; // bills its customers through RoutePilot (not its own subscription)
     inventory_tracking: boolean; // counts its stock and repair parts in RoutePilot
+    landing_page: boolean; // has a public website from RoutePilot
+    ai_assistant: boolean; // its people have the AI assistant in the app
 }
+
+/** The parts of RoutePilot a company can switch off. */
+export type TenantFeature = 'customer_billing' | 'inventory_tracking' | 'landing_page' | 'ai_assistant';
 
 export interface BreadcrumbItem {
     title: string;

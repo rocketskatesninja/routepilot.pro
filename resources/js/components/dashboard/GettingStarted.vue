@@ -55,13 +55,18 @@ const dismiss = () => {
         <!-- Choices, not tasks: either answer is fine, so they aren't numbered steps. -->
         <div class="border-border/60 space-y-3 border-b px-4 py-3">
             <FeatureSwitch feature="customer_billing" label="Do you bill customers through RoutePilot?">
-                Leave this on to send invoices and take payments here. Turn it off if you bill another way. You can change it any time in Company
-                settings.
+                Invoices and online payments. Turn it off if you bill another way.
             </FeatureSwitch>
             <FeatureSwitch feature="inventory_tracking" label="Do you track chemical and parts stock in RoutePilot?">
-                Leave this on to count stock and log repair parts. Turn it off if you don’t keep count here; techs still record the chemicals they
-                add. You can change it any time in Company settings.
+                Stock counts and repair parts. Turn it off if you don’t keep count here; techs still record the chemicals they add.
             </FeatureSwitch>
+            <FeatureSwitch feature="landing_page" label="Do you want a website from RoutePilot?">
+                A public page with a contact form. Turn it off if you already have one; your address will show your name and a customer login.
+            </FeatureSwitch>
+            <FeatureSwitch feature="ai_assistant" label="Do you want the AI assistant?">
+                Lets your team and customers ask questions in plain words. Turn it off to hide it for everyone.
+            </FeatureSwitch>
+            <p class="text-muted-foreground text-sm">You can change any of these later in Company settings, under Features.</p>
         </div>
 
         <ul class="divide-border/60 divide-y">

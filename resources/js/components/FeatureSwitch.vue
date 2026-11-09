@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { type SharedData } from '@/types';
-import { router, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { useFeature } from '@/composables/useFeature';
+import { type TenantFeature } from '@/types';
+import { router } from '@inertiajs/vue3';
 
-const props = defineProps<{ feature: 'customer_billing' | 'inventory_tracking'; label: string }>();
+const props = defineProps<{ feature: TenantFeature; label: string }>();
 
-const page = usePage<SharedData>();
-const on = computed(() => page.props.tenant?.[props.feature] !== false);
+const on = useFeature(props.feature);
 
 // Saved the moment it's flipped; the shared tenant prop then updates every screen.
 const save = (value: boolean) => router.patch('/company/features', { [props.feature]: value }, { preserveScroll: true });

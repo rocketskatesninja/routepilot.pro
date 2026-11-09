@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureFeature;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSingleSession;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -32,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(before: SubstituteBindings::class, prepend: ResolveTenant::class);
 
         // Route-layer role backstop (mirrors controllers' inline authorize* guards).
-        $middleware->alias(['role' => EnsureRole::class]);
+        $middleware->alias(['role' => EnsureRole::class, 'feature' => EnsureFeature::class]);
 
         // Stripe posts webhooks without a CSRF token (verified by signature).
         // Inboxes post one-click unsubscribes with no CSRF token; the signed URL is the proof.

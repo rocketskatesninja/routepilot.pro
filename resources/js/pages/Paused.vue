@@ -30,7 +30,7 @@ const company = computed(() => page.props.tenant?.name ?? 'This account');
 
         <div class="flex items-center gap-3">
             <Link v-if="isAdmin" :href="route('billing.show')">
-                <Button>Go to billing</Button>
+                <Button>Go to Subscription</Button>
             </Link>
             <Button :variant="isAdmin ? 'outline' : 'default'" @click="logOut">Sign out</Button>
         </div>

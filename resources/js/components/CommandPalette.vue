@@ -2,6 +2,7 @@
 import { useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { useFeature } from '@/composables/useFeature';
 import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
@@ -49,8 +50,9 @@ const NAV: Item[] = [
 
 const billing = useCustomerBilling();
 const tracking = useInventoryTracking();
+const assistant = useFeature('ai_assistant');
 const pages = computed<Item[]>(() =>
-    NAV.filter((n) => billing.value || n.url !== '/balances').map((n) =>
+    NAV.filter((n) => (billing.value || n.url !== '/balances') && (assistant.value || n.url !== '/assistant')).map((n) =>
         n.url === '/inventory' && !tracking.value ? { ...n, label: 'Chemicals' } : n,
     ),
 );

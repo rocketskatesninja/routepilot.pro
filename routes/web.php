@@ -80,10 +80,10 @@ Route::middleware(['signed', 'throttle:10,1'])->group(function () {
 });
 
 // Public lead capture from a tenant's landing site (by slug), rate-limited.
-Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->middleware('throttle:10,1')->name('leads.capture');
+Route::post('public/{tenant:slug}/leads', [LeadController::class, 'store'])->middleware(['feature:landing_page', 'throttle:10,1'])->name('leads.capture');
 
 // Public lead-capture chatbot (anonymous, per tenant) — metered + IP rate-limited.
-Route::post('public/{tenant:slug}/chat', [PublicChatController::class, 'send'])->middleware('throttle:20,60')->name('public.chat');
+Route::post('public/{tenant:slug}/chat', [PublicChatController::class, 'send'])->middleware(['feature:landing_page', 'throttle:20,60'])->name('public.chat');
 
 // Stripe webhook — fails closed (signature-verified), idempotent. CSRF-exempt.
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
@@ -117,8 +117,8 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::post('notifications/bulk', [NotificationController::class, 'bulk'])->name('notifications.bulk'); // ids[] + read|unread|dismiss
     Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
-    Route::get('assistant', [ChatController::class, 'index'])->name('assistant.index');
-    Route::post('assistant/send', [ChatController::class, 'send'])->name('assistant.send');
+    Route::get('assistant', [ChatController::class, 'index'])->middleware('feature:ai_assistant')->name('assistant.index');
+    Route::post('assistant/send', [ChatController::class, 'send'])->middleware('feature:ai_assistant')->name('assistant.send');
     // Reachable while impersonating (guarded by the session impersonator flag).
     Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
 
@@ -235,9 +235,11 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('company/connect/return', [CompanySettingsController::class, 'connectReturn'])->name('company.connect.return');
 
         // Landing-page builder. Config save is pure JSON; images via a dedicated endpoint.
-        Route::get('company/landing', [LandingController::class, 'edit'])->name('company.landing.edit');
-        Route::post('company/landing', [LandingController::class, 'update'])->name('company.landing.update');
-        Route::post('company/landing/image', [LandingController::class, 'uploadImage'])->name('company.landing.image');
+        Route::middleware('feature:landing_page')->group(function () {
+            Route::get('company/landing', [LandingController::class, 'edit'])->name('company.landing.edit');
+            Route::post('company/landing', [LandingController::class, 'update'])->name('company.landing.update');
+            Route::post('company/landing/image', [LandingController::class, 'uploadImage'])->name('company.landing.image');
+        });
     });
 
     // Broadcast email — tenant_admin (own tenant) or super_admin (platform-wide).

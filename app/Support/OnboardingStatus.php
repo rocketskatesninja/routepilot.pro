@@ -79,6 +79,11 @@ class OnboardingStatus
             ],
         ];
 
+        // A company with no website of its own has no landing page to set up.
+        if (! $tenant->landing_page) {
+            $steps = array_values(array_filter($steps, static fn (array $s): bool => $s['key'] !== 'landing'));
+        }
+
         // Progress + completion count the REQUIRED steps only; optional steps still
         // render (and tick green when done) but never block "complete".
         $required = array_filter($steps, static fn (array $s): bool => ! $s['optional']);

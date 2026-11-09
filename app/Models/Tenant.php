@@ -34,6 +34,8 @@ use Laravel\Cashier\Billable;
  * @property string|null $billing_note
  * @property bool $customer_billing whether it bills its customers through RoutePilot (not its own subscription)
  * @property bool $inventory_tracking whether it counts its stock and repair parts in RoutePilot
+ * @property bool $landing_page whether it has a public website from RoutePilot
+ * @property bool $ai_assistant whether its people have the AI assistant in the app
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  */
@@ -50,6 +52,18 @@ class Tenant extends Model
      */
     public const RESERVED_SLUGS = ['www', 'api', 'mail', 'admin', 'app', 'blog', 'dev', 'staging', 'test'];
 
+    /**
+     * The parts of RoutePilot a company can switch off: column => what to call it.
+     *
+     * @var array<string, string>
+     */
+    public const FEATURES = [
+        'customer_billing' => 'Customer billing',
+        'inventory_tracking' => 'Inventory tracking',
+        'landing_page' => 'Your website',
+        'ai_assistant' => 'The AI assistant',
+    ];
+
     /** @var list<string> */
     protected $fillable = [
         'name', 'slug', 'primary_domain', 'timezone',
@@ -62,7 +76,7 @@ class Tenant extends Model
      *
      * @var array<string, mixed>
      */
-    protected $attributes = ['customer_billing' => true, 'inventory_tracking' => true];
+    protected $attributes = ['customer_billing' => true, 'inventory_tracking' => true, 'landing_page' => true, 'ai_assistant' => true];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -75,6 +89,8 @@ class Tenant extends Model
             'billing_free' => 'boolean',
             'customer_billing' => 'boolean',
             'inventory_tracking' => 'boolean',
+            'landing_page' => 'boolean',
+            'ai_assistant' => 'boolean',
         ];
     }
 

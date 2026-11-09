@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\AssembleLandingData;
 use App\Models\Tenant;
+use App\Support\EmailBrand;
 use App\Support\LandingConfig;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -115,6 +116,13 @@ class PublicSiteController extends Controller
         // here without ResolveTenant having bound a tenant by host).
         app()->instance('tenant', $tenant);
         app()->instance('tenant_id', $tenant->id);
+
+        // No website: its address still works, with its name and a way for customers to log in.
+        if (! $tenant->landing_page) {
+            $brand = EmailBrand::for($tenant);
+
+            return Inertia::render('public/CompanyHome', ['company' => ['name' => $brand['name'], 'color' => $brand['color'], 'logo' => $brand['logo']]]);
+        }
 
         $config = LandingConfig::forTenant($tenant->id);
 

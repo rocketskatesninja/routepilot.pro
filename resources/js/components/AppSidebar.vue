@@ -13,6 +13,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { useFeature } from '@/composables/useFeature';
 import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import { type NavCounts, type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -87,7 +88,7 @@ const navByRole: Record<string, NavSection[]> = {
             items: [
                 { title: 'Insights', href: '/insights', icon: BarChart3 },
                 { title: 'Company', href: '/company', icon: Building2 },
-                { title: 'Billing', href: '/billing', icon: CreditCard },
+                { title: 'Subscription', href: '/billing', icon: CreditCard },
                 { title: 'Landing page', href: '/company/landing', icon: Globe },
             ],
         },
@@ -118,9 +119,14 @@ const navByRole: Record<string, NavSection[]> = {
     ],
 };
 
-// Links that only exist for a company billing its customers here. (/billing is its own RoutePilot plan: it stays.)
+// Links to the parts of RoutePilot a company can switch off. (/billing is its own subscription: it stays.)
 const billing = useCustomerBilling();
-const shown = (item: NavItem): boolean => billing.value || !['/balances', '/balance'].includes(item.href);
+const website = useFeature('landing_page');
+const assistant = useFeature('ai_assistant');
+const shown = (item: NavItem): boolean =>
+    (billing.value || !['/balances', '/balance'].includes(item.href)) &&
+    (website.value || item.href !== '/company/landing') &&
+    (assistant.value || item.href !== '/assistant');
 // A company that doesn't count its stock just has a list of chemicals.
 const tracking = useInventoryTracking();
 const named = (item: NavItem): NavItem => (item.href === '/inventory' && !tracking.value ? { ...item, title: 'Chemicals' } : item);

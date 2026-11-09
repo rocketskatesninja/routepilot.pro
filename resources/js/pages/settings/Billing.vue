@@ -33,7 +33,7 @@ interface Billing {
 const page = usePage();
 const billing = computed(() => page.props.billing as Billing | null);
 const csrf = computed(() => (page.props.csrf as string | undefined) ?? '');
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing', href: '/billing' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Subscription', href: '/billing' }];
 
 const banner = computed(() => {
     const b = billing.value;
@@ -66,7 +66,7 @@ const toneClass = (tone: string) =>
 </script>
 
 <template>
-    <Head title="Billing" />
+    <Head title="Subscription" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4">
