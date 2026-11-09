@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Sparkline from '@/components/charts/Sparkline.vue';
+import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -90,6 +91,7 @@ const props = defineProps<{
 }>();
 
 const tracking = useInventoryTracking();
+const partOptions = computed(() => props.parts.map((c) => ({ id: c.id, name: partLabel(c) })));
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Reports', href: '/reports' }];
 
@@ -336,14 +338,14 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                             >{{ t.name }} {{ formatAmount(Number(t.amount), t.unit) }}</span
                                         >
                                         <template v-else>
-                                            <select
-                                                v-model="t.chemical_id"
-                                                aria-label="Chemical"
-                                                class="border-input bg-background h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
-                                            >
-                                                <option :value="null" disabled>Pick a chemical</option>
-                                                <option v-for="c in props.chemicals" :key="c.id" :value="c.id">{{ c.name }}</option>
-                                            </select>
+                                            <Combobox
+                                                class="min-w-0 flex-1"
+                                                label="Chemical"
+                                                placeholder="Search chemicals…"
+                                                :options="props.chemicals"
+                                                :model-value="t.chemical_id ?? ''"
+                                                @update:model-value="(id) => id !== '' && (t.chemical_id = Number(id))"
+                                            />
                                             <Input
                                                 v-model="t.amount"
                                                 type="number"
@@ -375,16 +377,14 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                 </p>
                                 <div class="space-y-1.5">
                                     <div v-for="(p, i) in form.parts" :key="i" class="flex items-center gap-2">
-                                        <select
-                                            v-model="p.part_id"
-                                            aria-label="Part"
-                                            class="border-input bg-background h-9 min-w-0 flex-1 rounded-md border px-2 text-sm"
-                                        >
-                                            <option :value="null" disabled>Pick a part</option>
-                                            <option v-for="c in props.parts" :key="c.id" :value="c.id">
-                                                {{ partLabel(c) }}
-                                            </option>
-                                        </select>
+                                        <Combobox
+                                            class="min-w-0 flex-1"
+                                            label="Part"
+                                            placeholder="Search parts by name or number…"
+                                            :options="partOptions"
+                                            :model-value="p.part_id ?? ''"
+                                            @update:model-value="(id) => id !== '' && (p.part_id = Number(id))"
+                                        />
                                         <Input
                                             v-model="p.amount"
                                             type="number"
