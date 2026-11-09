@@ -59,8 +59,9 @@ class CompleteVisit
             RouteStop::query()->whereKey($stop->id)->lockForUpdate()->first();
             $visit = $stop->serviceVisit()->first();
 
-            // Proof of presence only means something from the tech, at the pool, that day.
-            $gps = $office || $pastDay ? ['completed_lat' => null, 'completed_lng' => null] : [
+            // Proof of presence only means something from the tech, at the pool. A tech's own
+            // visit that syncs after midnight was still done there; an earlier day typed in wasn't.
+            $gps = $office || ($pastDay && $agent->role !== 'agent') ? ['completed_lat' => null, 'completed_lng' => null] : [
                 'completed_lat' => $data['completed_lat'] ?? null,
                 'completed_lng' => $data['completed_lng'] ?? null,
             ];

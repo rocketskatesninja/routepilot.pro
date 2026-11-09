@@ -128,3 +128,25 @@ test('staff see who typed a report in', function () {
     $this->actingAs($this->admin)->get('/reports?selected='.$visit->id)
         ->assertInertia(fn (Assert $page) => $page->where('selected.entered_by', 'Sarah Owner')->where('selected.agent', 'Marcus Bennett'));
 });
+
+test('a tech’s own visit that syncs after midnight keeps its GPS, on its own day', function () {
+    Mail::fake();
+
+    $this->actingAs($this->tech)->postJson("/api/field/visits/{$this->pastStop->id}/complete", ['completed_lat' => 31.1, 'completed_lng' => -81.4])->assertOk();
+
+    $visit = ServiceVisit::query()->where('route_stop_id', $this->pastStop->id)->sole();
+    expect((float) $visit->getAttribute('completed_lat'))->toBe(31.1)
+        ->and((float) $visit->getAttribute('completed_lng'))->toBe(-81.4)
+        ->and($visit->entered_by_id)->toBeNull()
+        ->and($visit->completed_at?->lt(now()->startOfDay()))->toBeTrue();
+});
+
+test('an admin entering their own earlier day still records no GPS', function () {
+    Mail::fake();
+    $route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->admin->id, 'scheduled_date' => '2026-10-26']);
+    $stop = RouteStop::factory()->for($route)->for($this->pool)->create(['service_subscription_id' => $this->plan->id, 'stop_order' => 2, 'status' => 'pending']);
+
+    $this->actingAs($this->admin)->postJson("/api/field/visits/{$stop->id}/complete", ['completed_lat' => 31.1, 'completed_lng' => -81.4])->assertOk();
+
+    expect(ServiceVisit::query()->where('route_stop_id', $stop->id)->sole()->getAttribute('completed_lat'))->toBeNull();
+});
