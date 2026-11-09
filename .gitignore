@@ -4,6 +4,8 @@
 /public/build
 /public/hot
 /public/storage
+/public/click-report
+/click-report
 /storage/*.key
 /storage/pail
 /vendor

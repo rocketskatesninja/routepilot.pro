@@ -11,6 +11,7 @@
         "screenshots": "node scripts/screenshots.mjs",
         "screenshots:tour": "node scripts/tour-screenshots.mjs",
         "test:js": "vitest run",
+        "test:click": "node scripts/click-test.mjs",
         "audit:js": "node scripts/check-npm-audit.mjs"
     },
     "devDependencies": {
