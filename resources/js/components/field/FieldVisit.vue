@@ -556,9 +556,7 @@ async function removeFromToday() {
                 <template v-if="chemicalList.length" #action>
                     <PaneAction :icon="Plus" @click="addTreatment">Add one</PaneAction>
                 </template>
-                <p v-if="!chemicalList.length" class="text-muted-foreground text-sm">
-                    No chemicals set up yet. The office adds them on the Inventory page.
-                </p>
+                <p v-if="!chemicalList.length" class="text-muted-foreground text-sm">No chemicals set up yet. Ask the office to add them.</p>
                 <p v-else-if="!treatments.length" class="text-muted-foreground text-sm">None yet. Add one from “What to add”, or pick your own.</p>
                 <!-- The search box has its own line on a phone: beside the amount it's too narrow to read a name. -->
                 <div v-for="(t, i) in treatments" :key="i" class="mb-3 flex flex-wrap items-center gap-2">

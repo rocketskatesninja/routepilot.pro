@@ -57,12 +57,21 @@ const WITHOUT_BILLING: Record<string, Description> = {
     'settings/Company': 'Your company’s details, logo and email.',
 };
 
+/** Likewise for one that doesn't count its stock. */
+const WITHOUT_INVENTORY: Record<string, Description> = {
+    'inventory/Index': 'Your chemicals: the list techs pick from on a visit.',
+};
+
 function pick(d: Description | undefined, role: string | null | undefined): string | null {
     if (d === undefined) return null;
     if (typeof d === 'string') return d;
     return (role ? d[role as Role] : undefined) ?? d.default ?? null;
 }
 
-export function pageDescription(component: string, role: string | null | undefined, billing = true): string | null {
-    return (billing ? null : pick(WITHOUT_BILLING[component], role)) ?? pick(PAGE_DESCRIPTIONS[component], role);
+export function pageDescription(component: string, role: string | null | undefined, billing = true, inventory = true): string | null {
+    return (
+        (inventory ? null : pick(WITHOUT_INVENTORY[component], role)) ??
+        (billing ? null : pick(WITHOUT_BILLING[component], role)) ??
+        pick(PAGE_DESCRIPTIONS[component], role)
+    );
 }

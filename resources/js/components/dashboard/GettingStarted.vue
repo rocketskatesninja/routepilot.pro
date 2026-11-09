@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CustomerBillingSwitch from '@/components/CustomerBillingSwitch.vue';
+import FeatureSwitch from '@/components/FeatureSwitch.vue';
 import { Card } from '@/components/ui/card';
 import { type Onboarding } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
@@ -52,12 +52,16 @@ const dismiss = () => {
             </div>
         </div>
 
-        <!-- A choice, not a task: either answer is fine, so it isn't a numbered step. -->
-        <div class="border-border/60 border-b px-4 py-3">
-            <CustomerBillingSwitch label="Do you bill customers through RoutePilot?">
+        <!-- Choices, not tasks: either answer is fine, so they aren't numbered steps. -->
+        <div class="border-border/60 space-y-3 border-b px-4 py-3">
+            <FeatureSwitch feature="customer_billing" label="Do you bill customers through RoutePilot?">
                 Leave this on to send invoices and take payments here. Turn it off if you bill another way. You can change it any time in Company
                 settings.
-            </CustomerBillingSwitch>
+            </FeatureSwitch>
+            <FeatureSwitch feature="inventory_tracking" label="Do you track chemical and parts stock in RoutePilot?">
+                Leave this on to count stock and log repair parts. Turn it off if you don’t keep count here; techs still record the chemicals they
+                add. You can change it any time in Company settings.
+            </FeatureSwitch>
         </div>
 
         <ul class="divide-border/60 divide-y">

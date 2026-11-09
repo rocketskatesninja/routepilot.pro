@@ -13,6 +13,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import { type NavCounts, type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import {
@@ -120,6 +121,9 @@ const navByRole: Record<string, NavSection[]> = {
 // Links that only exist for a company billing its customers here. (/billing is its own RoutePilot plan: it stays.)
 const billing = useCustomerBilling();
 const shown = (item: NavItem): boolean => billing.value || !['/balances', '/balance'].includes(item.href);
+// A company that doesn't count its stock just has a list of chemicals.
+const tracking = useInventoryTracking();
+const named = (item: NavItem): NavItem => (item.href === '/inventory' && !tracking.value ? { ...item, title: 'Chemicals' } : item);
 
 // Which links carry a number, and which count it is.
 const countFor: Record<string, keyof NavCounts> = { '/reports': 'reports', '/work-orders': 'work_orders', '/inbox': 'requests' };
@@ -129,7 +133,10 @@ const navSections = computed<NavSection[]>(() => {
     const counts = page.props.auth.counts ?? {};
     return (navByRole[role] ?? navByRole.customer).map((section) => ({
         ...section,
-        items: section.items.filter(shown).map((item) => (countFor[item.href] ? { ...item, badge: counts[countFor[item.href]] } : item)),
+        items: section.items
+            .filter(shown)
+            .map(named)
+            .map((item) => (countFor[item.href] ? { ...item, badge: counts[countFor[item.href]] } : item)),
     }));
 });
 

@@ -3,6 +3,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import { pageDescription } from '@/lib/pageDescriptions';
 import type { BreadcrumbItemType, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -20,7 +21,8 @@ const { open: openCommand } = useCommandPalette();
 const unread = computed(() => page.props.auth.unread ?? 0);
 // What this page is for, in the middle of the header on a desktop.
 const billing = useCustomerBilling();
-const description = computed(() => pageDescription(page.component, page.props.auth.role, billing.value));
+const tracking = useInventoryTracking();
+const description = computed(() => pageDescription(page.component, page.props.auth.role, billing.value, tracking.value));
 const isStaff = computed(() => ['agent', 'tenant_admin', 'super_admin'].includes(page.props.auth.role ?? ''));
 // Anyone who works routes — techs, and office admins who run one themselves — can open the field app.
 const canField = computed(() => ['agent', 'tenant_admin'].includes(page.props.auth.role ?? ''));

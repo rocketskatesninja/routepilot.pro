@@ -20,7 +20,8 @@ class UpdateCompanyFeaturesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_billing' => ['required', 'boolean'],
+            'customer_billing' => ['required_without:inventory_tracking', 'boolean'],
+            'inventory_tracking' => ['required_without:customer_billing', 'boolean'],
         ];
     }
 }

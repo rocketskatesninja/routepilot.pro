@@ -16,6 +16,7 @@ import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { targetsFor } from '@/lib/chemistry';
 import { partLabel } from '@/lib/field/chemicals';
@@ -87,6 +88,8 @@ const props = defineProps<{
     parts: { id: number; name: string; part_number: string | null }[]; // likewise, repair parts
     sort: { key: string; dir: string };
 }>();
+
+const tracking = useInventoryTracking();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Reports', href: '/reports' }];
 
@@ -180,7 +183,7 @@ function deleteReport() {
         ? ` The ${formatMoney(v.charge.amount)} it was billed is cancelled${v.charge.invoice ? ` and ${v.charge.invoice} updates` : ''}.`
         : '';
     const ok = confirm(
-        `Delete this report?${charge} Its readings, photos and notes are removed, chemicals it used go back into inventory, and the stop opens again. This can't be undone.`,
+        `Delete this report?${charge} Its readings, photos and notes are removed${tracking.value ? ', chemicals it used go back into inventory,' : ','} and the stop opens again. This can't be undone.`,
     );
     if (ok) router.delete(`/reports/${v.id}`, { preserveScroll: true });
 }
@@ -323,7 +326,8 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                     </Button>
                                 </div>
                                 <p v-if="visit.chemicals_billed" class="text-muted-foreground mb-1.5 text-xs">
-                                    These are already on the customer's bill. Changes here update stock, not the bill; adjust it on Balances.
+                                    These are already on the customer's bill. Changes here
+                                    {{ tracking ? 'update stock, not the bill' : 'don’t change the bill' }}; adjust it on Balances.
                                 </p>
                                 <div class="space-y-1.5">
                                     <div v-for="(t, i) in form.treatments" :key="i" class="flex items-center gap-2">
@@ -359,7 +363,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                     </div>
                                 </div>
                             </div>
-                            <div v-if="props.parts.length || form.parts.length">
+                            <div v-if="tracking && (props.parts.length || form.parts.length)">
                                 <div class="mb-1 flex items-center justify-between">
                                     <span class="text-muted-foreground text-xs font-medium">Parts used</span>
                                     <Button type="button" size="sm" variant="outline" @click="form.parts.push({ part_id: null, amount: 1 })">

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { agentLink, poolLink, reportLink } from '@/lib/links';
@@ -36,6 +37,7 @@ interface InventoryRow {
     stock: number;
     low: boolean;
     cost_per_unit: number | null;
+    sell_price: number | null;
 }
 
 interface InventoryDetail {
@@ -79,8 +81,11 @@ const props = defineProps<{
 }>();
 
 const billing = useCustomerBilling();
+// Without it the page is just the list of chemicals techs pick from: no counts, parts or history.
+const tracking = useInventoryTracking();
+const pageName = tracking.value ? 'Inventory' : 'Chemicals';
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Inventory', href: '/inventory' }];
+const breadcrumbs: BreadcrumbItem[] = [{ title: pageName, href: '/inventory' }];
 
 const { search } = useListSearch(props.filters.search);
 
@@ -206,7 +211,7 @@ function archiveChemical() {
     if (!props.selected) return;
     if (
         !confirm(
-            `Archive this ${word.value}? It leaves the list and visits stop taking it from stock. Its history is kept, and you can restore it from the Archived tab.`,
+            `Archive this ${word.value}? ${tracking.value ? 'It leaves the list and visits stop taking it from stock.' : 'It leaves the list techs pick from.'} Its history is kept, and you can restore it from the Archived tab.`,
         )
     )
         return;
@@ -226,20 +231,22 @@ function submitAdjust() {
 </script>
 
 <template>
-    <Head title="Inventory" />
+    <Head :title="pageName" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #filters>
-            <button
-                v-for="t in types"
-                :key="t.type"
-                class="shrink-0 rounded-md px-2.5 py-1 text-sm font-medium whitespace-nowrap transition-colors"
-                :class="props.filters.type === t.type ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
-                @click="showType(t.type)"
-            >
-                {{ t.label }} <span class="opacity-70">{{ t.count }}</span>
-            </button>
-            <span class="bg-border mx-1 h-5 w-px shrink-0" aria-hidden="true" />
+            <template v-if="tracking">
+                <button
+                    v-for="t in types"
+                    :key="t.type"
+                    class="shrink-0 rounded-md px-2.5 py-1 text-sm font-medium whitespace-nowrap transition-colors"
+                    :class="props.filters.type === t.type ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'"
+                    @click="showType(t.type)"
+                >
+                    {{ t.label }} <span class="opacity-70">{{ t.count }}</span>
+                </button>
+                <span class="bg-border mx-1 h-5 w-px shrink-0" aria-hidden="true" />
+            </template>
             <button
                 v-for="t in tabs"
                 :key="t.label"
@@ -273,16 +280,22 @@ function submitAdjust() {
                 <template #list>
                     <ListTable
                         :meta="props.items"
-                        :columns="4"
+                        :columns="tracking ? 4 : billing ? 3 : 2"
                         :row-key="(i) => i.id"
                         :selected-key="props.selected?.id ?? null"
                         @select="(i) => open(i.id)"
                     >
                         <template #head>
                             <SortableTh sort-key="name" :active="props.sort">{{ parts ? 'Part' : 'Chemical' }}</SortableTh>
-                            <SortableTh sort-key="stock" :active="props.sort">In stock</SortableTh>
-                            <th class="px-4 py-2 font-medium">Status</th>
-                            <SortableTh sort-key="cost" :active="props.sort" class="hidden md:table-cell">Cost</SortableTh>
+                            <template v-if="tracking">
+                                <SortableTh sort-key="stock" :active="props.sort">In stock</SortableTh>
+                                <th class="px-4 py-2 font-medium">Status</th>
+                                <SortableTh sort-key="cost" :active="props.sort" class="hidden md:table-cell">Cost</SortableTh>
+                            </template>
+                            <template v-else>
+                                <th class="px-4 py-2 font-medium">Unit</th>
+                                <th v-if="billing" class="px-4 py-2 font-medium">Sell price</th>
+                            </template>
                         </template>
                         <template #row="{ item }">
                             <td class="px-4 py-2.5">
@@ -294,14 +307,22 @@ function submitAdjust() {
                                     </span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground px-4 py-2.5">{{ formatAmount(item.stock, item.unit) }}</td>
-                            <td class="px-4 py-2.5">
-                                <Chip v-if="props.filters.archived" tone="muted">Archived</Chip>
-                                <Chip v-else :tone="item.low ? 'warn' : 'good'">{{ item.low ? 'Running low' : 'In stock' }}</Chip>
-                            </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
-                                {{ item.cost_per_unit !== null ? `${formatMoney(item.cost_per_unit)}/${unitFor(1, item.unit)}` : '—' }}
-                            </td>
+                            <template v-if="tracking">
+                                <td class="text-muted-foreground px-4 py-2.5">{{ formatAmount(item.stock, item.unit) }}</td>
+                                <td class="px-4 py-2.5">
+                                    <Chip v-if="props.filters.archived" tone="muted">Archived</Chip>
+                                    <Chip v-else :tone="item.low ? 'warn' : 'good'">{{ item.low ? 'Running low' : 'In stock' }}</Chip>
+                                </td>
+                                <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
+                                    {{ item.cost_per_unit !== null ? `${formatMoney(item.cost_per_unit)}/${unitFor(1, item.unit)}` : '—' }}
+                                </td>
+                            </template>
+                            <template v-else>
+                                <td class="text-muted-foreground px-4 py-2.5">{{ unitFor(2, item.unit) }}</td>
+                                <td v-if="billing" class="text-muted-foreground px-4 py-2.5">
+                                    {{ item.sell_price !== null ? `${formatMoney(item.sell_price)}/${unitFor(1, item.unit)}` : '—' }}
+                                </td>
+                            </template>
                         </template>
                         <template #empty>
                             <component :is="parts ? Wrench : FlaskConical" class="mx-auto mb-2 size-6 opacity-50" />
@@ -321,7 +342,11 @@ function submitAdjust() {
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
                         <PaneHeader
                             :title="`${formMode === 'create' ? 'New' : 'Edit'} ${form.kind === 'part' ? 'part' : 'chemical'}`"
-                            summary="Change how much you have with Update stock, so every change is logged."
+                            :summary="
+                                tracking
+                                    ? 'Change how much you have with Update stock, so every change is logged.'
+                                    : 'What techs pick from when they record a visit.'
+                            "
                         />
                         <ImageUpload
                             :model-value="form.photo"
@@ -361,7 +386,7 @@ function submitAdjust() {
                                 </select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div v-if="tracking" class="grid grid-cols-2 gap-3">
                             <div v-if="formMode === 'create'" class="grid gap-1.5">
                                 <Label for="cstock">Starting stock</Label
                                 ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" />
@@ -371,8 +396,8 @@ function submitAdjust() {
                                 ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5">
+                        <div v-if="tracking || billing" class="grid grid-cols-2 gap-3">
+                            <div v-if="tracking" class="grid gap-1.5">
                                 <!-- Both are per the chemical's own unit, named as it's picked above, so a price can't be read as per bag. -->
                                 <Label for="ccost">Cost per {{ unitFor(1, form.unit) }} ($)</Label
                                 ><Input id="ccost" v-model="form.cost_per_unit" type="number" min="0" step="0.01" />
@@ -382,7 +407,7 @@ function submitAdjust() {
                                 ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
                             </div>
                         </div>
-                        <div class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
+                        <div v-if="tracking" class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? `Add ${form.kind}` : 'Save' }}</Button>
@@ -392,7 +417,11 @@ function submitAdjust() {
                     <div v-else-if="chemical" class="space-y-6">
                         <PaneHeader
                             :title="chemical.name"
-                            :summary="`${chemical.part_number ? `Part #${chemical.part_number}. ` : ''}${formatAmount(chemical.stock, chemical.unit)} in stock.${chemical.reorder_threshold !== null ? ` Reorder at ${formatAmount(chemical.reorder_threshold, chemical.unit)}.` : ''}`"
+                            :summary="
+                                tracking
+                                    ? `${chemical.part_number ? `Part #${chemical.part_number}. ` : ''}${formatAmount(chemical.stock, chemical.unit)} in stock.${chemical.reorder_threshold !== null ? ` Reorder at ${formatAmount(chemical.reorder_threshold, chemical.unit)}.` : ''}`
+                                    : `Techs record it in ${unitFor(2, chemical.unit)}.`
+                            "
                         >
                             <template #media>
                                 <img
@@ -405,12 +434,18 @@ function submitAdjust() {
                             </template>
                             <template #badge>
                                 <Chip v-if="!chemical.is_active" tone="muted">Archived</Chip>
-                                <Chip v-else :tone="chemical.low ? 'warn' : 'good'">{{ chemical.low ? 'Running low' : 'In stock' }}</Chip>
+                                <Chip v-else-if="tracking" :tone="chemical.low ? 'warn' : 'good'">{{
+                                    chemical.low ? 'Running low' : 'In stock'
+                                }}</Chip>
                             </template>
                             <template v-if="props.canManage && chemical.is_active" #actions>
                                 <Button size="sm" variant="outline" @click="openEdit"><Pencil class="mr-1 size-3.5" /> Edit</Button>
                                 <Hint
-                                    text="Takes it off the list, and visits stop taking it from stock. Its history stays, and you can restore it from the Archived tab."
+                                    :text="
+                                        tracking
+                                            ? 'Takes it off the list, and visits stop taking it from stock. Its history stays, and you can restore it from the Archived tab.'
+                                            : 'Takes it off the list techs pick from. Its history stays, and you can restore it from the Archived tab.'
+                                    "
                                 >
                                     <Button size="sm" variant="outline" @click="archiveChemical"><Archive class="mr-1 size-3.5" /> Archive</Button>
                                 </Hint>
@@ -419,13 +454,15 @@ function submitAdjust() {
 
                         <div v-if="!chemical.is_active" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">
                             <p class="font-medium">Archived.</p>
-                            <p class="text-muted-foreground mt-0.5">It's off the list, and visits don't take it from stock. Its history is kept.</p>
+                            <p class="text-muted-foreground mt-0.5">
+                                It's off the list{{ tracking ? ", and visits don't take it from stock" : '' }}. Its history is kept.
+                            </p>
                             <Button v-if="props.canManage" size="sm" variant="outline" class="mt-3" @click="restoreChemical"
                                 ><RotateCcw class="mr-1 size-3.5" /> Restore</Button
                             >
                         </div>
 
-                        <PaneSection v-if="props.canManage && chemical.is_active" title="Update stock">
+                        <PaneSection v-if="tracking && props.canManage && chemical.is_active" title="Update stock">
                             <form class="flex flex-wrap items-center gap-2" @submit.prevent="submitAdjust">
                                 <select
                                     v-model="adjustForm.type"
@@ -450,26 +487,26 @@ function submitAdjust() {
                         </PaneSection>
 
                         <PaneSection
-                            v-if="chemical.cost_per_unit !== null || (billing && chemical.sell_price !== null) || chemical.supplier"
+                            v-if="(tracking && (chemical.cost_per_unit !== null || chemical.supplier)) || (billing && chemical.sell_price !== null)"
                             title="Prices"
                         >
                             <PaneFacts
                                 :facts="[
                                     {
                                         label: `Cost per ${unitFor(1, chemical.unit)}`,
-                                        value: chemical.cost_per_unit !== null ? formatMoney(chemical.cost_per_unit) : null,
+                                        value: tracking && chemical.cost_per_unit !== null ? formatMoney(chemical.cost_per_unit) : null,
                                     },
                                     {
                                         label: `Sell price per ${unitFor(1, chemical.unit)}`,
                                         value: billing && chemical.sell_price !== null ? formatMoney(chemical.sell_price) : null,
                                     },
-                                    { label: 'Value on the shelf', value: chemical.value !== null ? formatMoney(chemical.value) : null },
-                                    { label: 'Supplier', value: chemical.supplier },
+                                    { label: 'Value on the shelf', value: tracking && chemical.value !== null ? formatMoney(chemical.value) : null },
+                                    { label: 'Supplier', value: tracking ? chemical.supplier : null },
                                 ]"
                             />
                         </PaneSection>
 
-                        <PaneSection v-if="chemical.transactions.length" title="Recent changes">
+                        <PaneSection v-if="tracking && chemical.transactions.length" title="Recent changes">
                             <PaneList>
                                 <PaneItem v-for="t in chemical.transactions" :key="t.id">
                                     <template #title>

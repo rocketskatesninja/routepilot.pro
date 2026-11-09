@@ -84,6 +84,7 @@ class HandleInertiaRequests extends Middleware
                     'logo_path' => $t->logo_path,
                     'timezone' => $t->timezone,
                     'customer_billing' => $t->customer_billing,
+                    'inventory_tracking' => $t->inventory_tracking,
                 ] : null;
             },
             // Platform-billing state (trial/subscription) + metered usage for the

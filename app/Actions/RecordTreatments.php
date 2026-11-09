@@ -20,6 +20,9 @@ use App\Services\BillingService;
  * A row with no chemical picked but a name was typed: by a copy of the field
  * app from before the list (still in a phone's offline queue), or on an older
  * report. It's kept as typed, and isn't taken from stock or billed.
+ *
+ * A company that doesn't count its stock still records the chemicals: nothing
+ * moves on the shelf, and a visit's parts stay as they were (it has no parts list).
  */
 class RecordTreatments
 {
@@ -35,11 +38,15 @@ class RecordTreatments
      */
     public function handle(ServiceVisit $visit, array $rows, int $byUserId, ?array $parts = []): void
     {
+        $tracked = $visit->tenant?->inventory_tracking !== false;
+        $parts = $tracked ? $parts : null;
         $parts ??= $visit->treatments()->with('chemical:id,kind')->get()->filter(fn (ChemicalTreatment $t): bool => $t->isPart())
             ->map(fn (ChemicalTreatment $t): array => ['part_id' => $t->getAttribute('chemical_inventory_id'), 'amount' => $t->amount])->values()->all();
         $rows = [...$rows, ...array_map(fn (array $p): array => ['chemical_id' => $p['part_id'] ?? null, 'amount' => $p['amount'] ?? null], $parts)];
 
-        $this->reverseInventory->handle($visit);
+        if ($tracked) {
+            $this->reverseInventory->handle($visit);
+        }
         $visit->treatments()->delete();
 
         // Archived ones too: an older report can still be edited with what it used.
@@ -61,12 +68,14 @@ class RecordTreatments
                     'amount' => $whole,
                     'unit' => $chemical->unit,
                 ]);
-                $chemical->move('usage', -$whole, [
-                    'service_visit_id' => $visit->id,
-                    'agent_id' => $visit->getAttribute('agent_id'),
-                    'pool_id' => $visit->getAttribute('pool_id'),
-                    'created_by' => $byUserId,
-                ]);
+                if ($tracked) {
+                    $chemical->move('usage', -$whole, [
+                        'service_visit_id' => $visit->id,
+                        'agent_id' => $visit->getAttribute('agent_id'),
+                        'pool_id' => $visit->getAttribute('pool_id'),
+                        'created_by' => $byUserId,
+                    ]);
+                }
             } elseif (is_string($row['name'] ?? null) && trim($row['name']) !== '') {
                 $visit->treatments()->create([
                     'chemical_name' => trim($row['name']),

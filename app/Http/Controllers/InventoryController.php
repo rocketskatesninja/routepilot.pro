@@ -20,7 +20,8 @@ use Inertia\Response;
 
 /**
  * Back-office Inventory screen — central chemical stock as a list + detail
- * pane. The pane shows value, reorder status, and recent stock changes.
+ * pane. The pane shows value, reorder status, and recent stock changes. For a
+ * company that doesn't count its stock it's the plain list of its chemicals.
  */
 class InventoryController extends Controller
 {
@@ -37,6 +38,10 @@ class InventoryController extends Controller
             'chemicals' => 'chemical',
             default => $selectedItem->kind ?? 'chemical',
         };
+        if ($request->user()?->tenant?->inventory_tracking === false) {
+            $kind = 'chemical';
+            $selectedItem = $selectedItem?->isPart() === true ? null : $selectedItem;
+        }
 
         $query = ChemicalInventory::query()
             ->where('kind', $kind)
@@ -62,6 +67,7 @@ class InventoryController extends Controller
                 'stock' => (float) $i->current_stock,
                 'low' => $i->isLowStock(),
                 'cost_per_unit' => self::number($i->cost_per_unit),
+                'sell_price' => self::number($i->sell_price),
             ]);
 
         $inUse = ['chemical' => ChemicalInventory::query()->chemicals()->active()->count(), 'part' => ChemicalInventory::query()->parts()->active()->count()];
@@ -97,6 +103,8 @@ class InventoryController extends Controller
 
     public function adjust(AdjustStockRequest $request, ChemicalInventory $chemical, AdjustStock $action): RedirectResponse
     {
+        abort_if($request->user()?->tenant?->inventory_tracking === false, 404);
+
         $action->handle($chemical, $request->validated(), (int) $request->user()?->id);
 
         return back()->with('success', 'Stock updated.');

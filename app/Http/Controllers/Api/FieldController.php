@@ -84,6 +84,7 @@ class FieldController extends Controller
             'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop, $workOrders->get($stop->pool_id, collect()), $user))->values()->all(),
             // The chemicals and repair parts a tech picks from; `key` lets a water-test suggestion find its chemical.
             'inventory' => ChemicalInventory::query()->active()
+                ->when($user->tenant?->inventory_tracking === false, fn ($q) => $q->chemicals())
                 ->orderBy('chemical_name')
                 ->get(['id', 'chemical_name', 'kind', 'part_number', 'standard_key', 'unit'])
                 ->map(fn (ChemicalInventory $c): array => [

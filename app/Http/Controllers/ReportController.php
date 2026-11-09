@@ -152,7 +152,7 @@ class ReportController extends Controller
      */
     private function pickers(bool $needed): array
     {
-        [$parts, $chemicals] = ($needed ? ChemicalInventory::query()->active()->orderBy('chemical_name')->get(['id', 'chemical_name', 'kind', 'part_number', 'unit']) : collect())
+        [$parts, $chemicals] = ($needed ? ChemicalInventory::query()->active()->when(request()->user()?->tenant?->inventory_tracking === false, fn ($q) => $q->chemicals())->orderBy('chemical_name')->get(['id', 'chemical_name', 'kind', 'part_number', 'unit']) : collect())
             ->partition(fn (ChemicalInventory $c): bool => $c->isPart());
 
         return [

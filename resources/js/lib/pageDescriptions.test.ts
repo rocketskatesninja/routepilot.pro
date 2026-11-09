@@ -35,3 +35,14 @@ describe('pageDescription without customer billing', () => {
         expect(pageDescription('schedule/Index', 'tenant_admin', false)).toBe(pageDescription('schedule/Index', 'tenant_admin'));
     });
 });
+
+describe('pageDescription without inventory tracking', () => {
+    it('calls the page what it is', () => {
+        expect(pageDescription('inventory/Index', 'tenant_admin')).toContain('in stock');
+        expect(pageDescription('inventory/Index', 'tenant_admin', true, false)).not.toContain('stock');
+    });
+
+    it('leaves every other page alone', () => {
+        expect(pageDescription('schedule/Index', 'tenant_admin', true, false)).toBe(pageDescription('schedule/Index', 'tenant_admin'));
+    });
+});

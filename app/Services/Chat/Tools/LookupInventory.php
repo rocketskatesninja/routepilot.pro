@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Chat\Tools;
 
 use App\Models\ChemicalInventory;
+use App\Models\Tenant;
 use App\Services\Chat\AiTool;
 use App\Support\StandardChemicals;
 
@@ -39,6 +40,10 @@ class LookupInventory extends AiTool
 
     public function execute(array $params, int $tenantId): string
     {
+        if (Tenant::query()->find($tenantId)?->inventory_tracking === false) {
+            return 'This company doesn’t count its stock in RoutePilot, so there are no stock levels here.';
+        }
+
         $search = trim((string) ($params['chemical_name'] ?? ''));
 
         $items = ChemicalInventory::query()

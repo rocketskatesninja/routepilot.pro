@@ -65,14 +65,21 @@ class CompanySettingsController extends Controller
     public function updateFeatures(UpdateCompanyFeaturesRequest $request): RedirectResponse
     {
         $tenant = $this->tenant($request);
-        $on = $request->boolean('customer_billing');
+        $message = '';
 
-        if ($tenant->customer_billing !== $on) {
-            $tenant->forceFill(['customer_billing' => $on])->save();
-            $this->audit($request, $tenant, 'company.customer_billing', ['customer_billing' => $on]);
+        foreach (['customer_billing' => 'Customer billing', 'inventory_tracking' => 'Inventory tracking'] as $feature => $name) {
+            if (! $request->has($feature)) {
+                continue;
+            }
+            $on = $request->boolean($feature);
+            if ($tenant->getAttribute($feature) !== $on) {
+                $tenant->forceFill([$feature => $on])->save();
+                $this->audit($request, $tenant, 'company.'.$feature, [$feature => $on]);
+            }
+            $message = $name.' is '.($on ? 'on.' : 'off.');
         }
 
-        return back()->with('success', $on ? 'Customer billing is on.' : 'Customer billing is off.');
+        return back()->with('success', $message);
     }
 
     /** Start (or resume) Stripe Connect onboarding for the tenant. */

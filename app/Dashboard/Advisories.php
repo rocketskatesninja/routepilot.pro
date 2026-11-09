@@ -82,7 +82,9 @@ final class Advisories
                 self::link($leads, fn (Lead $l) => '/inbox?tab=leads&selected='.$l->id, '/inbox?tab=leads'));
         }
         $a->workOrders(WorkOrder::query()->open()->where('urgent', false)->whereDate('due_on', '<', $today), 'amber');
-        $low = ChemicalInventory::query()->active()->orderBy('chemical_name')->get()->filter(fn (ChemicalInventory $c): bool => $c->isLowStock())->values();
+        $low = $tenant?->inventory_tracking !== false
+            ? ChemicalInventory::query()->active()->orderBy('chemical_name')->get()->filter(fn (ChemicalInventory $c): bool => $c->isLowStock())->values()
+            : collect();
         if ($low->isNotEmpty()) {
             $a->add('amber', 'FlaskConical', self::names($low->pluck('chemical_name')).' '.self::verb($low, 'is', 'are').' running low.',
                 self::link($low, fn (ChemicalInventory $c) => '/inventory?selected='.$c->id, '/inventory'));

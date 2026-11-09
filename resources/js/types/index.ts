@@ -23,6 +23,7 @@ export interface Tenant {
     logo_path: string | null;
     timezone: string;
     customer_billing: boolean; // bills its customers through RoutePilot (not its own subscription)
+    inventory_tracking: boolean; // counts its stock and repair parts in RoutePilot
 }
 
 export interface BreadcrumbItem {

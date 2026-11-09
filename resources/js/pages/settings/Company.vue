@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CustomerBillingSwitch from '@/components/CustomerBillingSwitch.vue';
+import FeatureSwitch from '@/components/FeatureSwitch.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
@@ -355,7 +355,14 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                     <!-- Features: what the company uses RoutePilot for -->
                     <div v-show="activeTab === 'features'" class="flex flex-col space-y-6">
                         <HeadingSmall title="Features" description="Turn off the parts of RoutePilot your company doesn’t use." />
-                        <CustomerBillingSwitch />
+                        <FeatureSwitch feature="customer_billing" label="Bill customers through RoutePilot">
+                            Charges, balances, invoices and online payments. Turn this off if you bill another way: nothing is billed, reminded or
+                            charged, and what’s already on record stays there.
+                        </FeatureSwitch>
+                        <FeatureSwitch feature="inventory_tracking" label="Track inventory in RoutePilot">
+                            Stock counts, low-stock alerts and repair parts. Turn this off if you don’t keep count here: techs still record the
+                            chemicals they add, and your counts and parts stay on record in case you turn it back on.
+                        </FeatureSwitch>
                     </div>
 
                     <!-- Payments -->

@@ -52,6 +52,12 @@ class DashboardWidgets
     /** Widgets that only make sense for a company billing its customers here. */
     private const BILLING = ['billing_summary', 'account_balance', 'pay_bill'];
 
+    /** Widgets that only make sense for a company counting its stock here. */
+    private const INVENTORY = ['running_low'];
+
+    /** A default widget sharing its row with one that's switched off: [the other widget, its width alone]. */
+    private const FILLS_ROW_WITHOUT = ['next_visit' => ['pay_bill', 6], 'recent_visits' => ['running_low', 12]];
+
     /** Default starter grid per role, desktop (12-col grid). */
     private const DEFAULTS = [
         'tenant_admin' => [
@@ -142,11 +148,12 @@ class DashboardWidgets
      *
      * @return list<string>
      */
-    public static function keysForRole(string $role, bool $billing = true): array
+    public static function keysForRole(string $role, bool $billing = true, bool $inventory = true): array
     {
+        $off = [...($billing ? [] : self::BILLING), ...($inventory ? [] : self::INVENTORY)];
         $out = [];
         foreach (self::CATALOG as $key => $w) {
-            if (in_array($role, $w['roles'], true) && ($billing || ! in_array($key, self::BILLING, true))) {
+            if (in_array($role, $w['roles'], true) && ! in_array($key, $off, true)) {
                 $out[] = $key;
             }
         }
@@ -155,13 +162,13 @@ class DashboardWidgets
     }
 
     /**
-     * Widget keys this user may use: their role's, less the billing ones if their company doesn't bill here.
+     * Widget keys this user may use: their role's, less any for what their company has switched off.
      *
      * @return list<string>
      */
     public static function keysFor(User $user): array
     {
-        return self::keysForRole((string) $user->getAttribute('role'), $user->tenant?->customer_billing !== false);
+        return self::keysForRole((string) $user->getAttribute('role'), $user->tenant?->customer_billing !== false, $user->tenant?->inventory_tracking !== false);
     }
 
     /**
@@ -209,9 +216,8 @@ class DashboardWidgets
         $out = [];
         foreach ($source as $item) {
             if (in_array($item['i'], $allowed, true)) {
-                // The customer's next visit shares its row with their bill: alone, it takes the whole row.
-                $wide = $role === 'customer' && $mode === 'desktop' && $item['i'] === 'next_visit' && ! in_array('pay_bill', $allowed, true);
-                $out[] = $wide ? [...$item, 'w' => 6] : $item;
+                [$other, $width] = self::FILLS_ROW_WITHOUT[$item['i']] ?? [null, null];
+                $out[] = $mode === 'desktop' && $other !== null && ! in_array($other, $allowed, true) ? [...$item, 'w' => $width] : $item;
             }
         }
 
