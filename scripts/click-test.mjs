@@ -4,7 +4,8 @@
  *
  * For each browser and screen size it logs in as every kind of user, opens every
  * main screen, checks it, and clicks what's on it. Then two end-to-end checks make
- * real changes: the feature switches, and a tech finishing a visit. Everything runs
+ * real changes: the feature switches, a tech finishing a visit, adding a customer,
+ * billing and payment, and answering a customer's request. Everything runs
  * against a throwaway company (scripts/click-test-company.php), made for the run and
  * deleted after, so it can't touch the demo company or sign anyone out.
  *
@@ -130,11 +131,19 @@ async function session(browser, target, role, creds, { block }) {
     context.on('page', (p) => p !== page && p.close().catch(() => {}));
     watch(ctx);
     if (role !== 'public') {
-        await page.goto(`${BASE}/login`, { waitUntil: 'load', timeout: 30000 });
-        await page.fill('#email', creds.accounts[role]);
-        await page.fill('#password', creds.password);
-        await page.press('#password', 'Enter');
-        await page.waitForURL(/dashboard|field/, { timeout: 30000 });
+        for (let attempt = 1; ; attempt++) {
+            try {
+                await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.fill('#email', creds.accounts[role]);
+                await page.fill('#password', creds.password);
+                await page.press('#password', 'Enter');
+                await page.waitForURL(/dashboard|field/, { waitUntil: 'commit', timeout: 20000 });
+                break;
+            } catch (e) {
+                if (attempt === 2) throw e;
+            }
+        }
+        await settle(page);
     }
     if (block) {
         await context.route('**/*', (route) => {
@@ -182,7 +191,7 @@ async function open(ctx, path, { keep = true } = {}) {
     ctx.where = { path, action: 'load' };
     let response;
     try {
-        response = await ctx.page.goto(BASE + path, { waitUntil: 'load', timeout: 30000 });
+        response = await ctx.page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
     } catch (e) {
         addIssue(ctx, 'would-not-load', e.message);
         return false;
@@ -226,7 +235,7 @@ const CANDIDATES = () => {
 async function crawl(ctx, path, seen) {
     const { page } = ctx;
     const home = async () => {
-        await page.goto(BASE + path, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
+        await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
         await settle(page);
         return page.evaluate(CANDIDATES).catch(() => []);
     };
@@ -334,9 +343,9 @@ async function runFlows(creds) {
     const office = await session(browser, desktop, 'office', creds, { block: false });
     const p = office.page;
     const nav = async () => (await p.locator('[data-sidebar="sidebar"]').first().innerText()).replace(/\s+/g, ' ');
-    const status = async (path) => (await p.goto(BASE + path, { waitUntil: 'load' })).status();
+    const status = async (path) => (await p.goto(BASE + path, { waitUntil: 'domcontentloaded' })).status();
     const flip = async (id, on) => {
-        await p.goto(`${BASE}/company?tab=features`, { waitUntil: 'load' });
+        await p.goto(`${BASE}/company?tab=features`, { waitUntil: 'domcontentloaded' });
         await settle(p);
         const box = p.locator(`#${id}`);
         if (((await box.getAttribute('data-state')) === 'checked') !== on) {
@@ -362,41 +371,54 @@ async function runFlows(creds) {
         report.issues.length = before;
     });
 
+    // A step that fails halfway must not leave a switch off for the steps after it.
+    const allOn = async () => {
+        for (const [id] of [...SWITCHES, ['inventory_tracking']]) await flip(id, true).catch(() => {});
+    };
+    const restoring = async (fn) => {
+        try {
+            return await fn();
+        } finally {
+            await allOn();
+        }
+    };
+
     office.allow404 = true;
     for (const [id, name, path, link] of SWITCHES) {
-        await step(`${name} switch: off removes it, on brings it back`, async () => {
-            await flip(id, false);
-            must((await status(path)) === 404, `${path} still opens with it off`);
-            await p.goto(`${BASE}/dashboard`, { waitUntil: 'load' });
-            await settle(p);
-            must(!(await nav()).includes(link), `"${link}" still in the sidebar`);
-            await flip(id, true);
-            must((await status(path)) === 200, `${path} didn't come back`);
-        });
+        await step(`${name} switch: off removes it, on brings it back`, () =>
+            restoring(async () => {
+                await flip(id, false);
+                must((await status(path)) === 404, `${path} still opens with it off`);
+                await p.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded' });
+                await settle(p);
+                must(!(await nav()).includes(link), `"${link}" still in the sidebar`);
+                await flip(id, true);
+                must((await status(path)) === 200, `${path} didn't come back`);
+            }),
+        );
     }
-    await step('Inventory switch: off makes it a Chemicals list, on restores it', async () => {
+    await step('Inventory switch: off makes it a Chemicals list, on restores it', () => restoring(async () => {
         await flip('inventory_tracking', false);
-        await p.goto(`${BASE}/inventory`, { waitUntil: 'load' });
+        await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
         await settle(p);
         const off = await p.locator('body').innerText();
         must((await nav()).includes('Chemicals'), 'Sidebar doesn’t say Chemicals');
         must(!off.includes('In stock'), 'Still shows stock');
         await flip('inventory_tracking', true);
-        await p.goto(`${BASE}/inventory`, { waitUntil: 'load' });
+        await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
         await settle(p);
         must((await p.locator('body').innerText()).includes('In stock'), 'Stock didn’t come back');
-    });
-    await step('Website off: the public address shows a customer login', async () => {
+    }));
+    await step('Website off: the public address shows a customer login', () => restoring(async () => {
         await flip('landing_page', false);
         const visitor = await session(browser, desktop, 'public', creds, { block: true });
-        await visitor.page.goto(`${BASE}/t/${creds.slug}`, { waitUntil: 'load' });
+        await visitor.page.goto(`${BASE}/t/${creds.slug}`, { waitUntil: 'domcontentloaded' });
         await settle(visitor.page);
         must((await visitor.page.locator('body').innerText()).includes('Customer log in'), 'No login button');
         await visitor.context.close();
-        await flip('landing_page', true);
-    });
+    }));
 
-    await step('Everything still works with all four switched off', async () => {
+    await step('Everything still works with all four switched off', () => restoring(async () => {
         for (const [id] of [...SWITCHES, ['inventory_tracking']]) await flip(id, false);
         const gone = ['/balances', '/balance', '/company/landing', '/assistant'];
         const before = report.issues.length;
@@ -410,14 +432,13 @@ async function runFlows(creds) {
         for (const path of PAGES.office.filter((x) => !gone.includes(x))) await open(office, path, { keep: false });
         office.allow404 = true;
         must(report.issues.length === before, `${report.issues.length - before} problem(s), listed above`);
-        for (const [id] of [...SWITCHES, ['inventory_tracking']]) await flip(id, true);
         return `${PAGES.office.length + PAGES.tech.length + PAGES.customer.length - 5} screens`;
-    });
+    }));
 
     await step('A tech finishes a visit on a phone, and it reaches the office', async () => {
         const tech = await session(browser, phone, 'tech', creds, { block: false });
         const t = tech.page;
-        await t.goto(`${BASE}/field`, { waitUntil: 'load' });
+        await t.goto(`${BASE}/field`, { waitUntil: 'domcontentloaded' });
         await settle(t);
         await t.waitForTimeout(800);
         await t.locator(`li:has-text("${creds.nextPool}")`).first().tap();
@@ -440,14 +461,112 @@ async function runFlows(creds) {
         await t.waitForTimeout(7000);
         must(/4 of 6 done/.test(await t.locator('body').innerText()), 'The route doesn’t show the visit as done');
         await tech.context.close();
-        await p.goto(`${BASE}/reports`, { waitUntil: 'load' });
+        await p.goto(`${BASE}/reports`, { waitUntil: 'domcontentloaded' });
         await settle(p);
         must((await p.locator('body').innerText()).includes(creds.nextPool), 'The report isn’t in the office');
-        await p.goto(`${BASE}/inventory`, { waitUntil: 'load' });
+        await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
         await settle(p);
         must(/Muriatic Acid[\s\S]{0,60}15 gal/.test(await p.locator('body').innerText()), 'Stock didn’t go down by 2');
     });
 
+    office.allow404 = false;
+    office.where = { path: '/people', action: 'end-to-end' };
+    const body = async (page) => (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+    const goto = async (page, path) => {
+        await page.goto(BASE + path, { waitUntil: 'domcontentloaded' });
+        await settle(page);
+    };
+    const saved = async (page) => {
+        await page.waitForTimeout(500);
+        await settle(page);
+    };
+
+    await step('The office adds a customer and their first pool', async () => {
+        await goto(p, '/people');
+        await p.locator('button[title="New customer"]').click();
+        await p.fill('#first_name', 'Hana');
+        await p.fill('#last_name', 'Flowtest');
+        await p.fill('#email', 'hana@example.test');
+        await p.fill('#phone', '912-555-0142');
+        await p.fill('#pool_name', 'Flowtest Pool');
+        await p.fill('#pool_volume', '15000');
+        await p.getByRole('button', { name: 'Add customer' }).click();
+        await saved(p);
+        await goto(p, '/people?search=Flowtest');
+        must((await p.locator('tbody').innerText()).includes('Flowtest'), 'The new customer isn’t in the People list');
+        await goto(p, '/pools');
+        must((await body(p)).includes('Flowtest Pool'), 'The new pool isn’t in Pools');
+    });
+
+    const customer = await session(browser, desktop, 'customer', creds, { block: false });
+    const c = customer.page;
+
+    await step('A charge and a partial payment show up on the customer’s own bill', async () => {
+        await goto(p, '/balances');
+        await p.locator('button[title="Add charge"]').click();
+        await p.locator('#ch_cust').click();
+        await p.keyboard.type('Casey', { delay: 20 });
+        await p.waitForTimeout(200);
+        await p.locator('input[role="combobox"] ~ ul li').first().click();
+        await p.fill('#ch_desc', 'Filter replacement');
+        await p.fill('#ch_amt', '40');
+        await p.locator('form:has(#ch_amt) button[type="submit"]').click();
+        await saved(p);
+        await goto(p, '/balances');
+        await p.locator('tbody tr:has-text("Casey")').first().click();
+        await saved(p);
+        must((await body(p)).includes('$90.00'), 'The $50 visit plus the $40 charge isn’t $90 owed');
+        await p.locator('[aria-label="Amount paid"]').first().fill('15');
+        await p.locator('form:has([aria-label="Amount paid"]) button[type="submit"]').first().click();
+        await saved(p);
+        await goto(c, '/balance');
+        const bill = await body(c);
+        must(bill.includes('$75.00'), 'The customer’s bill doesn’t show $75 left to pay');
+        must(bill.includes('Filter replacement'), 'The charge isn’t itemized on the customer’s bill');
+    });
+
+    const askForFilterClean = async (message) => {
+        await goto(c, '/requests');
+        await c.locator('li:has-text("Filter Clean") button:has-text("Request")').first().click();
+        await c.waitForTimeout(400);
+        await c.fill('#message', message);
+        await c.locator('[role="dialog"] button[type="submit"]').click();
+        await saved(c);
+        await goto(c, '/requests');
+        must((await body(c)).includes(message), 'The request isn’t on the customer’s list');
+    };
+    const openRequest = async () => {
+        await goto(p, '/inbox');
+        await p.locator('tbody tr:has-text("Filter Clean")').first().click();
+        await saved(p);
+    };
+
+    await step('A customer’s request is declined, and they see why', async () => {
+        await askForFilterClean('Click test: please decline this one.');
+        await openRequest();
+        await p.getByRole('button', { name: 'Decline' }).click();
+        await p.fill('#dc_reply', 'Sorry, we are fully booked this week.');
+        await p.locator('form:has(#dc_reply) button[type="submit"]').click();
+        await saved(p);
+        await goto(c, '/requests');
+        must((await body(c)).includes('fully booked this week'), 'The customer can’t see the answer');
+    });
+
+    await step('A customer’s request is approved, and the service is set up', async () => {
+        await askForFilterClean('Click test: please approve this one.');
+        await openRequest();
+        await p.getByRole('button', { name: 'Approve & schedule' }).click();
+        await p.waitForTimeout(300);
+        await p.fill('#ap_reply', 'All set, see you soon.');
+        await p.locator('form:has(#ap_reply) button[type="submit"]').click();
+        await saved(p);
+        await goto(c, '/requests');
+        const seen = await body(c);
+        must(seen.includes('All set, see you soon'), 'The customer can’t see the answer');
+        must(/Set up: \S/.test(seen), 'The customer isn’t told the service was set up');
+    });
+
+    await customer.context.close();
     await office.context.close();
     await browser.close();
 }
