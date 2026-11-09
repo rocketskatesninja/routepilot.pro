@@ -51,8 +51,8 @@ beforeEach(function () {
 
     $this->tenant = Tenant::factory()->create(['name' => 'Glynn Pool Care']);
     app()->instance('tenant_id', $this->tenant->id);
-    $this->admin = User::factory()->for($this->tenant)->create();
-    $customer = Customer::factory()->for($this->tenant)->create(['first_name' => 'Jane', 'email' => 'jane@example.com']);
+    $this->admin = User::factory()->for($this->tenant)->create(['email' => 'owner@glynnpool.co']);
+    $customer = Customer::factory()->for($this->tenant)->create(['first_name' => 'Jane', 'email' => 'jane@homeowner.co']);
     $pool = Pool::factory()->for($this->tenant)->for($customer)->create();
     $this->visit = ServiceVisit::factory()->for($this->tenant)->for($pool)->create([
         'agent_id' => User::factory()->agent()->for($this->tenant)->create()->id,
@@ -92,8 +92,8 @@ function smtpRow(array $config, bool $on): Integration
 test('with its server on, the company’s emails go out through it, from its own address', function () {
     companyServer('company_ok');
 
-    Mail::to('jane@example.com')->send(new VisitRecapMail($this->visit, 0.0, null));
-    Mail::to('jane@example.com')->queue(new ServiceReminderMail('Jane', 'Glynn Pool Care', 'Backyard pool', 'Tuesday', null, $this->tenant)); // the worker's path
+    Mail::to('jane@homeowner.co')->send(new VisitRecapMail($this->visit, 0.0, null));
+    Mail::to('jane@homeowner.co')->queue(new ServiceReminderMail('Jane', 'Glynn Pool Care', 'Backyard pool', 'Tuesday', null, $this->tenant)); // the worker's path
 
     $sent = sentThrough('company_ok');
     expect($sent)->toHaveCount(2)
@@ -103,7 +103,7 @@ test('with its server on, the company’s emails go out through it, from its own
 });
 
 test('without a server of its own, nothing changes: RoutePilot sends it', function () {
-    Mail::to('jane@example.com')->send(new VisitRecapMail($this->visit, 0.0, null));
+    Mail::to('jane@homeowner.co')->send(new VisitRecapMail($this->visit, 0.0, null));
 
     expect(sentThrough('array'))->toHaveCount(1)
         ->and(sentThrough('array')[0]->getFrom()[0]->getAddress())->toBe('contact@routepilot.test');
@@ -113,8 +113,8 @@ test('if its server can’t send, RoutePilot sends it instead, replies still rea
     Notification::fake();
     companyServer('company_down');
 
-    Mail::to('jane@example.com')->send(new VisitRecapMail($this->visit, 0.0, null));
-    Mail::to('jane@example.com')->send(new VisitRecapMail($this->visit, 0.0, null));
+    Mail::to('jane@homeowner.co')->send(new VisitRecapMail($this->visit, 0.0, null));
+    Mail::to('jane@homeowner.co')->send(new VisitRecapMail($this->visit, 0.0, null));
 
     $sent = sentThrough('array');
     expect($sent)->toHaveCount(2)
@@ -129,7 +129,7 @@ test('if its server can’t send, RoutePilot sends it instead, replies still rea
 
     // Back up: the next email through it clears the failure.
     companyServer('company_ok');
-    Mail::to('jane@example.com')->send(new VisitRecapMail($this->visit, 0.0, null));
+    Mail::to('jane@homeowner.co')->send(new VisitRecapMail($this->visit, 0.0, null));
     expect(TenantSetting::getFor($this->tenant->id, TenantMailer::FAILURE_KEY))->toBeNull();
 });
 
@@ -137,7 +137,7 @@ test('a fallback keeps the company’s own reply-to address when it has one', fu
     companyServer('company_down');
     $this->tenant->update(['reply_to_email' => 'replies@glynn.test']);
 
-    Mail::to('jane@example.com')->send(new VisitRecapMail($this->visit->fresh(), 0.0, null));
+    Mail::to('jane@homeowner.co')->send(new VisitRecapMail($this->visit->fresh(), 0.0, null));
 
     expect(array_map(fn ($a) => $a->getAddress(), sentThrough('array')[0]->getReplyTo()))->toBe(['replies@glynn.test']);
 });
