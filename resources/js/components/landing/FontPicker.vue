@@ -20,7 +20,7 @@ const currentStack = computed(() => TITLE_FONTS.find((f) => f.name === props.mod
                 type="button"
                 class="border-input bg-background hover:bg-accent focus-visible:ring-ring flex h-9 w-full items-center justify-between gap-2 rounded-md border px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2"
             >
-                <span class="truncate" :style="{ fontFamily: currentStack }">{{ modelValue }}</span>
+                <span class="truncate" :style="{ fontFamily: currentStack }" :title="modelValue">{{ modelValue }}</span>
                 <ChevronDown class="text-muted-foreground size-4 shrink-0" />
             </button>
         </DropdownMenuTrigger>

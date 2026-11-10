@@ -77,7 +77,10 @@ const dayCount = computed(() => Math.max(3, Math.min(5, Math.floor(availW.value 
                 <component :is="weatherDescribe(forecast.current.code).icon" class="text-primary size-10 shrink-0" />
                 <div class="min-w-0">
                     <div class="text-2xl font-semibold tabular-nums">{{ forecast.current.temp }}°</div>
-                    <div class="text-muted-foreground truncate text-xs">
+                    <div
+                        class="text-muted-foreground truncate text-xs"
+                        :title="`${weatherDescribe(forecast.current.code).label} · feels ${forecast.current.feels}°`"
+                    >
                         {{ weatherDescribe(forecast.current.code).label }} · feels {{ forecast.current.feels }}°
                     </div>
                 </div>

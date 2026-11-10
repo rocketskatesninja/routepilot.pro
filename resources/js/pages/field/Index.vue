@@ -280,7 +280,7 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                         <AppLogoIcon v-else class="size-5" />
                     </Link>
                     <div class="min-w-0 flex-1 pl-1">
-                        <h1 class="truncate text-lg leading-tight font-semibold tracking-tight">{{ title }}</h1>
+                        <h1 class="truncate text-lg leading-tight font-semibold tracking-tight" :title="title">{{ title }}</h1>
                         <p class="text-muted-foreground truncate text-xs">{{ bundle?.date ? formatDay(bundle.date) : 'Today' }}</p>
                     </div>
                     <!-- Connection, as an icon only: the colour and icon say it; the label is for screen readers and a long-press. -->
@@ -451,15 +451,24 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                                 <template v-else>{{ i + 1 }}</template>
                             </span>
                             <div class="min-w-0 flex-1">
-                                <p class="truncate text-[17px] font-semibold" :class="isDone(stop) ? '' : 'text-foreground'">
+                                <p
+                                    class="truncate text-[17px] font-semibold"
+                                    :class="isDone(stop) ? '' : 'text-foreground'"
+                                    :title="stop.pool?.name ?? 'Pool'"
+                                >
                                     {{ stop.pool?.name ?? 'Pool' }}
                                 </p>
                                 <div class="flex items-baseline gap-2 text-sm">
-                                    <span class="text-muted-foreground min-w-0 flex-1 truncate">{{ stop.pool?.customer }}</span>
+                                    <span class="text-muted-foreground min-w-0 flex-1 truncate" :title="stop.pool?.customer">{{
+                                        stop.pool?.customer
+                                    }}</span>
                                     <span v-if="isDone(stop)" class="shrink-0 font-medium">Done</span>
                                     <span v-else-if="stop.status === 'skipped'" class="text-muted-foreground shrink-0 font-medium">Skipped</span>
                                 </div>
-                                <p class="text-muted-foreground truncate text-sm">
+                                <p
+                                    class="text-muted-foreground truncate text-sm"
+                                    :title="stop.extra ? 'Extra visit' : (stop.service.name ?? 'Service visit')"
+                                >
                                     {{ stop.extra ? 'Extra visit' : (stop.service.name ?? 'Service visit') }}
                                 </p>
                             </div>

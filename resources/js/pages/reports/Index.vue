@@ -334,7 +334,10 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                 <div class="space-y-1.5">
                                     <div v-for="(t, i) in form.treatments" :key="i" class="flex items-center gap-2">
                                         <!-- typed before the chemical list: kept as written -->
-                                        <span v-if="t.chemical_id === null && t.name" class="flex-1 truncate text-sm"
+                                        <span
+                                            v-if="t.chemical_id === null && t.name"
+                                            class="flex-1 truncate text-sm"
+                                            :title="`${t.name} ${formatAmount(Number(t.amount), t.unit)}`"
                                             >{{ t.name }} {{ formatAmount(Number(t.amount), t.unit) }}</span
                                         >
                                         <template v-else>

@@ -29,10 +29,10 @@ const line = (o: Order): string => [o.pool, o.customer, props.data.mine ? null :
                 <Link :href="workOrderLink(o.id)" class="hover:bg-muted/50 flex items-start justify-between gap-3 rounded-md px-1 py-2.5">
                     <div class="min-w-0">
                         <p class="flex items-center gap-2">
-                            <span class="truncate font-medium">{{ o.title }}</span>
+                            <span class="truncate font-medium" :title="o.title">{{ o.title }}</span>
                             <Chip v-if="o.urgent" tone="bad">Urgent</Chip>
                         </p>
-                        <p v-if="line(o)" class="text-muted-foreground truncate text-xs">{{ line(o) }}</p>
+                        <p v-if="line(o)" class="text-muted-foreground truncate text-xs" :title="line(o)">{{ line(o) }}</p>
                     </div>
                     <Chip v-if="o.overdue" tone="warn">Overdue</Chip>
                     <span v-else-if="o.due_on" class="text-muted-foreground shrink-0 text-xs">Due {{ formatDay(o.due_on) }}</span>

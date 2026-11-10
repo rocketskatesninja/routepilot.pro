@@ -377,8 +377,8 @@ async function removeFromToday() {
                 <ChevronLeft class="size-6 lg:hidden" /><X class="hidden size-6 lg:block" />
             </button>
             <div class="min-w-0 flex-1">
-                <h1 class="truncate text-xl leading-tight font-semibold tracking-tight">{{ pool?.name }}</h1>
-                <p class="text-muted-foreground truncate text-sm">{{ pool?.customer }}</p>
+                <h1 class="truncate text-xl leading-tight font-semibold tracking-tight" :title="pool?.name">{{ pool?.name }}</h1>
+                <p class="text-muted-foreground truncate text-sm" :title="pool?.customer">{{ pool?.customer }}</p>
             </div>
             <!-- Offline, as an icon only (same badge as the route screen's). -->
             <span

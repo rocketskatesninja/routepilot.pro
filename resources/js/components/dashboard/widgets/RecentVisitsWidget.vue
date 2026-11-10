@@ -32,7 +32,7 @@ defineProps<{ data: Activity[] }>();
                 >
                     <span class="flex min-w-0 items-center gap-2">
                         <EntityAvatar :src="a.pool_photo" type="pool" :name="a.pool" size="sm" />
-                        <span class="min-w-0 truncate">
+                        <span class="min-w-0 truncate" :title="[a.pool, a.agent].filter(Boolean).join(' · ')">
                             <span :class="a.status === 'skipped' || a.status === 'missed' ? 'text-muted-foreground line-through' : ''">{{
                                 a.pool
                             }}</span>

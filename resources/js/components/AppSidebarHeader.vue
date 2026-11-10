@@ -136,7 +136,7 @@ const portalLogo = computed(() =>
                     </BreadcrumbList>
                 </Breadcrumb>
             </template>
-            <span v-if="meta" class="text-muted-foreground truncate text-sm md:text-[1.3125rem]">{{ meta }}</span>
+            <span v-if="meta" class="text-muted-foreground truncate text-sm md:text-[1.3125rem]" :title="meta">{{ meta }}</span>
         </div>
 
         <!-- Field app, search + notifications: the top row's right on a phone, after

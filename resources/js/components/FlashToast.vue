@@ -73,8 +73,8 @@ function open(t: Toast) {
                         <Bell class="size-4 text-sky-500" />
                     </span>
                     <button type="button" class="min-w-0 flex-1 cursor-pointer text-left" @click="open(t)">
-                        <span class="block truncate font-medium">{{ t.title }}</span>
-                        <span v-if="t.message" class="text-muted-foreground line-clamp-2">{{ t.message }}</span>
+                        <span class="block truncate font-medium" :title="t.title">{{ t.title }}</span>
+                        <span v-if="t.message" class="text-muted-foreground line-clamp-2" :title="t.message">{{ t.message }}</span>
                     </button>
                     <button
                         type="button"

@@ -243,7 +243,9 @@ const emptyText = computed(() =>
                                 <!-- Opening marks it read on the way (NotificationController::open). -->
                                 <Link :href="`/notifications/${n.id}/open`" class="min-w-0 flex-1 text-left">
                                     <div class="flex items-center gap-2">
-                                        <span class="truncate font-medium" :class="{ 'text-muted-foreground': n.read }">{{ n.title }}</span>
+                                        <span class="truncate font-medium" :class="{ 'text-muted-foreground': n.read }" :title="n.title">{{
+                                            n.title
+                                        }}</span>
                                         <span v-if="!n.read" class="size-2 shrink-0 rounded-full bg-sky-500" aria-label="Unread" />
                                     </div>
                                     <p class="text-muted-foreground">{{ n.body }}</p>

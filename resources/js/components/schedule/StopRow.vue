@@ -35,14 +35,14 @@ defineEmits<{ skip: []; unskip: [] }>();
         <!-- No photo on a phone: the room goes to the names. -->
         <span class="hidden shrink-0 sm:block"><EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" /></span>
         <div class="min-w-0 flex-1">
-            <p class="truncate">{{ stop.pool }}</p>
+            <p class="truncate" :title="stop.pool">{{ stop.pool }}</p>
             <div class="flex items-center gap-2 text-xs">
-                <span class="text-muted-foreground min-w-0 flex-1 truncate">{{ stop.customer }}</span>
+                <span class="text-muted-foreground min-w-0 flex-1 truncate" :title="stop.customer">{{ stop.customer }}</span>
                 <span class="shrink-0 rounded-full px-2 py-0.5 font-medium whitespace-nowrap capitalize" :class="visitStatusClass(stop.status)">{{
                     stop.status.replace('_', ' ')
                 }}</span>
             </div>
-            <p v-if="stop.service" class="text-muted-foreground truncate text-xs">{{ stop.service }}</p>
+            <p v-if="stop.service" class="text-muted-foreground truncate text-xs" :title="stop.service">{{ stop.service }}</p>
         </div>
         <button
             v-if="skippable && stop.status === 'pending'"

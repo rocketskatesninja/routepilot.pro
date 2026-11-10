@@ -20,7 +20,7 @@ const money = formatMoney;
         </div>
         <ul v-if="data.top.length" class="divide-border flex-1 divide-y overflow-y-auto text-sm">
             <li v-for="(r, i) in data.top" :key="i" class="flex items-center justify-between gap-2 px-1 py-2">
-                <span class="truncate">{{ r.customer }}</span>
+                <span class="truncate" :title="r.customer">{{ r.customer }}</span>
                 <span class="shrink-0 font-medium tabular-nums">{{ money(r.balance) }}</span>
             </li>
         </ul>

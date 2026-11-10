@@ -221,8 +221,8 @@ onBeforeUnmount(() => {
                             @click="select(it)"
                         >
                             <span class="flex min-w-0 items-baseline gap-2">
-                                <span class="truncate text-sm font-medium">{{ it.label }}</span>
-                                <span v-if="it.sublabel" class="text-muted-foreground truncate text-xs">{{ it.sublabel }}</span>
+                                <span class="truncate text-sm font-medium" :title="it.label">{{ it.label }}</span>
+                                <span v-if="it.sublabel" class="text-muted-foreground truncate text-xs" :title="it.sublabel">{{ it.sublabel }}</span>
                             </span>
                             <span class="text-muted-foreground shrink-0 text-[10px] tracking-wide uppercase">{{ it.type }}</span>
                         </button>

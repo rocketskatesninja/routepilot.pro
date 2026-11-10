@@ -153,6 +153,12 @@ function noise(ctx, text) {
         report.known++;
         return true;
     }
+    // The test's own page loads cut off whatever the last page was still fetching. Firefox
+    // reports that as "Request aborted" (Chrome stays quiet), so it's noted, not counted.
+    if (Date.now() - ctx.leftAt < 2000 && /Request aborted/i.test(text)) {
+        report.notes.push(`${ctx.target.id}/${ctx.role}: a request was cut off when the test left a page (before ${ctx.where.path}).`);
+        return true;
+    }
     return ctx.block && Date.now() - ctx.lastBlock < 3000 && BLOCK_NOISE.test(text);
 }
 
@@ -183,7 +189,7 @@ async function session(browser, target, role, creds, { block }) {
     const context = await browser.newContext(options);
     if (target.big) await context.addInitScript(() => localStorage.setItem('big-view', '1'));
     const page = await context.newPage();
-    const ctx = { target, role, context, page, block, lastBlock: 0, where: { path: '/login', action: 'login' } };
+    const ctx = { target, role, context, page, block, lastBlock: 0, leftAt: 0, where: { path: '/login', action: 'login' } };
     context.on('page', (p) => p !== page && p.close().catch(() => {}));
     watch(ctx);
     if (role !== 'public') {
@@ -220,7 +226,7 @@ const PAGE_CHECK = () => {
         .map((i) => new URL(i.currentSrc).pathname);
     const bad = text.match(/\bundefined\b|\bNaN\b|\[object Object\]|\{\{|\}\}/)?.[0] ?? null;
     // Text cut off by its own box: a one-line ellipsis or clip, or a line clamp, that doesn't
-    // fit. Long names and addresses are meant to be cut in narrow lists; labels aren't.
+    // fit. Long names and addresses may be cut in narrow lists (with the full text on hover); labels mustn't.
     const clipped = [];
     // Whether any words in a clipping box really run past its sides. Pictures and glows
     // overflow a box by design (a hero's slow zoom grows past it by the second); words
@@ -229,7 +235,7 @@ const PAGE_CHECK = () => {
         const edge = box.getBoundingClientRect();
         const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
         const range = document.createRange();
-        for (let node; (node = walker.nextNode()); ) {
+        for (let node; (node = walker.nextNode());) {
             if (!node.textContent.trim()) continue;
             let inner = false;
             for (let up = node.parentElement; up && up !== box && !inner; up = up.parentElement) inner = getComputedStyle(up).overflowX !== 'visible';
@@ -256,6 +262,10 @@ const PAGE_CHECK = () => {
         const words = (el.innerText ?? '').replace(/\s+/g, ' ').trim();
         // 1px boxes are screen-reader labels (sr-only): hidden from view on purpose.
         if ((!wide && !tall) || !words || el.clientWidth <= 2) continue;
+        // Shortened on purpose: data (names, emails, messages) carries its full wording as hover
+        // text. Labels don't, so a cut-off label still counts.
+        const hover = (el.closest('[title]')?.getAttribute('title') ?? '').replace(/\s+/g, ' ').trim();
+        if (hover && hover.toLowerCase() === words.toLowerCase()) continue;
         // A box that clips (not scrolls) counts only when it cuts words, not decoration. A box
         // that scrolls by even a few px gives the page a sideways wobble, so that always counts.
         if (wide && !tall && !oneLine && ['hidden', 'clip'].includes(s.overflowX) && !wordsPastEdge(el)) continue;
@@ -285,10 +295,19 @@ function examine(ctx, c) {
     for (const cut of c.clipped ?? []) addIssue(ctx, 'cut-off-text', `"${cut.text}" ${cut.detail}`, cut.text);
 }
 
+// Settled: the network has gone quiet and no spinner is showing (the field app fetches its day
+// after the page itself has loaded). A spinner that never stops still fails the blank-page check.
 const settle = (page) =>
     page
         .waitForLoadState('networkidle', { timeout: 5000 })
         .catch(() => {})
+        .then(() =>
+            page
+                .waitForFunction(() => ![...document.querySelectorAll('.animate-spin')].some((s) => s.checkVisibility?.() ?? true), null, {
+                    timeout: 5000,
+                })
+                .catch(() => {}),
+        )
         .then(() => page.waitForTimeout(300));
 const fileFor = (ctx, path, suffix = '') =>
     `${ctx.target.id}__${ctx.role}__${(path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home') + suffix}.jpg`;
@@ -303,6 +322,7 @@ async function open(ctx, path, { keep = true } = {}) {
     ctx.where = { path, action: 'load' };
     let response;
     try {
+        ctx.leftAt = Date.now();
         response = await ctx.page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
     } catch (e) {
         addIssue(ctx, 'would-not-load', e.message);
@@ -351,6 +371,7 @@ const CANDIDATES = () => {
 async function crawl(ctx, path, seen) {
     const { page } = ctx;
     const home = async () => {
+        ctx.leftAt = Date.now();
         await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
         await settle(page);
         return page.evaluate(CANDIDATES).catch(() => []);

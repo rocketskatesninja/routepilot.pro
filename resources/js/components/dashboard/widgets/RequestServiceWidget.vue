@@ -21,8 +21,10 @@ defineProps<{ data: { services: Offered[]; total: number } }>();
             <li v-for="s in data.services" :key="s.id">
                 <Link :href="`/requests?service=${s.id}`" class="hover:bg-muted/50 flex items-center justify-between gap-3 rounded-md px-1 py-2.5">
                     <div class="min-w-0">
-                        <p class="truncate font-medium">{{ s.name }}</p>
-                        <p class="text-muted-foreground truncate text-xs">{{ price(s.price) }} · {{ soldAs(s.frequency) }}</p>
+                        <p class="truncate font-medium" :title="s.name">{{ s.name }}</p>
+                        <p class="text-muted-foreground truncate text-xs" :title="`${price(s.price)} · ${soldAs(s.frequency)}`">
+                            {{ price(s.price) }} · {{ soldAs(s.frequency) }}
+                        </p>
                     </div>
                     <span class="text-primary flex shrink-0 items-center text-xs font-medium">Request <ChevronRight class="size-3.5" /></span>
                 </Link>

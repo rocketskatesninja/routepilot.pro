@@ -22,7 +22,7 @@ const external = (href: string) => /^(mailto:|tel:|https?:)/.test(href);
     <dl v-if="shown.length" class="border-border divide-border divide-y rounded-2xl border">
         <div v-for="f in shown" :key="f.label" class="flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm">
             <dt class="text-muted-foreground shrink-0">{{ f.label }}</dt>
-            <dd class="min-w-0 truncate text-right font-medium">
+            <dd class="min-w-0 truncate text-right font-medium" :title="String(f.value)">
                 <a
                     v-if="f.href && external(f.href)"
                     :href="f.href"

@@ -26,7 +26,7 @@ const healthClass = (color: string): string =>
             <li v-for="p in data.pools" :key="p.id" class="flex items-center justify-between gap-2 px-1 py-2">
                 <span class="flex min-w-0 items-center gap-2">
                     <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="sm" />
-                    <span class="truncate">{{ p.name }}</span>
+                    <span class="truncate" :title="p.name">{{ p.name }}</span>
                 </span>
                 <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClass(p.health.color)">{{
                     p.health.label

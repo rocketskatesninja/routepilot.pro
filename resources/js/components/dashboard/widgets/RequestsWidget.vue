@@ -38,7 +38,7 @@ const badge = (type: string) =>
                         ><EntityAvatar :src="r.customer_photo" type="person" :name="r.customer" size="sm" shape="circle" />{{ r.customer }}</span
                     >
                     <span v-if="r.pool" class="text-muted-foreground"> · {{ r.pool }}</span>
-                    <p v-if="r.message" class="text-muted-foreground mt-0.5 truncate">{{ r.message }}</p>
+                    <p v-if="r.message" class="text-muted-foreground mt-0.5 truncate" :title="r.message">{{ r.message }}</p>
                     <p class="text-muted-foreground text-xs">
                         {{ formatDay(r.on) }}<span v-if="r.preferred_date"> · wants {{ formatDay(r.preferred_date) }}</span>
                     </p>

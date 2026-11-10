@@ -144,11 +144,16 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                         <li v-for="lead in props.leads" :key="lead.id" class="flex items-start justify-between gap-3 px-4 py-3">
                             <div class="min-w-0">
                                 <Link :href="inboxLeadLink(lead.id)" class="font-medium underline-offset-2 hover:underline">{{ lead.name }}</Link>
-                                <div class="text-muted-foreground truncate text-xs">
+                                <div
+                                    class="text-muted-foreground truncate text-xs"
+                                    :title="[lead.email ?? lead.phone ?? '—', lead.source, lead.on].filter(Boolean).join(' · ')"
+                                >
                                     {{ lead.email ?? lead.phone ?? '—' }} · <span class="capitalize">{{ lead.source }}</span>
                                     <span v-if="lead.on"> · {{ lead.on }}</span>
                                 </div>
-                                <div v-if="lead.message" class="text-muted-foreground mt-0.5 truncate text-xs">{{ lead.message }}</div>
+                                <div v-if="lead.message" class="text-muted-foreground mt-0.5 truncate text-xs" :title="lead.message">
+                                    {{ lead.message }}
+                                </div>
                             </div>
                             <select
                                 :value="lead.status"

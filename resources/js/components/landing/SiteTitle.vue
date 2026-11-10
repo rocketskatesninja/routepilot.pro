@@ -17,7 +17,7 @@ const box = computed(() => ({ width: `${mark.value.px}px`, height: `${mark.value
     <span class="flex min-w-0 items-center gap-2.5">
         <img v-if="mark.logo" :src="mark.logo" alt="" class="shrink-0 rounded object-contain" :style="box" />
         <component :is="mark.icon" v-else-if="mark.icon" class="text-primary shrink-0" :style="box" aria-hidden="true" />
-        <span v-if="mark.text" class="truncate" :style="titleStyle(title)">{{ text }}</span>
+        <span v-if="mark.text" class="truncate" :style="titleStyle(title)" :title="text">{{ text }}</span>
         <span v-else class="sr-only">{{ text }}</span>
     </span>
 </template>

@@ -25,7 +25,7 @@ defineProps<{ data: Stop[] }>();
             <li v-for="s in data" :key="s.id" class="flex items-center justify-between gap-2 px-1 py-2">
                 <span class="flex min-w-0 items-center gap-2">
                     <EntityAvatar :src="s.pool_photo" type="pool" :name="s.pool" size="sm" />
-                    <span class="truncate"
+                    <span class="truncate" :title="[s.pool, s.agent].filter(Boolean).join(' · ')"
                         >{{ s.pool }} <span class="text-muted-foreground">· {{ s.agent }}</span></span
                     >
                 </span>

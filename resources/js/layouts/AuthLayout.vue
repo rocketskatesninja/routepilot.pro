@@ -128,12 +128,13 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
 
             <!-- Each line stays on one line: full size when the panel is wide enough, scaled to its
                  width below that. Each cqi number is 100 ÷ the line's width in em (22.6em and 47.4em
-                 in Inter), less 3% to spare; change the words and they need re-measuring. -->
+                 in Inter), less 3% to spare; change the words and they need re-measuring. The small
+                 line stops shrinking at 0.75rem and wraps onto two even lines instead. -->
             <div class="@container relative z-10">
                 <p class="text-[length:min(1.5rem,4.3cqi)] leading-snug font-bold whitespace-nowrap">
                     Route smarter. Dose precisely. Get paid faster.
                 </p>
-                <p class="mt-3 text-[length:min(0.875rem,2.05cqi)] whitespace-nowrap text-sky-100/70">
+                <p class="mt-3 text-[length:clamp(0.75rem,2.05cqi,0.875rem)] text-balance text-sky-100/70">
                     The complete pool service platform — routing, chemistry, billing, and a customer portal in one place.
                 </p>
             </div>

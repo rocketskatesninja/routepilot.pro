@@ -816,7 +816,7 @@ function destroyAgent() {
                             <p class="text-muted-foreground mb-1 text-xs font-medium">Recent</p>
                             <ul class="text-muted-foreground space-y-0.5 text-xs">
                                 <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
-                                    <span class="truncate">{{ c.subject }}</span
+                                    <span class="truncate" :title="c.subject">{{ c.subject }}</span
                                     ><span class="shrink-0"
                                         >{{ c.sent }}/{{ c.recipients }} sent<span v-if="c.failed" class="text-red-500">
                                             · {{ c.failed }} failed</span

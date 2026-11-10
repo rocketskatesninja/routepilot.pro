@@ -124,8 +124,8 @@ const line = (p: PoolHit): string => [p.customer, p.address].filter(Boolean).joi
                         @click="add(p)"
                     >
                         <div class="min-w-0 flex-1">
-                            <p class="truncate text-[17px] font-semibold">{{ p.name }}</p>
-                            <p v-if="line(p)" class="text-muted-foreground truncate text-sm">{{ line(p) }}</p>
+                            <p class="truncate text-[17px] font-semibold" :title="p.name">{{ p.name }}</p>
+                            <p v-if="line(p)" class="text-muted-foreground truncate text-sm" :title="line(p)">{{ line(p) }}</p>
                         </div>
                         <LoaderCircle v-if="adding === p.id" class="text-muted-foreground size-5 shrink-0 animate-spin" />
                         <Plus v-else class="text-primary size-5 shrink-0" />

@@ -23,8 +23,10 @@ defineProps<{ data: { items: Chemical[]; tracked: number } }>();
             <li v-for="c in data.items" :key="c.id">
                 <Link :href="chemicalLink(c.id)" class="hover:bg-muted/50 flex items-center justify-between gap-3 rounded-md px-1 py-2.5">
                     <div class="min-w-0">
-                        <p class="truncate font-medium">{{ c.name }}</p>
-                        <p class="text-muted-foreground truncate text-xs">Reorder at {{ formatAmount(c.reorder_at, c.unit) }}</p>
+                        <p class="truncate font-medium" :title="c.name">{{ c.name }}</p>
+                        <p class="text-muted-foreground truncate text-xs" :title="`Reorder at ${formatAmount(c.reorder_at, c.unit)}`">
+                            Reorder at {{ formatAmount(c.reorder_at, c.unit) }}
+                        </p>
                     </div>
                     <Chip v-if="c.stock <= 0" tone="bad">Out</Chip>
                     <span v-else class="shrink-0 text-sm font-medium text-amber-700 dark:text-amber-400"

@@ -20,7 +20,7 @@ const stop = () => router.post('/impersonate/stop');
 
 <template>
     <div v-if="impersonating" class="flex items-center justify-between gap-3 bg-amber-500 px-4 py-1.5 text-sm font-medium text-amber-950">
-        <span class="min-w-0 truncate">You're signed in as {{ who }} (impersonating).</span>
+        <span class="min-w-0 truncate" :title="`You're signed in as ${who} (impersonating).`">You're signed in as {{ who }} (impersonating).</span>
         <button class="shrink-0 rounded bg-amber-950/15 px-2 py-0.5 transition-colors hover:bg-amber-950/25" @click="stop">Stop impersonating</button>
     </div>
 </template>

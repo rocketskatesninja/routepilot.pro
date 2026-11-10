@@ -28,7 +28,7 @@ const statusClass = (s: string | null): string =>
                             <img v-if="t.logo" :src="t.logo" alt="" class="size-full object-cover" />
                             <span v-else>{{ t.name.charAt(0) }}</span>
                         </span>
-                        <span class="truncate">{{ t.name }}</span>
+                        <span class="truncate" :title="t.name">{{ t.name }}</span>
                     </span>
                     <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(t.status)">{{
                         t.status

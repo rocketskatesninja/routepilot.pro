@@ -369,7 +369,7 @@ const prettyDate = computed(() =>
                     <div class="border-border flex items-center justify-between border-b px-4 py-2" :style="{ backgroundColor: route.color + '14' }">
                         <div class="flex min-w-0 items-center gap-2">
                             <EntityAvatar :src="route.agent_photo" type="person" :name="route.agent" size="sm" shape="circle" />
-                            <span class="truncate font-medium">{{ route.agent }}</span>
+                            <span class="truncate font-medium" :title="route.agent">{{ route.agent }}</span>
                             <label
                                 v-if="props.canManage"
                                 class="relative inline-flex size-4 shrink-0 cursor-pointer items-center justify-center"

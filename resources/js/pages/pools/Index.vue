@@ -983,7 +983,9 @@ function submitTargets() {
                                     <template #icon><IconTile :icon="Wrench" size="sm" /></template>
                                     <ul v-if="item.service_log.length" class="text-muted-foreground mt-1 space-y-0.5">
                                         <li v-for="log in item.service_log" :key="log.id" class="flex justify-between gap-3">
-                                            <span class="min-w-0 truncate">{{ formatDay(log.on) }}: {{ log.description }}</span>
+                                            <span class="min-w-0 truncate" :title="`${formatDay(log.on)}: ${log.description}`"
+                                                >{{ formatDay(log.on) }}: {{ log.description }}</span
+                                            >
                                             <span v-if="log.cost > 0" class="shrink-0 tabular-nums">{{ formatMoney(log.cost) }}</span>
                                         </li>
                                     </ul>
