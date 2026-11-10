@@ -290,7 +290,7 @@ function submitAdjust() {
                             <template v-if="tracking">
                                 <SortableTh sort-key="stock" :active="props.sort">In stock</SortableTh>
                                 <th class="px-4 py-2 font-medium">Status</th>
-                                <SortableTh sort-key="cost" :active="props.sort" class="hidden md:table-cell">Cost</SortableTh>
+                                <SortableTh sort-key="cost" :active="props.sort" class="hidden @lg:table-cell">Cost</SortableTh>
                             </template>
                             <template v-else>
                                 <th class="px-4 py-2 font-medium">Unit</th>
@@ -313,7 +313,7 @@ function submitAdjust() {
                                     <Chip v-if="props.filters.archived" tone="muted">Archived</Chip>
                                     <Chip v-else :tone="item.low ? 'warn' : 'good'">{{ item.low ? 'Running low' : 'In stock' }}</Chip>
                                 </td>
-                                <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
+                                <td class="text-muted-foreground hidden px-4 py-2.5 @lg:table-cell">
                                     {{ item.cost_per_unit !== null ? `${formatMoney(item.cost_per_unit)}/${unitFor(1, item.unit)}` : '—' }}
                                 </td>
                             </template>

@@ -25,7 +25,8 @@ class AssistantService
         $role = $user->role;
         ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'user', 'content' => $message]);
 
-        $system = $this->systemPrompt($user, $role);
+        // Emoji draw differently on every computer, and the app doesn't use them.
+        $system = $this->systemPrompt($user, $role)."\n\nDon't use emoji.";
         $history = $this->history($session);
         [$provider, $key, $model] = app(AiCredentials::class)->for((int) $user->tenant_id);
         $tools = $role === 'tenant_admin' ? ToolRegistry::schemas() : [];
@@ -34,7 +35,7 @@ class AssistantService
         $result = $this->claude->chat($provider, $key, $model, $history, $system, 4096, $tools, $role === 'agent');
 
         $reply = match (true) {
-            $result === null => "⚠️ The AI assistant isn't configured yet. Add a platform or per-tenant API key.",
+            $result === null => "The AI assistant isn't configured yet. Add a platform or per-tenant API key.",
             is_array($result) => $this->runTool($result['tool_call'], $session, $history, $system, (int) $user->tenant_id, $provider, $key, $model),
             default => $result,
         };
@@ -54,11 +55,11 @@ class AssistantService
     {
         $tool = ToolRegistry::find($toolCall['name']);
         if ($tool === null) {
-            return "⚠️ Unknown tool: {$toolCall['name']}";
+            return "Unknown tool: {$toolCall['name']}";
         }
 
         $toolResult = $tool->execute($toolCall['arguments'], $tenantId);
-        ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => "🔧 *{$tool->name()}*: {$toolResult}"]);
+        ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => "*{$tool->name()}*: {$toolResult}"]);
 
         $history[] = ['role' => 'assistant', 'content' => "Tool result: {$toolResult}"];
         $history[] = ['role' => 'user', 'content' => 'Summarize what you just did in a friendly way.'];

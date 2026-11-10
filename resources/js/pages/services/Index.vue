@@ -239,18 +239,18 @@ function destroyService() {
                     >
                         <template #head>
                             <SortableTh sort-key="name" :active="props.sort">Service</SortableTh>
-                            <th class="hidden px-4 py-2 text-left font-medium md:table-cell">How it's sold</th>
+                            <th class="hidden px-4 py-2 text-left font-medium @md:table-cell">How it's sold</th>
                             <SortableTh sort-key="price" :active="props.sort">Price</SortableTh>
-                            <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Plans</SortableTh>
+                            <SortableTh sort-key="pools" :active="props.sort" class="hidden @lg:table-cell">Plans</SortableTh>
                             <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
                         </template>
                         <template #row="{ item: service }">
                             <td class="px-4 py-2.5 font-medium">{{ service.name }}</td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ soldAs(service.frequency) }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @md:table-cell">{{ soldAs(service.frequency) }}</td>
                             <td class="text-muted-foreground px-4 py-2.5 whitespace-nowrap">
                                 {{ money(service.price) }} <span class="text-xs">{{ service.frequency === 'one_time' ? '/ job' : '/ visit' }}</span>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ service.pools }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @lg:table-cell">{{ service.pools }}</td>
                             <td class="px-4 py-2.5">
                                 <span
                                     class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
@@ -295,7 +295,7 @@ function destroyService() {
 
                         <!-- first: these two decide whether customers see it at all (the preview below follows them) -->
                         <section class="space-y-2">
-                            <h3 class="font-display text-base font-semibold tracking-tight">1. Availability</h3>
+                            <h3 class="text-base font-semibold tracking-tight">1. Availability</h3>
                             <label class="flex items-start gap-2"
                                 ><input v-model="form.is_active" type="checkbox" class="mt-0.5" />
                                 <span>Active <span class="text-muted-foreground">— can be added to pools</span></span></label
@@ -319,7 +319,7 @@ function destroyService() {
                         </div>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">2. What it is</h3>
+                            <h3 class="text-base font-semibold tracking-tight">2. What it is</h3>
                             <div class="grid gap-1.5">
                                 <Label for="name">Name</Label>
                                 <Input id="name" v-model="form.name" placeholder="e.g. Weekly pool service" />
@@ -341,7 +341,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">3. How it's sold</h3>
+                            <h3 class="text-base font-semibold tracking-tight">3. How it's sold</h3>
                             <div class="flex gap-2">
                                 <Button type="button" size="sm" :variant="recurring ? 'default' : 'outline'" @click="recurring = true"
                                     >Recurring</Button
@@ -364,7 +364,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">4. Price</h3>
+                            <h3 class="text-base font-semibold tracking-tight">4. Price</h3>
                             <div class="flex items-center gap-2">
                                 <span class="text-muted-foreground">$</span>
                                 <Input id="price" v-model="form.price" type="number" step="0.01" min="0" class="w-28" />
@@ -375,7 +375,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">5. What the tech does</h3>
+                            <h3 class="text-base font-semibold tracking-tight">5. What the tech does</h3>
                             <div>
                                 <span class="text-muted-foreground text-xs">Sections on the tech's visit screen</span>
                                 <div class="mt-1 grid grid-cols-2 gap-1">
@@ -404,7 +404,7 @@ function destroyService() {
                         </section>
 
                         <section class="space-y-3">
-                            <h3 class="font-display text-base font-semibold tracking-tight">6. Time on site</h3>
+                            <h3 class="text-base font-semibold tracking-tight">6. Time on site</h3>
                             <div class="flex items-center gap-2">
                                 <Input id="duration" v-model="form.estimated_duration_minutes" type="number" min="5" max="600" class="w-24" />
                                 <span class="text-muted-foreground">minutes</span>

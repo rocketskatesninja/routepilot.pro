@@ -65,10 +65,10 @@ class TenantContext
         $overdue = Tenant::query()->find($tenantId)?->customer_billing !== false ? Invoice::query()->where('status', 'overdue')->count() : 0;
         $warnings = '';
         if ($unassigned > 0) {
-            $warnings .= "⚠ {$unassigned} active subscriptions have no assigned agent\n";
+            $warnings .= "- {$unassigned} active subscriptions have no assigned agent\n";
         }
         if ($overdue > 0) {
-            $warnings .= "⚠ {$overdue} invoices are past their due date and unpaid\n";
+            $warnings .= "- {$overdue} invoices are past their due date and unpaid\n";
         }
 
         $data = "BUSINESS DATA for {$tenantName} (as of ".Tenant::localToday()->format('l, F j, Y')."):\n\n"

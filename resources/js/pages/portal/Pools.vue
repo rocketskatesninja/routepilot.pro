@@ -97,7 +97,7 @@ const band = (p: PoolInfo, key: 'free_chlorine' | 'ph'): [number, number] => {
 
                 <!-- how the water looked -->
                 <section :aria-labelledby="`water-${p.id}`">
-                    <h2 :id="`water-${p.id}`" class="font-display text-xl font-semibold tracking-tight">
+                    <h2 :id="`water-${p.id}`" class="text-xl font-semibold tracking-tight">
                         {{ p.tested_on ? `Your water on ${formatDay(p.tested_on)}` : 'Your water' }}
                     </h2>
                     <template v-if="p.reading">
@@ -127,7 +127,7 @@ const band = (p: PoolInfo, key: 'free_chlorine' | 'ph'): [number, number] => {
                 <!-- the service it gets -->
                 <section :aria-labelledby="`service-${p.id}`">
                     <div class="flex flex-wrap items-baseline justify-between gap-2">
-                        <h2 :id="`service-${p.id}`" class="font-display text-xl font-semibold tracking-tight">Service on this pool</h2>
+                        <h2 :id="`service-${p.id}`" class="text-xl font-semibold tracking-tight">Service on this pool</h2>
                         <Link :href="`/requests?pool=${p.id}`" class="text-primary text-sm font-medium underline-offset-4 hover:underline"
                             >Manage</Link
                         >

@@ -329,7 +329,7 @@ const submitConvert = () => {
                         <template #head>
                             <th class="px-4 py-2 text-left font-medium">Request</th>
                             <th class="px-4 py-2 text-left font-medium">Customer</th>
-                            <th class="hidden px-4 py-2 text-left font-medium md:table-cell">Received</th>
+                            <th class="hidden px-4 py-2 text-left font-medium @md:table-cell">Received</th>
                             <th class="px-4 py-2 text-left font-medium">Status</th>
                         </template>
                         <template #row="{ item: r }">
@@ -337,7 +337,7 @@ const submitConvert = () => {
                             <td class="text-muted-foreground px-4 py-2.5">
                                 {{ r.customer }}<span v-if="r.pool" class="hidden lg:inline"> · {{ r.pool }}</span>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap md:table-cell">{{ formatDay(r.on) }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap @md:table-cell">{{ formatDay(r.on) }}</td>
                             <td class="px-4 py-2.5">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(r.status)">{{
                                     r.status_label
@@ -367,7 +367,7 @@ const submitConvert = () => {
                         <template #head>
                             <th class="px-4 py-2 text-left font-medium">Name</th>
                             <th class="px-4 py-2 text-left font-medium">Asked for</th>
-                            <th class="hidden px-4 py-2 text-left font-medium md:table-cell">Received</th>
+                            <th class="hidden px-4 py-2 text-left font-medium @md:table-cell">Received</th>
                             <th class="px-4 py-2 text-left font-medium">Status</th>
                         </template>
                         <template #row="{ item: l }">
@@ -376,7 +376,7 @@ const submitConvert = () => {
                                 <div class="text-muted-foreground text-xs">{{ l.contact ?? '—' }}</div>
                             </td>
                             <td class="text-muted-foreground px-4 py-2.5">{{ l.service ?? sources[l.source] ?? l.source }}</td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap md:table-cell">{{ formatDay(l.on) }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap @md:table-cell">{{ formatDay(l.on) }}</td>
                             <td class="px-4 py-2.5">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(l.status)">{{
                                     leadStatuses[l.status] ?? l.status
@@ -536,7 +536,7 @@ const submitConvert = () => {
                             >
                                 <template v-if="request.for_service">
                                     <div>
-                                        <h3 class="font-display text-lg font-semibold tracking-tight">Schedule it</h3>
+                                        <h3 class="text-lg font-semibold tracking-tight">Schedule it</h3>
                                         <p class="text-muted-foreground">
                                             Creates the plan on {{ request.pool }}. Its visits go on the route as soon as you save.
                                         </p>
@@ -668,7 +668,7 @@ const submitConvert = () => {
                             <!-- convert: the add-customer form, pre-filled -->
                             <form v-else class="border-border space-y-4 rounded-2xl border p-4 text-sm" @submit.prevent="submitConvert">
                                 <div>
-                                    <h3 class="font-display text-lg font-semibold tracking-tight">New customer</h3>
+                                    <h3 class="text-lg font-semibold tracking-tight">New customer</h3>
                                     <p class="text-muted-foreground">
                                         Adds them and their pool.<template v-if="lead.service">
                                             Their pick — {{ lead.service.name }} — then waits in Customer requests for you to approve &amp;

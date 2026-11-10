@@ -12,7 +12,7 @@ interface Msg {
 
 const open = ref(false);
 const messages = ref<Msg[]>([
-    { role: 'assistant', content: `Hi! 👋 I'm the ${props.company} assistant — ask me anything, or tell me what your pool needs.` },
+    { role: 'assistant', content: `Hi! I'm the ${props.company} assistant — ask me anything, or tell me what your pool needs.` },
 ]);
 const input = ref('');
 const sending = ref(false);

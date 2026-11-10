@@ -6,7 +6,7 @@ defineProps<{ title: string }>();
 <template>
     <section>
         <div class="mb-2.5 flex items-baseline justify-between gap-3">
-            <h3 class="font-display text-lg font-semibold tracking-tight">{{ title }}</h3>
+            <h3 class="text-lg font-semibold tracking-tight">{{ title }}</h3>
             <slot name="action" />
         </div>
         <slot />

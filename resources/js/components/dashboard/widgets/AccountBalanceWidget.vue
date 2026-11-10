@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { formatMoney } from '@/lib/utils';
 import { Link } from '@inertiajs/vue3';
+import { ArrowRight } from 'lucide-vue-next';
 
 defineProps<{ data: { balance: number; autopay: boolean } }>();
 </script>
@@ -13,6 +14,8 @@ defineProps<{ data: { balance: number; autopay: boolean } }>();
         <div class="text-muted-foreground text-xs">
             {{ data.balance > 0 ? 'balance due' : 'all paid up' }}<span v-if="data.autopay"> · autopay on</span>
         </div>
-        <Link v-if="data.balance > 0" href="/balance" class="text-primary mt-1 text-xs font-medium hover:underline">Pay now →</Link>
+        <Link v-if="data.balance > 0" href="/balance" class="text-primary mt-1 inline-flex items-center gap-1 text-xs font-medium hover:underline"
+            >Pay now <ArrowRight class="size-3"
+        /></Link>
     </div>
 </template>

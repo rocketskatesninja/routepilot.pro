@@ -230,8 +230,8 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                         <template #head>
                             <SortableTh sort-key="date" :active="props.sort">Date</SortableTh>
                             <SortableTh sort-key="pool" :active="props.sort">Pool</SortableTh>
-                            <SortableTh sort-key="customer" :active="props.sort" class="hidden md:table-cell">Customer</SortableTh>
-                            <SortableTh sort-key="agent" :active="props.sort" class="hidden lg:table-cell">Agent</SortableTh>
+                            <SortableTh sort-key="customer" :active="props.sort" class="hidden @sm:table-cell">Customer</SortableTh>
+                            <SortableTh sort-key="agent" :active="props.sort" class="hidden @lg:table-cell">Agent</SortableTh>
                         </template>
                         <template #row="{ item }">
                             <td class="px-4 py-2.5 font-medium">{{ item.completed_on }}</td>
@@ -241,13 +241,13 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                     <span>{{ item.pool }}</span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @sm:table-cell">
                                 <div class="flex items-center gap-2">
                                     <EntityAvatar :src="item.customer_photo" type="person" :name="item.customer" size="sm" shape="circle" />
                                     <span>{{ item.customer }}</span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @lg:table-cell">
                                 <div class="flex items-center gap-2">
                                     <EntityAvatar :src="item.agent_photo" type="person" :name="item.agent" size="sm" shape="circle" />
                                     <span>{{ item.agent }}</span>

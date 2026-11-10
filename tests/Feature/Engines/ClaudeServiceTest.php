@@ -97,7 +97,7 @@ test('an Anthropic API error returns a friendly message', function () {
 
     $result = $this->ai->chat('anthropic', 'sk-key', 'claude-haiku-4-5', [['role' => 'user', 'content' => 'hi']]);
 
-    expect($result)->toBe('⚠️ AI Error: overloaded');
+    expect($result)->toBe('AI error: overloaded');
 });
 
 test('parses an OpenAI text reply and prepends the system prompt', function () {

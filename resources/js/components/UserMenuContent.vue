@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import UserInfo from '@/components/UserInfo.vue';
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useBigView } from '@/composables/useBigView';
 import { logOut } from '@/lib/push';
 import type { User } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LogOut, Settings } from 'lucide-vue-next';
+import { LogOut, Settings, ZoomIn, ZoomOut } from 'lucide-vue-next';
 
 interface Props {
     user: User;
 }
 
 defineProps<Props>();
+
+const { on: bigView, toggle: toggleBigView } = useBigView();
 </script>
 
 <template>
@@ -26,6 +29,10 @@ defineProps<Props>();
                 <Settings class="mr-2 h-4 w-4" />
                 Settings
             </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem @select="toggleBigView">
+            <component :is="bigView ? ZoomOut : ZoomIn" class="mr-2 h-4 w-4" />
+            {{ bigView ? 'Normal view' : 'Big view' }}
         </DropdownMenuItem>
     </DropdownMenuGroup>
     <DropdownMenuSeparator />

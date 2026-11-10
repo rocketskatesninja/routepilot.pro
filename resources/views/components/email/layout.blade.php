@@ -6,7 +6,6 @@
 --}}
 @props(['brand', 'title', 'greeting' => null, 'sub' => null, 'preheader' => null])
 @php
-    $display = "'Bricolage Grotesque', 'Segoe UI', Helvetica, Arial, sans-serif";
     $body = "Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 @endphp
 <!DOCTYPE html>
@@ -17,7 +16,7 @@
     <meta name="color-scheme" content="light only">
     <meta name="supported-color-schemes" content="light only">
     <title>{{ $title }}</title>
-    <link href="https://fonts.bunny.net/css?family=bricolage-grotesque:600|inter:400,500,600" rel="stylesheet">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600" rel="stylesheet">
     <style>
         @media (max-width: 600px) {
             .rp-pad { padding-left: 20px !important; padding-right: 20px !important; }
@@ -46,7 +45,7 @@
                                         </td>
                                     @endif
                                     <td style="vertical-align: middle;">
-                                        <span style="font-family: {{ $display }}; font-size: 18px; font-weight: 600; color: #0f172a;">{{ $brand['name'] }}</span>
+                                        <span style="font-family: {{ $body }}; font-size: 18px; font-weight: 600; color: #0f172a;">{{ $brand['name'] }}</span>
                                     </td>
                                 </tr>
                             </table>
@@ -61,7 +60,7 @@
                                         @if ($greeting)
                                             <p style="margin: 0 0 8px; font-size: 13px; color: #475569;">{{ $greeting }}</p>
                                         @endif
-                                        <h1 class="rp-title" style="margin: 0; font-family: {{ $display }}; font-size: 26px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; color: #0f172a;">{{ $title }}</h1>
+                                        <h1 class="rp-title" style="margin: 0; font-family: {{ $body }}; font-size: 26px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; color: #0f172a;">{{ $title }}</h1>
                                         @if ($sub)
                                             <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: #475569;">{{ $sub }}</p>
                                         @endif

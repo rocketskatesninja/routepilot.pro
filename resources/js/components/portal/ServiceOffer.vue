@@ -39,7 +39,7 @@ const included = computed(() => extras(props.service.modules, props.service.task
                     <component :is="iconFor(service.modules, service.frequency)" class="size-5" />
                 </span>
                 <div class="min-w-0">
-                    <h3 class="font-display text-lg leading-snug font-semibold">{{ service.name }}</h3>
+                    <h3 class="text-lg leading-snug font-semibold">{{ service.name }}</h3>
                     <p v-if="service.description" class="text-muted-foreground mt-1 max-w-[60ch] text-[15px]">{{ service.description }}</p>
 
                     <ul v-if="service.tasks.length || included.length" class="mt-3 grid gap-x-6 gap-y-1.5 text-sm @md:grid-cols-2">
@@ -62,7 +62,7 @@ const included = computed(() => extras(props.service.modules, props.service.task
             <div class="flex flex-wrap items-end justify-between gap-3 @lg:flex-col @lg:items-end @lg:justify-start @lg:text-right">
                 <div>
                     <p>
-                        <span class="font-display text-[1.75rem] leading-none font-semibold tracking-tight">{{ price(service.price) }}</span>
+                        <span class="text-[1.75rem] leading-none font-semibold tracking-tight">{{ price(service.price) }}</span>
                         <span class="text-muted-foreground ml-1 text-sm">{{ service.frequency === 'one_time' ? 'for the job' : 'per visit' }}</span>
                     </p>
                     <p class="text-muted-foreground mt-1.5 text-sm">{{ soldAs(service.frequency) }}</p>

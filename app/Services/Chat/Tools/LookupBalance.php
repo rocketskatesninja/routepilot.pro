@@ -50,7 +50,7 @@ class LookupBalance extends AiTool
         if ($name === '') {
             $balances = $billing->outstandingBalances();
             if ($balances->isEmpty()) {
-                return 'No customers have an outstanding balance. 🎉';
+                return 'No customers have an outstanding balance.';
             }
             $total = (float) $balances->sum(fn (array $r): float => $r['balance']);
             $rows = $balances->take(20)->map(
@@ -68,7 +68,7 @@ class LookupBalance extends AiTool
         return $customers->map(function (Customer $c) use ($billing): string {
             $balance = $billing->outstandingForCustomer($c);
 
-            return "**{$c->displayName()}** [id:{$c->id}]: ".($balance > 0 ? '$'.number_format($balance, 2).' outstanding' : 'paid up ✓');
+            return "**{$c->displayName()}** [id:{$c->id}]: ".($balance > 0 ? '$'.number_format($balance, 2).' outstanding' : 'paid up');
         })->join("\n");
     }
 }

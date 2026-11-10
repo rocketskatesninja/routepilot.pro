@@ -50,7 +50,21 @@ export interface GoogleMaps {
         InfoWindow: Ctor;
         LatLngBounds: new () => GLatLngBounds;
         SymbolPath: { CIRCLE: number };
+        Size: Ctor;
+        Point: Ctor;
     };
+}
+
+// The HQ marker: a dark circle with a white star. It's an image rather than a ★ text
+// label, which each computer draws from its own symbol font.
+const HQ_SVG =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">' +
+    '<circle cx="15" cy="15" r="13" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>' +
+    '<path d="M15 9.1L16.53 13.5L21.18 13.59L17.47 16.4L18.82 20.86L15 18.2L11.18 20.86L12.53 16.4L8.82 13.59L13.47 13.5Z" fill="#ffffff"/>' +
+    '</svg>';
+
+export function hqIcon(m: GoogleMaps['maps']): Record<string, unknown> {
+    return { url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(HQ_SVG)}`, scaledSize: new m.Size(30, 30), anchor: new m.Point(15, 15) };
 }
 
 /**

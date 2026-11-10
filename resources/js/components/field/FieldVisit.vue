@@ -377,7 +377,7 @@ async function removeFromToday() {
                 <ChevronLeft class="size-6 lg:hidden" /><X class="hidden size-6 lg:block" />
             </button>
             <div class="min-w-0 flex-1">
-                <h1 class="font-display truncate text-xl leading-tight font-semibold tracking-tight">{{ pool?.name }}</h1>
+                <h1 class="truncate text-xl leading-tight font-semibold tracking-tight">{{ pool?.name }}</h1>
                 <p class="text-muted-foreground truncate text-sm">{{ pool?.customer }}</p>
             </div>
             <!-- Offline, as an icon only (same badge as the route screen's). -->
@@ -472,7 +472,7 @@ async function removeFromToday() {
                 <ul class="border-border divide-border divide-y overflow-hidden rounded-2xl border">
                     <li v-for="(t, i) in tasks" :key="i">
                         <label class="active:bg-muted/60 flex cursor-pointer items-center gap-3 px-4 py-3.5">
-                            <input v-model="t.done" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
+                            <input v-model="t.done" type="checkbox" class="border-input size-6 shrink-0 rounded" />
                             <span class="text-[15px]" :class="t.done ? 'text-muted-foreground line-through' : ''">{{ t.name }}</span>
                         </label>
                     </li>
@@ -682,7 +682,7 @@ async function removeFromToday() {
                 ></textarea>
                 <div v-if="raisesWorkOrder" class="mt-2 flex flex-wrap items-center justify-between gap-3">
                     <label class="flex cursor-pointer items-center gap-3 py-1">
-                        <input v-model="workOrder.urgent" type="checkbox" class="border-input accent-primary size-6 shrink-0 rounded" />
+                        <input v-model="workOrder.urgent" type="checkbox" class="border-input size-6 shrink-0 rounded" />
                         <span class="text-[15px]">Urgent</span>
                     </label>
                     <label v-if="billing" class="flex items-center gap-2 text-[15px]">
@@ -719,7 +719,7 @@ async function removeFromToday() {
         <footer class="border-border bg-background absolute inset-x-0 bottom-0 border-t p-4 lg:px-8">
             <div class="lg:mx-auto lg:max-w-3xl">
                 <label v-if="office" class="mb-3 flex items-center gap-2 text-[15px]">
-                    <input v-model="emailCustomer" type="checkbox" class="border-input accent-primary size-5 shrink-0 rounded" />
+                    <input v-model="emailCustomer" type="checkbox" class="border-input size-5 shrink-0 rounded" />
                     Email this report to the customer
                 </label>
                 <p v-if="saveError" role="alert" class="mb-2 text-sm font-medium text-red-700 dark:text-red-400">{{ saveError }}</p>

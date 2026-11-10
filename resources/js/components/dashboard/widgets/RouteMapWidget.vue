@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue';
-import { DARK_MAP_BG, DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
+import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 
@@ -86,8 +86,7 @@ onMounted(async () => {
                 position,
                 map,
                 title: props.data.hq.label ?? 'Headquarters',
-                label: { text: '★', color: '#ffffff', fontSize: '12px' },
-                icon: { path: m.SymbolPath.CIRCLE, scale: 13, fillColor: '#0f172a', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2 },
+                icon: hqIcon(m),
             });
             bounds.extend(position);
         }

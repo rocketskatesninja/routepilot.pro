@@ -126,12 +126,14 @@ const dark = (name: string) => `/assets/images/screenshots/dark/${name}.png`;
                 <div class="flex-[2]" aria-hidden="true"></div>
             </div>
 
-            <!-- Each line stays on one line: full size from 1280px up, scaled to the panel's width below that. -->
+            <!-- Each line stays on one line: full size when the panel is wide enough, scaled to its
+                 width below that. Each cqi number is 100 ÷ the line's width in em (22.6em and 47.4em
+                 in Inter), less 3% to spare; change the words and they need re-measuring. -->
             <div class="@container relative z-10">
-                <p class="text-[length:min(1.5rem,4.4cqi)] leading-snug font-bold whitespace-nowrap">
+                <p class="text-[length:min(1.5rem,4.3cqi)] leading-snug font-bold whitespace-nowrap">
                     Route smarter. Dose precisely. Get paid faster.
                 </p>
-                <p class="mt-3 text-[length:min(0.875rem,2.2cqi)] whitespace-nowrap text-sky-100/70">
+                <p class="mt-3 text-[length:min(0.875rem,2.05cqi)] whitespace-nowrap text-sky-100/70">
                     The complete pool service platform — routing, chemistry, billing, and a customer portal in one place.
                 </p>
             </div>

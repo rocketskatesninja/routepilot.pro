@@ -1,5 +1,3 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
-
 /** @type {import('tailwindcss').Config} */
 export default {
     darkMode: ['class'],
@@ -12,9 +10,23 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
-                // Friendly display face for customer-facing headings.
-                display: ['Bricolage Grotesque', 'Inter', ...defaultTheme.fontFamily.sans],
+                // One font everywhere, loaded from the web so every computer draws the same
+                // widths. The fallbacks (if it can't load) skip system-ui, which is a wide
+                // font on many Linux desktops and used to cut the sidebar name off.
+                sans: [
+                    'Inter',
+                    '-apple-system',
+                    'BlinkMacSystemFont',
+                    'Segoe UI',
+                    'Roboto',
+                    'Helvetica Neue',
+                    'Noto Sans',
+                    'Arial',
+                    'sans-serif',
+                    'Apple Color Emoji',
+                    'Segoe UI Emoji',
+                    'Noto Color Emoji',
+                ],
             },
             borderRadius: {
                 lg: 'var(--radius)',

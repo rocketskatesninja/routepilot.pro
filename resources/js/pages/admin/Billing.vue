@@ -136,18 +136,18 @@ function save() {
             <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div class="border-border rounded-2xl border p-5">
                     <p class="text-muted-foreground text-sm">Monthly revenue</p>
-                    <p class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ formatMoney(metrics.mrr) }}</p>
+                    <p class="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ formatMoney(metrics.mrr) }}</p>
                     <p class="text-muted-foreground mt-0.5 text-sm">{{ formatMoney(arr) }} a year at this rate</p>
                 </div>
                 <div class="border-border rounded-2xl border p-5">
                     <p class="text-muted-foreground text-sm">In trial</p>
-                    <p class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ formatMoney(metrics.trial_pipeline) }}</p>
+                    <p class="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ formatMoney(metrics.trial_pipeline) }}</p>
                     <p class="text-muted-foreground mt-0.5 text-sm">{{ metrics.trialing }} tenant{{ metrics.trialing === 1 ? '' : 's' }} on trial</p>
                 </div>
                 <div class="border-border rounded-2xl border p-5">
                     <p class="text-muted-foreground text-sm">At risk</p>
                     <p
-                        class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums"
+                        class="mt-1 text-3xl font-semibold tracking-tight tabular-nums"
                         :class="metrics.at_risk > 0 ? 'text-red-600 dark:text-red-400' : ''"
                     >
                         {{ formatMoney(metrics.at_risk) }}
@@ -156,7 +156,7 @@ function save() {
                 </div>
                 <div class="border-border rounded-2xl border p-5">
                     <p class="text-muted-foreground text-sm">Tenants</p>
-                    <p class="font-display mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ metrics.tenants }}</p>
+                    <p class="mt-1 text-3xl font-semibold tracking-tight tabular-nums">{{ metrics.tenants }}</p>
                     <p class="text-muted-foreground mt-0.5 text-sm">
                         {{ metrics.active }} paying<template v-if="metrics.free">, {{ metrics.free }} free</template>, {{ metrics.expired }} expired
                     </p>

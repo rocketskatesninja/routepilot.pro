@@ -209,7 +209,7 @@ function addNote() {
                         <template #head>
                             <th class="px-4 py-2 text-left font-medium">Work order</th>
                             <th class="px-4 py-2 text-left font-medium">{{ props.status === 'done' ? 'Done' : 'Due' }}</th>
-                            <th class="hidden px-4 py-2 text-left font-medium md:table-cell">Assigned to</th>
+                            <th class="hidden px-4 py-2 text-left font-medium @sm:table-cell">Assigned to</th>
                         </template>
                         <template #row="{ item: o }">
                             <td class="px-4 py-2.5">
@@ -227,7 +227,7 @@ function addNote() {
                                 <span v-else-if="o.due_on" class="text-muted-foreground">{{ formatDay(o.due_on) }}</span>
                                 <span v-else class="text-muted-foreground">—</span>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ o.assignee ?? 'Nobody yet' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @sm:table-cell">{{ o.assignee ?? 'Nobody yet' }}</td>
                         </template>
                         <template #empty>
                             <Wrench class="mx-auto mb-2 size-6 opacity-50" />
@@ -289,9 +289,7 @@ function addNote() {
                                 <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
                             </div>
                         </div>
-                        <label class="flex items-center gap-2"
-                            ><input v-model="form.urgent" type="checkbox" class="accent-primary size-4" /> Urgent</label
-                        >
+                        <label class="flex items-center gap-2"><input v-model="form.urgent" type="checkbox" class="size-4" /> Urgent</label>
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? 'Add work order' : 'Save' }}</Button>

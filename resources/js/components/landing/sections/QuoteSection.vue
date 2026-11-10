@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatMoney } from '@/lib/utils';
 import { computed, ref } from 'vue';
 import { field } from '../layout';
 import ContactFields from '../primitives/ContactFields.vue';
@@ -24,7 +25,6 @@ const selected = computed<LandingService | undefined>(() => services.value.find(
 // The estimate is the service's real price — the same one billing charges.
 const estimate = computed(() => (selected.value && selected.value.price > 0 ? selected.value.price : null));
 
-const money = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const freqLabel = (f: string) =>
     ({ weekly: '/visit (weekly)', biweekly: '/visit (every 2 wks)', monthly: '/visit (monthly)', one_time: ' one-time' })[f] ?? '';
 
@@ -38,14 +38,14 @@ function submit() {
         phone: form.value.phone,
         source: 'quote',
         service_type_id: s.id,
-        message: `Instant-quote request: ${s.name} for a ${form.value.poolType.replace('_', ' ')} pool${form.value.gallons ? ` (~${form.value.gallons} gal)` : ''}${est ? ` — estimated ${money(est)}${freqLabel(s.frequency)}` : ''}.`,
+        message: `Instant-quote request: ${s.name} for a ${form.value.poolType.replace('_', ' ')} pool${form.value.gallons ? ` (~${form.value.gallons} gal)` : ''}${est ? ` — estimated ${formatMoney(est)}${freqLabel(s.frequency)}` : ''}.`,
         details: {
             pool_type: form.value.poolType,
             volume_gallons: form.value.gallons,
             service_id: String(s.id),
             service_name: s.name,
             frequency: s.frequency,
-            estimate: est ? money(est) : 'custom',
+            estimate: est ? formatMoney(est) : 'custom',
         },
     });
 }
@@ -83,7 +83,7 @@ function submit() {
                 <template v-if="estimate">
                     <p class="text-muted-foreground text-base">Estimated price</p>
                     <p class="site-font text-primary mt-1 text-4xl font-bold tracking-tight">
-                        {{ money(estimate)
+                        {{ formatMoney(estimate)
                         }}<span class="text-muted-foreground font-sans text-base font-medium">{{ freqLabel(selected.frequency) }}</span>
                     </p>
                     <p class="text-muted-foreground mt-2 text-sm">Ballpark only. We’ll confirm after a quick look at your pool.</p>

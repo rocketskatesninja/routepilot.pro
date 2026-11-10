@@ -4,13 +4,16 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        {{-- Apply the saved theme before first paint so dark mode never flashes white on load/refresh. --}}
+        {{-- Apply the saved theme and Big view before first paint, so dark mode never flashes white and nothing jumps in size. --}}
         <script>
             (function () {
                 try {
                     var a = localStorage.getItem('appearance');
                     if (a === 'dark' || ((!a || a === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                         document.documentElement.classList.add('dark');
+                    }
+                    if (localStorage.getItem('big-view') === '1') {
+                        document.documentElement.classList.add('big-view');
                     }
                 } catch (e) {}
             })();
@@ -40,7 +43,7 @@
         <link rel="apple-touch-icon" href="/assets/images/pwa/icon-192.png">
 
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|bricolage-grotesque:600,700" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
 
         @routes
         @vite(['resources/js/app.ts'])

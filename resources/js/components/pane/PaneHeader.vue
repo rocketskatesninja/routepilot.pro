@@ -15,7 +15,7 @@ defineProps<{ title: string; summary?: string | null }>();
                 <!-- pr-7 below xl clears the overlay sheet's close button; the docked pane has none -->
                 <div class="min-w-0 flex-1 pr-7 xl:pr-0">
                     <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                        <h2 class="font-display min-w-0 text-2xl leading-tight font-semibold tracking-tight text-balance">{{ title }}</h2>
+                        <h2 class="min-w-0 text-2xl leading-tight font-semibold tracking-tight text-balance">{{ title }}</h2>
                         <slot name="badge" />
                     </div>
                     <p v-if="summary" class="text-muted-foreground mt-1 text-[15px]">{{ summary }}</p>

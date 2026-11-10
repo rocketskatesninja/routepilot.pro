@@ -88,7 +88,7 @@ const line = (p: PoolHit): string => [p.customer, p.address].filter(Boolean).joi
                 <ChevronLeft class="size-6" />
             </button>
             <div class="min-w-0 flex-1">
-                <h1 class="font-display truncate text-xl leading-tight font-semibold tracking-tight">New report</h1>
+                <h1 class="truncate text-xl leading-tight font-semibold tracking-tight">New report</h1>
                 <p class="text-muted-foreground text-sm">Pick the pool. It’s added to the end of today’s route and isn’t billed.</p>
             </div>
         </header>

@@ -11,7 +11,7 @@ defineProps<{ greeting?: string }>();
     <section class="overflow-hidden rounded-2xl bg-[hsl(var(--brand)/0.08)]">
         <div class="px-6 pt-6 pb-7 sm:px-8 sm:pt-7">
             <p v-if="greeting" class="text-muted-foreground text-[15px]">{{ greeting }}</p>
-            <h1 class="font-display mt-2 max-w-[24ch] text-[1.75rem] leading-[1.15] font-semibold tracking-tight text-balance sm:text-[2.125rem]">
+            <h1 class="mt-2 max-w-[24ch] text-[1.75rem] leading-[1.15] font-semibold tracking-tight text-balance sm:text-[2.125rem]">
                 <slot />
             </h1>
             <div v-if="$slots.sub" class="text-muted-foreground mt-3 space-y-1 text-[15px]">

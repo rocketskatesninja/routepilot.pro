@@ -13,6 +13,7 @@ import { useFeature } from '@/composables/useFeature';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Check } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
@@ -91,7 +92,7 @@ const mailAction = useForm({});
 const testMail = () => mailAction.post('/company/mail/test', { preserveScroll: true });
 const turnOffMail = () => mailAction.post('/company/mail/off', { preserveScroll: true });
 const failedOn = computed(() =>
-    props.mail.failure ? new Date(props.mail.failure.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '',
+    props.mail.failure ? new Date(props.mail.failure.at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '',
 );
 
 const connectForm = useForm({});
@@ -158,7 +159,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                     <template v-if="website">
                                         To choose how it sits beside your name on your website, open
                                         <Link href="/company/landing?panel=title" class="text-primary underline-offset-4 hover:underline"
-                                            >Landing page → Company title</Link
+                                            >Landing page › Company title</Link
                                         >.
                                     </template>
                                 </p>
@@ -389,7 +390,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                 v-if="props.connect.charges_enabled"
                                 class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-sm font-medium text-emerald-600 dark:text-emerald-400"
                             >
-                                ✓ Connected — payouts enabled
+                                <Check class="size-4" /> Connected — payouts enabled
                             </span>
                             <template v-else>
                                 <span v-if="props.connect.connected" class="text-sm text-amber-600 dark:text-amber-400">Onboarding incomplete</span>

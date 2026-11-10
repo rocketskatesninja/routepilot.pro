@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div v-if="editing" class="relative">
-                <Button size="sm" variant="outline" :disabled="!addable.length" @click="pickerOpen = !pickerOpen">
+                <Button size="sm" variant="outline" title="Add widget" :disabled="!addable.length" @click="pickerOpen = !pickerOpen">
                     <Plus class="size-4 sm:mr-1" /> <span class="hidden sm:inline">Add widget</span>
                 </Button>
                 <div

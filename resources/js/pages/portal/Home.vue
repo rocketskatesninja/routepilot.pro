@@ -174,7 +174,7 @@ const doneTasks = computed(() => props.lastVisit?.tasks.filter((t) => t.done) ??
             <!-- the latest visit report -->
             <section v-if="props.lastVisit" aria-labelledby="last">
                 <div class="flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 id="last" class="font-display text-xl font-semibold tracking-tight">Your last visit</h2>
+                    <h2 id="last" class="text-xl font-semibold tracking-tight">Your last visit</h2>
                     <Link href="/history" class="text-primary text-sm font-medium underline-offset-4 hover:underline">All visits</Link>
                 </div>
                 <article class="border-border mt-4 rounded-2xl border p-5 sm:p-6">

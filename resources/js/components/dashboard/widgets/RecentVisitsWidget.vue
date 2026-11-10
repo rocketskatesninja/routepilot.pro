@@ -18,7 +18,10 @@ defineProps<{ data: Activity[] }>();
 </script>
 
 <template>
-    <div class="h-full overflow-y-auto">
+    <!-- The rows' hover fill reaches 4px past the text (-mx-1 px-1). The box gives it that room
+         by reaching into the card's padding the same way, so the rows fit its padding exactly
+         and it never scrolls sideways by those 4px. -->
+    <div class="-mx-1 h-full overflow-y-auto px-1">
         <ul v-if="data.length" class="divide-border divide-y text-sm">
             <li v-for="a in data" :key="a.key">
                 <component

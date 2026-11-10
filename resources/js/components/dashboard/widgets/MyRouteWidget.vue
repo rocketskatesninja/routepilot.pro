@@ -28,7 +28,8 @@ defineProps<{ data: { label: string | null; stops: Stop[] } }>();
                         <span class="flex min-w-0 items-center gap-2">
                             <span class="text-muted-foreground">{{ i + 1 }}.</span>
                             <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" />
-                            <span class="truncate">{{ stop.pool }}</span>
+                            <!-- Wraps rather than cut: a narrow card (or Big view) leaves little room beside the status. -->
+                            <span class="min-w-0 break-words">{{ stop.pool }}</span>
                         </span>
                         <span class="flex shrink-0 items-center gap-1.5">
                             <span class="rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{

@@ -298,7 +298,7 @@ function closePane() {
                 <Plus class="size-4 sm:mr-1" /><span class="hidden sm:inline">Charge</span>
             </Button>
             <Hint v-if="props.canManage" text="Downloads every invoice as a spreadsheet (CSV) you can bring into QuickBooks.">
-                <Button size="sm" variant="outline" aria-label="Export invoices" @click="exportCsv">
+                <Button size="sm" variant="outline" title="Export invoices" aria-label="Export invoices" @click="exportCsv">
                     <Download class="size-4 sm:mr-1" /><span class="hidden sm:inline">Export</span>
                 </Button>
             </Hint>
@@ -324,15 +324,15 @@ function closePane() {
                         <template #head>
                             <SortableTh sort-key="number" :active="props.sort">Invoice</SortableTh>
                             <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
-                            <SortableTh sort-key="issued" :active="props.sort" class="hidden md:table-cell">Issued</SortableTh>
-                            <SortableTh sort-key="status" :active="props.sort">Status</SortableTh>
+                            <SortableTh sort-key="issued" :active="props.sort" class="hidden @xl:table-cell">Issued</SortableTh>
+                            <SortableTh sort-key="status" :active="props.sort" class="hidden @md:table-cell">Status</SortableTh>
                             <SortableTh sort-key="total" :active="props.sort" align="right" class="text-right">Total</SortableTh>
                         </template>
                         <template #row="{ item: inv }">
                             <td class="px-4 py-2.5 font-medium">{{ inv.number }}</td>
                             <td class="text-muted-foreground px-4 py-2.5">{{ inv.customer ?? '—' }}</td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ inv.issued_on ?? '—' }}</td>
-                            <td class="px-4 py-2.5">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">{{ inv.issued_on ?? '—' }}</td>
+                            <td class="hidden px-4 py-2.5 @md:table-cell">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(inv.status)">{{
                                     inv.status
                                 }}</span>
@@ -361,8 +361,8 @@ function closePane() {
                     >
                         <template #head>
                             <SortableTh sort-key="name" :active="props.sort">Customer</SortableTh>
-                            <SortableTh sort-key="pools" :active="props.sort" class="hidden md:table-cell">Pools</SortableTh>
-                            <th class="hidden px-4 py-2 text-left font-medium sm:table-cell">Autopay</th>
+                            <SortableTh sort-key="pools" :active="props.sort" class="hidden @md:table-cell">Pools</SortableTh>
+                            <th class="hidden px-4 py-2 text-left font-medium @sm:table-cell">Autopay</th>
                             <SortableTh sort-key="balance" :active="props.sort" align="right" class="text-right">Balance</SortableTh>
                         </template>
                         <template #row="{ item: row }">
@@ -372,8 +372,8 @@ function closePane() {
                                     <span class="font-medium">{{ row.name }}</span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ row.pools }}</td>
-                            <td class="hidden px-4 py-2.5 sm:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @md:table-cell">{{ row.pools }}</td>
+                            <td class="hidden px-4 py-2.5 @sm:table-cell">
                                 <span v-if="row.autopay" class="inline-flex items-center gap-2">
                                     <span
                                         class="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
@@ -541,7 +541,7 @@ function closePane() {
                             <p class="text-muted-foreground mt-1 text-[15px]">
                                 {{ owing.total > 0 ? 'Owes' : owing.total < 0 ? 'In credit' : 'All paid up' }}
                             </p>
-                            <p class="font-display text-4xl font-semibold tracking-tight">{{ formatMoney(Math.abs(owing.total)) }}</p>
+                            <p class="text-4xl font-semibold tracking-tight">{{ formatMoney(Math.abs(owing.total)) }}</p>
                             <Link
                                 :href="customerLink(owing.id)"
                                 class="text-primary mt-2 inline-block text-sm font-medium underline-offset-4 hover:underline"

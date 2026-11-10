@@ -280,7 +280,7 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                         <AppLogoIcon v-else class="size-5" />
                     </Link>
                     <div class="min-w-0 flex-1 pl-1">
-                        <h1 class="font-display truncate text-lg leading-tight font-semibold tracking-tight">{{ title }}</h1>
+                        <h1 class="truncate text-lg leading-tight font-semibold tracking-tight">{{ title }}</h1>
                         <p class="text-muted-foreground truncate text-xs">{{ bundle?.date ? formatDay(bundle.date) : 'Today' }}</p>
                     </div>
                     <!-- Connection, as an icon only: the colour and icon say it; the label is for screen readers and a long-press. -->
@@ -400,7 +400,7 @@ async function onCompleted(stopId: number, raisedWorkOrder: boolean) {
                 <template v-else>
                     <!-- where the day stands -->
                     <section class="rounded-2xl bg-[hsl(var(--brand)/0.08)] p-5">
-                        <p class="font-display text-2xl leading-tight font-semibold tracking-tight">
+                        <p class="text-2xl leading-tight font-semibold tracking-tight">
                             <template v-if="!stops.length"
                                 >No stops on {{ techFirst ? `${techFirst}’s` : 'your' }} route{{ source === 'none' ? ' yet' : '' }}.</template
                             >

@@ -548,12 +548,10 @@ function destroyAgent() {
                             </th>
                             <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
                             <SortableTh sort-key="type" :active="props.sort">Type</SortableTh>
-                            <SortableTh sort-key="email" :active="props.sort" class="hidden md:table-cell">Email</SortableTh>
-                            <SortableTh sort-key="phone" :active="props.sort" class="hidden min-[1360px]:table-cell lg:table-cell xl:hidden"
-                                >Phone</SortableTh
-                            >
-                            <th class="hidden px-4 py-2 font-medium min-[1680px]:table-cell md:table-cell xl:hidden">Portal</th>
-                            <th class="hidden px-4 py-2 font-medium lg:table-cell xl:hidden 2xl:table-cell">Last visit</th>
+                            <SortableTh sort-key="email" :active="props.sort" class="hidden @xl:table-cell">Email</SortableTh>
+                            <SortableTh sort-key="phone" :active="props.sort" class="hidden @2xl:table-cell">Phone</SortableTh>
+                            <th class="hidden px-4 py-2 font-medium @4xl:table-cell">Portal</th>
+                            <th class="hidden px-4 py-2 font-medium @3xl:table-cell">Last visit</th>
                             <th v-if="billing" class="px-4 py-2 text-right font-medium">Balance</th>
                         </template>
                         <template #row="{ item: person }">
@@ -583,11 +581,11 @@ function destroyAgent() {
                                     {{ person.person_type }}
                                 </span>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ person.email ?? '—' }}</td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 min-[1360px]:table-cell lg:table-cell xl:hidden">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">{{ person.email ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @2xl:table-cell">
                                 {{ person.phone ?? '—' }}
                             </td>
-                            <td class="hidden px-4 py-2.5 min-[1680px]:table-cell md:table-cell xl:hidden">
+                            <td class="hidden px-4 py-2.5 @4xl:table-cell">
                                 <template v-if="person.person_type === 'customer'">
                                     <span
                                         v-if="person.portal_status === 'active'"
@@ -603,7 +601,7 @@ function destroyAgent() {
                                 </template>
                                 <span v-else class="text-muted-foreground">—</span>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell xl:hidden 2xl:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @3xl:table-cell">
                                 {{ person.last_visit ?? '—' }}
                             </td>
                             <td
@@ -659,6 +657,9 @@ function destroyAgent() {
                         </div>
                         <p v-if="formMode === 'create' || customer?.portal_status === 'none'" class="text-muted-foreground -mt-2 text-xs">
                             Leave the email blank and they won’t get any emails from you: no visit reports, reminders or invoices.
+                        </p>
+                        <p v-else-if="customer" class="text-muted-foreground -mt-2 text-xs">
+                            They sign in with this email, so it can’t be blank. To stop their emails, switch them off under Emails on their page.
                         </p>
                         <div class="grid gap-1.5">
                             <Label for="address">Address</Label>

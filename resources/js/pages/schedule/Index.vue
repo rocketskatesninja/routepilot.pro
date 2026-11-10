@@ -272,7 +272,7 @@ function setColor(route: RouteCard, event: Event) {
 }
 
 const prettyDate = computed(() =>
-    new Date(props.date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }),
+    new Date(props.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
 );
 </script>
 

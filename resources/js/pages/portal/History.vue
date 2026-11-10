@@ -103,7 +103,7 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
                             @click="toggle(v.id)"
                         >
                             <span class="w-11 shrink-0 text-center">
-                                <span class="font-display block text-2xl leading-none font-semibold">{{ dayNum(v.on) }}</span>
+                                <span class="block text-2xl leading-none font-semibold">{{ dayNum(v.on) }}</span>
                                 <span class="text-muted-foreground text-xs">{{ weekday(v.on) }}</span>
                             </span>
                             <span class="min-w-0 flex-1">

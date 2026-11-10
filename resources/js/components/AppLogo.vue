@@ -31,7 +31,7 @@ const company = computed(() => (page.props.auth.role === 'customer' ? (page.prop
         <AppLogoIcon class="size-7 group-data-[collapsible=icon]:size-[calc(var(--rail-icon,2rem)*0.625)]" />
     </div>
     <div
-        class="ml-2 grid flex-1 text-left text-4xl whitespace-nowrap transition-opacity duration-[var(--sidebar-duration)] group-data-[collapsible=icon]:opacity-0"
+        class="grid flex-1 text-left text-4xl whitespace-nowrap transition-opacity duration-[var(--sidebar-duration)] group-data-[collapsible=icon]:opacity-0"
     >
         <span v-if="company" class="line-clamp-2 text-xl leading-[1.1] font-semibold" :title="company">{{ company }}</span>
         <span v-else class="mb-0.5 truncate leading-none font-semibold"

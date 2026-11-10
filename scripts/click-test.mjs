@@ -20,7 +20,7 @@
  *   CLICK_BASE      staging URL                  (default https://routepilot.local)
  *   CLICK_SSH       ssh host for staging         (default serv)
  *   CLICK_APP_DIR   app folder on staging        (default /var/www/routepilot.pro)
- *   CLICK_TARGETS   e.g. chrome-desktop,firefox-phone (default all four)
+ *   CLICK_TARGETS   e.g. chrome-desktop,firefox-phone (default all six)
  *   CLICK_ROLES     e.g. office,customer         (default all)
  *   CLICK_NO_FLOWS=1    skip the two end-to-end checks
  *   CLICK_NO_PUBLISH=1  don't copy the report to staging
@@ -52,7 +52,10 @@ if (!new URL(BASE).hostname.endsWith('.local')) {
 const firefoxPath = () => {
     if (process.env.FIREFOX_PATH) return process.env.FIREFOX_PATH;
     const cache = join(homedir(), '.cache/ms-playwright');
-    const dir = readdirSync(cache).filter((d) => d.startsWith('firefox-')).sort().pop();
+    const dir = readdirSync(cache)
+        .filter((d) => d.startsWith('firefox-'))
+        .sort()
+        .pop();
     return dir ? join(cache, dir, 'firefox/firefox') : undefined;
 };
 
@@ -60,19 +63,56 @@ const TARGETS = [
     { id: 'chrome-desktop', engine: 'chrome', viewport: { width: 1440, height: 900 }, crawl: true },
     { id: 'chrome-phone', engine: 'chrome', viewport: { width: 412, height: 860 }, touch: true },
     { id: 'firefox-desktop', engine: 'firefox', viewport: { width: 1440, height: 900 } },
+    // A smaller laptop, where headers run out of room first.
+    { id: 'chrome-laptop', engine: 'chrome', viewport: { width: 1280, height: 720 } },
+    // Big view (everything 20% bigger), on a laptop: the most crowded the desktop gets.
+    { id: 'chrome-big', engine: 'chrome', viewport: { width: 1366, height: 768 }, big: true },
     { id: 'firefox-phone', engine: 'firefox', viewport: { width: 412, height: 860 }, crawl: true },
 ].filter((t) => !process.env.CLICK_TARGETS || process.env.CLICK_TARGETS.split(',').includes(t.id));
 
 const PAGES = {
     public: ['/', '/login', '/register', '/forgot-password', '/privacy', '/terms'],
     office: [
-        '/dashboard', '/schedule', '/reports', '/work-orders', '/inventory', '/inventory?type=parts', '/inbox', '/inbox?tab=leads',
-        '/people', '/people?type=agent', '/pools', '/services', '/balances', '/insights', '/company', '/company?tab=address', '/company?tab=email',
-        '/company?tab=features', '/company/landing', '/billing', '/assistant', '/notifications', '/settings/profile', '/settings/password',
-        '/settings/appearance', '/settings/two-factor', '/field',
+        '/dashboard',
+        '/schedule',
+        '/reports',
+        '/work-orders',
+        '/inventory',
+        '/inventory?type=parts',
+        '/inbox',
+        '/inbox?tab=leads',
+        '/people',
+        '/people?type=agent',
+        '/pools',
+        '/services',
+        '/balances',
+        '/insights',
+        '/company',
+        '/company?tab=address',
+        '/company?tab=email',
+        '/company?tab=features',
+        '/company/landing',
+        '/billing',
+        '/assistant',
+        '/notifications',
+        '/settings/profile',
+        '/settings/password',
+        '/settings/appearance',
+        '/settings/two-factor',
+        '/field',
     ],
     tech: ['/dashboard', '/schedule', '/reports', '/work-orders', '/notifications', '/assistant', '/settings/profile', '/field'],
-    customer: ['/dashboard', '/my-pools', '/history', '/balance', '/requests', '/settings/emails', '/notifications', '/assistant', '/settings/profile'],
+    customer: [
+        '/dashboard',
+        '/my-pools',
+        '/history',
+        '/balance',
+        '/requests',
+        '/settings/emails',
+        '/notifications',
+        '/assistant',
+        '/settings/profile',
+    ],
     platform: ['/dashboard', '/people', '/platform/billing', '/platform/ai', '/assistant'],
 };
 const ROLES = Object.keys(PAGES).filter((r) => !process.env.CLICK_ROLES || process.env.CLICK_ROLES.split(',').includes(r));
@@ -87,12 +127,24 @@ const SKIP_HREF = /^(mailto:|tel:|sms:|javascript:)|\/billing\/portal|\/company\
 const report = { issues: [], known: 0, pages: 0, clicks: 0, blocked: 0, shots: [], flows: [], started: new Date(), notes: [] };
 const seenIssues = new Set();
 
-function addIssue(ctx, kind, detail) {
+// `once` reports something a single time per browser and role however many pages show it
+// (a cut-off label in the sidebar would otherwise be listed for every page).
+function addIssue(ctx, kind, detail, once = null) {
     const where = ctx.where ?? {};
-    const key = [ctx.target.id, ctx.role, where.path, kind, String(detail).slice(0, 80)].join('|');
+    const key = once
+        ? [ctx.target.id, ctx.role, kind, once].join('|')
+        : [ctx.target.id, ctx.role, where.path, kind, String(detail).slice(0, 80)].join('|');
     if (seenIssues.has(key)) return;
     seenIssues.add(key);
-    report.issues.push({ target: ctx.target.id, role: ctx.role, path: where.path ?? '', action: where.action ?? 'load', kind, detail: String(detail).slice(0, 400), shot: where.shot ?? null });
+    report.issues.push({
+        target: ctx.target.id,
+        role: ctx.role,
+        path: where.path ?? '',
+        action: where.action ?? 'load',
+        kind,
+        detail: String(detail).slice(0, 400),
+        shot: where.shot ?? null,
+    });
     console.log(`  ✗ [${ctx.target.id}/${ctx.role}] ${where.path} (${where.action}) ${kind}: ${String(detail).slice(0, 140)}`);
 }
 
@@ -107,7 +159,10 @@ function noise(ctx, text) {
 function watch(ctx) {
     const { page } = ctx;
     page.on('pageerror', (e) => noise(ctx, e.message) || addIssue(ctx, 'javascript-error', e.message));
-    page.on('console', (m) => m.type() === 'error' && !ctx.allow404 && !noise(ctx, `${m.text()} ${m.location().url}`) && addIssue(ctx, 'console-error', m.text()));
+    page.on(
+        'console',
+        (m) => m.type() === 'error' && !ctx.allow404 && !noise(ctx, `${m.text()} ${m.location().url}`) && addIssue(ctx, 'console-error', m.text()),
+    );
     page.on('response', (r) => {
         let url;
         try {
@@ -126,6 +181,7 @@ async function session(browser, target, role, creds, { block }) {
     const options = { ignoreHTTPSErrors: true, viewport: target.viewport, serviceWorkers: 'block' };
     if (target.touch) Object.assign(options, { hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     const context = await browser.newContext(options);
+    if (target.big) await context.addInitScript(() => localStorage.setItem('big-view', '1'));
     const page = await context.newPage();
     const ctx = { target, role, context, page, block, lastBlock: 0, where: { path: '/login', action: 'login' } };
     context.on('page', (p) => p !== page && p.close().catch(() => {}));
@@ -159,14 +215,64 @@ async function session(browser, target, role, creds, { block }) {
 
 const PAGE_CHECK = () => {
     const text = document.body?.innerText ?? '';
-    const broken = [...document.images].filter((i) => i.complete && i.naturalWidth === 0 && i.currentSrc.startsWith(location.origin)).map((i) => new URL(i.currentSrc).pathname);
+    const broken = [...document.images]
+        .filter((i) => i.complete && i.naturalWidth === 0 && i.currentSrc.startsWith(location.origin))
+        .map((i) => new URL(i.currentSrc).pathname);
     const bad = text.match(/\bundefined\b|\bNaN\b|\[object Object\]|\{\{|\}\}/)?.[0] ?? null;
+    // Text cut off by its own box: a one-line ellipsis or clip, or a line clamp, that doesn't
+    // fit. Long names and addresses are meant to be cut in narrow lists; labels aren't.
+    const clipped = [];
+    // Whether any words in a clipping box really run past its sides. Pictures and glows
+    // overflow a box by design (a hero's slow zoom grows past it by the second); words
+    // shut inside a scroller of their own are that scroller's business.
+    const wordsPastEdge = (box) => {
+        const edge = box.getBoundingClientRect();
+        const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+        const range = document.createRange();
+        for (let node; (node = walker.nextNode()); ) {
+            if (!node.textContent.trim()) continue;
+            let inner = false;
+            for (let up = node.parentElement; up && up !== box && !inner; up = up.parentElement) inner = getComputedStyle(up).overflowX !== 'visible';
+            if (inner) continue;
+            range.selectNodeContents(node);
+            for (const r of range.getClientRects()) if (r.width && (r.right > edge.right + 1 || r.left < edge.left - 1)) return true;
+        }
+        return false;
+    };
+    for (const el of document.body?.querySelectorAll('*') ?? []) {
+        if (clipped.length >= 8) break;
+        // The folded sidebar hides its words on purpose, and a Google map's tiles run past its edge.
+        if (el.closest('[data-collapsible="icon"], .gm-style')) continue;
+        const s = getComputedStyle(el);
+        const clamp = s.webkitLineClamp && s.webkitLineClamp !== 'none';
+        const oneLine = s.whiteSpace === 'nowrap' && s.overflowX !== 'visible';
+        // A box that hides what doesn't fit, or (on a desktop-sized screen) a row that
+        // scrolls sideways, like tabs squeezed out of a header. Phones swipe those on purpose.
+        const hides = ['hidden', 'clip'].includes(s.overflowX) || (window.innerWidth >= 1024 && ['auto', 'scroll'].includes(s.overflowX));
+        if (!oneLine && !clamp && !hides) continue;
+        if (el.checkVisibility && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+        const wide = (oneLine || hides) && el.scrollWidth > el.clientWidth + 1;
+        const tall = clamp && el.scrollHeight > el.clientHeight + 1;
+        const words = (el.innerText ?? '').replace(/\s+/g, ' ').trim();
+        // 1px boxes are screen-reader labels (sr-only): hidden from view on purpose.
+        if ((!wide && !tall) || !words || el.clientWidth <= 2) continue;
+        // A box that clips (not scrolls) counts only when it cuts words, not decoration. A box
+        // that scrolls by even a few px gives the page a sideways wobble, so that always counts.
+        if (wide && !tall && !oneLine && ['hidden', 'clip'].includes(s.overflowX) && !wordsPastEdge(el)) continue;
+        clipped.push({
+            text: words.slice(0, 60),
+            detail: tall
+                ? `${clamp} lines aren't enough`
+                : `${oneLine ? 'needs' : 'hides content: needs'} ${el.scrollWidth}px, has ${el.clientWidth}px`,
+        });
+    }
     return {
         length: text.trim().length,
         bad,
         crashed: /SQLSTATE|Whoops!|Server Error|Page Expired|Internal Server/i.test(text),
         overflow: document.documentElement.scrollWidth > window.innerWidth + 1 ? document.documentElement.scrollWidth : 0,
         broken: broken.slice(0, 4),
+        clipped,
     };
 };
 
@@ -176,10 +282,16 @@ function examine(ctx, c) {
     if (c.bad) addIssue(ctx, 'broken-text', `Shows "${c.bad}" on the page`);
     if (c.overflow) addIssue(ctx, 'sideways-scroll', `Page is ${c.overflow}px wide on a ${ctx.target.viewport.width}px screen`);
     if (c.broken.length) addIssue(ctx, 'broken-image', c.broken.join(', '));
+    for (const cut of c.clipped ?? []) addIssue(ctx, 'cut-off-text', `"${cut.text}" ${cut.detail}`, cut.text);
 }
 
-const settle = (page) => page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {}).then(() => page.waitForTimeout(300));
-const fileFor = (ctx, path, suffix = '') => `${ctx.target.id}__${ctx.role}__${(path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home') + suffix}.jpg`;
+const settle = (page) =>
+    page
+        .waitForLoadState('networkidle', { timeout: 5000 })
+        .catch(() => {})
+        .then(() => page.waitForTimeout(300));
+const fileFor = (ctx, path, suffix = '') =>
+    `${ctx.target.id}__${ctx.role}__${(path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home') + suffix}.jpg`;
 
 async function shot(ctx, path, suffix = '') {
     const file = fileFor(ctx, path, suffix);
@@ -200,7 +312,8 @@ async function open(ctx, path, { keep = true } = {}) {
     const file = await shot(ctx, path);
     ctx.where.shot = file;
     if (response && response.status() >= 400) addIssue(ctx, 'bad-status', `HTTP ${response.status()}`);
-    if (path !== '/login' && new URL(ctx.page.url()).pathname === '/login' && ctx.role !== 'public') addIssue(ctx, 'signed-out', 'Sent back to the login page');
+    if (path !== '/login' && new URL(ctx.page.url()).pathname === '/login' && ctx.role !== 'public')
+        addIssue(ctx, 'signed-out', 'Sent back to the login page');
     examine(ctx, await ctx.page.evaluate(PAGE_CHECK));
     report.pages++;
     if (keep) report.shots.push({ role: ctx.role, path, target: ctx.target.id, file });
@@ -223,8 +336,11 @@ const CANDIDATES = () => {
         }
         const href = el.getAttribute('href');
         if (el.target === '_blank' || el.hasAttribute('download')) continue;
-        if (href && (new URL(href, location.href).origin !== location.origin)) continue;
-        const name = el.tagName === 'TR' ? 'first row' : (el.getAttribute('aria-label') || el.title || el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 50) || '(no label)';
+        if (href && new URL(href, location.href).origin !== location.origin) continue;
+        const name =
+            el.tagName === 'TR'
+                ? 'first row'
+                : (el.getAttribute('aria-label') || el.title || el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 50) || '(no label)';
         if (/^log ?out$|^sign ?out$/i.test(name)) continue;
         el.setAttribute('data-ct', String(out.length));
         out.push({ id: out.length, name, href: href ?? '' });
@@ -275,7 +391,10 @@ async function crawl(ctx, path, seen) {
         if (url.origin === BASE) {
             const checked = await page.evaluate(PAGE_CHECK).catch(() => null);
             if (checked) {
-                ctx.where.shot = (checked.crashed || checked.length < 40 || checked.bad) ? await shot(ctx, path, `-click-${report.clicks}`) : null;
+                ctx.where.shot =
+                    checked.crashed || checked.length < 40 || checked.bad || checked.clipped.length
+                        ? await shot(ctx, path, `-click-${report.clicks}`)
+                        : null;
                 examine(ctx, checked);
             }
         }
@@ -291,7 +410,8 @@ async function crawl(ctx, path, seen) {
 }
 
 async function launch(engine) {
-    if (engine === 'chrome') return chromium.launch({ executablePath: process.env.CHROME_PATH ?? '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    if (engine === 'chrome')
+        return chromium.launch({ executablePath: process.env.CHROME_PATH ?? '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     return firefox.launch({ executablePath: firefoxPath(), headless: true });
 }
 
@@ -336,7 +456,11 @@ const must = (ok, why) => {
 
 async function runFlows(creds) {
     console.log('\n▶ end-to-end checks');
-    const desktop = TARGETS.find((t) => t.id === 'chrome-desktop') ?? { id: 'chrome-desktop', engine: 'chrome', viewport: { width: 1440, height: 900 } };
+    const desktop = TARGETS.find((t) => t.id === 'chrome-desktop') ?? {
+        id: 'chrome-desktop',
+        engine: 'chrome',
+        viewport: { width: 1440, height: 900 },
+    };
     const phone = { id: 'chrome-phone', engine: 'chrome', viewport: { width: 412, height: 860 }, touch: true };
     const browser = await launch('chrome');
 
@@ -350,7 +474,10 @@ async function runFlows(creds) {
         const box = p.locator(`#${id}`);
         if (((await box.getAttribute('data-state')) === 'checked') !== on) {
             await box.click();
-            await p.waitForFunction(([i, w]) => document.querySelector(`#${i}`)?.getAttribute('data-state') === (w ? 'checked' : 'unchecked'), [id, on]);
+            await p.waitForFunction(
+                ([i, w]) => document.querySelector(`#${i}`)?.getAttribute('data-state') === (w ? 'checked' : 'unchecked'),
+                [id, on],
+            );
             await p.waitForTimeout(300);
         }
     };
@@ -363,11 +490,21 @@ async function runFlows(creds) {
     await step('The checker catches a planted error and a dead page', async () => {
         const before = report.issues.length;
         office.where = { path: '/canary', action: 'planted' };
-        await p.evaluate(() => setTimeout(() => { throw new Error('click-test canary'); }));
+        await p.evaluate(() =>
+            setTimeout(() => {
+                throw new Error('click-test canary');
+            }),
+        );
         await p.waitForTimeout(400);
-        must(report.issues.some((i) => i.kind === 'javascript-error' && i.detail.includes('canary')), 'Missed a planted JavaScript error');
+        must(
+            report.issues.some((i) => i.kind === 'javascript-error' && i.detail.includes('canary')),
+            'Missed a planted JavaScript error',
+        );
         await open(office, '/this-page-does-not-exist', { keep: false });
-        must(report.issues.some((i) => i.kind === 'bad-status' && i.path === '/this-page-does-not-exist'), 'Missed a dead page');
+        must(
+            report.issues.some((i) => i.kind === 'bad-status' && i.path === '/this-page-does-not-exist'),
+            'Missed a dead page',
+        );
         report.issues.length = before;
     });
 
@@ -397,43 +534,49 @@ async function runFlows(creds) {
             }),
         );
     }
-    await step('Inventory switch: off makes it a Chemicals list, on restores it', () => restoring(async () => {
-        await flip('inventory_tracking', false);
-        await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
-        await settle(p);
-        const off = await p.locator('body').innerText();
-        must((await nav()).includes('Chemicals'), 'Sidebar doesn’t say Chemicals');
-        must(!off.includes('In stock'), 'Still shows stock');
-        await flip('inventory_tracking', true);
-        await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
-        await settle(p);
-        must((await p.locator('body').innerText()).includes('In stock'), 'Stock didn’t come back');
-    }));
-    await step('Website off: the public address shows a customer login', () => restoring(async () => {
-        await flip('landing_page', false);
-        const visitor = await session(browser, desktop, 'public', creds, { block: true });
-        await visitor.page.goto(`${BASE}/t/${creds.slug}`, { waitUntil: 'domcontentloaded' });
-        await settle(visitor.page);
-        must((await visitor.page.locator('body').innerText()).includes('Customer log in'), 'No login button');
-        await visitor.context.close();
-    }));
+    await step('Inventory switch: off makes it a Chemicals list, on restores it', () =>
+        restoring(async () => {
+            await flip('inventory_tracking', false);
+            await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
+            await settle(p);
+            const off = await p.locator('body').innerText();
+            must((await nav()).includes('Chemicals'), 'Sidebar doesn’t say Chemicals');
+            must(!off.includes('In stock'), 'Still shows stock');
+            await flip('inventory_tracking', true);
+            await p.goto(`${BASE}/inventory`, { waitUntil: 'domcontentloaded' });
+            await settle(p);
+            must((await p.locator('body').innerText()).includes('In stock'), 'Stock didn’t come back');
+        }),
+    );
+    await step('Website off: the public address shows a customer login', () =>
+        restoring(async () => {
+            await flip('landing_page', false);
+            const visitor = await session(browser, desktop, 'public', creds, { block: true });
+            await visitor.page.goto(`${BASE}/t/${creds.slug}`, { waitUntil: 'domcontentloaded' });
+            await settle(visitor.page);
+            must((await visitor.page.locator('body').innerText()).includes('Customer log in'), 'No login button');
+            await visitor.context.close();
+        }),
+    );
 
-    await step('Everything still works with all four switched off', () => restoring(async () => {
-        for (const [id] of [...SWITCHES, ['inventory_tracking']]) await flip(id, false);
-        const gone = ['/balances', '/balance', '/company/landing', '/assistant'];
-        const before = report.issues.length;
-        for (const role of ['tech', 'customer']) {
-            const ctx = await session(browser, { ...desktop }, role, creds, { block: true });
-            for (const path of PAGES[role].filter((x) => !gone.includes(x))) await open(ctx, path, { keep: false });
-            await ctx.context.close();
-        }
-        office.block = false;
-        office.allow404 = false;
-        for (const path of PAGES.office.filter((x) => !gone.includes(x))) await open(office, path, { keep: false });
-        office.allow404 = true;
-        must(report.issues.length === before, `${report.issues.length - before} problem(s), listed above`);
-        return `${PAGES.office.length + PAGES.tech.length + PAGES.customer.length - 5} screens`;
-    }));
+    await step('Everything still works with all four switched off', () =>
+        restoring(async () => {
+            for (const [id] of [...SWITCHES, ['inventory_tracking']]) await flip(id, false);
+            const gone = ['/balances', '/balance', '/company/landing', '/assistant'];
+            const before = report.issues.length;
+            for (const role of ['tech', 'customer']) {
+                const ctx = await session(browser, { ...desktop }, role, creds, { block: true });
+                for (const path of PAGES[role].filter((x) => !gone.includes(x))) await open(ctx, path, { keep: false });
+                await ctx.context.close();
+            }
+            office.block = false;
+            office.allow404 = false;
+            for (const path of PAGES.office.filter((x) => !gone.includes(x))) await open(office, path, { keep: false });
+            office.allow404 = true;
+            must(report.issues.length === before, `${report.issues.length - before} problem(s), listed above`);
+            return `${PAGES.office.length + PAGES.tech.length + PAGES.customer.length - 5} screens`;
+        }),
+    );
 
     await step('A tech finishes a visit on a phone, and it reaches the office', async () => {
         const tech = await session(browser, phone, 'tech', creds, { block: false });
@@ -457,7 +600,10 @@ async function runFlows(creds) {
         await t.getByRole('button', { name: 'Add a part' }).tap();
         await pick('Part', 'or-112');
         await t.screenshot({ path: join(SHOTS, 'flow-field-visit.jpg'), type: 'jpeg', quality: 55, scale: 'css' });
-        await t.getByRole('button', { name: /Finish visit/ }).first().tap();
+        await t
+            .getByRole('button', { name: /Finish visit/ })
+            .first()
+            .tap();
         await t.waitForTimeout(7000);
         must(/4 of 6 done/.test(await t.locator('body').innerText()), 'The route doesn’t show the visit as done');
         await tech.context.close();
@@ -575,7 +721,11 @@ async function runFlows(creds) {
 
 function company(action) {
     execFileSync('scp', ['-q', join(ROOT, 'scripts/click-test-company.php'), `${SSH}:/tmp/click-test-company.php`], { timeout: 60000 });
-    const out = execFileSync('ssh', [SSH, `cd ${APP_DIR} && CLICK_ACTION=${action} php artisan tinker --execute='include "/tmp/click-test-company.php";'`], { encoding: 'utf8', timeout: 180000, maxBuffer: 1e7 });
+    const out = execFileSync(
+        'ssh',
+        [SSH, `cd ${APP_DIR} && CLICK_ACTION=${action} php artisan tinker --execute='include "/tmp/click-test-company.php";'`],
+        { encoding: 'utf8', timeout: 180000, maxBuffer: 1e7 },
+    );
     const json = out.match(/CLICK_JSON=(\{.*\})/);
     if (!json) throw new Error(`Company ${action} failed:\n${out.slice(-600)}`);
     return JSON.parse(json[1]);
@@ -587,13 +737,33 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 
 function writeReport(commit, minutes) {
     const failed = report.issues.length + report.flows.filter((f) => !f.ok).length;
-    const issueRows = report.issues.map((i) => `<tr><td>${esc(i.target)}</td><td>${esc(i.role)}</td><td><code>${esc(i.path)}</code><br><small>${esc(i.action)}</small></td><td><b>${esc(i.kind)}</b><br>${esc(i.detail)}</td><td>${i.shot ? `<a href="shots/${esc(i.shot)}">screenshot</a>` : ''}</td></tr>`).join('');
-    const flowRows = report.flows.map((f) => `<tr><td class="${f.ok ? 'ok' : 'bad'}">${f.ok ? 'PASS' : 'FAIL'}</td><td>${esc(f.name)}</td><td>${esc(f.detail)}</td></tr>`).join('');
+    const issueRows = report.issues
+        .map(
+            (i) =>
+                `<tr><td>${esc(i.target)}</td><td>${esc(i.role)}</td><td><code>${esc(i.path)}</code><br><small>${esc(i.action)}</small></td><td><b>${esc(i.kind)}</b><br>${esc(i.detail)}</td><td>${i.shot ? `<a href="shots/${esc(i.shot)}">screenshot</a>` : ''}</td></tr>`,
+        )
+        .join('');
+    const flowRows = report.flows
+        .map((f) => `<tr><td class="${f.ok ? 'ok' : 'bad'}">${f.ok ? 'PASS' : 'FAIL'}</td><td>${esc(f.name)}</td><td>${esc(f.detail)}</td></tr>`)
+        .join('');
     const groups = {};
     for (const s of report.shots) ((groups[s.role] ??= {})[s.path] ??= []).push(s);
-    const gallery = Object.entries(groups).map(([role, paths]) => `<h3>${esc(role)}</h3>` + Object.entries(paths).map(([path, shots]) => `<details><summary><code>${esc(path)}</code></summary><div class="grid">${shots.map((s) => `<a href="shots/${esc(s.file)}"><img loading="lazy" src="shots/${esc(s.file)}" alt=""><span>${esc(s.target)}</span></a>`).join('')}</div></details>`).join('')).join('');
+    const gallery = Object.entries(groups)
+        .map(
+            ([role, paths]) =>
+                `<h3>${esc(role)}</h3>` +
+                Object.entries(paths)
+                    .map(
+                        ([path, shots]) =>
+                            `<details><summary><code>${esc(path)}</code></summary><div class="grid">${shots.map((s) => `<a href="shots/${esc(s.file)}"><img loading="lazy" src="shots/${esc(s.file)}" alt=""><span>${esc(s.target)}</span></a>`).join('')}</div></details>`,
+                    )
+                    .join(''),
+        )
+        .join('');
     writeFileSync(join(OUT, 'report.json'), JSON.stringify({ ...report, commit, minutes, failed }, null, 1));
-    writeFileSync(join(OUT, 'index.html'), `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>RoutePilot click test</title>
+    writeFileSync(
+        join(OUT, 'index.html'),
+        `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>RoutePilot click test</title>
 <style>:root{color-scheme:dark}body{margin:0 auto;max-width:1100px;padding:24px 16px;background:#0b1020;color:#d7e2f0;font:15px/1.5 ui-monospace,Menlo,Consolas,monospace}h1{font-size:22px;margin:0 0 4px}h2{margin-top:32px;font-size:17px;border-bottom:1px solid #27324a;padding-bottom:6px}h3{color:#7dd3fc;text-transform:uppercase;font-size:13px;letter-spacing:.08em}.big{font-size:34px;font-weight:700;margin:12px 0}.ok{color:#4ade80}.bad{color:#f87171}.stats{display:flex;flex-wrap:wrap;gap:12px}.stats div{border:1px solid #27324a;border-radius:8px;padding:10px 14px}.stats b{display:block;font-size:22px}table{width:100%;border-collapse:collapse;font-size:13px}td{border-top:1px solid #27324a;padding:8px;vertical-align:top;overflow-wrap:anywhere}code{color:#fbbf24}a{color:#7dd3fc}summary{cursor:pointer;padding:3px 0}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;padding:10px 0}.grid img{width:100%;height:150px;object-fit:cover;object-position:top;border:1px solid #27324a;border-radius:6px}.grid a{text-decoration:none;font-size:12px}.grid span{display:block}</style>
 <h1>RoutePilot click test</h1><div>${esc(report.started.toLocaleString('en-US', { timeZone: 'America/New_York' }))} ET · commit <code>${esc(commit)}</code> · ${minutes} min</div>
 <div class="big ${failed ? 'bad' : 'ok'}">${failed ? `${failed} problem${failed === 1 ? '' : 's'} found` : 'All clear'}</div>
@@ -601,7 +771,8 @@ function writeReport(commit, minutes) {
 ${report.notes.map((n) => `<p>${esc(n)}</p>`).join('')}
 <h2>Problems</h2>${issueRows ? `<table>${issueRows}</table>` : '<p class="ok">None.</p>'}
 <h2>End-to-end checks</h2>${flowRows ? `<table>${flowRows}</table>` : '<p>Not run.</p>'}
-<h2>Screenshots</h2>${gallery}`);
+<h2>Screenshots</h2>${gallery}`,
+    );
     return failed;
 }
 
@@ -644,5 +815,7 @@ if (!process.env.CLICK_NO_PUBLISH) {
         console.error('Could not copy the report to staging:', e.message);
     }
 }
-console.log(`\n${failed ? `✗ ${failed} problem(s)` : '✓ All clear'} · ${report.pages} screens · ${report.clicks} clicks · ${report.flows.filter((f) => f.ok).length}/${report.flows.length} end-to-end · local report: ${join(OUT, 'index.html')}`);
+console.log(
+    `\n${failed ? `✗ ${failed} problem(s)` : '✓ All clear'} · ${report.pages} screens · ${report.clicks} clicks · ${report.flows.filter((f) => f.ok).length}/${report.flows.length} end-to-end · local report: ${join(OUT, 'index.html')}`,
+);
 process.exit(failed ? 1 : 0);

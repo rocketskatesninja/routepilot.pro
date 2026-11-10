@@ -295,7 +295,7 @@ function closePane() {
                 @close="closePane"
             >
                 <template #list>
-                    <div class="border-border overflow-hidden rounded-xl border">
+                    <div class="border-border @container overflow-x-auto rounded-xl border">
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-muted-foreground text-left">
                                 <tr>
@@ -303,8 +303,8 @@ function closePane() {
                                         <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
                                     </th>
                                     <th class="px-4 py-2 font-medium">Name</th>
-                                    <th class="hidden px-4 py-2 font-medium md:table-cell">Detail</th>
-                                    <th class="hidden px-4 py-2 font-medium lg:table-cell">
+                                    <th class="hidden px-4 py-2 font-medium @md:table-cell">Detail</th>
+                                    <th class="hidden px-4 py-2 font-medium @xl:table-cell">
                                         {{ props.filters.type === 'tenants' ? 'Slug' : 'Tenant' }}
                                     </th>
                                 </tr>
@@ -343,8 +343,8 @@ function closePane() {
                                             <Chip v-if="row.portal" tone="info" title="Has a portal login you can sign in as">Portal</Chip>
                                         </div>
                                     </td>
-                                    <td class="text-muted-foreground hidden px-4 py-2.5 capitalize md:table-cell">{{ row.sub ?? '—' }}</td>
-                                    <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">{{ row.meta ?? '—' }}</td>
+                                    <td class="text-muted-foreground hidden px-4 py-2.5 capitalize @md:table-cell">{{ row.sub ?? '—' }}</td>
+                                    <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">{{ row.meta ?? '—' }}</td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
                                     <td :colspan="emailOpen ? 4 : 3" class="text-muted-foreground px-4 py-10 text-center">
@@ -403,7 +403,7 @@ function closePane() {
                             </div>
                             <p v-if="editForm.errors.slug" class="text-xs text-red-600">{{ editForm.errors.slug }}</p>
                             <p v-else-if="slugChanged" class="text-xs text-amber-600 dark:text-amber-500">
-                                ⚠ Changing the slug changes this company's public URL — existing links to the old address will stop working.
+                                Changing the slug changes this company's public URL — existing links to the old address will stop working.
                             </p>
                         </div>
                         <div class="grid gap-1.5">
@@ -507,7 +507,7 @@ function closePane() {
                                             <span class="block font-medium">Turned on</span>
                                             <span class="text-muted-foreground">Their team can use the assistant.</span>
                                         </span>
-                                        <input v-model="aiForm.enabled" type="checkbox" class="accent-primary size-5" @change="saveTenantAi" />
+                                        <input v-model="aiForm.enabled" type="checkbox" class="size-5" @change="saveTenantAi" />
                                     </label>
                                 </li>
                                 <li class="flex items-center justify-between gap-4 px-4 py-3">
@@ -535,7 +535,7 @@ function closePane() {
                                             <span class="block font-medium">Own AI provider</span>
                                             <span class="text-muted-foreground">Let them use their own provider, model and key.</span>
                                         </span>
-                                        <input v-model="aiForm.allow_override" type="checkbox" class="accent-primary size-5" @change="saveTenantAi" />
+                                        <input v-model="aiForm.allow_override" type="checkbox" class="size-5" @change="saveTenantAi" />
                                     </label>
                                 </li>
                             </ul>

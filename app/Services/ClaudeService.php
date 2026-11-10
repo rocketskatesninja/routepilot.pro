@@ -46,7 +46,7 @@ class ClaudeService
         } catch (\Throwable $e) {
             Log::warning('AI API call failed', ['provider' => $provider, 'error' => $e->getMessage()]);
 
-            return '⚠️ Connection error: could not reach the AI service. Please try again.';
+            return 'Connection error: could not reach the AI service. Please try again.';
         }
     }
 
@@ -88,7 +88,7 @@ class ClaudeService
             $error = $response->json('error.message') ?? 'Unknown error (status '.$response->status().')';
             Log::warning('Anthropic API error', ['error' => $error]);
 
-            return '⚠️ AI Error: '.(is_string($error) ? $error : 'unexpected response');
+            return 'AI error: '.(is_string($error) ? $error : 'unexpected response');
         }
 
         $content = $response->json('content');
@@ -152,7 +152,7 @@ class ClaudeService
             $error = $response->json('error.message') ?? 'Unknown error (status '.$response->status().')';
             Log::warning('OpenAI API error', ['error' => $error]);
 
-            return '⚠️ AI Error: '.(is_string($error) ? $error : 'unexpected response');
+            return 'AI error: '.(is_string($error) ? $error : 'unexpected response');
         }
 
         $message = $response->json('choices.0.message');

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DARK_MAP_BG, DARK_MAP_STYLE, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
+import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -71,7 +71,7 @@ function openInfo(mk: StopMarker, anchor: unknown) {
         `<div style="font-weight:600;font-size:13px;color:#0f172a">${esc(mk.pool ?? 'Stop')}</div>`,
         mk.address ? `<div style="color:#475569">${esc(mk.address)}</div>` : '',
         mk.agent ? `<div style="color:#475569">Tech: ${esc(mk.agent)}</div>` : '',
-        `<a href="${streetView}" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:none">Street View ↗</a>`,
+        `<a href="${streetView}" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:none">Street View</a>`,
     ];
     infoWindow.setContent(
         `<div style="display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.35;padding:1px 2px">${rows.join('')}</div>`,
@@ -139,8 +139,7 @@ function draw(fit = true) {
             position,
             map,
             title: props.hq.label ?? 'Headquarters',
-            label: { text: '★', color: '#ffffff', fontSize: '12px' },
-            icon: { path: m.SymbolPath.CIRCLE, scale: 13, fillColor: '#0f172a', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 2 },
+            icon: hqIcon(m),
         }) as unknown as { setMap: (x: unknown) => void };
         overlays.push(hqMarker);
         bounds.extend(position);

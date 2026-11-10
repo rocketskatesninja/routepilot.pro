@@ -6,6 +6,6 @@ defineProps<{ company: { name: string; logo: string | null } }>();
 <template>
     <div class="flex items-center gap-2.5 self-start">
         <img v-if="company.logo" :src="company.logo" alt="" class="h-10 w-auto shrink-0" />
-        <p class="font-display text-lg font-semibold">{{ company.name }}</p>
+        <p class="text-lg font-semibold">{{ company.name }}</p>
     </div>
 </template>

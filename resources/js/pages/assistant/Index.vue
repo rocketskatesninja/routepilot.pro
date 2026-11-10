@@ -110,10 +110,10 @@ async function send(text?: string) {
             sessionId.value = data.session_id;
             messages.value.push({ role: 'assistant', content: data.reply });
         } else {
-            messages.value.push({ role: 'assistant', content: data.error ?? '⚠️ Something went wrong.' });
+            messages.value.push({ role: 'assistant', content: data.error ?? 'Something went wrong.' });
         }
     } catch {
-        messages.value.push({ role: 'assistant', content: '⚠️ Could not reach the assistant.' });
+        messages.value.push({ role: 'assistant', content: 'Could not reach the assistant.' });
     } finally {
         sending.value = false;
         await scrollDown();

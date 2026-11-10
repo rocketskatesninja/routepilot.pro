@@ -45,8 +45,9 @@ const page = usePage<SharedData>();
 /**
  * Role-adaptive navigation. Each role sees only its own items; tenant_admin
  * is the densest, so its menu is split into labelled sections (Operations /
- * Customers / Business) with Dashboard pinned on top and Assistant on the
- * bottom, ungrouped. Shorter menus stay a single unlabelled section.
+ * Customers / Business) with Dashboard and Assistant pinned on top, ungrouped.
+ * Shorter menus stay a single unlabelled section. Every role has Assistant
+ * right under its home link.
  */
 type NavSection = { label?: string; items: NavItem[] };
 
@@ -55,15 +56,20 @@ const navByRole: Record<string, NavSection[]> = {
         {
             items: [
                 { title: 'Platform', href: '/dashboard', icon: ShieldCheck },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
                 { title: 'People', href: '/people', icon: Users },
                 { title: 'Billing', href: '/platform/billing', icon: CreditCard },
                 { title: 'AI', href: '/platform/ai', icon: Bot },
-                { title: 'Assistant', href: '/assistant', icon: Bot },
             ],
         },
     ],
     tenant_admin: [
-        { items: [{ title: 'Dashboard', href: '/dashboard', icon: LayoutGrid }] },
+        {
+            items: [
+                { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
+            ],
+        },
         {
             label: 'Operations',
             items: [
@@ -92,16 +98,15 @@ const navByRole: Record<string, NavSection[]> = {
                 { title: 'Landing page', href: '/company/landing', icon: Globe },
             ],
         },
-        { items: [{ title: 'Assistant', href: '/assistant', icon: Bot }] },
     ],
     agent: [
         {
             items: [
                 { title: 'Today', href: '/dashboard', icon: CalendarDays },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
                 { title: 'My Route', href: '/schedule', icon: Map },
                 { title: 'Reports', href: '/reports', icon: FileText },
                 { title: 'Work orders', href: '/work-orders', icon: Wrench },
-                { title: 'Assistant', href: '/assistant', icon: Bot },
             ],
         },
     ],
@@ -109,11 +114,11 @@ const navByRole: Record<string, NavSection[]> = {
         {
             items: [
                 { title: 'Home', href: '/dashboard', icon: Home },
+                { title: 'Assistant', href: '/assistant', icon: Bot },
                 { title: 'My Pools', href: '/my-pools', icon: Waves },
                 { title: 'Service History', href: '/history', icon: FileText },
                 { title: 'Balance', href: '/balance', icon: Banknote },
                 { title: 'Services', href: '/requests', icon: ClipboardList },
-                { title: 'Assistant', href: '/assistant', icon: Bot },
             ],
         },
     ],
@@ -160,9 +165,9 @@ const navFit = computed(() => {
     const links = sections.reduce((count, section) => count + section.items.length, 0);
     return {
         '--nav-links': links,
-        '--nav-chrome': `${labels * 20 + (sections.length - 1) * 6}px`,
+        '--nav-chrome': `${labels * 1.25 + (sections.length - 1) * 0.375}rem`, // in rem, so it grows with Big view
         '--rail-cells': links + 2 + (isAgent.value ? 2 : 0),
-        '--rail-chrome': `${48 + (sections.length - 1) * 6 + (isAgent.value ? 8 : 0) + 1}px`,
+        '--rail-chrome': `calc(${3 + (sections.length - 1) * 0.375 + (isAgent.value ? 0.5 : 0)}rem + 1px)`,
     };
 });
 

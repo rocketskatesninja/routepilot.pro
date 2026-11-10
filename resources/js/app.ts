@@ -11,6 +11,7 @@ import type { DefineComponent } from 'vue';
 import { createApp, createSSRApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 import { initializeTheme } from './composables/useAppearance';
+import { initializeBigView } from './composables/useBigView';
 import { applyBrand } from './composables/useBrand';
 import { ensureUserSubscription } from './echo';
 import { pageTitle } from './lib/pageTitle';
@@ -90,3 +91,4 @@ router.on('navigate', (event) => {
 
 // This will set light / dark mode on page load...
 initializeTheme();
+initializeBigView();

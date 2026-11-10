@@ -392,7 +392,7 @@ const included = [
                             class="reveal border-border bg-card/40 relative rounded-2xl border p-6"
                             :style="{ transitionDelay: `${i * 0.1}s` }"
                         >
-                            <span class="text-muted-foreground/15 absolute top-5 right-5 text-4xl font-black">{{ i + 1 }}</span>
+                            <span class="text-muted-foreground/15 absolute top-5 right-5 text-4xl font-bold">{{ i + 1 }}</span>
                             <div class="mb-2 flex items-center gap-3">
                                 <span class="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
                                     <component :is="s.icon" class="size-6" />

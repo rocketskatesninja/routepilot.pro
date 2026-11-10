@@ -61,7 +61,7 @@ const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Ch
                     </div>
                 </template>
                 <template v-else>
-                    <h1 class="font-display text-[1.75rem] leading-tight font-semibold tracking-tight sm:text-[2.125rem]">You’re all paid up.</h1>
+                    <h1 class="text-[1.75rem] leading-tight font-semibold tracking-tight sm:text-[2.125rem]">You’re all paid up.</h1>
                     <p class="text-muted-foreground mt-2 text-[15px]">Thank you! New visits show up here after they’re done.</p>
                 </template>
             </section>
@@ -83,7 +83,7 @@ const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Ch
 
             <!-- what the balance is made of -->
             <section v-if="props.visits.length || props.charges.length" aria-labelledby="owed">
-                <h2 id="owed" class="font-display text-xl font-semibold tracking-tight">What you owe for</h2>
+                <h2 id="owed" class="text-xl font-semibold tracking-tight">What you owe for</h2>
                 <ul class="border-border divide-border mt-4 divide-y rounded-2xl border">
                     <li v-for="(v, i) in props.visits" :key="`v${i}`" class="flex items-baseline justify-between gap-4 p-4 sm:px-5">
                         <span class="min-w-0">
@@ -105,7 +105,7 @@ const METHODS: Record<string, string> = { card: 'Card', cash: 'Cash', check: 'Ch
 
             <!-- recent payments -->
             <section v-if="props.payments.length" aria-labelledby="paid">
-                <h2 id="paid" class="font-display text-xl font-semibold tracking-tight">Recent payments</h2>
+                <h2 id="paid" class="text-xl font-semibold tracking-tight">Recent payments</h2>
                 <ul class="border-border divide-border mt-4 divide-y rounded-2xl border">
                     <li v-for="(p, i) in props.payments" :key="i" class="flex items-baseline justify-between gap-4 p-4 sm:px-5">
                         <span class="min-w-0">

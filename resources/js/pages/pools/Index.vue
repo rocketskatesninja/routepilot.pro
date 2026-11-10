@@ -543,11 +543,9 @@ function submitTargets() {
                             <th class="w-8 px-4 py-2"><span class="sr-only">Health</span></th>
                             <SortableTh sort-key="name" :active="props.sort">Name</SortableTh>
                             <SortableTh sort-key="customer" :active="props.sort">Customer</SortableTh>
-                            <SortableTh sort-key="type" :active="props.sort" class="hidden min-[1440px]:table-cell md:table-cell xl:hidden"
-                                >Type</SortableTh
-                            >
-                            <th class="hidden px-4 py-2 font-medium md:table-cell">Cadence</th>
-                            <th class="hidden px-4 py-2 font-medium lg:table-cell">Agent</th>
+                            <SortableTh sort-key="type" :active="props.sort" class="hidden @2xl:table-cell">Type</SortableTh>
+                            <th class="hidden px-4 py-2 font-medium @md:table-cell">Cadence</th>
+                            <th class="hidden px-4 py-2 font-medium @xl:table-cell">Agent</th>
                         </template>
                         <template #row="{ item }">
                             <td class="px-4 py-2.5">
@@ -577,11 +575,11 @@ function submitTargets() {
                                     <span>{{ item.customer }}</span>
                                 </div>
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 capitalize min-[1440px]:table-cell md:table-cell xl:hidden">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 capitalize @2xl:table-cell">
                                 {{ item.type.replace('_', ' ') }}
                             </td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 md:table-cell">{{ item.cadence ?? '—' }}</td>
-                            <td class="text-muted-foreground hidden px-4 py-2.5 lg:table-cell">
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @md:table-cell">{{ item.cadence ?? '—' }}</td>
+                            <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">
                                 <div v-if="item.agent" class="flex items-center gap-2">
                                     <EntityAvatar :src="item.agent_photo" type="person" :name="item.agent" size="sm" shape="circle" />
                                     <span>{{ item.agent }}</span>

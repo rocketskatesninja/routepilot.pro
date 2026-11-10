@@ -224,7 +224,7 @@ const statusClass = (status: string) =>
 
             <!-- what they have now -->
             <section v-if="props.plans.length" aria-labelledby="yours">
-                <h2 id="yours" class="font-display text-xl font-semibold tracking-tight">Your services</h2>
+                <h2 id="yours" class="text-xl font-semibold tracking-tight">Your services</h2>
                 <p class="text-muted-foreground mt-1 text-sm">Pause or stop any one of them. The rest carry on as usual.</p>
 
                 <div class="mt-4 space-y-4">
@@ -293,7 +293,7 @@ const statusClass = (status: string) =>
 
             <!-- the company's price list -->
             <section aria-labelledby="add">
-                <h2 id="add" class="font-display text-xl font-semibold tracking-tight">Add a service</h2>
+                <h2 id="add" class="text-xl font-semibold tracking-tight">Add a service</h2>
                 <p class="text-muted-foreground mt-1 text-sm">Pick what you’d like. {{ company }} confirms the day and lets you know here.</p>
 
                 <ul v-if="props.services.length" class="divide-border border-border mt-4 divide-y rounded-2xl border">
@@ -338,7 +338,7 @@ const statusClass = (status: string) =>
 
             <!-- what they've asked for, and the answers -->
             <section v-if="props.requests.length" aria-labelledby="sent">
-                <h2 id="sent" class="font-display text-xl font-semibold tracking-tight">Your requests</h2>
+                <h2 id="sent" class="text-xl font-semibold tracking-tight">Your requests</h2>
                 <ul class="divide-border mt-2 divide-y">
                     <li v-for="r in props.requests" :key="r.id" class="py-4">
                         <div class="flex items-start justify-between gap-3">
@@ -365,7 +365,7 @@ const statusClass = (status: string) =>
             <DialogContent class="max-h-[90vh] overflow-y-auto">
                 <form class="space-y-4 text-sm" @submit.prevent="submit">
                     <DialogHeader>
-                        <DialogTitle class="font-display text-xl">{{ heading }}</DialogTitle>
+                        <DialogTitle class="text-xl">{{ heading }}</DialogTitle>
                         <DialogDescription>{{ subheading }}</DialogDescription>
                     </DialogHeader>
 

@@ -61,7 +61,7 @@ class LookupInventory extends AiTool
         $rows = $items->map(function (ChemicalInventory $item): string {
             $stock = StandardChemicals::amount((float) $item->current_stock, $item->unit);
             $threshold = $item->reorder_threshold !== null ? StandardChemicals::amount((float) $item->reorder_threshold, $item->unit) : 'none set';
-            $low = $item->isLowStock() ? ' ⚠️ LOW STOCK' : '';
+            $low = $item->isLowStock() ? ' (LOW STOCK)' : '';
             $cost = $item->cost_per_unit !== null ? '$'.number_format((float) $item->cost_per_unit, 2).'/'.StandardChemicals::unitFor(1, $item->unit) : '';
             $supplier = $item->supplier !== null ? " (from {$item->supplier})" : '';
 
@@ -72,7 +72,7 @@ class LookupInventory extends AiTool
         })->join("\n");
 
         $lowCount = $items->filter(fn (ChemicalInventory $i): bool => $i->isLowStock())->count();
-        $summary = $lowCount > 0 ? "\n\n⚠️ {$lowCount} item(s) at or below reorder threshold." : '';
+        $summary = $lowCount > 0 ? "\n\n{$lowCount} item(s) at or below reorder threshold." : '';
 
         return "Inventory ({$items->count()} items):\n\n{$rows}{$summary}";
     }

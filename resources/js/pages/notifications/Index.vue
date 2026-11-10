@@ -94,14 +94,14 @@ function dayLabel(iso: string | null): string {
     yesterday.setDate(today.getDate() - 1);
     if (d.toDateString() === today.toDateString()) return 'Today';
     if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-    return d.toLocaleDateString(undefined, {
+    return d.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'short',
         day: 'numeric',
         ...(d.getFullYear() !== today.getFullYear() ? { year: 'numeric' } : {}),
     });
 }
-const timeOf = (iso: string | null): string => (iso ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '');
+const timeOf = (iso: string | null): string => (iso ? new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '');
 const groups = computed(() => {
     const out: { label: string; items: Note[] }[] = [];
     for (const n of list.value.data) {
@@ -212,12 +212,7 @@ const emptyText = computed(() =>
             <template v-else>
                 <div class="border-border overflow-hidden rounded-xl border">
                     <label v-if="list.data.length" class="bg-muted/40 text-muted-foreground flex items-center gap-3 px-4 py-2 text-xs">
-                        <input
-                            type="checkbox"
-                            class="border-input accent-primary size-4 rounded pointer-coarse:size-5"
-                            :checked="allTicked"
-                            @change="tickAll"
-                        />
+                        <input type="checkbox" class="border-input size-4 rounded pointer-coarse:size-5" :checked="allTicked" @change="tickAll" />
                         Select all on this page
                     </label>
                     <template v-for="g in groups" :key="g.label">
@@ -233,7 +228,7 @@ const emptyText = computed(() =>
                             >
                                 <input
                                     type="checkbox"
-                                    class="border-input accent-primary mt-2 size-4 shrink-0 rounded pointer-coarse:size-5"
+                                    class="border-input mt-2 size-4 shrink-0 rounded pointer-coarse:size-5"
                                     :checked="ticked.includes(n.id)"
                                     :aria-label="`Select “${n.title}”`"
                                     @change="tick(n.id)"

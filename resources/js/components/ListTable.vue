@@ -11,6 +11,10 @@ import { computed } from 'vue';
  * the per-row cells (#row="{ item }"), and the empty message (#empty).
  * With v-model:checked, each row gets a tick box (and the header a tick-all for
  * the page) so the page can act on several at once.
+ * The box is a size container: pages show their less important columns with
+ * container rules (`hidden @xl:table-cell`), so a column appears only when the
+ * list itself has room, whatever the screen, the detail pane or Big view do to
+ * its width. Anything that still doesn't fit scrolls sideways, never gets cut.
  */
 const props = defineProps<{
     meta: Paginated<T>;
@@ -43,14 +47,14 @@ const { listRef } = useFitRows(
 
 <template>
     <div class="flex min-h-0 flex-col gap-3">
-        <div ref="listRef" class="border-border overflow-hidden rounded-xl border">
+        <div ref="listRef" class="border-border @container overflow-x-auto rounded-xl border">
             <table class="w-full text-sm">
                 <thead class="bg-muted/50 text-muted-foreground text-left">
                     <tr>
                         <th v-if="ticking" class="w-10 px-3 py-2">
                             <input
                                 type="checkbox"
-                                class="border-input accent-primary size-4 rounded align-middle"
+                                class="border-input size-4 rounded align-middle"
                                 :checked="allTicked"
                                 aria-label="Select all on this page"
                                 @change="tickAll"
@@ -70,7 +74,7 @@ const { listRef } = useFitRows(
                         <td v-if="ticking" class="w-10 px-3" @click.stop>
                             <input
                                 type="checkbox"
-                                class="border-input accent-primary size-4 rounded align-middle"
+                                class="border-input size-4 rounded align-middle"
                                 :checked="checked?.includes(rowKey(item))"
                                 aria-label="Select"
                                 @change="tick(rowKey(item))"
