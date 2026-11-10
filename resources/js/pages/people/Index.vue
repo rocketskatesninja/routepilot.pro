@@ -657,6 +657,9 @@ function destroyAgent() {
                                 <Input id="phone" v-model="form.phone" />
                             </div>
                         </div>
+                        <p v-if="formMode === 'create' || customer?.portal_status === 'none'" class="text-muted-foreground -mt-2 text-xs">
+                            Leave the email blank and they won’t get any emails from you: no visit reports, reminders or invoices.
+                        </p>
                         <div class="grid gap-1.5">
                             <Label for="address">Address</Label>
                             <Input id="address" v-model="form.address_line1" />
