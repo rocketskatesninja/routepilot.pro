@@ -35,9 +35,13 @@ codebase, with each company's data kept strictly to itself.
   to add, worked out on the phone, even offline.
 - **An offline field app** — the water test is checked against the pool's own targets as it's
   typed, doses are worked out on the device, and finished visits queue until there's signal.
-- **Billing that runs itself** — every visit charged at its plan's price, monthly invoices
-  emailed with a pay-online link, card-on-file autopay with retries, partial payments, and a
-  full payment history with Stripe references.
+- **Billing that runs itself** — every visit charged at the price agreed for that pool, monthly
+  invoices emailed with a pay-online link, card-on-file autopay with retries, partial payments,
+  and a full payment history with Stripe references.
+- **Priced pool by pool** — a service's price is where each pool starts; the office sets the
+  price for that pool when it approves the request, and the customer is told it. A company that
+  quotes every pool can hide its prices: customers see “Price on request” on the website and in
+  the portal, and the website chat offers an estimate instead of quoting.
 - **Emails customers want to open** — a visit report with the water test and photos after every
   visit, reminders the day before, invoices and receipts, all in the company's colors, with
   one-click unsubscribe on every optional email.
@@ -108,7 +112,7 @@ An installable app for technicians that keeps working without signal.
 |---|---|
 | **Price** | $34.99/mo |
 | Pools | 50 included, then $0.50/mo each |
-| Technicians | 2 included, then $10/mo each |
+| Technicians | Unlimited, each with their own login |
 | Back office, field app & customer portal | ✓ |
 | Branded public website | ✓ |
 | AI chemistry & assistant | ✓ |
