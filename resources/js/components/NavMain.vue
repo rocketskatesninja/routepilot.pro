@@ -27,10 +27,17 @@ const isActive = (href: string): boolean => currentPath.value === strip(href);
         <!-- Rows sit flush (no gap) so the tenant admin's full menu fits without scrolling. -->
         <SidebarMenu class="gap-0">
             <SidebarMenuItem v-for="item in items" :key="item.title">
-                <SidebarMenuButton as-child :is-active="isActive(item.href)" :tooltip="item.badge ? `${item.title} (${item.badge})` : item.title">
-                    <Link :href="item.href" :class="{ 'pr-11': item.badge }">
+                <SidebarMenuButton
+                    as-child
+                    :is-active="isActive(item.href)"
+                    :tooltip="item.badge ? `${item.title} (${item.badge})` : item.note ? `${item.title} (${item.note})` : item.title"
+                >
+                    <Link :href="item.href" :class="{ 'pr-11': item.badge, 'opacity-60': item.note }">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
+                        <span v-if="item.note" class="text-muted-foreground ml-auto text-xs group-data-[collapsible=icon]:hidden">{{
+                            item.note
+                        }}</span>
                         <span v-if="item.badge" class="sr-only">({{ item.badge }})</span>
                     </Link>
                 </SidebarMenuButton>

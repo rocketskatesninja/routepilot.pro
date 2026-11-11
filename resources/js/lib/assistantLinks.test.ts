@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import customerGuide from '../../help/customer.md?raw';
 import officeGuide from '../../help/office.md?raw';
+import platformGuide from '../../help/platform.md?raw';
+import techGuide from '../../help/tech.md?raw';
 import { linkUrl, renderParts } from './assistantLinks';
 import { navPaths } from './nav';
 
@@ -25,7 +28,11 @@ describe('assistant links', () => {
     it('never links a record type a customer or tech can’t open', () => {
         for (const role of ['customer', 'agent', 'super_admin']) {
             expect(renderParts('[[customer:5:Jane Doe]]', role)).toEqual([{ kind: 'text', text: 'Jane Doe' }]);
+            expect(linkUrl(role, 'pool', '5')).toBeNull();
         }
+        expect(linkUrl('agent', 'workorder', '3')).toBe('/work-orders?selected=3');
+        expect(linkUrl('customer', 'visit', '9')).toBe('/history?selected=9');
+        expect(linkUrl('customer', 'workorder', '3')).toBeNull();
     });
 
     it('never links outside the app, whatever the reply says', () => {
@@ -62,9 +69,14 @@ describe('assistant links', () => {
     });
 });
 
-describe('office guide', () => {
-    it('covers every page in the office menu', () => {
-        const missing = navPaths('tenant_admin').filter((path) => !officeGuide.includes(`(${path})`));
+describe('how-to guides', () => {
+    it.each([
+        ['tenant_admin', officeGuide],
+        ['agent', techGuide],
+        ['customer', customerGuide],
+        ['super_admin', platformGuide],
+    ])('the %s guide covers every page in that menu', (role, guide) => {
+        const missing = navPaths(role).filter((path) => !guide.includes(`(${path})`));
         expect(missing).toEqual([]);
     });
 });

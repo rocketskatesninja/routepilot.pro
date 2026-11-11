@@ -80,6 +80,9 @@ class AssistantPrompt
     {
         $file = match ($role) {
             'tenant_admin' => 'office.md',
+            'agent' => 'tech.md',
+            'customer' => 'customer.md',
+            'super_admin' => 'platform.md',
             default => null,
         };
         $path = $file !== null ? resource_path("help/{$file}") : null;

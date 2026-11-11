@@ -111,14 +111,14 @@ An installable app for technicians that keeps working without signal.
 | | RoutePilot |
 |---|---|
 | **Price** | $34.99/mo |
-| Pools | 50 included, then $0.50/mo each |
+| Pools | 50 included, then $0.75/mo each |
 | Technicians | Unlimited, each with their own login |
 | Back office, field app & customer portal | ✓ |
 | Branded public website | ✓ |
 | AI chemistry & assistant | ✓ |
 | Online payments & autopay | ✓ |
 
-14-day free trial, no credit card required.
+30-day free trial, no credit card required.
 
 ## Built with
 

@@ -13,6 +13,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 /**
  * A look-up the in-app assistant can run for the signed-in person. It only
@@ -99,8 +100,9 @@ abstract class AssistantTool extends AiTool
     }
 
     /**
-     * The pools this person can see: the office sees the company's, a tech the
-     * ones on their active plans, a customer their own. Archived pools are out.
+     * The pools this person can see: the office (and an Agent Plus tech) sees
+     * the company's, a tech the ones on their active plans or that they've
+     * visited, a customer their own. Archived pools are out.
      *
      * @return Builder<Pool>
      */
@@ -110,7 +112,9 @@ abstract class AssistantTool extends AiTool
 
         return match ($user->role) {
             'tenant_admin' => $query,
-            'agent' => $query->whereHas('subscriptions', fn ($s) => $s->where('assigned_agent_id', $user->id)->where('status', 'active')),
+            'agent' => $user->isAgentPlus() ? $query : $query->where(fn ($q) => $q
+                ->whereHas('subscriptions', fn ($s) => $s->where('assigned_agent_id', $user->id)->where('status', 'active'))
+                ->orWhereHas('visits', fn ($v) => $v->where('agent_id', $user->id))),
             'customer' => $query->whereHas('customer', fn ($c) => $c->where('user_id', $user->id)),
             default => $query->whereRaw('1 = 0'),
         };
@@ -190,6 +194,43 @@ abstract class AssistantTool extends AiTool
 
         return implode(', ', array_filter($parts));
     }
+
+    /** A tech without Agent Plus sees only their own visits (as on the Reports page). */
+    protected function ownVisitsOnly(User $user): bool
+    {
+        return $user->role === 'agent' && ! $user->isAgentPlus();
+    }
+
+    /**
+     * The day asked for, in the company's time zone: a weekday word is the
+     * coming one (today if it's today), so the model never does date sums.
+     * Null when it can't be read.
+     */
+    protected function resolveDay(string $raw): ?Carbon
+    {
+        $today = Tenant::localToday();
+        $raw = (string) preg_replace('/^(next|this|on|coming)\s+/', '', strtolower(trim($raw)));
+
+        if ($raw === '' || $raw === 'today') {
+            return $today;
+        }
+        if ($raw === 'tomorrow' || $raw === 'yesterday') {
+            return $today->copy()->addDays($raw === 'tomorrow' ? 1 : -1);
+        }
+        foreach (['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as $index => $name) {
+            if (strlen($raw) >= 3 && str_starts_with($name, $raw)) {
+                return $today->dayOfWeek === $index ? $today : $today->copy()->next($index);
+            }
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+            return Carbon::parse($raw, $today->getTimezone());
+        }
+
+        return null;
+    }
+
+    /** What a day parameter accepts, for tool schemas. */
+    protected const DAY_HELP = 'The day: a weekday as a word ("monday" = the coming Monday), "today", "tomorrow", "yesterday", or a date as YYYY-MM-DD. Pass weekdays as words: the date is worked out for you. Leave out for today.';
 
     /** A stored moment as the company's local date, e.g. "Nov 17, 2026". */
     protected static function day(?CarbonInterface $at, string $format = 'M j, Y'): string

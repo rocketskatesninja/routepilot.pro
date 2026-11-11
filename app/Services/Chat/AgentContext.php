@@ -55,6 +55,9 @@ class AgentContext
             ->join("\n  ");
 
         $context = "Technician: {$agent->displayName()}\n"
+            .($agent->isAgentPlus()
+                ? "Agent Plus: yes. They can rearrange their own route and skip or unskip their own stops on My Route, and see every report and work order.\n"
+                : "Agent Plus: no. They can't skip, move or reassign stops themselves: the office does that, so tell them to ask the office.\n")
             ."{$stopSummary}\n"
             .($recentReadings !== '' ? "\nRecent chemistry readings:\n  {$recentReadings}\n" : '');
 

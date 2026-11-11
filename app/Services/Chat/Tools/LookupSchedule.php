@@ -6,10 +6,8 @@ namespace App\Services\Chat\Tools;
 
 use App\Models\Route;
 use App\Models\RouteStop;
-use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Chat\AssistantTool;
-use Illuminate\Support\Carbon;
 
 /** Office: who is going where on a day, and how far along each route is. */
 class LookupSchedule extends AssistantTool
@@ -31,16 +29,17 @@ class LookupSchedule extends AssistantTool
         return [
             'type' => 'object',
             'properties' => [
-                'date' => ['type' => 'string', 'description' => 'The day: a weekday as a word ("monday" = the coming Monday), "today", "tomorrow", "yesterday", or a date as YYYY-MM-DD. Pass weekdays as words: the date is worked out for you. Leave out for today.'],
+                'date' => ['type' => 'string', 'description' => self::DAY_HELP],
                 'tech_name' => ['type' => 'string', 'description' => 'Just this tech\'s route (optional).'],
             ],
             'required' => [],
         ];
     }
 
+    /** Office, and techs: the Schedule page shows every route to both. */
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin';
+        return in_array($user->role, ['tenant_admin', 'agent'], true);
     }
 
     public function execute(array $params, User $user): string
@@ -78,32 +77,5 @@ class LookupSchedule extends AssistantTool
                     .' — '.($s->pool?->customer?->displayName() ?? '?')." — {$s->status}")->join("\n")
                 .self::more($stops->count(), $shown->count());
         })->join("\n\n");
-    }
-
-    /**
-     * The day asked for, in the company's time zone: a weekday word is the
-     * coming one (today if it's today), so the model never does date sums.
-     */
-    private function resolveDay(string $raw): ?Carbon
-    {
-        $today = Tenant::localToday();
-        $raw = (string) preg_replace('/^(next|this|on|coming)\s+/', '', strtolower(trim($raw)));
-
-        if ($raw === '' || $raw === 'today') {
-            return $today;
-        }
-        if ($raw === 'tomorrow' || $raw === 'yesterday') {
-            return $today->copy()->addDays($raw === 'tomorrow' ? 1 : -1);
-        }
-        foreach (['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as $index => $name) {
-            if (strlen($raw) >= 3 && str_starts_with($name, $raw)) {
-                return $today->dayOfWeek === $index ? $today : $today->copy()->next($index);
-            }
-        }
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
-            return Carbon::parse($raw, $today->getTimezone());
-        }
-
-        return null;
     }
 }

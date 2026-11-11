@@ -38,9 +38,10 @@ class LookupServiceHistory extends AssistantTool
         ];
     }
 
+    /** Office, and techs (their own visits unless Agent Plus, as on the Reports page). */
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin';
+        return in_array($user->role, ['tenant_admin', 'agent'], true);
     }
 
     public function execute(array $params, User $user): string
@@ -53,6 +54,7 @@ class LookupServiceHistory extends AssistantTool
 
         $visits = ServiceVisit::query()
             ->whereIn('pool_id', $pools->pluck('id'))
+            ->when($this->ownVisitsOnly($user), fn ($q) => $q->where('agent_id', $user->id))
             ->with('pool', 'agent', 'chemicalReading', 'treatments.chemical:id,kind,part_number', 'charges')
             ->latest('visited_at')
             ->limit($limit)
@@ -63,13 +65,15 @@ class LookupServiceHistory extends AssistantTool
             return "No visits yet for {$who}.";
         }
 
-        return "Recent visits for {$who}:\n".$visits->map(function (ServiceVisit $v): string {
+        $office = $user->role === 'tenant_admin';
+
+        return "Recent visits for {$who}:\n".$visits->map(function (ServiceVisit $v) use ($office): string {
             [$parts, $chemicals] = $v->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
             $extras = collect([
                 $v->chemicalReading !== null ? 'water tested' : null,
                 $chemicals->isNotEmpty() ? 'chemicals: '.$chemicals->map(fn (ChemicalTreatment $t): string => "{$t->chemical_name} {$t->amount} {$t->unit}")->join(', ') : null,
                 $parts->isNotEmpty() ? 'parts: '.$parts->map(fn (ChemicalTreatment $t): string => $t->chemical_name.' ×'.(int) $t->amount)->join(', ') : null,
-                $this->billed($v),
+                $office ? $this->billed($v) : null,
             ])->filter()->join(' | ');
 
             return '- '.self::link('visit', $v->id, self::day($v->visited_at, 'M j, Y g:ia'))." — {$v->pool?->name} — "

@@ -25,7 +25,13 @@ const office: Record<string, (id: string) => string> = {
     balance: (id) => `/balances?selected=${id}`,
 };
 
-const recordLinks: Record<string, Record<string, (id: string) => string>> = { tenant_admin: office };
+const recordLinks: Record<string, Record<string, (id: string) => string>> = {
+    tenant_admin: office,
+    // A tech opens the schedule, their reports and their work orders.
+    agent: { day: office.day, visit: office.visit, workorder: office.workorder },
+    // A homeowner opens their own visit reports.
+    customer: { visit: (id) => `/history?selected=${id}` },
+};
 
 /** Where a link goes for this kind of account, or null when it isn't allowed. */
 export function linkUrl(role: string, type: string, id: string): string | null {

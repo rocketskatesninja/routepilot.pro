@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\ChatMessage;
 use App\Models\ChatSession;
+use App\Models\User;
 use App\Services\AiQuota;
 use App\Services\Chat\AssistantService;
 use App\Support\SensitiveText;
@@ -66,7 +67,7 @@ class ChatController extends Controller
             'hasEarlier' => ! $all && $rows !== null && $rows->count() > self::PAGE,
             'hasPrevious' => $quiet || ($session !== null && $last === null
                 && $this->sessions($request)->whereKeyNot($session->id)->whereHas('messages')->exists()),
-            'suggestions' => $this->suggestions($user->role),
+            'suggestions' => $this->suggestions($user),
             'intro' => $this->intro($user->role),
         ]);
     }
@@ -162,37 +163,36 @@ class ChatController extends Controller
      *
      * @return list<string>
      */
-    private function suggestions(string $role): array
+    private function suggestions(User $user): array
     {
-        return match ($role) {
+        return match ($user->role) {
             'tenant_admin' => [
                 'How are my routes looking today?',
+                "What's on the schedule Monday?",
                 'Who owes us money right now?',
-                'Which chemicals are running low?',
-                "Which pools haven't been tested recently?",
+                'How do I pause a customer’s service?',
                 'pH is 8.0 and alkalinity 140 in a 20,000-gallon pool. What should we add?',
             ],
             'agent' => [
                 "What's on my route today?",
-                'My pH reading is 8.2. What should I add?',
-                'The water is cloudy after shocking. What’s going on?',
+                'Gate codes and access notes for my stops today?',
+                'Any open work orders on my stops today?',
+                'My pH is 8.2 in a 15,000-gallon pool. What should I add?',
                 'How do I troubleshoot a salt cell that isn’t producing?',
-                'How should I clean a cartridge filter?',
             ],
-            'customer' => [
+            'customer' => array_values(array_filter([
                 'When is my next service?',
                 'What did my last water test show?',
-                'How do I keep my pool clean between visits?',
-                'Is it safe to swim right after a shock treatment?',
+                $user->tenant?->customer_billing !== false ? 'How much do I owe?' : null,
+                'How do I pause my service while I’m away?',
                 'Why is my spa water foamy?',
-            ],
-            'super_admin' => [
-                'What’s the ideal free chlorine for a salt pool?',
+            ])),
+            default => [ // the platform team
+                'How do I give a company more AI questions a month?',
                 'Explain LSI in plain terms.',
                 'How do you close a pool for the winter?',
                 'What causes black algae, and how do you get rid of it?',
             ],
-            default => [],
         };
     }
 
@@ -201,8 +201,8 @@ class ChatController extends Controller
     {
         return match ($role) {
             'tenant_admin' => 'Ask about your routes, customers, balances and stock, or anything about pool care.',
-            'agent' => 'Ask about your route, or anything about water chemistry and pool equipment.',
-            'customer' => 'Ask about your service and your pool, or how to look after it between visits.',
+            'agent' => 'Ask about your route and your stops, how to do something in RoutePilot, or anything about water and equipment.',
+            'customer' => 'Ask about your service, your visits and your water, how to do something here, or how to look after your pool.',
             default => 'Ask anything about pool and spa care.',
         };
     }

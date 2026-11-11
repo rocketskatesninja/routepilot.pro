@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\Pool;
 use App\Models\Route;
 use App\Models\RouteStop;
+use App\Models\ServiceLocation;
 use App\Models\ServiceRequest;
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
@@ -27,6 +28,11 @@ use App\Services\Chat\Tools\LookupRequests;
 use App\Services\Chat\Tools\LookupSchedule;
 use App\Services\Chat\Tools\LookupServiceHistory;
 use App\Services\Chat\Tools\LookupWorkOrders;
+use App\Services\Chat\Tools\MyBalance;
+use App\Services\Chat\Tools\MyRequests;
+use App\Services\Chat\Tools\MyRoute;
+use App\Services\Chat\Tools\MyService;
+use App\Services\Chat\Tools\MyVisits;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -42,16 +48,20 @@ beforeEach(function () {
     $this->pool = Pool::factory()->for($this->tenant)->for($this->jane)->create(['name' => 'Main Pool', 'volume_gallons' => 20000]);
 });
 
-test('office staff get the look-ups; techs and customers only the water check', function () {
+test('each kind of account is offered its own look-ups', function () {
     $names = fn (User $u): array => array_map(fn (AssistantTool $t): string => $t->name(), ToolRegistry::for($u));
 
     expect($names($this->admin))->toContain('lookup_customer', 'lookup_schedule', 'lookup_requests', 'lookup_work_orders', 'lookup_balance', 'analyze_water')
-        ->and($names(User::factory()->agent()->for($this->tenant)->create()))->toBe(['analyze_water'])
-        ->and($names(User::factory()->customer()->for($this->tenant)->create()))->toBe(['analyze_water'])
+        ->not->toContain('my_route', 'my_service')
+        ->and($names(User::factory()->agent()->for($this->tenant)->create()))
+        ->toBe(['lookup_chemistry', 'lookup_service_history', 'lookup_schedule', 'lookup_work_orders', 'my_route', 'analyze_water'])
+        ->and($names(User::factory()->customer()->for($this->tenant)->create()))
+        ->toBe(['my_service', 'my_visits', 'my_requests', 'my_balance', 'analyze_water'])
         ->and(ToolRegistry::find('skip_stop'))->toBeNull();
 
     $this->tenant->forceFill(['customer_billing' => false, 'inventory_tracking' => false])->save();
-    expect($names($this->admin))->not->toContain('lookup_balance')->not->toContain('lookup_inventory');
+    expect($names($this->admin))->not->toContain('lookup_balance')->not->toContain('lookup_inventory')
+        ->and($names(User::factory()->customer()->for($this->tenant)->create()))->not->toContain('my_balance');
 });
 
 test('no look-up ever writes to the database', function () {
@@ -65,6 +75,9 @@ test('no look-up ever writes to the database', function () {
         [LookupInventory::class, []], [AnalyzeWater::class, ['pool_id' => $this->pool->id]],
         [AnalyzeWater::class, ['readings' => ['ph' => 8.0, 'free_chlorine' => 0.5], 'volume_gallons' => 15000]],
     ];
+    $tech = User::factory()->agent()->for($this->tenant)->create();
+    $homeowner = User::factory()->customer()->for($this->tenant)->create();
+    Customer::factory()->for($this->tenant)->create(['user_id' => $homeowner->id]);
     $writes = [];
     DB::listen(function ($query) use (&$writes) {
         if (preg_match('/^\s*(insert|update|delete|replace|alter|drop|create)\b/i', $query->sql)) {
@@ -75,8 +88,10 @@ test('no look-up ever writes to the database', function () {
     foreach ($calls as [$tool, $params]) {
         expect((new $tool)->execute($params, $this->admin))->toBeString();
     }
-    foreach (ToolRegistry::for($this->admin) as $tool) {
-        $tool->execute([], $this->admin);
+    foreach ([$this->admin, $tech, $homeowner] as $user) {
+        foreach (ToolRegistry::for($user) as $tool) {
+            $tool->execute([], $user);
+        }
     }
 
     expect($writes)->toBe([]);
@@ -202,4 +217,115 @@ test('a customer\'s water check only ever sees their own pool', function () {
     expect((new AnalyzeWater)->execute([], $user))->toContain('Backyard')
         ->and((new AnalyzeWater)->execute(['pool_id' => $this->pool->id], $user))->toBe('No pool found with that id.')
         ->and((new AnalyzeWater)->execute(['customer_name' => 'Jane Doe'], $user))->toContain('Backyard');
+});
+
+/**
+ * A tech's day: one route with a stop on Jane's pool (gate code, access notes,
+ * a last test, an open work order) and someone else's visit with office notes.
+ */
+function techDay(object $t): User
+{
+    $tech = User::factory()->agent()->for($t->tenant)->create(['first_name' => 'Ash', 'last_name' => 'Nguyen']);
+    $t->jane->forceFill(['phone' => '555-0101'])->save();
+    ServiceLocation::factory()->create(['pool_id' => $t->pool->id, 'gate_code' => '4821', 'access_notes' => 'Dog in the yard']);
+    $plan = ServiceSubscription::factory()->for($t->tenant)->create(['pool_id' => $t->pool->id, 'assigned_agent_id' => $tech->id, 'service_type_id' => ServiceType::factory()->for($t->tenant)->create()->id]);
+    $route = Route::factory()->for($t->tenant)->create(['agent_id' => $tech->id, 'scheduled_date' => Tenant::localToday()->toDateString()]);
+    RouteStop::factory()->create(['route_id' => $route->id, 'pool_id' => $t->pool->id, 'service_subscription_id' => $plan->id]);
+    ChemicalReading::factory()->for(ServiceVisit::factory()->for($t->pool)->create(['agent_id' => $tech->id, 'notes' => 'Brushed the steps']))->create(['ph' => 7.8]);
+    ServiceVisit::factory()->for($t->pool)->create(['agent_id' => $t->admin->id, 'notes' => 'Office did this one', 'office_notes' => 'Customer is slow to pay']);
+    WorkOrder::factory()->for($t->tenant)->create(['title' => 'Fix the light', 'pool_id' => $t->pool->id, 'assigned_to' => $tech->id]);
+    WorkOrder::factory()->for($t->tenant)->create(['title' => 'Someone else’s job', 'assigned_to' => $t->admin->id]);
+
+    return $tech;
+}
+
+test('my_route gives a tech each stop as the field app shows it', function () {
+    $tech = techDay($this);
+
+    expect((new MyRoute)->execute([], $tech))
+        ->toContain('Main Pool')->toContain('Jane Doe')->toContain('555-0101')->toContain('Gate code: 4821')
+        ->toContain('[note]Dog in the yard[/note]')->toContain('pH 7.8')->toContain('[[workorder:')->toContain('Fix the light')
+        ->and((new MyRoute)->execute(['date' => 'tomorrow'], $tech))->toContain('no stops');
+});
+
+test('a tech without Agent Plus sees only their own visits and work orders', function () {
+    $tech = techDay($this);
+
+    $history = (new LookupServiceHistory)->execute(['customer_name' => 'Jane'], $tech);
+    $orders = (new LookupWorkOrders)->execute([], $tech);
+
+    expect($history)->toContain('Brushed the steps')->not->toContain('Office did this one')->not->toContain('slow to pay')->not->toContain('billed')
+        ->and($orders)->toContain('Fix the light')->not->toContain('Someone else’s job');
+
+    $tech->forceFill(['agent_plus' => true])->save();
+    expect((new LookupServiceHistory)->execute(['customer_name' => 'Jane'], $tech))->toContain('Office did this one')->not->toContain('slow to pay')
+        ->and((new LookupWorkOrders)->execute([], $tech))->toContain('Someone else’s job');
+});
+
+test('a tech can\'t reach pools that aren\'t theirs', function () {
+    $tech = techDay($this);
+    $other = Pool::factory()->for($this->tenant)->for(Customer::factory()->for($this->tenant)->create(['first_name' => 'Zed']))->create();
+
+    expect((new AnalyzeWater)->execute(['pool_id' => $other->id], $tech))->toBe('No pool found with that id.')
+        ->and((new LookupChemistry)->execute(['customer_name' => 'Zed'], $tech))->toContain('No pool found');
+});
+
+/** A homeowner (Jane) with a weekly plan, a pending visit next week, a visit report and a request. */
+function homeowner(object $t): User
+{
+    $user = User::factory()->customer()->for($t->tenant)->create();
+    $t->jane->forceFill(['user_id' => $user->id])->save();
+    $tech = User::factory()->agent()->for($t->tenant)->create(['first_name' => 'Ashley', 'last_name' => 'Nguyen']);
+    $service = ServiceType::factory()->for($t->tenant)->create(['name' => 'Weekly Clean', 'price' => 50, 'requestable' => true, 'is_active' => true]);
+    $plan = ServiceSubscription::factory()->for($t->tenant)->create(['pool_id' => $t->pool->id, 'service_type_id' => $service->id, 'assigned_agent_id' => $tech->id, 'price' => 65]);
+    $route = Route::factory()->for($t->tenant)->create(['agent_id' => $tech->id, 'scheduled_date' => Tenant::localToday()->addDays(3)->toDateString()]);
+    RouteStop::factory()->create(['route_id' => $route->id, 'pool_id' => $t->pool->id, 'service_subscription_id' => $plan->id, 'stop_order' => 7]);
+    ServiceVisit::factory()->for($t->pool)->create(['agent_id' => $tech->id, 'notes' => 'Water looks great', 'office_notes' => 'Customer is slow to pay']);
+    ServiceRequest::query()->create(['customer_id' => $t->jane->id, 'pool_id' => $t->pool->id, 'type' => 'other', 'message' => 'Use the side gate']);
+
+    return $user;
+}
+
+test('a homeowner sees their own service: next visit day, tech first name, their price', function () {
+    $user = homeowner($this);
+    $out = (new MyService)->execute([], $user);
+
+    expect($out)->toContain('Main Pool')->toContain('Weekly Clean')->toContain('technician Ashley')->not->toContain('Nguyen')
+        ->toContain('next visit '.Tenant::localToday()->addDays(3)->format('l, M j'))->toContain('$65.00 a visit')
+        ->not->toContain('stop')->not->toContain('#7');
+
+    $this->tenant->forceFill(['customer_billing' => false])->save();
+    expect((new MyService)->execute([], $user))->not->toContain('$65');
+});
+
+test('a homeowner\'s visits never include the office note', function () {
+    $user = homeowner($this);
+
+    expect((new MyVisits)->execute([], $user))->toContain('[[visit:')->toContain('Water looks great')->toContain('Ashley')
+        ->not->toContain('slow to pay');
+});
+
+test('a homeowner sees their requests, and list prices only when the company shows them', function () {
+    $user = homeowner($this);
+    $this->tenant->forceFill(['show_prices' => true])->save();
+    app()->instance('tenant', $this->tenant->fresh());
+
+    expect((new MyRequests)->execute([], $user))->toContain('[note]Use the side gate[/note]')->toContain('Weekly Clean — $50.00');
+
+    $this->tenant->forceFill(['show_prices' => false])->save();
+    app()->instance('tenant', $this->tenant->fresh());
+    expect((new MyRequests)->execute([], $user))->not->toContain('$50.00')->toContain('price set for your pool');
+});
+
+test('a homeowner never sees anyone else', function () {
+    $user = homeowner($this);
+    $neighbour = Customer::factory()->for($this->tenant)->create(['first_name' => 'Neighbour']);
+    $theirPool = Pool::factory()->for($this->tenant)->for($neighbour)->create(['name' => 'Neighbour Pool']);
+    ServiceRequest::query()->create(['customer_id' => $neighbour->id, 'pool_id' => $theirPool->id, 'type' => 'other', 'message' => 'Neighbour secret']);
+
+    foreach ([new MyService, new MyVisits, new MyRequests, new MyBalance] as $tool) {
+        expect($tool->execute([], $user))->not->toContain('Neighbour');
+    }
+    expect((new AnalyzeWater)->execute(['pool_id' => $theirPool->id], $user))->toBe('No pool found with that id.')
+        ->and((new MyBalance)->execute([], $user))->toContain('You owe $0.00');
 });

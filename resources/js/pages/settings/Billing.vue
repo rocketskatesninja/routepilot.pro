@@ -27,7 +27,7 @@ interface Billing {
     locked: boolean;
     trial_ends_at: string | null;
     trial_days_left: number;
-    usage: { pools: Line; agents: number; base: number; overage_total: number; estimated_total: number };
+    usage: { pools: Line; base: number; overage_total: number; estimated_total: number };
 }
 
 const page = usePage();
@@ -93,9 +93,7 @@ const toneClass = (tone: string) =>
                         <tbody>
                             <tr class="border-border border-b">
                                 <td class="px-4 py-2.5 font-medium">Base plan</td>
-                                <td class="text-muted-foreground px-4 py-2.5 text-right">
-                                    includes {{ plan.included_pools }} pools · unlimited techs
-                                </td>
+                                <td class="text-muted-foreground px-4 py-2.5 text-right">includes {{ plan.included_pools }} pools</td>
                                 <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.base) }}</td>
                             </tr>
                             <tr class="border-border border-b">
@@ -106,11 +104,6 @@ const toneClass = (tone: string) =>
                                     >
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.pools.overage) }}</td>
-                            </tr>
-                            <tr class="border-border border-b">
-                                <td class="px-4 py-2.5 font-medium">Techs</td>
-                                <td class="text-muted-foreground px-4 py-2.5 text-right">{{ billing.usage.agents }} · unlimited</td>
-                                <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(0) }}</td>
                             </tr>
                             <tr class="bg-muted/40">
                                 <td class="px-4 py-3 font-semibold" colspan="2">Estimated monthly total</td>

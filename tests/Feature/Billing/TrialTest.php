@@ -6,7 +6,7 @@ use App\Actions\RegisterTenant;
 use App\Models\Tenant;
 use App\Models\User;
 
-test('registering a tenant starts a 14-day free trial', function () {
+test('registering a tenant starts a 30-day free trial', function () {
     $admin = app(RegisterTenant::class)([
         'company' => 'Bubbles Pools', 'first_name' => 'Pat', 'email' => 'pat@bubbles.test', 'password' => 'password123',
     ]);
@@ -15,13 +15,13 @@ test('registering a tenant starts a 14-day free trial', function () {
 
     expect($tenant->onTrial())->toBeTrue()
         ->and($tenant->trial_ends_at?->isFuture())->toBeTrue()
-        ->and((int) ceil((float) now()->diffInDays($tenant->trial_ends_at, false)))->toBeGreaterThanOrEqual(13);
+        ->and((int) ceil((float) now()->diffInDays($tenant->trial_ends_at, false)))->toBe(30);
 
     $state = $tenant->billingState();
     expect($state['status'])->toBe('trialing')
         ->and($state['on_trial'])->toBeTrue()
         ->and($state['subscribed'])->toBeFalse()
-        ->and($state['trial_days_left'])->toBeGreaterThanOrEqual(13);
+        ->and($state['trial_days_left'])->toBeGreaterThanOrEqual(29);
 });
 
 test('an expired trial with no subscription reads as expired', function () {

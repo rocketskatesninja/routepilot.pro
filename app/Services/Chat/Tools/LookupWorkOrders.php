@@ -35,9 +35,10 @@ class LookupWorkOrders extends AssistantTool
         ];
     }
 
+    /** Office, and techs (the ones assigned to them unless Agent Plus, as on the Work orders page). */
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin';
+        return in_array($user->role, ['tenant_admin', 'agent'], true);
     }
 
     public function execute(array $params, User $user): string
@@ -51,6 +52,7 @@ class LookupWorkOrders extends AssistantTool
         $query = WorkOrder::query()
             ->where('work_orders.tenant_id', (int) $user->tenant_id)
             ->where('status', $done ? 'done' : 'open')
+            ->visibleTo($user)
             ->when($name !== '', fn ($q) => $q->whereHas('pool.customer', fn ($c) => $this->whereNameLike($c, $name)));
         $total = (clone $query)->count();
         $orders = $query->with('pool.customer', 'assignee')
@@ -69,7 +71,7 @@ class LookupWorkOrders extends AssistantTool
             .($w->due_on !== null ? ' — due '.$w->due_on->format('M j').($w->isOverdue() ? ' (overdue)' : '') : '')
             .($w->pool !== null ? ' — '.$w->pool->name.' ('.($w->pool->customer?->displayName() ?? '?').')' : '')
             .' — '.($w->assignee?->displayName() ?? 'not assigned')
-            .($w->price !== null ? ' — $'.number_format((float) $w->price, 2) : '')
+            .($w->price !== null && $user->role === 'tenant_admin' ? ' — $'.number_format((float) $w->price, 2) : '')
             .(($d = self::note($w->details)) !== null ? "\n  Details: {$d}" : ''))->join("\n")
             .self::more($total, $orders->count());
     }

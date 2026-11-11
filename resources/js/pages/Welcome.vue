@@ -29,6 +29,7 @@ const props = defineProps<{
         base_price: number;
         included_pools: number;
         price_per_pool: number;
+        trial_days: number;
     };
     faq?: { q: string; a: string }[];
     canonical?: string;
@@ -39,13 +40,13 @@ const page = usePage();
 const isAuthed = computed(() => !!(page.props.auth as { user?: unknown } | undefined)?.user);
 
 // Pricing comes from config/billing.php via the controller; fall back to today's plan.
-const pricing = computed(() => props.pricing ?? { base_price: 34.99, included_pools: 50, price_per_pool: 0.5 });
+const pricing = computed(() => props.pricing ?? { base_price: 34.99, included_pools: 50, price_per_pool: 0.75, trial_days: 30 });
 const dollars = computed(() => Math.floor(pricing.value.base_price));
 const cents = computed(() => String(Math.round((pricing.value.base_price - dollars.value) * 100)).padStart(2, '0'));
 const pricingPoints = computed(() => [
     `$${pricing.value.price_per_pool.toFixed(2)} / pool over ${pricing.value.included_pools}`,
     'Unlimited techs, each with their own login',
-    '14-day free trial',
+    `${pricing.value.trial_days}-day free trial`,
     'No credit card required',
 ]);
 const faq = computed(() => props.faq ?? []);
@@ -279,7 +280,9 @@ const included = [
                                 See the live demo <ArrowRight class="size-5" />
                             </a>
                         </div>
-                        <p class="hero-animate hero-d5 mt-4 text-sm text-sky-300/60">14-day free trial · No credit card required · Cancel anytime</p>
+                        <p class="hero-animate hero-d5 mt-4 text-sm text-sky-300/60">
+                            {{ pricing.trial_days }}-day free trial · No credit card required · Cancel anytime
+                        </p>
                     </div>
 
                     <!-- Right: the RoutePilot mark at size — the same glyph as the header logo,

@@ -89,6 +89,24 @@ test('the count follows the pools, and comes off once back within the allowance'
         ->and($removed['params'])->toMatchArray(['proration_behavior' => 'none']);
 });
 
+test('a new extra-pool price moves the line over, never billing both', function () {
+    poolsFor(53);
+    $sub = subscribed();
+    $sub->items()->create(['stripe_id' => 'si_oldpool', 'stripe_product' => 'prod_fake', 'stripe_price' => 'price_pool_old', 'quantity' => 3]);
+    $this->stripe->knows('si_oldpool', 'price_pool_old', 3);
+
+    expect(syncPools())->toBe(3)->and(billedPools())->toBe(3);
+
+    $writes = collect($this->stripe->writes());
+    expect($writes->firstWhere('method', 'post')['params'])->toMatchArray(['price' => 'price_pool', 'quantity' => 3, 'proration_behavior' => 'none'])
+        ->and($writes->last())->toMatchArray(['method' => 'delete', 'path' => '/v1/subscription_items/si_oldpool'])
+        ->and($this->tenant->fresh()->subscription('default')->items()->pluck('stripe_price')->sort()->values()->all())->toBe(['price_base', 'price_pool'])
+        ->and(AuditLog::query()->where('action', 'billing.extra_pools')->sole()->changes)->toMatchArray(['old_price' => 'price_pool_old', 'new_price' => 'price_pool']);
+
+    $sent = count($this->stripe->writes());
+    expect(syncPools())->toBe(3)->and(count($this->stripe->writes()))->toBe($sent); // settled: nothing more
+});
+
 test('nothing is sent when the count hasn\'t changed, or there\'s no subscription', function () {
     poolsFor(53);
     expect(syncPools())->toBeNull(); // on its trial: nothing to bill yet

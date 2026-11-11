@@ -46,23 +46,34 @@ class SyncExtraPoolBilling
             return null;
         }
         $item = $this->poolItem($subscription);
-        $billed = (int) ($item->quantity ?? 0);
         $extra = $this->extra($tenant);
-        if ($billed === $extra) {
+        $price = (string) config('billing.prices.pool');
+        $billed = $item !== null ? (int) $item->getAttribute('quantity') : 0;
+        $oldPrice = $item !== null ? $this->priceOf($item) : $price;
+        $step = $this->step($item !== null, $billed, $extra, $oldPrice !== $price);
+        if ($step === 'none') {
             return $extra;
         }
 
-        $price = (string) config('billing.prices.pool');
         $subscription->noProrate();
-        match (true) {
-            $item === null => $subscription->addPrice($price, $extra),
-            $extra === 0 => $subscription->removePrice($price),
-            default => $subscription->updateQuantity($extra, $price),
-        };
+        if ($step === 'move') {
+            // The extra-pool rate changed: move the line onto the current price
+            // (added before the old one comes off, so the plan is never left bare).
+            if ($extra > 0) {
+                $subscription->addPrice($price, $extra);
+            }
+            $subscription->removePrice($oldPrice);
+        } else {
+            match ($step) {
+                'add' => $subscription->addPrice($price, $extra),
+                'remove' => $subscription->removePrice($price),
+                default => $subscription->updateQuantity($extra, $price),
+            };
+        }
 
         // A scheduled job has no company of its own, so the entry is filed under this one.
-        AuditLog::record(null, 'billing.extra_pools', $tenant, ['from' => $billed, 'to' => $extra])
-            ->forceFill(['tenant_id' => $tenant->id])->save();
+        $changes = ['from' => $billed, 'to' => $extra] + ($step === 'move' ? ['old_price' => $oldPrice, 'new_price' => $price] : []);
+        AuditLog::record(null, 'billing.extra_pools', $tenant, $changes)->forceFill(['tenant_id' => $tenant->id])->save();
 
         return $extra;
     }
@@ -81,10 +92,35 @@ class SyncExtraPoolBilling
         return (int) $this->meter->for($tenant)['pools']['over'];
     }
 
+    /**
+     * What to do with the extra-pool line: nothing, add it, change its count,
+     * remove it, or move it onto a new price.
+     *
+     * @return 'none'|'add'|'update'|'remove'|'move'
+     */
+    private function step(bool $hasLine, int $billed, int $extra, bool $oldPrice): string
+    {
+        return match (true) {
+            $hasLine && $oldPrice => 'move',
+            $billed === $extra => 'none',
+            ! $hasLine => 'add',
+            $extra === 0 => 'remove',
+            default => 'update',
+        };
+    }
+
+    private function priceOf(SubscriptionItem $item): string
+    {
+        return (string) $item->getAttribute('stripe_price');
+    }
+
     private function poolItem(Subscription $subscription): ?SubscriptionItem
     {
-        $item = $subscription->items->firstWhere('stripe_price', (string) config('billing.prices.pool'));
-
-        return $item instanceof SubscriptionItem ? $item : null;
+        // The plan is the base price plus at most this one line, so any other
+        // line is it, even on an older extra-pool price.
+        return SubscriptionItem::query()
+            ->where('subscription_id', $subscription->getKey())
+            ->where('stripe_price', '!=', (string) config('billing.prices.base'))
+            ->first();
     }
 }

@@ -15,6 +15,7 @@ import {
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { useFeature } from '@/composables/useFeature';
 import { useInventoryTracking } from '@/composables/useInventoryTracking';
+import { useOnline } from '@/composables/useOnline';
 import { navByRole, type NavSection } from '@/lib/nav';
 import { type NavCounts, type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
@@ -35,6 +36,9 @@ const shown = (item: NavItem): boolean =>
 const tracking = useInventoryTracking();
 const named = (item: NavItem): NavItem => (item.href === '/inventory' && !tracking.value ? { ...item, title: 'Chemicals' } : item);
 
+// The assistant needs the internet: offline, its link is dimmed and says so.
+const online = useOnline();
+
 // Which links carry a number, and which count it is.
 const countFor: Record<string, keyof NavCounts> = { '/reports': 'reports', '/work-orders': 'work_orders', '/inbox': 'requests' };
 
@@ -46,7 +50,8 @@ const navSections = computed<NavSection[]>(() => {
         items: section.items
             .filter(shown)
             .map(named)
-            .map((item) => (countFor[item.href] ? { ...item, badge: counts[countFor[item.href]] } : item)),
+            .map((item) => (countFor[item.href] ? { ...item, badge: counts[countFor[item.href]] } : item))
+            .map((item) => (item.href === '/assistant' && !online.value ? { ...item, note: 'offline' } : item)),
     }));
 });
 

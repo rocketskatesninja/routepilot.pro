@@ -170,3 +170,17 @@ test('an OpenAI tool call has its JSON-string arguments decoded', function () {
         'tool_call' => ['name' => 'lookup_pool', 'arguments' => ['name' => 'Smith Pool']],
     ]);
 });
+
+test('OpenAI models that need it get reasoning switched off for tools, and dotted names find their price', function () {
+    config(['ai.openai_reasoning_effort' => ['gpt-6' => 'none'], 'ai.prices' => ['gpt-5.4-mini' => ['input' => 1.0, 'output' => 2.0]]]);
+    Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => 'ok']]], 'usage' => ['prompt_tokens' => 1000, 'completion_tokens' => 500]])]);
+
+    $this->ai->turn('openai', 'sk', 'gpt-6-sol', '', '', [['role' => 'user', 'content' => 'hi']]);
+    $turn = $this->ai->turn('openai', 'sk', 'gpt-5.4-mini', '', '', [['role' => 'user', 'content' => 'hi']]);
+
+    $sent = Http::recorded()->map(fn (array $pair) => $pair[0]->data())->values();
+    expect($sent[0]['reasoning_effort'])->toBe('none')
+        ->and($sent[1])->not->toHaveKey('reasoning_effort')
+        ->and($sent[1])->toHaveKey('max_completion_tokens')->not->toHaveKey('max_tokens')
+        ->and($turn->cost)->toBe((1000 * 1.0 + 500 * 2.0) / 1_000_000);
+});

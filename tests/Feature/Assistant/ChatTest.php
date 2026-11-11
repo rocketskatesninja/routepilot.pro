@@ -155,7 +155,7 @@ test('the office prompt has the guide and pool know-how but no customer list', f
         ->and(aiRequests()[0]->data()['system'][0]['cache_control'])->toBe(['type' => 'ephemeral']);
 });
 
-test('a customer is only offered the water check, and other look-ups don\'t run for them', function () {
+test('a customer is only offered their own look-ups, and office ones don\'t run for them', function () {
     $user = User::factory()->customer()->for($this->tenant)->create();
     Customer::factory()->for($this->tenant)->create(['user_id' => $user->id]);
     Customer::factory()->for($this->tenant)->create(['first_name' => 'Neighbour']);
@@ -167,7 +167,7 @@ test('a customer is only offered the water check, and other look-ups don\'t run 
 
     $first = aiRequests()[0]->data();
     $result = end(aiRequests()[1]->data()['messages'])['content'][0]['content'];
-    expect(collect($first['tools'])->pluck('name')->all())->toBe(['analyze_water'])
+    expect(collect($first['tools'])->pluck('name')->all())->toBe(['my_service', 'my_visits', 'my_requests', 'my_balance', 'analyze_water'])
         ->and(collect($first['system'])->pluck('text')->join("\n"))->not->toContain('Neighbour')
         ->and($result)->toContain('no look-up called')
         ->and($result)->not->toContain('Neighbour');

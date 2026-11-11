@@ -21,12 +21,12 @@ test('usage within the allowance carries no overage', function () {
 });
 
 test('pools over the allowance are metered as overage', function () {
-    $p = $this->meter->price(53, 4); // 3 pools over @ $0.50
+    $p = $this->meter->price(53, 4); // 3 pools over @ $0.75
 
     expect($p['pools']['over'])->toBe(3)
-        ->and($p['pools']['overage'])->toEqualWithDelta(1.50, 0.001)
-        ->and($p['overage_total'])->toEqualWithDelta(1.50, 0.001)
-        ->and($p['estimated_total'])->toEqualWithDelta(36.49, 0.001);
+        ->and($p['pools']['overage'])->toEqualWithDelta(2.25, 0.001)
+        ->and($p['overage_total'])->toEqualWithDelta(2.25, 0.001)
+        ->and($p['estimated_total'])->toEqualWithDelta(37.24, 0.001);
 });
 
 test('techs are unlimited: adding them never changes the price', function () {

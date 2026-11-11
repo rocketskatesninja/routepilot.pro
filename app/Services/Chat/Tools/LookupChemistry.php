@@ -37,9 +37,10 @@ class LookupChemistry extends AssistantTool
         ];
     }
 
+    /** Office, and techs (their own visits' tests unless Agent Plus). */
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin';
+        return in_array($user->role, ['tenant_admin', 'agent'], true);
     }
 
     public function execute(array $params, User $user): string
@@ -56,6 +57,7 @@ class LookupChemistry extends AssistantTool
         $date = trim((string) ($params['date'] ?? ''));
         $readings = ChemicalReading::query()
             ->whereHas('serviceVisit', fn ($q) => $q->where('pool_id', $pool->id)
+                ->when($this->ownVisitsOnly($user), fn ($v) => $v->where('agent_id', $user->id))
                 ->when($date !== '', fn ($v) => $v->whereDate('visited_at', $date)))
             ->with('serviceVisit.agent')
             ->latest()

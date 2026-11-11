@@ -43,12 +43,14 @@ onMounted(async () => {
 </script>
 
 <template>
-    <!-- With a map: it runs edge to edge, with the card over it (below it on a phone). -->
+    <!-- With a map: it runs edge to edge, with the card over it on a wide screen and under
+         it, with room around it, on a narrower one (never covering the map's controls or
+         Google's logo and terms, which must stay visible). -->
     <section v-if="canMap" id="service_area" class="relative scroll-mt-16">
         <div ref="mapEl" class="bg-muted h-[24rem] w-full @5xl:h-[34rem]"></div>
-        <div class="@5xl:pointer-events-none @5xl:absolute @5xl:inset-0 @5xl:flex @5xl:items-center" :class="frame">
+        <div class="py-8 @5xl:pointer-events-none @5xl:absolute @5xl:inset-0 @5xl:flex @5xl:items-center @5xl:py-0" :class="frame">
             <div
-                class="border-border bg-background relative -mt-10 rounded-2xl border p-8 shadow-xl @5xl:pointer-events-auto @5xl:mt-0 @5xl:max-w-md"
+                class="border-border bg-background relative rounded-2xl border p-6 shadow-sm @md:p-8 @5xl:pointer-events-auto @5xl:max-w-md @5xl:shadow-xl"
             >
                 <h2 class="site-heading text-foreground">{{ sectionHeading(content) }}</h2>
                 <p v-if="area?.formattedAddress" class="text-foreground mt-5 flex items-start gap-2 text-lg font-medium">

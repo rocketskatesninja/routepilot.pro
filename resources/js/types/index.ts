@@ -42,6 +42,7 @@ export interface NavItem {
     icon?: LucideIcon;
     isActive?: boolean;
     badge?: number; // a count shown on the link (hidden at 0)
+    note?: string; // a short muted word after the title ("offline"); the link is shown dimmed
 }
 
 export interface BillingState {

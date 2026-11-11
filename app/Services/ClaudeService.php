@@ -191,9 +191,13 @@ class ClaudeService
     {
         $body = [
             'model' => $model,
-            'max_tokens' => $maxTokens,
+            // The newer name every chat model accepts (the GPT-5 family refuses the old max_tokens).
+            'max_completion_tokens' => $maxTokens,
             'messages' => [...($system !== '' ? [['role' => 'system', 'content' => $system]] : []), ...$messages],
         ];
+        if (($effort = $this->reasoningEffort($model)) !== null) {
+            $body['reasoning_effort'] = $effort;
+        }
         if ($tools !== []) {
             $body['tools'] = array_map(fn (array $t): array => [
                 'type' => 'function',
@@ -255,6 +259,22 @@ class ClaudeService
     }
 
     /**
+     * The reasoning setting a model needs (config ai.openai_reasoning_effort,
+     * by name prefix), or null to leave it out: older models reject it.
+     */
+    private function reasoningEffort(string $model): ?string
+    {
+        $map = config('ai.openai_reasoning_effort');
+        foreach (is_array($map) ? $map : [] as $prefix => $effort) {
+            if (str_starts_with($model, (string) $prefix)) {
+                return (string) $effort;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * USD per million tokens for a model (config/ai.php); an unlisted model
      * still records its tokens, at no cost.
      *
@@ -262,8 +282,9 @@ class ClaudeService
      */
     private function price(string $model): array
     {
-        $p = config("ai.prices.{$model}");
-        $p = is_array($p) ? $p : [];
+        // Looked up by key, not config dot-notation: model names have dots in them (gpt-5.4-mini).
+        $prices = config('ai.prices');
+        $p = is_array($prices) && is_array($prices[$model] ?? null) ? $prices[$model] : [];
 
         return [
             'input' => (float) ($p['input'] ?? 0),

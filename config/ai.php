@@ -32,10 +32,23 @@ return [
     'daily_limits' => ['customer' => 20, 'agent' => 100],
     'staff_reserve' => 0.2,
 
+    // OpenAI models that need a reasoning setting sent, by name prefix. The
+    // gpt-6 family only allows tools on chat completions with reasoning off.
+    'openai_reasoning_effort' => ['gpt-6' => 'none'],
+
     // USD per million tokens, for the usage records. Update when prices change;
     // a model missing here still records its tokens, at no cost.
+    // OpenAI's standard-tier list prices as of 2026-11-11.
     'prices' => [
         'claude-haiku-4-5' => ['input' => 1.00, 'output' => 5.00, 'cached_input' => 0.10],
         'gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60, 'cached_input' => 0.075],
+        'gpt-4.1-mini' => ['input' => 0.40, 'output' => 1.60, 'cached_input' => 0.10],
+        'gpt-5-mini' => ['input' => 0.25, 'output' => 2.00, 'cached_input' => 0.025],
+        'gpt-5-nano' => ['input' => 0.05, 'output' => 0.40, 'cached_input' => 0.005],
+        'gpt-5.4-mini' => ['input' => 0.75, 'output' => 4.50, 'cached_input' => 0.075],
+        'gpt-5.4-nano' => ['input' => 0.20, 'output' => 1.25, 'cached_input' => 0.02],
+        'gpt-5.6-luna' => ['input' => 0.20, 'output' => 1.20, 'cached_input' => 0.02],
+        'gpt-6-luna' => ['input' => 0.10, 'output' => 0.50, 'cached_input' => 0.01],
+        'gpt-6-sol' => ['input' => 2.00, 'output' => 10.00, 'cached_input' => 0.20],
     ],
 ];

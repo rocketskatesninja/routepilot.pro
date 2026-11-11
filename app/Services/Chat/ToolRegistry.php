@@ -15,6 +15,11 @@ use App\Services\Chat\Tools\LookupRequests;
 use App\Services\Chat\Tools\LookupSchedule;
 use App\Services\Chat\Tools\LookupServiceHistory;
 use App\Services\Chat\Tools\LookupWorkOrders;
+use App\Services\Chat\Tools\MyBalance;
+use App\Services\Chat\Tools\MyRequests;
+use App\Services\Chat\Tools\MyRoute;
+use App\Services\Chat\Tools\MyService;
+use App\Services\Chat\Tools\MyVisits;
 
 /**
  * Every look-up the in-app assistant has. Each tool decides who is offered it
@@ -34,6 +39,11 @@ class ToolRegistry
         LookupWorkOrders::class,
         LookupInventory::class,
         LookupBalance::class,
+        MyRoute::class,
+        MyService::class,
+        MyVisits::class,
+        MyRequests::class,
+        MyBalance::class,
         AnalyzeWater::class,
     ];
 

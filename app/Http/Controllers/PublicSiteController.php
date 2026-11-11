@@ -39,6 +39,7 @@ class PublicSiteController extends Controller
             'base_price' => round((float) config('billing.base_price'), 2),
             'included_pools' => (int) config('billing.included_pools'),
             'price_per_pool' => (float) config('billing.price_per_pool'),
+            'trial_days' => (int) config('billing.trial_days'),
         ];
 
         $faq = [
@@ -52,7 +53,7 @@ class PublicSiteController extends Controller
             ],
             [
                 'q' => 'Do I need a credit card to start?',
-                'a' => 'No. The 14-day free trial needs no credit card, and you can cancel anytime.',
+                'a' => "No. The {$pricing['trial_days']}-day free trial needs no credit card, and you can cancel anytime.",
             ],
             [
                 'q' => 'What size company is this for?',
