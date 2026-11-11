@@ -39,6 +39,14 @@ export function clone<T>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/**
+ * A day as YYYY-MM-DD on this device's calendar (today by default). Not toISOString(),
+ * which is the UTC day: in the evening (from 4pm on the Pacific coast) that's tomorrow.
+ */
+export function localDay(date: Date = new Date()): string {
+    return date.toLocaleDateString('en-CA');
+}
+
 /** A plain YYYY-MM-DD date as "Tue, Oct 20" — read as a calendar day, never shifted by time zone. */
 export function formatDay(ymd: string | null | undefined): string {
     if (!ymd) return '';

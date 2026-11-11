@@ -25,7 +25,7 @@ import { priceUnit, SCHEDULES } from '@/lib/labels';
 import { agentLink, customerLink, mapsLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { cap, checkWater, describePool, waterSummary } from '@/lib/portal';
-import { formatDay, formatMoney } from '@/lib/utils';
+import { formatDay, formatMoney, localDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
@@ -329,7 +329,7 @@ const subFormOpen = ref(false);
 const subFormMode = ref<'create' | 'edit'>('create');
 const subFormId = ref<number | null>(null);
 const planStatus: Record<string, string> = { active: 'Active', paused: 'Paused', cancelled: 'Ended' };
-const localToday = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in the office's time zone
+const localToday = () => localDay(); // YYYY-MM-DD in the office's time zone
 /** How a service is sold, as a plan schedule (a one-time job → One-time); null when it isn't one. */
 const soldAs = (id: unknown): string | null => {
     const service = props.serviceTypes.find((t) => t.id === Number(id));

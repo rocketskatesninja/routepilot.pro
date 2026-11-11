@@ -5,6 +5,7 @@
  * request / not authorized) marks an item failed.
  */
 import { postForm, postJson } from '@/lib/http';
+import { localDay } from '@/lib/utils';
 import { isSignedOut } from './session';
 import {
     allQueued,
@@ -31,7 +32,7 @@ export interface LoadResult {
  * cached, so it can't replace the office person's own route on this device.
  */
 export async function loadToday(date?: string, agent?: number): Promise<LoadResult> {
-    const today = date ?? new Date().toISOString().slice(0, 10);
+    const today = date ?? localDay(); // the saved route is filed under the company's day, not UTC's
     const query = new URLSearchParams({ ...(date ? { date } : {}), ...(agent ? { agent: String(agent) } : {}) }).toString();
     try {
         const res = await fetch(`/api/field/today${query ? `?${query}` : ''}`, {

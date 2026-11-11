@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { visitQuery } from '@/lib/listQuery';
-import { formatDay, formatMoney } from '@/lib/utils';
+import { formatDay, formatMoney, localDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Building2, Gift } from 'lucide-vue-next';
@@ -113,10 +113,12 @@ watch(
 );
 
 function extendTrial(days: number) {
-    const cur = form.trial_ends_at ? new Date(form.trial_ends_at) : null;
-    const base = cur && cur > new Date() ? cur : new Date();
-    base.setDate(base.getDate() + days);
-    form.trial_ends_at = base.toISOString().slice(0, 10);
+    // Calendar days from the later of today and the current end, kept in YYYY-MM-DD so no time zone shifts it.
+    const today = localDay();
+    const start = form.trial_ends_at && form.trial_ends_at > today ? form.trial_ends_at : today;
+    const d = new Date(`${start}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    form.trial_ends_at = d.toISOString().slice(0, 10);
 }
 function save() {
     if (!props.selected) return;

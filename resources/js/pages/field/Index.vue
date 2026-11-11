@@ -17,7 +17,7 @@ import {
     reopenFailed,
     retryFailed,
 } from '@/lib/field/sync';
-import { formatDay } from '@/lib/utils';
+import { formatDay, localDay } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { Check, CloudOff, LoaderCircle, MapPin, Navigation, Plus, RefreshCw, TriangleAlert, Wifi, WifiOff, X } from 'lucide-vue-next';
@@ -60,7 +60,7 @@ onMounted(() => {
 });
 const pickedTech = ref<number | null>(null);
 const pickedDay = ref<string | null>(null);
-const todayIso = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, this device's day
+const todayIso = localDay(); // YYYY-MM-DD, this device's day
 // Whose route it is, when the office has another tech's open.
 const techFirst = computed(() => (bundle.value?.office ? bundle.value.agent.name.split(' ')[0] : null));
 const title = computed(() => (techFirst.value ? `${techFirst.value}’s route` : bundle.value?.past ? 'Your route' : 'Today’s route'));

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { localDay } from '@/lib/utils';
 import { computed, ref } from 'vue';
 import { field } from '../layout';
 import ContactFields from '../primitives/ContactFields.vue';
@@ -15,7 +16,7 @@ const services = computed<LandingService[]>(() => props.live.services ?? []);
 const minDate = computed(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    return localDay(d);
 });
 
 const windows = [
