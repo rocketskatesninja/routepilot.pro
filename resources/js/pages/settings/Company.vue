@@ -120,14 +120,15 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="px-4 py-6">
-            <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
+            <div class="flex flex-col lg:flex-row lg:space-x-12">
                 <aside class="w-full max-w-xl lg:w-48">
-                    <nav class="flex flex-col space-y-1 space-x-0">
+                    <!-- A row of tabs while the settings sit below them (wrapping on a phone), a list on the left once there's room. -->
+                    <nav class="flex flex-wrap gap-1 lg:flex-col">
                         <Button
                             v-for="tab in tabs"
                             :key="tab.key"
                             variant="ghost"
-                            :class="['w-full justify-start', { 'bg-muted': activeTab === tab.key }]"
+                            :class="['lg:w-full lg:justify-start', { 'bg-muted': activeTab === tab.key }]"
                             @click="activeTab = tab.key"
                         >
                             {{ tab.label }}
@@ -135,7 +136,7 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                     </nav>
                 </aside>
 
-                <Separator class="my-6 md:hidden" />
+                <Separator class="my-6 lg:hidden" />
 
                 <div class="flex-1 md:max-w-2xl">
                     <!-- Profile / address / AI all save together via PATCH /company -->

@@ -25,14 +25,15 @@ const sidebarNavItems = computed<NavItem[]>(() => [
 
 <template>
     <div class="px-4 py-6">
-        <div class="flex flex-col space-y-8 md:space-y-0 lg:flex-row lg:space-y-0 lg:space-x-12">
+        <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
-                <nav class="flex flex-col space-y-1 space-x-0">
+                <!-- A row of links while the settings sit below them (wrapping on a phone), a list on the left once there's room. -->
+                <nav class="flex flex-wrap gap-1 lg:flex-col">
                     <Button
                         v-for="item in sidebarNavItems"
                         :key="item.href"
                         variant="ghost"
-                        :class="['w-full justify-start', { 'bg-muted': currentPath === item.href }]"
+                        :class="['lg:w-full lg:justify-start', { 'bg-muted': currentPath === item.href }]"
                         as-child
                     >
                         <Link :href="item.href">
@@ -42,7 +43,7 @@ const sidebarNavItems = computed<NavItem[]>(() => [
                 </nav>
             </aside>
 
-            <Separator class="my-6 md:hidden" />
+            <Separator class="my-6 lg:hidden" />
 
             <div class="flex-1 md:max-w-2xl">
                 <section class="max-w-xl space-y-12">
