@@ -9,7 +9,7 @@ import { computed } from 'vue';
 
 defineProps<{
     configured: boolean;
-    plan: { base_price: number; included_pools: number; included_agents: number; price_per_pool: number; price_per_agent: number };
+    plan: { base_price: number; included_pools: number; price_per_pool: number };
 }>();
 
 interface Line {
@@ -27,7 +27,7 @@ interface Billing {
     locked: boolean;
     trial_ends_at: string | null;
     trial_days_left: number;
-    usage: { pools: Line; agents: Line; base: number; overage_total: number; estimated_total: number };
+    usage: { pools: Line; agents: number; base: number; overage_total: number; estimated_total: number };
 }
 
 const page = usePage();
@@ -82,9 +82,8 @@ const toneClass = (tone: string) =>
                     <div>
                         <h2 class="text-lg font-semibold">Your plan</h2>
                         <p class="text-muted-foreground text-sm">
-                            {{ formatMoney(plan.base_price) }}/mo base — includes {{ plan.included_pools }} pools and
-                            {{ plan.included_agents }} agents. Extra pools are {{ formatMoney(plan.price_per_pool) }} each; extra agents
-                            {{ formatMoney(plan.price_per_agent) }} each.
+                            {{ formatMoney(plan.base_price) }}/mo base — includes {{ plan.included_pools }} pools. Extra pools are
+                            {{ formatMoney(plan.price_per_pool) }} each. Techs are unlimited and free.
                         </p>
                     </div>
                 </div>
@@ -95,7 +94,7 @@ const toneClass = (tone: string) =>
                             <tr class="border-border border-b">
                                 <td class="px-4 py-2.5 font-medium">Base plan</td>
                                 <td class="text-muted-foreground px-4 py-2.5 text-right">
-                                    includes {{ plan.included_pools }} pools · {{ plan.included_agents }} agents
+                                    includes {{ plan.included_pools }} pools · unlimited techs
                                 </td>
                                 <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.base) }}</td>
                             </tr>
@@ -109,13 +108,9 @@ const toneClass = (tone: string) =>
                                 <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.pools.overage) }}</td>
                             </tr>
                             <tr class="border-border border-b">
-                                <td class="px-4 py-2.5 font-medium">Agents</td>
-                                <td class="text-muted-foreground px-4 py-2.5 text-right">
-                                    {{ billing.usage.agents.used }} used<span v-if="billing.usage.agents.over">
-                                        · {{ billing.usage.agents.over }} over</span
-                                    >
-                                </td>
-                                <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(billing.usage.agents.overage) }}</td>
+                                <td class="px-4 py-2.5 font-medium">Techs</td>
+                                <td class="text-muted-foreground px-4 py-2.5 text-right">{{ billing.usage.agents }} · unlimited</td>
+                                <td class="px-4 py-2.5 text-right font-medium">{{ formatMoney(0) }}</td>
                             </tr>
                             <tr class="bg-muted/40">
                                 <td class="px-4 py-3 font-semibold" colspan="2">Estimated monthly total</td>

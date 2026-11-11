@@ -16,20 +16,25 @@ test('usage within the allowance carries no overage', function () {
     $p = $this->meter->price(50, 2);
 
     expect($p['pools']['over'])->toBe(0)
-        ->and($p['agents']['over'])->toBe(0)
         ->and($p['overage_total'])->toEqualWithDelta(0.0, 0.001)
         ->and($p['estimated_total'])->toEqualWithDelta(34.99, 0.001);
 });
 
-test('pools and agents over the allowance are metered as overage', function () {
-    $p = $this->meter->price(53, 4); // 3 pools over @ $0.50, 2 agents over @ $10
+test('pools over the allowance are metered as overage', function () {
+    $p = $this->meter->price(53, 4); // 3 pools over @ $0.50
 
     expect($p['pools']['over'])->toBe(3)
         ->and($p['pools']['overage'])->toEqualWithDelta(1.50, 0.001)
-        ->and($p['agents']['over'])->toBe(2)
-        ->and($p['agents']['overage'])->toEqualWithDelta(20.00, 0.001)
-        ->and($p['overage_total'])->toEqualWithDelta(21.50, 0.001)
-        ->and($p['estimated_total'])->toEqualWithDelta(56.49, 0.001);
+        ->and($p['overage_total'])->toEqualWithDelta(1.50, 0.001)
+        ->and($p['estimated_total'])->toEqualWithDelta(36.49, 0.001);
+});
+
+test('techs are unlimited: adding them never changes the price', function () {
+    $few = $this->meter->price(53, 2);
+    $many = $this->meter->price(53, 40);
+
+    expect($many['estimated_total'])->toBe($few['estimated_total'])
+        ->and($many['agents'])->toBe(40); // still counted, to show company size
 });
 
 test('under-allowance usage is not credited', function () {
@@ -39,7 +44,7 @@ test('under-allowance usage is not credited', function () {
         ->and($p['estimated_total'])->toEqualWithDelta(34.99, 0.001);
 });
 
-test('the meter counts non-deleted pools and active agents only', function () {
+test('the meter counts non-deleted pools, and active agents for information', function () {
     $tenant = Tenant::factory()->create();
     app()->instance('tenant_id', $tenant->id);
     $customer = Customer::factory()->for($tenant)->create();
@@ -54,5 +59,5 @@ test('the meter counts non-deleted pools and active agents only', function () {
     $usage = $this->meter->for($tenant);
 
     expect($usage['pools']['used'])->toBe(4)
-        ->and($usage['agents']['used'])->toBe(2);
+        ->and($usage['agents'])->toBe(2);
 });

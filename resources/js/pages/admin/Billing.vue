@@ -47,7 +47,7 @@ const props = defineProps<{
     };
     tenants: TenantRow[];
     selected: TenantDetail | null;
-    plan: { base_price: number; included_pools: number; included_agents: number };
+    plan: { base_price: number; included_pools: number };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing', href: '/platform/billing' }];
@@ -175,8 +175,7 @@ function save() {
                         <div class="border-border flex items-center justify-between gap-4 border-b px-4 py-3">
                             <h2 class="text-sm font-semibold">Accounts</h2>
                             <p class="text-muted-foreground text-xs">
-                                Plan: {{ formatMoney(plan.base_price) }} a month with {{ plan.included_pools }} pools and
-                                {{ plan.included_agents }} agents included
+                                Plan: {{ formatMoney(plan.base_price) }} a month with {{ plan.included_pools }} pools included, unlimited techs
                             </p>
                         </div>
                         <div class="min-h-0 flex-1 overflow-auto">

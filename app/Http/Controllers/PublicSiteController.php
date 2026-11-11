@@ -38,19 +38,17 @@ class PublicSiteController extends Controller
         $pricing = [
             'base_price' => round((float) config('billing.base_price'), 2),
             'included_pools' => (int) config('billing.included_pools'),
-            'included_agents' => (int) config('billing.included_agents'),
             'price_per_pool' => (float) config('billing.price_per_pool'),
-            'price_per_agent' => (float) config('billing.price_per_agent'),
         ];
 
         $faq = [
             [
                 'q' => "What's included in the base price?",
-                'a' => "Everything — route optimization, AI chemistry, scheduling, the customer website + portal, billing, service reports, and the field app. The base covers {$pricing['included_pools']} pools and {$pricing['included_agents']} agents.",
+                'a' => "Everything — route optimization, AI chemistry, scheduling, the customer website + portal, billing, service reports, and the field app. The base covers {$pricing['included_pools']} pools, with as many techs as you have.",
             ],
             [
                 'q' => 'Are there any hidden fees?',
-                'a' => 'No. Beyond the included allowance you pay a simple, published rate: $'.number_format($pricing['price_per_pool'], 2).' per extra pool and $'.number_format($pricing['price_per_agent'], 0).' per extra agent, per month. No setup fees and no per-feature upsells.',
+                'a' => 'No. Beyond the included pools you pay a simple, published rate: $'.number_format($pricing['price_per_pool'], 2).' per extra pool, per month. Techs are unlimited and free, so everyone gets their own login. No setup fees and no per-feature upsells.',
             ],
             [
                 'q' => 'Do I need a credit card to start?',
@@ -58,7 +56,7 @@ class PublicSiteController extends Controller
             ],
             [
                 'q' => 'What size company is this for?',
-                'a' => 'From a solo operator to a multi-truck company. The base plan fits most small-to-mid routes; larger operations simply add pools and agents as they grow.',
+                'a' => 'From a solo operator to a multi-truck company. The base plan fits most small-to-mid routes; larger operations pay only for the extra pools, and add techs free as they grow.',
             ],
         ];
 

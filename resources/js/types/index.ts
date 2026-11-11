@@ -56,7 +56,7 @@ export interface BillingState {
         overage_total: number;
         estimated_total: number;
         pools: { used: number; included: number; over: number; unit_price: number; overage: number };
-        agents: { used: number; included: number; over: number; unit_price: number; overage: number };
+        agents: number; // techs: unlimited and free, counted to show company size
     };
 }
 

@@ -31,9 +31,7 @@ class BillingController extends Controller
             'plan' => [
                 'base_price' => round((float) config('billing.base_price'), 2),
                 'included_pools' => (int) config('billing.included_pools'),
-                'included_agents' => (int) config('billing.included_agents'),
                 'price_per_pool' => (float) config('billing.price_per_pool'),
-                'price_per_agent' => (float) config('billing.price_per_agent'),
             ],
         ]);
     }

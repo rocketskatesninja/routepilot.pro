@@ -28,9 +28,7 @@ const props = defineProps<{
     pricing?: {
         base_price: number;
         included_pools: number;
-        included_agents: number;
         price_per_pool: number;
-        price_per_agent: number;
     };
     faq?: { q: string; a: string }[];
     canonical?: string;
@@ -41,14 +39,12 @@ const page = usePage();
 const isAuthed = computed(() => !!(page.props.auth as { user?: unknown } | undefined)?.user);
 
 // Pricing comes from config/billing.php via the controller; fall back to today's plan.
-const pricing = computed(
-    () => props.pricing ?? { base_price: 34.99, included_pools: 50, included_agents: 2, price_per_pool: 0.5, price_per_agent: 10 },
-);
+const pricing = computed(() => props.pricing ?? { base_price: 34.99, included_pools: 50, price_per_pool: 0.5 });
 const dollars = computed(() => Math.floor(pricing.value.base_price));
 const cents = computed(() => String(Math.round((pricing.value.base_price - dollars.value) * 100)).padStart(2, '0'));
 const pricingPoints = computed(() => [
     `$${pricing.value.price_per_pool.toFixed(2)} / pool over ${pricing.value.included_pools}`,
-    `$${pricing.value.price_per_agent.toFixed(0)} / agent over ${pricing.value.included_agents}`,
+    'Unlimited techs, each with their own login',
     '14-day free trial',
     'No credit card required',
 ]);
@@ -493,9 +489,7 @@ const included = [
                                 ><span class="text-2xl">.{{ cents }}</span
                                 ><span class="text-muted-foreground text-base font-medium">/mo</span>
                             </p>
-                            <p class="text-muted-foreground mt-2">
-                                Includes {{ pricing.included_pools }} pools and {{ pricing.included_agents }} agents
-                            </p>
+                            <p class="text-muted-foreground mt-2">Includes {{ pricing.included_pools }} pools and unlimited techs</p>
                             <ul class="mx-auto mt-6 max-w-xs space-y-2.5 text-left text-sm">
                                 <li v-for="p in pricingPoints" :key="p" class="flex items-center gap-2">
                                     <Check class="size-5 shrink-0 text-green-500" />

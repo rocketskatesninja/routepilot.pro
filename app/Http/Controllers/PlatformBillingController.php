@@ -43,7 +43,7 @@ class PlatformBillingController extends Controller
                 'subscribed' => $state['subscribed'],
                 'trial_ends_at' => $state['trial_ends_at'],
                 'pools' => (int) ($usage[$tenant->id]['pools']['used'] ?? 0),
-                'agents' => (int) ($usage[$tenant->id]['agents']['used'] ?? 0),
+                'agents' => (int) ($usage[$tenant->id]['agents'] ?? 0),
                 'estimated' => $estimated,
             ];
         })->values();
@@ -74,7 +74,6 @@ class PlatformBillingController extends Controller
             'plan' => [
                 'base_price' => round((float) config('billing.base_price'), 2),
                 'included_pools' => (int) config('billing.included_pools'),
-                'included_agents' => (int) config('billing.included_agents'),
             ],
         ]);
     }
@@ -111,7 +110,7 @@ class PlatformBillingController extends Controller
             'trial_ends_at' => $state['trial_ends_at'],
             'trial_days_left' => $state['trial_days_left'],
             'pools' => (int) ($usage['pools']['used'] ?? 0),
-            'agents' => (int) ($usage['agents']['used'] ?? 0),
+            'agents' => (int) ($usage['agents'] ?? 0),
             'estimated' => round((float) ($usage['estimated_total'] ?? 0.0), 2),
         ];
     }

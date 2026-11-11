@@ -10,11 +10,11 @@ use App\Models\Tenant;
 use App\Models\User;
 
 /**
- * Platform billing meter — counts a tenant's billable usage (active pools +
- * active agents) and computes the base + per-unit overage against the plan.
+ * Platform billing meter — counts a tenant's billable pools and computes the
+ * base + per-pool overage against the plan.
  *
- * Billable pool = a non-deleted pool. Billable agent = an active user with the
- * `agent` role (the tenant_admin is not metered).
+ * Billable pool = a non-deleted pool. Techs are unlimited and free; their count
+ * (active users with the `agent` role) is reported only to show company size.
  */
 class BillingMeter
 {
@@ -72,7 +72,8 @@ class BillingMeter
     }
 
     /**
-     * Pure pricing math for a given usage — base + per-pool + per-agent overage.
+     * Pure pricing math for a given usage — base + per-pool overage. Agents are
+     * counted for information only; they never change the price.
      *
      * @return array<string, mixed>
      */
@@ -80,21 +81,17 @@ class BillingMeter
     {
         $base = (float) config('billing.base_price');
         $includedPools = (int) config('billing.included_pools');
-        $includedAgents = (int) config('billing.included_agents');
         $perPool = (float) config('billing.price_per_pool');
-        $perAgent = (float) config('billing.price_per_agent');
 
         $overPools = max(0, $pools - $includedPools);
-        $overAgents = max(0, $agents - $includedAgents);
         $poolOverage = round($overPools * $perPool, 2);
-        $agentOverage = round($overAgents * $perAgent, 2);
 
         return [
             'pools' => ['used' => $pools, 'included' => $includedPools, 'over' => $overPools, 'unit_price' => $perPool, 'overage' => $poolOverage],
-            'agents' => ['used' => $agents, 'included' => $includedAgents, 'over' => $overAgents, 'unit_price' => $perAgent, 'overage' => $agentOverage],
+            'agents' => $agents,
             'base' => round($base, 2),
-            'overage_total' => round($poolOverage + $agentOverage, 2),
-            'estimated_total' => round($base + $poolOverage + $agentOverage, 2),
+            'overage_total' => $poolOverage,
+            'estimated_total' => round($base + $poolOverage, 2),
         ];
     }
 }
