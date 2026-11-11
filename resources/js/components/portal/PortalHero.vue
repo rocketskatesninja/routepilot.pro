@@ -21,14 +21,15 @@ defineProps<{ greeting?: string }>();
                 <slot name="actions" />
             </div>
         </div>
-        <div class="waterline h-4" aria-hidden="true"></div>
+        <div class="portal-waterline h-4" aria-hidden="true"></div>
     </section>
 </template>
 
 <style scoped>
 /* Pool waterline tile in the company's colour: two rows of small square
-   tiles with light grout. The portal's one decorative signature. */
-.waterline {
+   tiles with light grout. The portal's one decorative signature. Not .waterline:
+   that's the company website's band (landing.css), whose height would win over h-4. */
+.portal-waterline {
     background:
         linear-gradient(90deg, hsl(var(--background) / 0.7) 1px, transparent 1px) 0 0 / 8px 8px,
         linear-gradient(hsl(var(--background) / 0.7) 1px, transparent 1px) 0 0 / 8px 8px,

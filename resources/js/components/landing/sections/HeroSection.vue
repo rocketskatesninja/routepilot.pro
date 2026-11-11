@@ -123,9 +123,13 @@ const align = computed(() => ALIGN[c.value.align ?? 'left'] ?? ALIGN.left);
                     </li>
                 </ul>
 
-                <a :href="anchor" class="hero-animate hero-d4 mt-10 px-9 py-4 text-lg" :class="[button, fx.cta_glow ? 'btn-glow' : '']">
-                    {{ c.cta_label || 'Get a free quote' }}
-                </a>
+                <!-- The entrance is on the wrapper: one element can run only one of the two
+                     animations, and the glow would replace the entrance. -->
+                <div class="hero-animate hero-d4 mt-10">
+                    <a :href="anchor" class="px-9 py-4 text-lg" :class="[button, fx.cta_glow ? 'btn-glow' : '']">
+                        {{ c.cta_label || 'Get a free quote' }}
+                    </a>
+                </div>
             </div>
         </div>
 

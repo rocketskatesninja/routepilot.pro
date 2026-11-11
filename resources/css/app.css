@@ -1,93 +1,134 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 @import 'tw-animate-css';
-@config '../../tailwind.config.js';
 
-/*
- * RoutePilot token system.
- *   :root  = "daylight" — high-contrast light theme (also the field app theme)
- *   .dark  = "ops"      — dark mission-control back-office theme
- * Brand: sky #0ea5e9 (primary) + orange #f97316 (accent). A per-tenant brand
- * color is layered on top at runtime via useBrand() (sets --brand-raw).
- */
+@source '../js';
+@source '../views';
+
+/* `dark:` styles anything inside the dark theme (the class is on <html>). */
+@custom-variant dark (&:is(.dark *));
+
+/* The utilities' names for the tokens below (bg-card, text-muted-foreground, rounded-lg…),
+   written into each utility rather than kept as variables of their own. */
+@theme inline {
+    /* One font everywhere, loaded from the web so every computer draws the same widths. The
+       fallbacks skip system-ui, a wide font on many Linux desktops that used to cut the
+       sidebar name off. */
+    --font-sans:
+        Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Noto Color Emoji';
+
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+
+    --color-background: hsl(var(--background));
+    --color-foreground: hsl(var(--foreground));
+    --color-card: hsl(var(--card));
+    --color-card-foreground: hsl(var(--card-foreground));
+    --color-popover: hsl(var(--popover));
+    --color-popover-foreground: hsl(var(--popover-foreground));
+    --color-primary: hsl(var(--primary));
+    --color-primary-foreground: hsl(var(--primary-foreground));
+    --color-secondary: hsl(var(--secondary));
+    --color-secondary-foreground: hsl(var(--secondary-foreground));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-foreground));
+    --color-accent: hsl(var(--accent));
+    --color-accent-foreground: hsl(var(--accent-foreground));
+    --color-destructive: hsl(var(--destructive));
+    --color-destructive-foreground: hsl(var(--destructive-foreground));
+    --color-border: hsl(var(--border));
+    --color-input: hsl(var(--input));
+    --color-ring: hsl(var(--ring));
+    --color-chart-1: hsl(var(--chart-1));
+    --color-chart-2: hsl(var(--chart-2));
+    --color-chart-3: hsl(var(--chart-3));
+    --color-sidebar: hsl(var(--sidebar-background));
+    --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+    --color-sidebar-accent: hsl(var(--sidebar-accent));
+    --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+    --color-sidebar-border: hsl(var(--sidebar-border));
+    --color-sidebar-ring: hsl(var(--sidebar-ring));
+}
+
 @layer base {
+    /* ── Tokens ────────────────────────────────────────────────────────────────
+       Colours are "H S% L%" channels, used as hsl(var(--token)) so they take an alpha.
+       :root is "daylight", the light theme (also the field app's); .dark is "ops", the
+       dark back office. */
     :root {
         --background: 0 0% 100%;
         --foreground: 222 47% 11%;
-        /* Panels are a light gray so they read as surfaces on the white page (mirrors the dark theme, where cards are lighter than the bg). */
+        /* Panels are a light grey so they read as surfaces on the white page (as in the dark
+           theme, where cards are lighter than the background). */
         --card: 210 24% 96%;
-        --card-foreground: 222 47% 11%;
         --popover: 0 0% 100%;
-        --popover-foreground: 222 47% 11%;
-        --primary: 24 95% 53%;
-        --primary-foreground: 0 0% 100%;
         --secondary: 210 40% 96.1%;
-        --secondary-foreground: 222 47% 11%;
         --muted: 210 40% 96.1%;
         --muted-foreground: 215 16% 47%;
-        --accent: 24 95% 53%;
-        --accent-foreground: 0 0% 100%;
+        --orange: 24 95% 53%;
+        --primary-foreground: 0 0% 100%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
         --border: 214 32% 91%;
-        --input: 214 32% 91%;
-        --ring: 24 95% 53%;
         --chart-1: 199 89% 48%;
-        --chart-2: 24 95% 53%;
-        --chart-3: 160 60% 45%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 280 65% 60%;
-        --radius: 0.5rem;
-        --brand: 24 95% 53%;
-        --brand-accent: 24 95% 53%;
         --sidebar-background: 210 40% 98%;
         --sidebar-foreground: 215 25% 27%;
-        --sidebar-primary: 24 95% 53%;
-        --sidebar-primary-foreground: 0 0% 100%;
         --sidebar-accent: 210 40% 94%;
         --sidebar-accent-foreground: 222 47% 20%;
         --sidebar-border: 214 32% 91%;
-        --sidebar-ring: 24 95% 53%;
     }
 
     .dark {
         --background: 222 30% 7%;
         --foreground: 210 40% 96%;
         --card: 222 26% 11%;
-        --card-foreground: 210 40% 96%;
         --popover: 222 26% 11%;
-        --popover-foreground: 210 40% 96%;
-        --primary: 24 95% 55%;
-        --primary-foreground: 222 47% 8%;
         --secondary: 217 24% 17%;
-        --secondary-foreground: 210 40% 96%;
         --muted: 217 24% 15%;
         --muted-foreground: 215 20% 65%;
-        --accent: 24 95% 55%;
-        --accent-foreground: 222 47% 8%;
+        --orange: 24 95% 55%;
+        --primary-foreground: 222 47% 8%;
         --destructive: 0 72% 51%;
         --destructive-foreground: 210 40% 98%;
         --border: 217 24% 18%;
-        --input: 217 24% 18%;
-        --ring: 24 95% 55%;
         --chart-1: 199 89% 52%;
-        --chart-2: 24 95% 55%;
-        --chart-3: 160 60% 45%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-        --brand: 24 95% 55%;
-        --brand-accent: 24 95% 55%;
         --sidebar-background: 222 32% 9%;
         --sidebar-foreground: 210 40% 90%;
-        --sidebar-primary: 24 95% 55%;
-        --sidebar-primary-foreground: 222 47% 8%;
         --sidebar-accent: 217 24% 15%;
         --sidebar-accent-foreground: 210 40% 96%;
         --sidebar-border: 217 24% 16%;
-        --sidebar-ring: 24 95% 55%;
     }
-}
 
-@layer base {
+    /* The same in both themes. Every orange is the one RoutePilot orange. A company's own
+       colour replaces --brand, --primary and --ring only (useBrand, and the <html> tag before
+       the app loads), so accents, the sidebar's focus ring and charts stay orange. */
+    :root,
+    .dark {
+        --radius: 0.5rem;
+        --primary: var(--orange);
+        --accent: var(--orange);
+        --accent-foreground: var(--primary-foreground);
+        --ring: var(--orange);
+        --brand: var(--orange);
+        --card-foreground: var(--foreground);
+        --popover-foreground: var(--foreground);
+        --secondary-foreground: var(--foreground);
+        --input: var(--border);
+        --sidebar-ring: var(--orange);
+        --chart-2: var(--orange);
+        --chart-3: 160 60% 45%;
+    }
+
+    /* ── Elements ────────────────────────────────────────────────────────────── */
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+
     /* Keep a lone word off the last line. `pretty` leaves a paragraph's shape alone, but
        Firefox doesn't have it yet, so it gets `balance`. Only the style, not `text-wrap` itself,
        which would switch wrapping back on inside anything set to stay on one line. */
@@ -104,14 +145,6 @@
         text-wrap-style: auto;
     }
 
-    * {
-        @apply border-border;
-    }
-
-    body {
-        @apply bg-background text-foreground;
-    }
-
     /* Checkboxes and radio buttons look the same in every browser, which otherwise each draw
        their own: the Checkbox component's rounded square, filled with the brand colour. Size
        and rounding classes on the element still win. */
@@ -126,17 +159,17 @@
         vertical-align: middle;
         cursor: pointer;
     }
-    input[type='radio'] {
+    input:where([type='radio']) {
         border-radius: 9999px;
     }
     input:where([type='checkbox'], [type='radio']):checked {
         border-color: hsl(var(--primary));
         background-color: hsl(var(--primary));
     }
-    input[type='checkbox']:checked {
+    input:where([type='checkbox']):checked {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
     }
-    input[type='radio']:checked {
+    input:where([type='radio']):checked {
         box-shadow: inset 0 0 0 3px hsl(var(--background));
     }
     input:where([type='checkbox'], [type='radio']):focus-visible {
@@ -149,11 +182,25 @@
     }
 }
 
+/* Everything below sits outside Tailwind's layers on purpose, so it wins over the utility
+   classes without !important. */
+
 /* Big view (Settings → Appearance, or the account menu): everything 20% bigger for easier
    tapping. Sizes are in rem, so one root font size moves text, spacing and buttons together
-   (useBigView). The menu's own pixel sizes get bigger floors in the nav sizing above. */
+   (useBigView). The menu's own pixel sizes get bigger floors in the nav sizing below. */
 html.big-view {
     font-size: 120%;
+}
+
+/* Dropdowns look the same in every browser: one chevron instead of each browser's own arrow.
+   The room for the chevron beats the px-* padding classes. */
+select:not([multiple], [size]) {
+    appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1rem;
 }
 
 /* A crowded page header (AppSidebarHeader sets data-tight): its buttons keep their icons
@@ -164,17 +211,6 @@ header[data-tight] [data-header-actions] .sm\:inline {
 }
 header[data-tight] [data-header-actions] .sm\:mr-1 {
     margin-right: 0;
-}
-
-/* Dropdowns look the same in every browser: one chevron instead of each browser's own arrow.
-   Outside the layers on purpose, so the room for the chevron beats the px-* padding classes. */
-select:not([multiple], [size]) {
-    appearance: none;
-    padding-right: 2rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.5rem center;
-    background-size: 1rem;
 }
 
 /* ── Sidebar collapse timing ─────────────────────────────────────────────────
@@ -194,14 +230,18 @@ select:not([multiple], [size]) {
 [data-sidebar='menu'] {
     transition: gap var(--sidebar-duration) var(--sidebar-ease);
 }
+/* No collapse animation on the first paint: `preload` is set on <html> in the
+   root template and removed after mount (app.ts). Scoped to the sidebar shell
+   so intentional entrance animations elsewhere (e.g. the landing hero) survive. */
+.preload [class*='sidebar-wrapper'] * {
+    transition: none !important;
+}
 
 /* ── Collapsed sidebar: dock-style icon magnification ─────────────────────────
-   Left unlayered on purpose so these win over Tailwind's layered utilities
-   (e.g. the button's overflow-hidden) without !important. Scoped by button size
-   (data-size=default) so it covers the nav links while the header logo and user
-   avatar (size lg) stay untouched. The rail's icons are drawn full size (see
-   sidebarMenuButtonVariants) and swell toward the cursor, tapering across their
-   neighbours for a parabolic falloff. Transform only — no reflow, GPU-smooth. */
+   Scoped by button size (data-size=default) so it covers the nav links while the
+   header logo and user avatar (size lg) stay untouched. The rail's icons are drawn
+   full size (see sidebarMenuButtonVariants) and swell toward the cursor, tapering
+   across their neighbours for a parabolic falloff. Transform only — no reflow. */
 [data-collapsible='icon'] [data-sidebar='menu-button'][data-size='default'] {
     overflow: visible; /* let a magnified icon spill past its cell */
 }
@@ -224,9 +264,9 @@ select:not([multiple], [size]) {
    AppSidebar sets --nav-links (how many links) and --nav-chrome (the height its
    section labels and gaps take); each row gets an equal share of the rest, from
    34px up to 56px, with text and icons scaling along (text tops out at 26px so
-   the longest label, a customer's "Service History", still fits the width). Below 34px rows the nav
-   scrolls, as when someone zooms right in. The 1px keeps rounding from tipping
-   the menu into a scrollbar. */
+   the longest label, a customer's "Service History", still fits the width).
+   Below 34px rows the nav scrolls, as when someone zooms right in. The 1px keeps
+   rounding from tipping the menu into a scrollbar. */
 @media (min-width: 768px) {
     [data-sidebar='content'] {
         container-type: size;
@@ -265,11 +305,4 @@ select:not([multiple], [size]) {
         width: fit-content;
         margin-inline: auto;
     }
-}
-
-/* No collapse animation on the first paint: `preload` is set on <html> in the
-   root template and removed after mount (app.ts). Scoped to the sidebar shell
-   so intentional entrance animations elsewhere (e.g. the landing hero) survive. */
-.preload [class*='sidebar-wrapper'] * {
-    transition: none !important;
 }

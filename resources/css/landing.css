@@ -1,8 +1,8 @@
 /*
  * Public marketing pages: RoutePilot's own homepage (pages/Welcome.vue) and each
- * company's site (pages/public/Landing.vue + components/landing). The brand color
- * flows through --tenant-primary = hsl(var(--brand)) (injected per tenant
- * server-side in app.blade.php; falls back to the default brand).
+ * company's site (pages/public/Landing.vue + components/landing). The company's colour
+ * flows through --tenant-primary = hsl(var(--brand)): set on <html> by app.blade.php
+ * (and useBrand), RoutePilot orange otherwise.
  */
 :root {
     --tenant-primary: hsl(var(--brand));
@@ -22,7 +22,6 @@
 }
 .hero-animate {
     animation: rp-hero-in 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
-    opacity: 0;
 }
 .hero-d1 {
     animation-delay: 0.05s;
@@ -93,7 +92,8 @@
 }
 
 @keyframes rp-blob {
-    0% {
+    0%,
+    100% {
         transform: translate(0, 0) scale(1);
     }
     33% {
@@ -102,20 +102,15 @@
     66% {
         transform: translate(-18px, 22px) scale(0.94);
     }
-    100% {
-        transform: translate(0, 0) scale(1);
-    }
 }
 .blob {
     animation: rp-blob 11s ease-in-out infinite;
 }
 .blob-2 {
-    animation: rp-blob 15s ease-in-out infinite reverse;
-    animation-delay: -4s;
+    animation: rp-blob 15s -4s ease-in-out infinite reverse;
 }
 .blob-3 {
-    animation: rp-blob 13s ease-in-out infinite;
-    animation-delay: -7s;
+    animation: rp-blob 13s -7s ease-in-out infinite;
 }
 
 /* Scroll reveal (driven by composables/useReveal). Only put it on content that
@@ -184,14 +179,12 @@
 
 /* Hero effects the company can switch on in the editor. */
 @keyframes rp-ken {
-    0% {
+    0%,
+    100% {
         transform: scale(1);
     }
     50% {
         transform: scale(1.08);
-    }
-    100% {
-        transform: scale(1);
     }
 }
 .ken-burns {
@@ -217,9 +210,7 @@
 
 /* Editor live preview: the hero entrance re-runs on every edit, so show it settled. */
 .preview-live .hero-animate {
-    opacity: 1 !important;
-    transform: none !important;
-    animation: none !important;
+    animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -20,7 +20,7 @@
         </script>
 
         {{-- Critical base styles, applied before app.css loads, so a slow CSS fetch
-             can't flash a white background or an unsized (page-filling) logo. --}}
+             can't flash the wrong background. --}}
         <style>
             html { background-color: #ffffff; color-scheme: light; }
             html.dark { background-color: #0d1017; color-scheme: dark; }
