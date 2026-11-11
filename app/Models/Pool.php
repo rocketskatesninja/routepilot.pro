@@ -55,7 +55,7 @@ class Pool extends Model
         'customer_id', 'name', 'type', 'volume_gallons', 'surface_type',
         'sanitizer_type', 'filter_type', 'pump_type', 'has_heater',
         'has_automation', 'has_pool_cleaner', 'has_cover', 'has_water_feature',
-        'has_auto_fill', 'features', 'custom_target_ranges', 'notes', 'requested_tasks', 'report_cc_email',
+        'has_auto_fill', 'features', 'custom_target_ranges', 'notes', 'report_cc_email',
     ];
 
     /** This pool's routine sanitizer check (see SANITIZER_TASKS), if it has one. */
@@ -72,7 +72,6 @@ class Pool extends Model
         return [
             'features' => 'array',
             'custom_target_ranges' => 'array',
-            'requested_tasks' => 'array',
             'has_heater' => 'boolean',
             'has_automation' => 'boolean',
             'has_pool_cleaner' => 'boolean',

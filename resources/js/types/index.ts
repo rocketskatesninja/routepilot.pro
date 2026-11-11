@@ -3,7 +3,6 @@ import type { LucideIcon } from 'lucide-vue-next';
 export interface Auth {
     user: User;
     role?: string | null;
-    permissions?: string[];
     impersonating?: boolean;
     unread?: number;
     counts?: NavCounts; // the sidebar's link numbers (App\Support\NavCounts)

@@ -10,28 +10,25 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Permission\Traits\HasRoles;
 
 /**
  * User — staff (super_admin / tenant_admin / agent) and customers.
  *
- * `role` is the SINGLE source of truth for coarse role; Spatie's HasRoles
- * is layered on for granular per-agent `manage_*` permissions only (never
- * as a second role system). NOTE: User does NOT use the global TenantScope —
+ * `role` is the one source of truth for what someone can do; extra powers are
+ * plain flags on the user (agent_plus). NOTE: User does NOT use the global TenantScope —
  * route-model binding for User must be tenant-checked explicitly (see
  * ResolveTenant) to avoid cross-tenant access on non-scoped bindings.
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasPersonName, HasRoles, Notifiable, SoftDeletes;
+    use HasFactory, HasPersonName, Notifiable, SoftDeletes;
 
     /**
      * Privilege/identity fields (tenant_id, role, is_active, google_id,
@@ -46,7 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'first_name', 'last_name', 'email', 'password', 'phone',
         'address_line1', 'address_line2', 'city', 'state', 'zip',
         'avatar_path', 'map_color', 'admin_notes', 'last_login_at',
-        'theme', 'font_scale', 'dashboard_layout', 'dashboard_style', 'sidebar_state',
+        'dashboard_layout', 'dashboard_style', 'sidebar_state',
     ];
 
     /** @var list<string> */
@@ -201,14 +198,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function customer(): HasOne
     {
         return $this->hasOne(Customer::class);
-    }
-
-    /** @return BelongsToMany<Company, $this> */
-    public function companies(): BelongsToMany
-    {
-        return $this->belongsToMany(Company::class, 'agent_company')
-            ->withPivot('is_primary')
-            ->withTimestamps();
     }
 
     /** @return HasMany<NotificationPreference, $this> */

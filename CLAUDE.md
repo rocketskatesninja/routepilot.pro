@@ -36,8 +36,8 @@ Four surfaces, one codebase:
 
 ## Security (priority)
 
-- **Single role model:** `users.role` enum is the source of truth; Spatie `HasRoles` is for
-  granular `manage_*` permissions ONLY — never a second role system.
+- **Single role model:** `users.role` enum is the only source of truth for what someone can do.
+  Extra powers are plain flags on the user (e.g. `agent_plus`), not a permissions package.
 - Privilege/identity fields (`tenant_id`, `role`, `is_active`, `google_id`, `email_verified_at`)
   are **not `$fillable`** — set them via `forceFill()` at controlled call sites.
 - **OAuth:** verified Google email + linked `google_id` only; never log in on an email match alone.

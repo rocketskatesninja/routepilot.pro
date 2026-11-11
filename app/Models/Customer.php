@@ -38,9 +38,9 @@ class Customer extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'user_id', 'company_id', 'first_name', 'last_name', 'email', 'phone',
+        'user_id', 'first_name', 'last_name', 'email', 'phone',
         'address_line1', 'address_line2', 'city', 'state', 'zip', 'lat', 'lng',
-        'notes', 'admin_notes', 'security_code', 'bill_chemicals', 'onboarded_at',
+        'notes', 'admin_notes', 'bill_chemicals', 'onboarded_at',
     ];
 
     /** @return array<string, string> */

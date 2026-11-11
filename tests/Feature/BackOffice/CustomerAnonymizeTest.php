@@ -52,7 +52,7 @@ beforeEach(function () {
     $this->customer = Customer::factory()->for($this->tenant)->create([
         'first_name' => 'Robert', 'last_name' => 'Anderson', 'email' => 'robert@anderson.test', 'phone' => '912-555-0100',
         'address_line1' => '12 Palm Way', 'city' => 'Brunswick', 'state' => 'GA', 'zip' => '31520',
-        'notes' => 'Dog in the yard', 'admin_notes' => 'Pays late', 'security_code' => '4821', 'user_id' => $this->login->id,
+        'notes' => 'Dog in the yard', 'admin_notes' => 'Pays late', 'user_id' => $this->login->id,
     ]);
     Storage::disk('public')->put('customers/robert.jpg', 'x');
     $this->customer->forceFill(['photo_path' => 'customers/robert.jpg', 'stripe_customer_id' => 'cus_1'])->save();
@@ -91,7 +91,7 @@ test('removing personal details keeps the books and erases what identifies them'
 
     $c = Customer::withTrashed()->findOrFail($this->customer->id);
     expect($c->displayName())->toBe("Former customer #{$c->id}")
-        ->and([$c->email, $c->phone, $c->address_line1, $c->city, $c->notes, $c->getAttribute('admin_notes'), $c->getAttribute('security_code'), $c->getAttribute('photo_path'), $c->user_id, $c->getAttribute('stripe_customer_id')])
+        ->and([$c->email, $c->phone, $c->address_line1, $c->city, $c->notes, $c->getAttribute('admin_notes'), $c->getAttribute('photo_path'), $c->user_id, $c->getAttribute('stripe_customer_id')])
         ->each->toBeNull()
         ->and($c->getAttribute('anonymized_at'))->not->toBeNull()
         ->and($c->trashed())->toBeTrue();

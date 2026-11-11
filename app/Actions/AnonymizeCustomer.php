@@ -133,7 +133,7 @@ class AnonymizeCustomer
                 'first_name' => 'Former', 'last_name' => "customer #{$id}",
                 'email' => null, 'phone' => null,
                 'address_line1' => null, 'address_line2' => null, 'city' => null, 'state' => null, 'zip' => null,
-                'lat' => null, 'lng' => null, 'notes' => null, 'admin_notes' => null, 'security_code' => null,
+                'lat' => null, 'lng' => null, 'notes' => null, 'admin_notes' => null,
                 'photo_path' => null, 'user_id' => null,
                 'stripe_customer_id' => null, 'default_payment_method_id' => null, 'autopay_enabled' => false,
                 'anonymized_at' => now(),

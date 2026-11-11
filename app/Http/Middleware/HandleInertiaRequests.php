@@ -37,7 +37,7 @@ class HandleInertiaRequests extends Middleware
      * Define the props that are shared by default.
      *
      * Shares the authenticated user, the resolved tenant (branding/timezone),
-     * the user's granular Spatie permissions, and one-shot flash messages.
+     * and one-shot flash messages.
      *
      * @see https://inertiajs.com/shared-data
      *
@@ -61,9 +61,6 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
                 'role' => $user?->role,
-                'permissions' => $user
-                    ? $user->getAllPermissions()->pluck('name')->values()
-                    : [],
                 'impersonating' => $request->session()->has('impersonator_id'),
                 'unread' => $user !== null ? $user->unreadNotifications()->count() : 0,
                 // The sidebar's link numbers: under auth, so a live notification refreshes them too;

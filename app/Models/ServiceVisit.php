@@ -34,7 +34,7 @@ class ServiceVisit extends Model
     /** @var list<string> */
     protected $fillable = [
         'route_stop_id', 'pool_id', 'service_subscription_id', 'agent_id', 'visited_at',
-        'completed_at', 'status', 'signature_path', 'notes', 'office_notes',
+        'completed_at', 'status', 'notes', 'office_notes',
         'completed_lat', 'completed_lng',
     ];
 

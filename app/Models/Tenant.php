@@ -20,7 +20,6 @@ use Laravel\Cashier\Billable;
  * ResolveTenant. All tenant-owned data is scoped via the BelongsToTenant
  * trait on child models.
  *
- * @property array<string, mixed>|null $settings
  * @property string|null $address_line1
  * @property string|null $address_line2
  * @property string|null $city
@@ -67,7 +66,7 @@ class Tenant extends Model
     /** @var list<string> */
     protected $fillable = [
         'name', 'slug', 'primary_domain', 'timezone',
-        'logo_path', 'brand_color', 'status', 'settings',
+        'logo_path', 'brand_color', 'status',
         'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'reply_to_email',
     ];
 
@@ -82,7 +81,6 @@ class Tenant extends Model
     protected function casts(): array
     {
         return [
-            'settings' => 'array',
             'lat' => 'float',
             'lng' => 'float',
             'trial_ends_at' => 'datetime',

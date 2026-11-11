@@ -29,7 +29,7 @@ class Invoice extends Model
     /** @var list<string> */
     protected $fillable = [
         'customer_id', 'number', 'status', 'period_start', 'period_end',
-        'subtotal', 'tax', 'total', 'amount_paid', 'issued_at', 'due_at', 'pdf_path', 'notes',
+        'subtotal', 'tax', 'total', 'amount_paid', 'issued_at', 'due_at', 'notes',
     ];
 
     /** @return array<string, string> */
