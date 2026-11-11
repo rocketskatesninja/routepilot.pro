@@ -29,6 +29,8 @@ class SubscriptionRequest extends FormRequest
             'pool_id' => $adding ? ['required', Rule::exists('pools', 'id')->where('tenant_id', $tenantId)] : ['exclude'],
             'status' => $adding ? ['exclude'] : ['required', 'in:active,paused,cancelled'],
             ...self::planRules($tenantId, $this->input('starts_on')),
+            // A plan always has a price: a change can leave it out (it stays) but not blank it.
+            'price' => $adding ? ['nullable', 'numeric', 'min:0', 'max:100000'] : ['sometimes', 'required', 'numeric', 'min:0', 'max:100000'],
             'hold_starts_at' => ['nullable', 'date', 'required_with:hold_ends_at'],
             'hold_ends_at' => ['nullable', 'date', 'required_with:hold_starts_at', 'after_or_equal:hold_starts_at'],
         ];
@@ -44,6 +46,8 @@ class SubscriptionRequest extends FormRequest
     {
         return [
             'service_type_id' => ['required', Rule::exists('service_types', 'id')->where('tenant_id', $tenantId)],
+            // This pool's price per visit (or for the job); left blank, a new plan takes the service's.
+            'price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             // A one-person operation assigns work to the tenant_admin themselves, so admins are assignable too.
             'assigned_agent_id' => ['nullable', Rule::exists('users', 'id')->where('tenant_id', $tenantId)->whereIn('role', ['agent', 'tenant_admin'])],
             'frequency' => ['required', Rule::in(array_keys(ServiceSubscription::FREQUENCIES))],
@@ -65,6 +69,9 @@ class SubscriptionRequest extends FormRequest
             'day_of_month.integer' => 'Pick a day of the month from 1 to 31.',
             'day_of_month.min' => 'Pick a day of the month from 1 to 31.',
             'day_of_month.max' => 'Pick a day of the month from 1 to 31.',
+            'price.required' => 'Give this plan a price (0 if it\'s free).',
+            'price.numeric' => 'Enter the price as a number, like 45 or 45.50.',
+            'price.min' => 'The price can\'t be below 0.',
             'hold_starts_at.required_with' => 'Give the hold a start date too.',
             'hold_ends_at.required_with' => 'Give the hold an end date too.',
             'hold_ends_at.after_or_equal' => 'The hold can\'t end before it starts.',

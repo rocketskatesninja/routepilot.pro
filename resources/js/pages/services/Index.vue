@@ -12,8 +12,10 @@ import ServiceOffer, { type Offer } from '@/components/portal/ServiceOffer.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useFeature } from '@/composables/useFeature';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { priceUnit } from '@/lib/labels';
 import { visitQuery } from '@/lib/listQuery';
 import { andList, iconFor, soldAs as portalSoldAs, price } from '@/lib/portal';
 import { SERVICE_TEMPLATES as templates } from '@/lib/serviceTemplates';
@@ -80,7 +82,6 @@ const money = formatMoney;
 // How a service is sold, in plain words.
 const schedules: Record<string, string> = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly' };
 const soldAs = (frequency: string) => (frequency === 'one_time' ? 'One-time job' : (schedules[frequency] ?? frequency));
-const priceUnit = (frequency: string) => (frequency === 'one_time' ? 'for the job' : 'per visit');
 
 // The visit sections the tech sees in the field app (same names they show there).
 const sections: Record<string, string> = { tasks: 'Checklist', chemistry: 'Water test', treatments: 'Treatments', photos: 'Photos' };
@@ -128,12 +129,14 @@ const recurring = computed({
     get: () => form.frequency !== 'one_time',
     set: (yes: boolean) => (form.frequency = yes ? 'weekly' : 'one_time'),
 });
+// Customers see the price only when the company shows its prices (else "Price on request").
+const showPrices = useFeature('show_prices');
 // The form as the customer's card, updating as they type.
 const previewOffer = computed<Offer>(() => ({
     name: form.name || 'Service name',
     description: form.description || 'Your short description will appear here.',
     frequency: form.frequency,
-    price: Number(form.price) || 0,
+    price: showPrices.value ? Number(form.price) || 0 : null,
     minutes: Number(form.estimated_duration_minutes) || null,
     tasks: form.field_modules.tasks ? form.tasks.filter((t) => t.trim() !== '') : [],
     modules: Object.keys(form.field_modules).filter((k) => form.field_modules[k]),
@@ -146,7 +149,7 @@ const offerOf = (d: ServiceDetail): Offer => ({
     name: d.name,
     description: d.description,
     frequency: d.frequency,
-    price: Number(d.price),
+    price: showPrices.value ? Number(d.price) : null,
     minutes: d.duration_minutes,
     tasks: d.fields.field_modules.tasks ? d.tasks : [],
     modules: Object.keys(d.fields.field_modules).filter((k) => d.fields.field_modules[k]),
@@ -371,7 +374,9 @@ function destroyService() {
                                 <span class="text-muted-foreground">{{ priceUnit(form.frequency) }}</span>
                             </div>
                             <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
-                            <p v-else class="text-muted-foreground text-xs">The same price shows on your website and is what each visit is billed.</p>
+                            <p v-else class="text-muted-foreground text-xs">
+                                Where each new pool’s price starts; you can change it per pool. Changing it later only affects new plans.
+                            </p>
                         </section>
 
                         <section class="space-y-3">

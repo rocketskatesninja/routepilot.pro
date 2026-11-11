@@ -84,6 +84,7 @@ class HandleInertiaRequests extends Middleware
                     'inventory_tracking' => $t->inventory_tracking,
                     'landing_page' => $t->landing_page,
                     'ai_assistant' => $t->ai_assistant,
+                    'show_prices' => $t->show_prices,
                 ] : null;
             },
             // Platform-billing state (trial/subscription) + metered usage for the

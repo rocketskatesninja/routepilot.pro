@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { priceUnit } from '@/lib/labels';
 import { andList, cap, howOften, iconFor, price, soldAs, when } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -42,6 +43,8 @@ interface Plan {
     starts_on: string | null;
     ends_on: string | null;
     one_time: boolean;
+    /** What they pay for it (null when the company bills another way). */
+    price: number | null;
     modules: string[];
     next_visit: string | null;
     agent: string | null;
@@ -56,7 +59,7 @@ interface Service {
     name: string;
     description: string | null;
     frequency: string;
-    price: number;
+    price: number | null; // null: the company quotes each pool
     minutes: number;
     tasks: string[];
     modules: string[];
@@ -170,7 +173,9 @@ const heading = computed(() => {
 });
 const subheading = computed(() => {
     if (kind.value === 'service' && service.value)
-        return `${price(service.value.price)} ${service.value.frequency === 'one_time' ? 'for the job' : 'per visit'}, ${soldAs(service.value.frequency).toLowerCase()}.`;
+        return service.value.price === null
+            ? `${soldAs(service.value.frequency)}. ${company.value} will tell you the price for your pool.`
+            : `${price(service.value.price)} ${priceUnit(service.value.frequency)}, ${soldAs(service.value.frequency).toLowerCase()}.`;
     if (kind.value === 'hold') return `Pick the days to skip. Your ${visitsWord(plan.value as Plan)} start again on their own afterward.`;
     if (kind.value === 'cancel')
         return plan.value?.one_time ? 'We’ll let them know you no longer need this visit.' : 'Your other services carry on as usual.';
@@ -241,7 +246,10 @@ const statusClass = (status: string) =>
                                         <span v-if="p.next_visit" class="text-sm">Next visit {{ formatDay(p.next_visit) }}</span>
                                     </div>
                                     <p class="text-muted-foreground text-sm">
-                                        {{ howOften(p) }}<template v-if="p.agent">, with {{ p.agent }}</template>
+                                        {{ howOften(p) }}<template v-if="p.agent">, with {{ p.agent }}</template
+                                        ><template v-if="p.price !== null">
+                                            · {{ p.price > 0 ? `${price(p.price)} ${priceUnit(p.frequency)}` : 'No charge' }}</template
+                                        >
                                     </p>
                                     <div
                                         v-if="p.hold_from || p.status === 'paused' || (p.ends_on && !p.one_time)"

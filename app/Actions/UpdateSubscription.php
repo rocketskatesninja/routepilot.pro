@@ -16,7 +16,7 @@ class UpdateSubscription
 {
     /** Fields that can be changed. */
     private const FIELDS = [
-        'service_type_id', 'assigned_agent_id', 'frequency', 'preferred_day', 'starts_on',
+        'service_type_id', 'price', 'assigned_agent_id', 'frequency', 'preferred_day', 'starts_on',
         'ends_on', 'day_of_month', 'status', 'hold_starts_at', 'hold_ends_at',
     ];
 

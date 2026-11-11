@@ -7,7 +7,7 @@ import { ChevronRight } from 'lucide-vue-next';
 interface Offered {
     id: number;
     name: string;
-    price: number;
+    price: number | null; // null: "Price on request"
     frequency: string;
 }
 

@@ -354,7 +354,7 @@ class AssembleDashboardData
 
         return [
             'services' => (clone $offered)->limit(4)->get(['id', 'name', 'price', 'frequency'])
-                ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'price' => (float) $t->price, 'frequency' => $t->frequency])
+                ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'price' => $t->customerPrice(), 'frequency' => $t->frequency])
                 ->values()->all(),
             'total' => $offered->count(),
         ];

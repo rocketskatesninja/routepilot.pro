@@ -23,6 +23,7 @@ class CreateSubscription
         $plan = ServiceSubscription::create([
             'pool_id' => $data['pool_id'],
             'service_type_id' => $data['service_type_id'],
+            'price' => $data['price'] ?? null, // none given: the service's price
             'assigned_agent_id' => $data['assigned_agent_id'] ?? null,
             'frequency' => $data['frequency'],
             'preferred_day' => $data['preferred_day'] ?? null,

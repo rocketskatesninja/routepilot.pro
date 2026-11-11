@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SCHEDULES, WEEKDAYS } from '@/lib/labels';
+import { useCustomerBilling } from '@/composables/useCustomerBilling';
+import { priceUnit, SCHEDULES, WEEKDAYS } from '@/lib/labels';
 
 /**
- * A plan's schedule: which agent does it, how often, which day, and when it starts and
- * ends. Shared by the pool's plan form and approving a customer's request, so
- * both ask the same way. Bind it to a useForm() that has these fields.
+ * A plan's details: who does it, how often, which day, when it starts and ends,
+ * and what this pool pays. Shared by adding a pool, the pool's plan form and
+ * approving a customer's request, so all three ask the same way. Bind it to a
+ * useForm() that has these fields.
  */
-export interface ScheduleForm {
+export interface PlanForm {
+    price: number | string;
     assigned_agent_id: number | string;
     frequency: string;
     preferred_day: string;
@@ -18,8 +21,11 @@ export interface ScheduleForm {
     errors: Partial<Record<string, string>>;
 }
 
-const form = defineModel<ScheduleForm>({ required: true });
-defineProps<{ agents: { id: number; name: string }[]; idPrefix: string }>();
+const form = defineModel<PlanForm>({ required: true });
+defineProps<{ agents: { id: number; name: string }[]; idPrefix: string; priceHint?: string }>();
+
+// A company that bills elsewhere has no use for a plan's price.
+const billing = useCustomerBilling();
 </script>
 
 <template>
@@ -68,5 +74,17 @@ defineProps<{ agents: { id: number; name: string }[]; idPrefix: string }>();
             <p v-if="form.errors.ends_on" class="text-xs text-red-600">{{ form.errors.ends_on }}</p>
             <p v-else class="text-muted-foreground text-xs">For seasonal service</p>
         </div>
+    </div>
+    <div v-if="billing" class="grid gap-1.5">
+        <Label :for="`${idPrefix}_price`">Price</Label>
+        <div class="flex items-center gap-2">
+            <span class="text-muted-foreground">$</span>
+            <Input :id="`${idPrefix}_price`" v-model="form.price" type="number" step="0.01" min="0" class="w-28" />
+            <span class="text-muted-foreground">{{ priceUnit(form.frequency) }}</span>
+        </div>
+        <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
+        <p v-else class="text-muted-foreground text-xs">
+            {{ priceHint ?? 'What this pool pays. It starts at the service’s price; changing that later won’t change it.' }}
+        </p>
     </div>
 </template>

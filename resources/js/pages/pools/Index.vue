@@ -4,7 +4,7 @@ import EntityAvatar from '@/components/EntityAvatar.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import PlanScheduleFields, { type ScheduleForm } from '@/components/PlanScheduleFields.vue';
+import PlanFields, { type PlanForm } from '@/components/PlanFields.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { useListSearch } from '@/composables/useListSearch';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { SCHEDULES } from '@/lib/labels';
+import { priceUnit, SCHEDULES } from '@/lib/labels';
 import { agentLink, customerLink, mapsLink, reportLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
 import { cap, checkWater, describePool, waterSummary } from '@/lib/portal';
@@ -104,6 +104,7 @@ interface PoolDetail {
         agent: string;
         status: string;
         service_type_id: number;
+        price: number;
         agent_id: number | null;
         agent_is_tech: boolean;
         frequency: string;
@@ -148,7 +149,7 @@ const props = defineProps<{
     filters: { search: string };
     sort: { key: string; dir: string };
     customers: { id: number; name: string }[];
-    serviceTypes: { id: number; name: string; frequency: string }[];
+    serviceTypes: { id: number; name: string; frequency: string; price: number }[];
     agents: { id: number; name: string }[];
     canManage: boolean;
 }>();
@@ -234,6 +235,7 @@ const form = useForm<Record<string, unknown>>({
     photo: null,
     // A new pool's optional first service plan (left out unless a service is picked).
     service_type_id: '',
+    price: '' as number | string,
     assigned_agent_id: '',
     frequency: 'weekly',
     preferred_day: '',
@@ -244,14 +246,15 @@ const form = useForm<Record<string, unknown>>({
 
 const photoFile = computed(() => form.photo as File | null);
 
-// The new pool's plan fields, in the shape PlanScheduleFields edits (in place, on this same form).
-const newPlan = form as unknown as ScheduleForm;
+// The new pool's plan fields, in the shape PlanFields edits (in place, on this same form).
+const newPlan = form as unknown as PlanForm;
 // …starting from how the picked service is sold, like the plan form.
 watch(
     () => form.service_type_id,
     (id) => {
         const schedule = soldAs(id);
         if (formMode.value === 'create' && schedule) form.frequency = schedule;
+        if (formMode.value === 'create') form.price = listPrice(id);
     },
 );
 
@@ -332,10 +335,13 @@ const soldAs = (id: unknown): string | null => {
     const service = props.serviceTypes.find((t) => t.id === Number(id));
     return service && SCHEDULES[service.frequency] ? service.frequency : null;
 };
+/** Where a new plan's price starts: its service's price. */
+const listPrice = (id: unknown): number | string => props.serviceTypes.find((t) => t.id === Number(id))?.price ?? '';
 
 const subForm = useForm<{
     pool_id: number | null;
     service_type_id: number | string;
+    price: number | string;
     assigned_agent_id: number | string;
     frequency: string;
     preferred_day: string;
@@ -348,6 +354,7 @@ const subForm = useForm<{
 }>({
     pool_id: null,
     service_type_id: '',
+    price: '',
     assigned_agent_id: '',
     frequency: 'weekly',
     preferred_day: '',
@@ -365,6 +372,7 @@ watch(
     (id) => {
         const schedule = soldAs(id);
         if (subFormMode.value === 'create' && schedule) subForm.frequency = schedule;
+        if (subFormMode.value === 'create') subForm.price = listPrice(id);
     },
 );
 
@@ -381,6 +389,7 @@ function openSubCreate() {
 
 function openSubEdit(sub: Subscription) {
     subForm.service_type_id = sub.service_type_id;
+    subForm.price = sub.price;
     subForm.assigned_agent_id = sub.agent_id ?? '';
     subForm.frequency = sub.frequency;
     subForm.preferred_day = sub.preferred_day ?? '';
@@ -722,7 +731,7 @@ function submitTargets() {
                                 </select>
                                 <p v-if="form.errors.service_type_id" class="text-xs text-red-600">{{ form.errors.service_type_id }}</p>
                             </div>
-                            <PlanScheduleFields v-if="form.service_type_id" :model-value="newPlan" :agents="props.agents" id-prefix="new" />
+                            <PlanFields v-if="form.service_type_id" :model-value="newPlan" :agents="props.agents" id-prefix="new" />
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
@@ -749,7 +758,7 @@ function submitTargets() {
                             </select>
                             <p v-if="subForm.errors.service_type_id" class="text-xs text-red-600">{{ subForm.errors.service_type_id }}</p>
                         </div>
-                        <PlanScheduleFields v-model="subForm" :agents="props.agents" id-prefix="sub" />
+                        <PlanFields v-model="subForm" :agents="props.agents" id-prefix="sub" />
                         <div v-if="subFormMode === 'edit'" class="grid gap-1.5">
                             <Label for="sub_status">Status</Label>
                             <select id="sub_status" v-model="subForm.status" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
@@ -911,7 +920,7 @@ function submitTargets() {
                                                 class="text-primary underline-offset-4 hover:underline"
                                                 >{{ sub.agent }}</Link
                                             ><template v-else>{{ sub.agent }}</template></template
-                                        >
+                                        ><template v-if="billing"> · {{ formatMoney(sub.price) }} {{ priceUnit(sub.frequency) }}</template>
                                     </template>
                                     <p
                                         v-if="sub.hold_label && sub.status !== 'cancelled'"

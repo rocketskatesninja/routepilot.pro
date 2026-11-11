@@ -3,7 +3,7 @@ import Hint from '@/components/Hint.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import NoteBubble from '@/components/NoteBubble.vue';
-import PlanScheduleFields from '@/components/PlanScheduleFields.vue';
+import PlanFields from '@/components/PlanFields.vue';
 import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
 import PaneFacts from '@/components/pane/PaneFacts.vue';
@@ -65,6 +65,7 @@ interface RequestDetail extends RequestRow {
         preferred_day: string;
         day_of_month: number;
         starts_on: string;
+        price: number;
         assigned_agent_id: number | null;
     } | null;
 }
@@ -169,6 +170,7 @@ watch(
 // Forms are built from functions so reset() always starts blank — never with
 // the note or reason typed for the previous request.
 const approveForm = useForm(() => ({
+    price: '' as number | string,
     frequency: 'weekly',
     preferred_day: '',
     day_of_month: '' as number | string,
@@ -188,6 +190,7 @@ function openApprove() {
         approveForm.preferred_day = d.preferred_day;
         approveForm.day_of_month = d.day_of_month;
         approveForm.starts_on = d.starts_on;
+        approveForm.price = d.price; // the service's price, to adjust for this pool
         approveForm.assigned_agent_id = d.assigned_agent_id ?? '';
     }
     mode.value = 'approve';
@@ -541,7 +544,12 @@ const submitConvert = () => {
                                             Creates the plan on {{ request.pool }}. Its visits go on the route as soon as you save.
                                         </p>
                                     </div>
-                                    <PlanScheduleFields v-model="approveForm" :agents="props.agents" id-prefix="ap" />
+                                    <PlanFields
+                                        v-model="approveForm"
+                                        :agents="props.agents"
+                                        id-prefix="ap"
+                                        price-hint="What this pool pays, starting from the service’s price. Your answer tells them."
+                                    />
                                 </template>
                                 <p v-else class="text-muted-foreground">{{ approveExplainer }}</p>
 

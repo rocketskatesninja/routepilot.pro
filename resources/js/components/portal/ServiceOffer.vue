@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { priceUnit } from '@/lib/labels';
 import { extras, iconFor, price, soldAs } from '@/lib/portal';
 import { Check, Clock } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -14,7 +15,8 @@ export interface Offer {
     name: string;
     description: string | null;
     frequency: string;
-    price: number;
+    /** null: the company quotes each pool ("Price on request"). */
+    price: number | null;
     minutes: number | null;
     /** The checklist — only when the tech works through one on the visit. */
     tasks: string[];
@@ -61,10 +63,11 @@ const included = computed(() => extras(props.service.modules, props.service.task
 
             <div class="flex flex-wrap items-end justify-between gap-3 @lg:flex-col @lg:items-end @lg:justify-start @lg:text-right">
                 <div>
-                    <p>
+                    <p v-if="service.price !== null">
                         <span class="text-[1.75rem] leading-none font-semibold tracking-tight">{{ price(service.price) }}</span>
-                        <span class="text-muted-foreground ml-1 text-sm">{{ service.frequency === 'one_time' ? 'for the job' : 'per visit' }}</span>
+                        <span class="text-muted-foreground ml-1 text-sm">{{ priceUnit(service.frequency) }}</span>
                     </p>
+                    <p v-else class="text-lg font-semibold tracking-tight">Price on request</p>
                     <p class="text-muted-foreground mt-1.5 text-sm">{{ soldAs(service.frequency) }}</p>
                     <p v-if="service.minutes" class="text-muted-foreground flex items-center gap-1 text-sm @lg:justify-end">
                         <Clock class="size-3.5" /> About {{ service.minutes }} minutes

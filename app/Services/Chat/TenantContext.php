@@ -42,7 +42,9 @@ class TenantContext
                 $subs = $p->subscriptions->map(function (ServiceSubscription $s): string {
                     $agent = $s->agent?->displayName() ?? 'unassigned';
 
-                    return "{$s->serviceType->name} ({$s->scheduleLabel()}) — agent: {$agent}";
+                    $price = '$'.number_format((float) $s->price, 2).($s->frequency === 'one_time' ? '' : '/visit');
+
+                    return "{$s->serviceType->name} ({$s->scheduleLabel()}, {$price}) — agent: {$agent}";
                 })->join('; ');
                 $vol = $p->volume_gallons !== null ? number_format($p->volume_gallons).' gal' : '?';
 

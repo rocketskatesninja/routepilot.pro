@@ -152,6 +152,7 @@ class InboxController extends Controller
             'preferred_day' => strtolower($date->format('l')),
             'day_of_month' => $date->day,
             'starts_on' => $date->toDateString(),
+            'price' => (float) $r->serviceType?->price, // the service's price, to adjust for this pool
             'assigned_agent_id' => $poolPlans->where('status', 'active')->whereNotNull('assigned_agent_id')->first()?->getAttribute('assigned_agent_id'),
         ];
     }

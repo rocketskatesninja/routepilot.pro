@@ -33,8 +33,8 @@ final class OptionLists
     public static function serviceTypes(): array
     {
         return ServiceType::query()
-            ->where('is_active', true)->orderBy('name')->get(['id', 'name', 'frequency'])
-            ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'frequency' => $t->frequency])
+            ->where('is_active', true)->orderBy('name')->get(['id', 'name', 'frequency', 'price'])
+            ->map(fn (ServiceType $t): array => ['id' => $t->id, 'name' => $t->name, 'frequency' => $t->frequency, 'price' => (float) $t->price])
             ->all();
     }
 

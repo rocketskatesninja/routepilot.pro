@@ -25,10 +25,11 @@ export interface Tenant {
     inventory_tracking: boolean; // counts its stock and repair parts in RoutePilot
     landing_page: boolean; // has a public website from RoutePilot
     ai_assistant: boolean; // its people have the AI assistant in the app
+    show_prices: boolean; // customers see its service prices (off: "Price on request", priced per pool on approval)
 }
 
 /** The parts of RoutePilot a company can switch off. */
-export type TenantFeature = 'customer_billing' | 'inventory_tracking' | 'landing_page' | 'ai_assistant';
+export type TenantFeature = 'customer_billing' | 'inventory_tracking' | 'landing_page' | 'ai_assistant' | 'show_prices';
 
 export interface BreadcrumbItem {
     title: string;

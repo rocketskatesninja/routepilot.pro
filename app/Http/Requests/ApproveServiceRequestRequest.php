@@ -18,7 +18,7 @@ class ApproveServiceRequestRequest extends SubscriptionRequest
     {
         $request = $this->route('serviceRequest');
         $schedule = $request instanceof ServiceRequest && $request->isForService()
-            ? array_intersect_key(parent::rules(), array_flip(['assigned_agent_id', 'frequency', 'preferred_day', 'day_of_month', 'starts_on', 'ends_on']))
+            ? array_intersect_key(parent::rules(), array_flip(['price', 'assigned_agent_id', 'frequency', 'preferred_day', 'day_of_month', 'starts_on', 'ends_on']))
             : [];
 
         return [...$schedule, 'reply' => ['nullable', 'string', 'max:1000']];

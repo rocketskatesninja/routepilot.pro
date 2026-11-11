@@ -24,6 +24,11 @@ use Illuminate\Support\Carbon;
  * optional ends_on finishes the plan (seasonal service); a dated hold window
  * pauses it and resumes automatically.
  *
+ * Price: what this pool pays per visit (or for a one-time job), agreed when the
+ * plan starts. A service's price is only where a new plan starts; changing it
+ * later doesn't move existing plans.
+ *
+ * @property string $price
  * @property string $frequency
  * @property string|null $preferred_day
  * @property Carbon|null $starts_on
@@ -40,7 +45,7 @@ class ServiceSubscription extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'pool_id', 'service_type_id', 'assigned_agent_id', 'frequency', 'preferred_day',
+        'pool_id', 'service_type_id', 'price', 'assigned_agent_id', 'frequency', 'preferred_day',
         'starts_on', 'ends_on', 'day_of_month', 'hold_starts_at', 'hold_ends_at', 'status',
     ];
 
@@ -56,12 +61,23 @@ class ServiceSubscription extends Model
     protected function casts(): array
     {
         return [
+            'price' => 'decimal:2',
             'starts_on' => 'date',
             'ends_on' => 'date',
             'day_of_month' => 'integer',
             'hold_starts_at' => 'date',
             'hold_ends_at' => 'date',
         ];
+    }
+
+    /** A new plan starts at its service's price unless it's given its own. */
+    protected static function booted(): void
+    {
+        static::creating(function (self $plan): void {
+            if ($plan->getAttribute('price') === null) {
+                $plan->setAttribute('price', ServiceType::query()->whereKey($plan->getAttribute('service_type_id'))->value('price') ?? 0);
+            }
+        });
     }
 
     /** @return BelongsTo<Pool, $this> */

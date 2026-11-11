@@ -53,7 +53,8 @@ export const soldAs = (f: string) =>
     ({ weekly: 'Every week', biweekly: 'Every two weeks', monthly: 'Once a month', one_time: 'One-time job' })[f] ?? '';
 
 /** "$35" / "$35.50". */
-export const price = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
+/** "$45" / "$45.50"; no price (a company that quotes each pool) reads "Price on request". */
+export const price = (n: number | null) => (n === null ? 'Price on request' : `$${Number.isInteger(n) ? n : n.toFixed(2)}`);
 
 /** A simple picture for a service: a one-off job, a water-testing visit, or a regular clean. */
 export const iconFor = (modules: string[], frequency: string) =>

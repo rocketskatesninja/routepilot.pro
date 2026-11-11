@@ -11,7 +11,7 @@ export interface BrandContext {
 export interface LandingService {
     id: number;
     name: string;
-    price: number;
+    price: number | null; // null: quoted pool by pool
     frequency: string;
     description: string | null;
 }

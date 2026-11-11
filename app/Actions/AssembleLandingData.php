@@ -147,7 +147,7 @@ class AssembleLandingData
             ->map(fn ($s): array => [
                 'id' => $s->id,
                 'name' => (string) $s->name,
-                'price' => (float) $s->price,
+                'price' => $s->customerPrice(), // null: a quote for each pool
                 'frequency' => (string) $s->frequency,
                 'description' => is_string($s->description) ? $s->description : null,
             ])

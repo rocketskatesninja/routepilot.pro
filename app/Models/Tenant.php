@@ -35,6 +35,7 @@ use Laravel\Cashier\Billable;
  * @property bool $inventory_tracking whether it counts its stock and repair parts in RoutePilot
  * @property bool $landing_page whether it has a public website from RoutePilot
  * @property bool $ai_assistant whether its people have the AI assistant in the app
+ * @property bool $show_prices whether customers see its service prices (off: "Price on request", priced per pool on approval)
  * @property string|null $pm_type
  * @property string|null $pm_last_four
  */
@@ -61,6 +62,7 @@ class Tenant extends Model
         'inventory_tracking' => 'Inventory tracking',
         'landing_page' => 'Your website',
         'ai_assistant' => 'The AI assistant',
+        'show_prices' => 'Showing prices to customers',
     ];
 
     /** @var list<string> */
@@ -75,7 +77,7 @@ class Tenant extends Model
      *
      * @var array<string, mixed>
      */
-    protected $attributes = ['customer_billing' => true, 'inventory_tracking' => true, 'landing_page' => true, 'ai_assistant' => true];
+    protected $attributes = ['customer_billing' => true, 'inventory_tracking' => true, 'landing_page' => true, 'ai_assistant' => true, 'show_prices' => true];
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -89,6 +91,7 @@ class Tenant extends Model
             'inventory_tracking' => 'boolean',
             'landing_page' => 'boolean',
             'ai_assistant' => 'boolean',
+            'show_prices' => 'boolean',
         ];
     }
 

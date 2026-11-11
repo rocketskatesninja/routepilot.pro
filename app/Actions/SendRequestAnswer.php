@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Mail\ServiceRequestAnsweredMail;
 use App\Models\ServiceRequest;
+use App\Models\ServiceSubscription;
 use App\Models\Tenant;
 use App\Notifications\ServiceRequestAnswered;
 use Illuminate\Support\Facades\Mail;
@@ -59,6 +60,18 @@ class SendRequestAnswer
         };
     }
 
+    /** ", at $45.00 a visit" / ", for $150.00": the price agreed for this pool, when the company bills through RoutePilot. */
+    private function price(ServiceSubscription $plan): string
+    {
+        $amount = (float) $plan->price;
+        if ($amount <= 0 || ! (bool) Tenant::query()->whereKey($plan->getAttribute('tenant_id'))->value('customer_billing')) {
+            return '';
+        }
+        $money = '$'.number_format($amount, 2);
+
+        return $plan->frequency === 'one_time' ? ', for '.$money : ', at '.$money.' a visit';
+    }
+
     /** One plain sentence saying what happened. */
     private function summary(ServiceRequest $request, string $company): string
     {
@@ -81,8 +94,8 @@ class SendRequestAnswer
             $techLine = $tech !== null ? ' Your technician will be '.$tech.'.' : '';
 
             return $plan->frequency === 'one_time'
-                ? $request->title().' for '.$pool.' is booked for '.$date($plan->starts_on).'.'.$techLine
-                : $request->title().' for '.$pool.' is scheduled: '.$plan->scheduleLabel().', starting '.$date($plan->starts_on).'.'.$techLine;
+                ? $request->title().' for '.$pool.' is booked for '.$date($plan->starts_on).$this->price($plan).'.'.$techLine
+                : $request->title().' for '.$pool.' is scheduled: '.$plan->scheduleLabel().', starting '.$date($plan->starts_on).$this->price($plan).'.'.$techLine;
         }
 
         $yours = 'Your '.($plan->serviceType->name ?? 'service').' for '.$pool;

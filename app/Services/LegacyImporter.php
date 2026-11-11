@@ -118,6 +118,10 @@ class LegacyImporter
             'service_type_id' => fn ($v) => $types[$v] ?? null,
             'assigned_agent_id' => fn ($v) => $v ? ($users[$v] ?? null) : null,
         ]);
+        // The old app priced plans by their service; here each plan keeps its own price.
+        DB::table('service_subscriptions')->whereIn('id', array_values($subs) ?: [0])->update([
+            'price' => DB::raw('(select price from service_types where service_types.id = service_subscriptions.service_type_id)'),
+        ]);
 
         $visits = $this->copy('service_visits', $byTenant, $reTenant + [
             'pool_id' => fn ($v) => $pools[$v] ?? null,

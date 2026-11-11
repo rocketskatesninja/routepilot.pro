@@ -113,7 +113,7 @@ class BillingService
     public function chargeVisit(ServiceVisit $visit): ?Charge
     {
         $existing = Charge::query()->where('service_visit_id', $visit->id)->where('kind', 'visit')->first();
-        $plan = $visit->serviceSubscription()->with('serviceType:id,name,price')->first();
+        $plan = $visit->serviceSubscription()->with('serviceType:id,name')->first();
         $pool = $visit->pool()->first(['id', 'name', 'customer_id']);
         if ($existing !== null || $plan === null || $pool === null || ! $this->bills($visit)) {
             return $existing;
@@ -125,7 +125,7 @@ class BillingService
             'service_visit_id' => $visit->id,
             'kind' => 'visit',
             'description' => $plan->serviceType->name.' — '.$pool->getAttribute('name'),
-            'amount' => (float) $plan->serviceType->price,
+            'amount' => (float) $plan->price,
             'taxable' => false,
             'tax' => 0,
             'occurred_on' => $this->localDate($visit),

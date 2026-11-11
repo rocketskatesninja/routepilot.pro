@@ -23,7 +23,11 @@ const poolTypes = [
 const form = ref({ poolType: 'inground', gallons: '', serviceId: '', name: '', email: '', phone: '' });
 const selected = computed<LandingService | undefined>(() => services.value.find((s) => String(s.id) === form.value.serviceId));
 // The estimate is the service's real price — the same one billing charges.
-const estimate = computed(() => (selected.value && selected.value.price > 0 ? selected.value.price : null));
+// No price (the company quotes each pool): "We'll prepare a custom quote".
+const estimate = computed(() => {
+    const p = selected.value?.price ?? null;
+    return p !== null && p > 0 ? p : null;
+});
 
 const freqLabel = (f: string) =>
     ({ weekly: '/visit (weekly)', biweekly: '/visit (every 2 wks)', monthly: '/visit (monthly)', one_time: ' one-time' })[f] ?? '';

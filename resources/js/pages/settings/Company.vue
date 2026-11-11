@@ -360,10 +360,14 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
 
                     <!-- Features: what the company uses RoutePilot for -->
                     <div v-show="activeTab === 'features'" class="flex flex-col space-y-6">
-                        <HeadingSmall title="Features" description="Turn off the parts of RoutePilot your company doesn’t use." />
+                        <HeadingSmall title="Features" description="Fit RoutePilot to how your company works: turn off what you don’t use." />
                         <FeatureSwitch feature="customer_billing" label="Bill customers through RoutePilot">
                             Charges, balances, invoices and online payments. Turn this off if you bill another way: nothing is billed, reminded or
                             charged, and what’s already on record stays there.
+                        </FeatureSwitch>
+                        <FeatureSwitch feature="show_prices" label="Show your prices to customers">
+                            Service prices on your website, in the customer portal and in the website chat. Turn this off if you price each pool:
+                            customers see “Price on request”, and you set each pool’s price when you approve its request.
                         </FeatureSwitch>
                         <FeatureSwitch feature="inventory_tracking" label="Track inventory in RoutePilot">
                             Stock counts, low-stock alerts and repair parts. Turn this off if you don’t keep count here: techs still record the

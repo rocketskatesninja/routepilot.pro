@@ -57,6 +57,9 @@ const dismiss = () => {
             <FeatureSwitch feature="customer_billing" label="Do you bill customers through RoutePilot?">
                 Invoices and online payments. Turn it off if you bill another way.
             </FeatureSwitch>
+            <FeatureSwitch feature="show_prices" label="Do you show customers your prices?">
+                Turn it off if you price each pool. Customers see “Price on request”, and you set the price when you approve.
+            </FeatureSwitch>
             <FeatureSwitch feature="inventory_tracking" label="Do you track chemical and parts stock in RoutePilot?">
                 Stock counts and repair parts. Turn it off if you don’t keep count here; techs still record the chemicals they add.
             </FeatureSwitch>

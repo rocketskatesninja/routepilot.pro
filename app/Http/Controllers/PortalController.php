@@ -144,8 +144,12 @@ class PortalController extends Controller
             ->selectRaw('route_stops.service_subscription_id as plan_id, min(routes.scheduled_date) as next_date')
             ->pluck('next_date', 'plan_id');
 
+        // What each costs them: their own agreed price (shown even when the company keeps its list prices
+        // to itself), unless the company bills another way.
+        $bills = $customer->tenant?->customer_billing !== false;
+
         $plans = $plans
-            ->map(function (ServiceSubscription $p) use ($pending, $today, $nextVisits): array {
+            ->map(function (ServiceSubscription $p) use ($pending, $today, $nextVisits, $bills): array {
                 $onHold = $p->hold_ends_at !== null && $p->hold_ends_at->gte($today);
 
                 return [
@@ -160,6 +164,7 @@ class PortalController extends Controller
                     'starts_on' => $p->starts_on?->toDateString(),
                     'ends_on' => $p->ends_on?->toDateString(),
                     'one_time' => $p->frequency === 'one_time',
+                    'price' => $bills ? (float) $p->price : null,
                     'modules' => $p->serviceType !== null ? array_keys(array_filter($p->serviceType->modules())) : [],
                     'next_visit' => isset($nextVisits[$p->id]) ? substr((string) $nextVisits[$p->id], 0, 10) : null,
                     'agent' => $p->agent?->firstName(),
@@ -180,7 +185,7 @@ class PortalController extends Controller
                     'name' => $t->name,
                     'description' => $t->description,
                     'frequency' => $t->frequency,
-                    'price' => (float) $t->price,
+                    'price' => $t->customerPrice(),
                     'minutes' => $t->estimated_duration_minutes,
                     // The checklist only when the tech actually works through it on the visit.
                     'tasks' => $modules['tasks'] ? array_values($t->tasks ?? []) : [],

@@ -53,6 +53,14 @@ class ServiceType extends Model
     /** The at-pool sections a visit of this type can show, in field-flow order. */
     public const MODULES = ['tasks' => 'Checklist', 'chemistry' => 'Water test', 'treatments' => 'Treatments', 'photos' => 'Photos'];
 
+    /** What customers see: its price, or null ("Price on request") when the company keeps prices to itself. */
+    public function customerPrice(): ?float
+    {
+        $tenant = app()->has('tenant') ? app('tenant') : null;
+
+        return $tenant instanceof Tenant && ! $tenant->show_prices ? null : (float) $this->price;
+    }
+
     /** "$50.00 per visit · weekly" / "$150.00 one-time job" — how it reads to a customer. */
     public function offerLabel(): string
     {

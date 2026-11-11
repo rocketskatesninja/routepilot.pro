@@ -164,10 +164,17 @@ function noise(ctx, text) {
 
 function watch(ctx) {
     const { page } = ctx;
-    page.on('pageerror', (e) => noise(ctx, e.message) || addIssue(ctx, 'javascript-error', e.message));
+    // Only our own pages count: a link out (Continue with Google) lands on a site whose console isn't ours.
+    const ours = () => page.url().startsWith(BASE);
+    page.on('pageerror', (e) => !ours() || noise(ctx, e.message) || addIssue(ctx, 'javascript-error', e.message));
     page.on(
         'console',
-        (m) => m.type() === 'error' && !ctx.allow404 && !noise(ctx, `${m.text()} ${m.location().url}`) && addIssue(ctx, 'console-error', m.text()),
+        (m) =>
+            m.type() === 'error' &&
+            ours() &&
+            !ctx.allow404 &&
+            !noise(ctx, `${m.text()} ${m.location().url}`) &&
+            addIssue(ctx, 'console-error', m.text()),
     );
     page.on('response', (r) => {
         let url;

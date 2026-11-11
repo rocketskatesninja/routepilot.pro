@@ -98,14 +98,14 @@ test('pausing or ending a plan never wipes out what is owed', function () {
     expect(balanceOf($this->customer))->toBe(50.0);
 });
 
-test('changing a service\'s price never reprices visits already done', function () {
+test('changing a service\'s price leaves existing plans at the price they agreed', function () {
     $plan = ledgerPlan($this->clean);
     completeNext($plan);
 
     $this->clean->update(['price' => 80]);
     completeNext($plan);
 
-    expect(balanceOf($this->customer))->toBe(130.0); // 50 (before) + 80 (after)
+    expect(balanceOf($this->customer))->toBe(100.0); // 50 + 50: the plan keeps its own price
 });
 
 test('saving a visit a second time (an edit) doesn\'t charge it twice', function () {

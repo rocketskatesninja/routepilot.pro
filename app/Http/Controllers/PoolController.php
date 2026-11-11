@@ -272,6 +272,7 @@ class PoolController extends Controller
                 'agent' => $sub->agent?->displayName() ?? '—',
                 'status' => $sub->status,
                 'service_type_id' => $sub->service_type_id,
+                'price' => (float) $sub->price,
                 'agent_id' => $sub->assigned_agent_id,
                 'agent_is_tech' => $sub->agent?->role === 'agent', // People opens techs only, so only they're linked
                 'frequency' => $sub->frequency,
