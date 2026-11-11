@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useOnline } from '@/composables/useOnline';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { postJson } from '@/lib/http';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Bot, Send } from 'lucide-vue-next';
+import { Bot, Send, WifiOff } from 'lucide-vue-next';
 import { nextTick, ref } from 'vue';
 
 interface Message {
@@ -17,6 +18,7 @@ const props = defineProps<{
     messages: Message[];
     sessionId: number | null;
     suggestions: string[];
+    intro: string;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Assistant', href: '/assistant' }];
@@ -26,6 +28,8 @@ const sessionId = ref<number | null>(props.sessionId);
 const draft = ref('');
 const sending = ref(false);
 const log = ref<HTMLElement | null>(null);
+// The assistant needs the internet: offline (a tech out of signal), it says so and waits.
+const online = useOnline();
 
 // Render an assistant message: [[type:id:Name]] tokens become clickable links to
 // the record, **bold** becomes bold, and newlines are preserved by the bubble's
@@ -95,7 +99,7 @@ async function scrollDown() {
 
 async function send(text?: string) {
     const message = (text ?? draft.value).trim();
-    if (message === '' || sending.value) {
+    if (message === '' || sending.value || !online.value) {
         return;
     }
     draft.value = '';
@@ -103,17 +107,34 @@ async function send(text?: string) {
     sending.value = true;
     await scrollDown();
 
+    let res: Response;
     try {
-        const res = await postJson('/assistant/send', { message, session_id: sessionId.value });
+        res = await postJson('/assistant/send', { message, session_id: sessionId.value });
+    } catch {
+        // It never got through (the connection dropped): put the message back to send again.
+        messages.value.pop();
+        draft.value = message;
+        messages.value.push({
+            role: 'assistant',
+            content: 'Couldn’t reach the assistant. Check your connection: your message is back in the box to send again.',
+        });
+        sending.value = false;
+        await scrollDown();
+        return;
+    }
+    try {
         const data = await res.json();
         if (res.ok) {
             sessionId.value = data.session_id;
             messages.value.push({ role: 'assistant', content: data.reply });
         } else {
-            messages.value.push({ role: 'assistant', content: data.error ?? 'Something went wrong.' });
+            messages.value.push({
+                role: 'assistant',
+                content: data.error ?? 'The assistant isn’t available right now. Please try again in a minute.',
+            });
         }
     } catch {
-        messages.value.push({ role: 'assistant', content: 'Could not reach the assistant.' });
+        messages.value.push({ role: 'assistant', content: 'The assistant isn’t available right now. Please try again in a minute.' });
     } finally {
         sending.value = false;
         await scrollDown();
@@ -129,12 +150,13 @@ async function send(text?: string) {
             <div ref="log" class="flex-1 space-y-4 overflow-y-auto">
                 <div v-if="messages.length === 0" class="text-muted-foreground flex h-full flex-col items-center justify-center text-center">
                     <Bot class="mb-3 size-10 opacity-60" />
-                    <p class="mb-4">Ask me about chemistry, scheduling, or your customers.</p>
+                    <p class="mb-4">{{ intro }}</p>
                     <div class="flex flex-wrap justify-center gap-2">
                         <button
                             v-for="s in suggestions"
                             :key="s"
-                            class="border-border hover:bg-muted rounded-full border px-3 py-1.5 text-sm transition-colors"
+                            :disabled="!online"
+                            class="border-border hover:bg-muted rounded-full border px-3 py-1.5 text-sm transition-colors disabled:pointer-events-none disabled:opacity-50"
                             @click="send(s)"
                         >
                             {{ s }}
@@ -167,9 +189,23 @@ async function send(text?: string) {
                 </div>
             </div>
 
+            <div
+                v-if="!online"
+                role="status"
+                class="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
+            >
+                <WifiOff class="mt-0.5 size-4 shrink-0" />
+                <p>You’re offline, so the assistant isn’t available. It needs an internet connection and will be back as soon as you are.</p>
+            </div>
+
             <form class="flex items-center gap-2" @submit.prevent="send()">
-                <Input v-model="draft" placeholder="Message the assistant…" :disabled="sending" autocomplete="off" />
-                <Button type="submit" size="icon" :disabled="sending || draft.trim() === ''">
+                <Input
+                    v-model="draft"
+                    :placeholder="online ? 'Message the assistant…' : 'Waiting for a connection…'"
+                    :disabled="sending || !online"
+                    autocomplete="off"
+                />
+                <Button type="submit" size="icon" :disabled="sending || !online || draft.trim() === ''" aria-label="Send">
                     <Send class="size-4" />
                 </Button>
             </form>

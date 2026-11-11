@@ -46,7 +46,7 @@ class ClaudeService
         } catch (\Throwable $e) {
             Log::warning('AI API call failed', ['provider' => $provider, 'error' => $e->getMessage()]);
 
-            return 'Connection error: could not reach the AI service. Please try again.';
+            return 'The assistant isn’t available right now. Please try again in a minute.';
         }
     }
 

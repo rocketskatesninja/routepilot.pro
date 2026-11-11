@@ -63,3 +63,17 @@ test('with no API key the assistant reports it is not configured', function () {
 test('the send endpoint requires authentication', function () {
     $this->postJson('/assistant/send', ['message' => 'hi'])->assertUnauthorized();
 });
+
+test('each kind of account gets its own example questions, none of which changes anything', function () {
+    $roles = [
+        'tenant_admin' => $this->admin,
+        'agent' => User::factory()->agent()->for($this->tenant)->create(),
+        'customer' => User::factory()->customer()->for($this->tenant)->create(),
+    ];
+    foreach ($roles as $role => $user) {
+        $this->actingAs($user)->get('/assistant')->assertInertia(fn ($page) => $page
+            ->where('suggestions', fn ($s) => count($s) >= 4 && count($s) <= 6
+                && collect($s)->every(fn (string $q): bool => ! preg_match('/^(skip|reassign|move|cancel|delete|charge|remove)\b/i', $q)))
+            ->where('intro', fn ($intro) => is_string($intro) && $intro !== ''));
+    }
+});

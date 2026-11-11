@@ -38,6 +38,7 @@ class ChatController extends Controller
             'messages' => $messages,
             'sessionId' => $session?->id,
             'suggestions' => $this->suggestions($user->role),
+            'intro' => $this->intro($user->role),
         ]);
     }
 
@@ -86,13 +87,54 @@ class ChatController extends Controller
      *
      * @return list<string>
      */
+    /**
+     * Example questions on an empty chat, for this kind of account. Questions only:
+     * a tap sends one straight away, so none of them changes anything.
+     *
+     * @return list<string>
+     */
     private function suggestions(string $role): array
     {
         return match ($role) {
-            'tenant_admin' => ['How are my routes looking today?', "Which pools haven't been tested recently?", 'Reassign the Anderson pool to another agent'],
-            'agent' => ['My pH reading is 8.2 — what should I add?', 'How do I troubleshoot a salt cell?', 'What chemicals for a high-calcium pool?'],
-            'customer' => ['When is my next service?', 'What does my LSI score mean?', 'How do I keep my pool clean between visits?'],
+            'tenant_admin' => [
+                'How are my routes looking today?',
+                'Who owes us money right now?',
+                'Which chemicals are running low?',
+                "Which pools haven't been tested recently?",
+                'pH is 8.0 and alkalinity 140 in a 20,000-gallon pool. What should we add?',
+            ],
+            'agent' => [
+                "What's on my route today?",
+                'My pH reading is 8.2. What should I add?',
+                'The water is cloudy after shocking. What’s going on?',
+                'How do I troubleshoot a salt cell that isn’t producing?',
+                'How should I clean a cartridge filter?',
+            ],
+            'customer' => [
+                'When is my next service?',
+                'What did my last water test show?',
+                'How do I keep my pool clean between visits?',
+                'Is it safe to swim right after a shock treatment?',
+                'Why is my spa water foamy?',
+            ],
+            'super_admin' => [
+                'What’s the ideal free chlorine for a salt pool?',
+                'Explain LSI in plain terms.',
+                'How do you close a pool for the winter?',
+                'What causes black algae, and how do you get rid of it?',
+            ],
             default => [],
+        };
+    }
+
+    /** The line above those examples. */
+    private function intro(string $role): string
+    {
+        return match ($role) {
+            'tenant_admin' => 'Ask about your routes, customers, balances and stock, or anything about pool care.',
+            'agent' => 'Ask about your route, or anything about water chemistry and pool equipment.',
+            'customer' => 'Ask about your service and your pool, or how to look after it between visits.',
+            default => 'Ask anything about pool and spa care.',
         };
     }
 }

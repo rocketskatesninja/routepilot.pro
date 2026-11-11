@@ -1,28 +1,18 @@
 <script setup lang="ts">
 import { SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { useAgentTracking } from '@/composables/useAgentTracking';
+import { useOnline } from '@/composables/useOnline';
 import { MapPin, Wifi, WifiOff } from 'lucide-vue-next';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 
 // Agent-only field-status cluster (connectivity + live location sharing), shown in
 // the sidebar footer. Gated by the caller. Location state is the singleton shared
 // with the field app; connectivity is this device's online/offline status.
 const { sharing, toggle, restore, notice } = useAgentTracking();
 
-const online = ref(true);
-const onOnline = () => (online.value = true);
-const onOffline = () => (online.value = false);
+const online = useOnline();
 
-onMounted(() => {
-    online.value = typeof navigator !== 'undefined' ? navigator.onLine : true;
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
-    restore();
-});
-onBeforeUnmount(() => {
-    window.removeEventListener('online', onOnline);
-    window.removeEventListener('offline', onOffline);
-});
+onMounted(() => restore());
 </script>
 
 <template>
