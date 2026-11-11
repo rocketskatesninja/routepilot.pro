@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\BillingMeter;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,8 +37,8 @@ class BillingController extends Controller
         ]);
     }
 
-    /** Start (or resume) a Stripe Checkout for the base subscription. */
-    public function checkout(Request $request): Responsable|RedirectResponse
+    /** Start (or resume) a Stripe Checkout: the base price, plus the pools over the allowance. */
+    public function checkout(Request $request, BillingMeter $meter): Responsable|RedirectResponse
     {
         $tenant = $this->tenant($request);
 
@@ -48,7 +49,14 @@ class BillingController extends Controller
             return redirect()->route('billing.show');
         }
 
-        $builder = $tenant->newSubscription('default', (string) config('billing.prices.base'));
+        // Pools over the allowance are on the first bill too; app:sync-pool-billing keeps them in step after.
+        $base = (string) config('billing.prices.base');
+        $pool = (string) config('billing.prices.pool');
+        $extra = $pool !== '' ? (int) $meter->for($tenant)['pools']['over'] : 0;
+        $builder = $tenant->newSubscription('default', $extra > 0 ? [$base, $pool] : $base);
+        if ($extra > 0) {
+            $builder->quantity($extra, $pool);
+        }
 
         // Carry any remaining free trial onto the subscription (no charge until it ends).
         if ($tenant->onTrial() && $tenant->trial_ends_at !== null) {

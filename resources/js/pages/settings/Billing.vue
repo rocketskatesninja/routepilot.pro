@@ -119,6 +119,9 @@ const toneClass = (tone: string) =>
                         </tbody>
                     </table>
                 </div>
+                <p v-if="billing" class="text-muted-foreground mt-3 text-xs">
+                    Extra pools are counted on your renewal day: a pool added mid-month is first billed at your next renewal, with no partial charges.
+                </p>
             </div>
 
             <!-- actions (hidden for complimentary accounts — nothing to pay) -->

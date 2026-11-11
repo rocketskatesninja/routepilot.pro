@@ -23,6 +23,7 @@ Schedule::command('app:generate-invoices')->monthlyOn(1, '04:00')->withoutOverla
 Schedule::command('app:charge-autopay')->monthlyOn(2, '05:00')->withoutOverlapping();
 Schedule::command('app:retry-autopay')->dailyAt('06:00')->withoutOverlapping();
 Schedule::command('app:reconcile-stripe-payments')->hourly()->withoutOverlapping(); // settle Checkout payments a webhook missed
+Schedule::command('app:sync-pool-billing')->hourly()->withoutOverlapping(); // each company's extra pools on its subscription (billed at renewal)
 Schedule::command('app:daily-ops-alerts')->dailyAt('07:00'); // proactive admin alerts (after the night's routing/billing settle)
 Schedule::command('app:purge-retention')->weeklyOn(1, '04:30'); // prune old read notifications + stale tech positions (never customers or reports)
 Schedule::command('auth:clear-resets')->weeklyOn(1, '04:45'); // drop expired password-reset links
