@@ -4,16 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
-
 /**
- * Base class for AI tools — an action the assistant can execute on behalf
- * of a user. Concrete tools (lookups + mutations) land in Phase 3 with the
- * back-office models and controllers they operate on.
- *
- * To add a tool: extend this class in Tools/, implement the four abstracts,
- * and register it in ToolRegistry.
+ * Something the AI can call: a name, when to use it, and its parameters.
+ * The in-app assistant's look-ups extend AssistantTool; the website chatbot's
+ * capture_lead tool extends this directly (it has no signed-in user).
  */
 abstract class AiTool
 {
@@ -31,13 +25,6 @@ abstract class AiTool
     abstract public function parameters(): array;
 
     /**
-     * Execute the tool; returns a result string for the model to summarize.
-     *
-     * @param  array<string, mixed>  $params
-     */
-    abstract public function execute(array $params, int $tenantId): string;
-
-    /**
      * The provider-agnostic schema (ClaudeService maps it per provider).
      *
      * @return array{name: string, description: string, parameters: array<string, mixed>}
@@ -45,26 +32,5 @@ abstract class AiTool
     public function toSchema(): array
     {
         return ['name' => $this->name(), 'description' => $this->description(), 'parameters' => $this->parameters()];
-    }
-
-    /**
-     * Fuzzy, order-independent name match: every whitespace token must appear
-     * in the first OR last name. Avoids SQL CONCAT (not portable to older
-     * SQLite) and matches "John Smith" or "Smith John" alike. Column names are
-     * caller-fixed, never user input; the values are bound.
-     *
-     * @template TModel of Model
-     *
-     * @param  Builder<TModel>  $query
-     * @return Builder<TModel>
-     */
-    protected function whereNameLike(Builder $query, string $name, string $firstCol = 'first_name', string $lastCol = 'last_name'): Builder
-    {
-        foreach (array_filter(explode(' ', trim($name))) as $token) {
-            $like = '%'.$token.'%';
-            $query->where(fn ($q) => $q->where($firstCol, 'like', $like)->orWhere($lastCol, 'like', $like));
-        }
-
-        return $query;
     }
 }

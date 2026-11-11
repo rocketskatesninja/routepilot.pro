@@ -22,4 +22,20 @@ return [
 
     'max_tokens' => (int) env('AI_MAX_TOKENS', 4096),
     'timeout' => (int) env('AI_TIMEOUT', 30),
+
+    // Look-up rounds per message: the last one must answer in words.
+    'max_rounds' => 4,
+
+    // Questions a day per person, by kind of account (none listed = no daily
+    // cap beyond the 30-an-hour limit), and the share of the company's monthly
+    // allowance customers can't use, so staff always have some left.
+    'daily_limits' => ['customer' => 20, 'agent' => 100],
+    'staff_reserve' => 0.2,
+
+    // USD per million tokens, for the usage records. Update when prices change;
+    // a model missing here still records its tokens, at no cost.
+    'prices' => [
+        'claude-haiku-4-5' => ['input' => 1.00, 'output' => 5.00, 'cached_input' => 0.10],
+        'gpt-4o-mini' => ['input' => 0.15, 'output' => 0.60, 'cached_input' => 0.075],
+    ],
 ];

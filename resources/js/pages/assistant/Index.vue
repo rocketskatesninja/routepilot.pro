@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOnline } from '@/composables/useOnline';
 import AppLayout from '@/layouts/AppLayout.vue';
+import { renderParts } from '@/lib/assistantLinks';
 import { postJson } from '@/lib/http';
-import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/vue3';
-import { Bot, Send, WifiOff } from 'lucide-vue-next';
-import { nextTick, ref } from 'vue';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Bot, MessageSquarePlus, Send, WifiOff } from 'lucide-vue-next';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 interface Message {
     role: string;
@@ -17,85 +18,58 @@ interface Message {
 const props = defineProps<{
     messages: Message[];
     sessionId: number | null;
+    hasEarlier: boolean;
+    hasPrevious: boolean;
     suggestions: string[];
     intro: string;
 }>();
+
+const page = usePage<SharedData>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Assistant', href: '/assistant' }];
 
 const messages = ref<Message[]>([...props.messages]);
 const sessionId = ref<number | null>(props.sessionId);
+// Inertia keeps this page mounted between its own visits (New conversation,
+// Continue, Show earlier), so take each visit's chat when it arrives.
+watch(
+    () => props.messages,
+    (fresh) => {
+        messages.value = [...fresh];
+        sessionId.value = props.sessionId;
+        void scrollDown();
+    },
+);
 const draft = ref('');
 const sending = ref(false);
-const log = ref<HTMLElement | null>(null);
 // The assistant needs the internet: offline (a tech out of signal), it says so and waits.
 const online = useOnline();
 
-// Render an assistant message: [[type:id:Name]] tokens become clickable links to
-// the record, **bold** becomes bold, and newlines are preserved by the bubble's
-// whitespace-pre-wrap. Parsed into typed parts (no v-html) so it stays XSS-safe.
-type Part = { kind: 'text' | 'bold' | 'entity'; text: string; url?: string };
+// Links in a reply follow this account's allow-list (lib/assistantLinks).
+const role = computed(() => page.props.auth.role ?? 'customer');
 
-const entityUrl = (type: string, id: string): string | null => {
-    switch (type) {
-        case 'customer':
-            return `/people?selected=${id}&selected_type=customer`;
-        case 'agent':
-            return `/people?selected=${id}&selected_type=agent`;
-        case 'pool':
-            return `/pools?selected=${id}`;
-        case 'visit':
-            return `/reports?selected=${id}`;
-        default:
-            return null;
-    }
-};
+// New conversation: the server starts an empty chat and reloads the page.
+const startNew = () => router.post('/assistant/new');
 
-const pushText = (parts: Part[], text: string) => {
-    const bold = /\*\*([^*]+)\*\*/g;
-    let last = 0;
-    let m: RegExpExecArray | null;
-    while ((m = bold.exec(text)) !== null) {
-        if (m.index > last) {
-            parts.push({ kind: 'text', text: text.slice(last, m.index) });
-        }
-        parts.push({ kind: 'bold', text: m[1] });
-        last = bold.lastIndex;
-    }
-    if (last < text.length) {
-        parts.push({ kind: 'text', text: text.slice(last) });
-    }
-};
-
-const renderParts = (content: string): Part[] => {
-    const parts: Part[] = [];
-    const entity = /\[\[([a-z]+):(\d+):([^\]]+)\]\]/g;
-    let last = 0;
-    let m: RegExpExecArray | null;
-    while ((m = entity.exec(content)) !== null) {
-        if (m.index > last) {
-            pushText(parts, content.slice(last, m.index));
-        }
-        const url = entityUrl(m[1], m[2]);
-        if (url) {
-            parts.push({ kind: 'entity', text: m[3], url });
-        } else {
-            pushText(parts, m[3]);
-        }
-        last = entity.lastIndex;
-    }
-    if (last < content.length) {
-        pushText(parts, content.slice(last));
-    }
-    return parts;
-};
-
+// The page itself scrolls (the message box is pinned to the bottom of the
+// screen), so "scroll down" means the window, to show the newest message.
 async function scrollDown() {
     await nextTick();
-    if (log.value) {
-        log.value.scrollTop = log.value.scrollHeight;
-    }
+    window.scrollTo({ top: document.documentElement.scrollHeight });
 }
+onMounted(() => {
+    if (messages.value.length > 0) void scrollDown();
+});
+
+// When a reply lands, put the question at the top of the screen so a long
+// answer reads from its start (a short one just ends up at the bottom).
+async function showReply() {
+    await nextTick();
+    [...document.querySelectorAll('[data-mine]')].pop()?.scrollIntoView({ block: 'start' });
+}
+
+// Keep the cursor in the message box after every send (and after tapping an example).
+const focusBox = () => void nextTick(() => document.getElementById('assistant-message')?.focus({ preventScroll: true }));
 
 async function send(text?: string) {
     const message = (text ?? draft.value).trim();
@@ -113,19 +87,24 @@ async function send(text?: string) {
     } catch {
         // It never got through (the connection dropped): put the message back to send again.
         messages.value.pop();
-        draft.value = message;
+        // Put it back, ahead of anything typed since (the box stays usable while waiting).
+        draft.value = draft.value.trim() === '' ? message : `${message} ${draft.value}`;
         messages.value.push({
             role: 'assistant',
             content: 'Couldn’t reach the assistant. Check your connection: your message is back in the box to send again.',
         });
         sending.value = false;
         await scrollDown();
+        focusBox();
         return;
     }
     try {
         const data = await res.json();
         if (res.ok) {
             sessionId.value = data.session_id;
+            // Show the message as it was saved (a card number typed in is blanked out).
+            const mine = messages.value[messages.value.length - 1];
+            if (mine?.role === 'user' && typeof data.message === 'string') mine.content = data.message;
             messages.value.push({ role: 'assistant', content: data.reply });
         } else {
             messages.value.push({
@@ -137,7 +116,8 @@ async function send(text?: string) {
         messages.value.push({ role: 'assistant', content: 'The assistant isn’t available right now. Please try again in a minute.' });
     } finally {
         sending.value = false;
-        await scrollDown();
+        await showReply();
+        focusBox();
     }
 }
 </script>
@@ -146,11 +126,26 @@ async function send(text?: string) {
     <Head title="Assistant" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="mx-auto flex h-full w-full max-w-3xl flex-1 flex-col gap-4 p-4">
-            <div ref="log" class="flex-1 space-y-4 overflow-y-auto">
-                <div v-if="messages.length === 0" class="text-muted-foreground flex h-full flex-col items-center justify-center text-center">
+        <template v-if="messages.length > 0" #actions>
+            <Button size="sm" variant="outline" :disabled="sending" @click="startNew">
+                <MessageSquarePlus class="mr-1 size-4" /> New conversation
+            </Button>
+        </template>
+        <div class="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pt-4">
+            <div class="flex flex-1 flex-col gap-4 pb-4">
+                <div v-if="hasEarlier" class="text-center">
+                    <Link href="/assistant?continue=1&all=1" class="text-muted-foreground text-sm underline underline-offset-2 hover:opacity-80"
+                        >Show earlier messages</Link
+                    >
+                </div>
+                <div v-if="messages.length === 0" class="text-muted-foreground flex flex-1 flex-col items-center justify-center text-center">
                     <Bot class="mb-3 size-10 opacity-60" />
                     <p class="mb-4">{{ intro }}</p>
+                    <p v-if="hasPrevious" class="-mt-2 mb-4 text-sm">
+                        <Link href="/assistant?continue=1" class="underline underline-offset-2 hover:opacity-80"
+                            >Continue your last conversation</Link
+                        >
+                    </p>
                     <div class="flex flex-wrap justify-center gap-2">
                         <button
                             v-for="s in suggestions"
@@ -164,16 +159,22 @@ async function send(text?: string) {
                     </div>
                 </div>
 
-                <div v-for="(m, i) in messages" :key="i" class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">
+                <div
+                    v-for="(m, i) in messages"
+                    :key="i"
+                    class="flex scroll-mt-4"
+                    :class="m.role === 'user' ? 'justify-end' : 'justify-start'"
+                    :data-mine="m.role === 'user' || undefined"
+                >
                     <div
                         class="max-w-[85%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap"
                         :class="m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'"
                     >
                         <template v-if="m.role === 'user'">{{ m.content }}</template>
                         <template v-else>
-                            <template v-for="(part, pi) in renderParts(m.content)" :key="pi"
+                            <template v-for="(part, pi) in renderParts(m.content, role)" :key="pi"
                                 ><Link
-                                    v-if="part.kind === 'entity'"
+                                    v-if="part.kind === 'link'"
                                     :href="part.url as string"
                                     class="text-primary font-medium underline underline-offset-2 hover:opacity-80"
                                     >{{ part.text }}</Link
@@ -189,26 +190,30 @@ async function send(text?: string) {
                 </div>
             </div>
 
-            <div
-                v-if="!online"
-                role="status"
-                class="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
-            >
-                <WifiOff class="mt-0.5 size-4 shrink-0" />
-                <p>You’re offline, so the assistant isn’t available. It needs an internet connection and will be back as soon as you are.</p>
-            </div>
+            <!-- Pinned to the bottom of the screen, however long the chat gets. -->
+            <div class="bg-background sticky bottom-0 z-10 flex flex-col gap-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <div
+                    v-if="!online"
+                    role="status"
+                    class="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
+                >
+                    <WifiOff class="mt-0.5 size-4 shrink-0" />
+                    <p>You’re offline, so the assistant isn’t available. It needs an internet connection and will be back as soon as you are.</p>
+                </div>
 
-            <form class="flex items-center gap-2" @submit.prevent="send()">
-                <Input
-                    v-model="draft"
-                    :placeholder="online ? 'Message the assistant…' : 'Waiting for a connection…'"
-                    :disabled="sending || !online"
-                    autocomplete="off"
-                />
-                <Button type="submit" size="icon" :disabled="sending || !online || draft.trim() === ''" aria-label="Send">
-                    <Send class="size-4" />
-                </Button>
-            </form>
+                <form class="flex items-center gap-2" @submit.prevent="send()">
+                    <Input
+                        v-model="draft"
+                        :placeholder="online ? 'Message the assistant…' : 'Waiting for a connection…'"
+                        id="assistant-message"
+                        :disabled="!online"
+                        autocomplete="off"
+                    />
+                    <Button type="submit" size="icon" :disabled="sending || !online || draft.trim() === ''" aria-label="Send">
+                        <Send class="size-4" />
+                    </Button>
+                </form>
+            </div>
         </div>
     </AppLayout>
 </template>

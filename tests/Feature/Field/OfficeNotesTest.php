@@ -89,7 +89,7 @@ test('the visit email never carries the office note', function () {
 test('the assistant\'s service history never reads out the office note', function () {
     officeNoteVisit();
 
-    $out = app(LookupServiceHistory::class)->execute(['customer_name' => 'Robert Anderson'], $this->tenant->id);
+    $out = app(LookupServiceHistory::class)->execute(['customer_name' => 'Robert Anderson'], $this->admin);
 
     expect($out)->toContain('Water looks great.')->not->toContain('Pump seal is leaking');
 });

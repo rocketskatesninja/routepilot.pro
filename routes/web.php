@@ -119,6 +119,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
     Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
     Route::get('assistant', [ChatController::class, 'index'])->middleware('feature:ai_assistant')->name('assistant.index');
     Route::post('assistant/send', [ChatController::class, 'send'])->middleware('feature:ai_assistant')->name('assistant.send');
+    Route::post('assistant/new', [ChatController::class, 'fresh'])->middleware('feature:ai_assistant')->name('assistant.new');
     // Reachable while impersonating (guarded by the session impersonator flag).
     Route::post('impersonate/stop', [ImpersonationController::class, 'stop'])->name('impersonate.stop');
 

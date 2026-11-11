@@ -28,4 +28,8 @@ return [
     // the same window the web server keeps its logs. The lead itself stays.
     'lead_ip_days' => (int) env('RETENTION_LEAD_IP_DAYS', 90),
 
+    // Delete assistant and website-chatbot conversations once nothing has been
+    // said in them for this many days (their messages go with them).
+    'chat_days' => (int) env('RETENTION_CHAT_DAYS', 45),
+
 ];

@@ -11,8 +11,8 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 
 /**
- * System prompt + context for the customer-portal assistant — friendly,
- * non-technical, scoped to this customer's own pools and history.
+ * The customer assistant's live data: this customer's own pools, plans, recent
+ * visits and next service day (never a time), as their portal shows them.
  */
 class CustomerContext
 {
@@ -56,19 +56,11 @@ class CustomerContext
             ? 'Next service: '.($nextStop->route?->scheduled_date?->format('l, M j') ?? 'scheduled')
             : 'No upcoming service scheduled';
 
-        $name = Tenant::query()->whereKey($customer->tenant_id)->value('name');
-        $tenantName = is_string($name) ? $name : 'your pool service';
-
         $context = "CUSTOMER: {$customer->displayName()}\n"
             ."Pools:\n{$poolSummary}\n"
             .($recentVisits !== '' ? "\nRecent visits:\n{$recentVisits}\n" : '')
             ."{$nextService}\n";
 
-        return "You are RoutePilot Support, a friendly assistant for {$customer->displayName()}, a customer of "
-            ."{$tenantName}. Help pool owners understand their service reports and readings in simple terms, answer "
-            .'questions about their schedule, and give basic pool-care tips. Be warm and non-technical. NEVER '
-            ."recommend specific chemical dosing — that's for trained technicians; for equipment issues, suggest "
-            ."contacting {$tenantName}.\n\n"
-            .$context;
+        return "THEIR SERVICE\n".$context;
     }
 }

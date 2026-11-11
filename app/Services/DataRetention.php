@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 class DataRetention
 {
     /**
-     * @return array{notifications_pruned: int, agent_locations_pruned: int, lead_ips_cleared: int}
+     * @return array{notifications_pruned: int, agent_locations_pruned: int, lead_ips_cleared: int, chats_pruned: int}
      */
     public function purge(bool $apply = true, ?int $notificationDays = null): array
     {
@@ -27,6 +27,7 @@ class DataRetention
             'notifications_pruned' => $this->pruneReadNotifications($notificationDays, $apply),
             'agent_locations_pruned' => $this->pruneStaleLocations($apply),
             'lead_ips_cleared' => $this->clearLeadIps($apply),
+            'chats_pruned' => $this->pruneChats($apply),
         ];
     }
 
@@ -48,6 +49,22 @@ class DataRetention
      * one row per tech, overwritten by every ping, and the live map only shows
      * the last 30 minutes. A visit's own completion location stays on its report.
      */
+    /** Conversations nobody has written in for `chat_days` (messages cascade). */
+    private function pruneChats(bool $apply): int
+    {
+        $days = (int) config('retention.chat_days');
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $cutoff = now()->subDays($days);
+        $query = DB::table('chat_sessions')
+            ->where('created_at', '<', $cutoff)
+            ->whereNotExists(fn ($m) => $m->from('chat_messages')->whereColumn('chat_messages.chat_session_id', 'chat_sessions.id')->where('chat_messages.created_at', '>=', $cutoff));
+
+        return $apply ? $query->delete() : $query->count();
+    }
+
     private function pruneStaleLocations(bool $apply): int
     {
         $days = (int) config('retention.agent_location_days');

@@ -15,8 +15,6 @@ use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Chat\ToolRegistry;
-use App\Services\Chat\Tools\ChangePreferredDay;
-use App\Services\Chat\Tools\ReassignAgent;
 use Illuminate\Support\Carbon;
 
 /**
@@ -171,34 +169,6 @@ test('archiving a customer clears their upcoming visits', function () {
     app(ArchiveCustomer::class)->handle($this->customer);
 
     expect(RouteStop::query()->where('service_subscription_id', $plan->id)->where('status', 'pending')->count())->toBe(0);
-});
-
-test('the AI "reassign" tool moves upcoming visits to the new tech', function () {
-    $plan = newPlan();
-    $bo = User::factory()->agent()->for($this->tenant)->create(['first_name' => 'Bo', 'last_name' => 'Diver']);
-
-    (new ReassignAgent)->execute(['customer_name' => 'Jan Harris', 'agent_name' => 'Bo Diver'], $this->tenant->id);
-
-    $agents = RouteStop::query()->where('service_subscription_id', $plan->id)->with('route')->get()
-        ->map(fn (RouteStop $s) => $s->route->agent_id)->unique()->values()->all();
-    expect($agents)->toBe([$bo->id]);
-});
-
-test('the AI "reassign" tool only assigns plans to staff, never to a customer', function () {
-    $plan = newPlan();
-    User::factory()->for($this->tenant)->create(['role' => 'customer', 'first_name' => 'Bo', 'last_name' => 'Diver']);
-
-    (new ReassignAgent)->execute(['customer_name' => 'Jan Harris', 'agent_name' => 'Bo Diver'], $this->tenant->id);
-
-    expect($plan->fresh()->assigned_agent_id)->toBe($this->agent->id);
-});
-
-test('the AI "change day" tool moves upcoming visits to the new day', function () {
-    $plan = newPlan(['preferred_day' => 'tuesday']);
-
-    (new ChangePreferredDay)->execute(['customer_name' => 'Jan Harris', 'new_day' => 'friday'], $this->tenant->id);
-
-    expect(planDates($plan)[0])->toBe('2026-06-12');
 });
 
 test('the old "delete stops" workaround tool is gone', function () {

@@ -6,13 +6,11 @@ namespace App\Services\Chat\Tools;
 
 use App\Models\Pool;
 use App\Models\ServiceSubscription;
-use App\Services\Chat\AiTool;
+use App\Models\User;
+use App\Services\Chat\AssistantTool;
 
-/**
- * Find pool details — specs, equipment, location, and active services —
- * searching by customer name, pool name, or both.
- */
-class LookupPool extends AiTool
+/** Office: a pool's specs, equipment, access details, targets and plans. */
+class LookupPool extends AssistantTool
 {
     public function name(): string
     {
@@ -21,8 +19,8 @@ class LookupPool extends AiTool
 
     public function description(): string
     {
-        return 'Look up pool details — volume, type, equipment, surface, sanitizer, location, and active services. '
-            .'Use when asked about pool specs, equipment, volume, or to compare pools.';
+        return 'Look up a customer\'s pools: volume, type, surface, sanitizer, filter, pump, equipment, address, gate code, '
+            .'access notes, custom water targets and plans (service, day, price, tech).';
     }
 
     /** @return array<string, mixed> */
@@ -31,63 +29,53 @@ class LookupPool extends AiTool
         return [
             'type' => 'object',
             'properties' => [
-                'customer_name' => ['type' => 'string', 'description' => 'Customer name to filter by (optional)'],
-                'pool_name' => ['type' => 'string', 'description' => 'Pool name to search for (optional)'],
+                'customer_name' => ['type' => 'string', 'description' => 'The customer\'s name (part of it is fine).'],
+                'pool_name' => ['type' => 'string', 'description' => 'The pool\'s name, when they have more than one (optional).'],
+                'pool_id' => ['type' => 'integer', 'description' => 'The pool\'s id, when you already know it (optional).'],
             ],
             'required' => [],
         ];
     }
 
-    public function execute(array $params, int $tenantId): string
+    public function availableTo(User $user): bool
     {
-        $customerName = trim((string) ($params['customer_name'] ?? ''));
-        $poolName = trim((string) ($params['pool_name'] ?? ''));
+        return $user->role === 'tenant_admin';
+    }
 
-        $pools = Pool::query()
-            ->with('customer', 'serviceLocation', 'subscriptions.serviceType', 'subscriptions.agent')
-            ->when($customerName !== '', fn ($q) => $q->whereHas('customer', fn ($c) => $this->whereNameLike($c, $customerName)))
-            ->when($poolName !== '', fn ($q) => $q->where('name', 'like', "%{$poolName}%"))
-            ->limit(10)
-            ->get();
-
-        if ($pools->isEmpty()) {
-            return 'No pools found matching that search.';
+    public function execute(array $params, User $user): string
+    {
+        $pools = $this->resolvePools($user, $params);
+        if (is_string($pools)) {
+            return $pools;
         }
+        $pools->load(['serviceLocation', 'subscriptions' => fn ($s) => $s->whereIn('status', ['active', 'paused']), 'subscriptions.serviceType', 'subscriptions.agent']);
 
         return $pools->map(function (Pool $p): string {
-            $vol = $p->volume_gallons !== null ? number_format($p->volume_gallons).' gallons' : 'unknown';
             $loc = $p->serviceLocation;
-            $address = $loc !== null
-                ? collect([$loc->getAttribute('address_line1'), $loc->getAttribute('city'), $loc->getAttribute('state'), $loc->getAttribute('zip')])->filter()->join(', ')
-                : '';
-
+            $address = $loc !== null ? collect([$loc->getAttribute('address_line1'), $loc->getAttribute('city'), $loc->getAttribute('state'), $loc->getAttribute('zip')])->filter()->join(', ') : '';
             $equipment = collect([
-                $p->has_heater ? 'Heater' : null,
-                $p->has_automation ? 'Automation' : null,
-                $p->has_pool_cleaner ? 'Cleaner' : null,
-                $p->has_cover ? 'Cover' : null,
-                $p->has_water_feature ? 'Water Feature' : null,
-                $p->has_auto_fill ? 'Auto-Fill' : null,
+                $p->has_heater ? 'heater' : null,
+                $p->has_automation ? 'automation' : null,
+                $p->has_pool_cleaner ? 'cleaner' : null,
+                $p->has_cover ? 'cover' : null,
+                $p->has_water_feature ? 'water feature' : null,
+                $p->has_auto_fill ? 'auto-fill' : null,
             ])->filter();
-
-            $subs = $p->subscriptions->where('status', 'active')->map(function (ServiceSubscription $s): string {
-                $agent = $s->agent?->displayName() ?? 'unassigned';
-                $service = $s->serviceType?->getAttribute('name') ?? 'service';
-
-                return "  - {$service} ({$s->scheduleLabel()}) → {$agent}";
-            })->join("\n");
+            $targets = collect($p->custom_target_ranges ?? [])->map(fn ($r, $k): string => "{$k} ".($r['min'] ?? '?').'–'.($r['max'] ?? '?'))->join(', ');
+            $plans = $p->subscriptions->map(fn (ServiceSubscription $s): string => '  - '.$this->planLine($s))->join("\n");
 
             return collect([
-                "**{$p->name}** [id:{$p->id}] — {$p->customer?->displayName()} [id:{$p->customer?->id}]",
-                "Type: {$p->type} | Volume: {$vol}",
+                self::link('pool', $p->id, $p->name)." (pool_id {$p->id}) — ".self::link('customer', (int) $p->customer_id, $p->customer?->displayName() ?? 'Customer'),
+                "Type: {$p->type} | Volume: ".($p->volume_gallons !== null ? number_format($p->volume_gallons).' gallons' : 'unknown'),
                 'Surface: '.($p->surface_type ?? 'unknown').' | Sanitizer: '.$p->sanitizer_type,
                 'Filter: '.($p->filter_type ?? 'unknown').' | Pump: '.($p->pump_type ?? 'unknown'),
                 $equipment->isNotEmpty() ? 'Equipment: '.$equipment->join(', ') : null,
-                $address !== '' ? "Location: {$address}" : null,
-                $loc !== null && $loc->getAttribute('gate_code') ? "Gate code: {$loc->getAttribute('gate_code')}" : null,
-                $loc !== null && $loc->getAttribute('access_notes') ? "Access: {$loc->getAttribute('access_notes')}" : null,
-                $p->notes !== null ? "Notes: {$p->notes}" : null,
-                $subs !== '' ? "Active services:\n{$subs}" : 'No active services.',
+                $address !== '' ? "Address: {$address}" : null,
+                $loc?->getAttribute('gate_code') ? 'Gate code: '.$loc->getAttribute('gate_code') : null,
+                ($access = self::note($loc?->getAttribute('access_notes'))) !== null ? "Access notes: {$access}" : null,
+                ($notes = self::note($p->notes)) !== null ? "Pool notes: {$notes}" : null,
+                $targets !== '' ? "Custom water targets: {$targets}" : null,
+                $plans !== '' ? "Plans:\n{$plans}" : 'No active plan.',
             ])->filter()->join("\n");
         })->join("\n\n---\n\n");
     }

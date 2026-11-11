@@ -266,11 +266,11 @@ test('without Running low beside it, Recent activity fills the row', function ()
 });
 
 test('the assistant knows, too', function () {
-    expect((new LookupInventory)->execute([], $this->tenant->id))->toContain('Muriatic Acid');
+    expect((new LookupInventory)->execute([], $this->admin))->toContain('Muriatic Acid');
 
     trackingOff($this->tenant);
 
-    expect((new LookupInventory)->execute([], $this->tenant->id))->toContain('doesn’t count its stock');
+    expect((new LookupInventory)->availableTo($this->admin))->toBeFalse(); // not offered at all
 });
 
 test('the switch reaches the app', function () {

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Actions\DeleteSubscription;
-use App\Events\RouteUpdated;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\Customer;
 use App\Models\Pool;
@@ -14,10 +13,8 @@ use App\Models\ServiceType;
 use App\Models\ServiceVisit;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Services\Chat\Tools\SkipStop as SkipStopTool;
 use App\Services\SubscriptionMaterializer;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -87,18 +84,6 @@ test('a skip\'s message shows once: the board\'s live refresh after it carries n
     ])->assertOk()
         ->assertJsonMissingPath('props.today')
         ->assertJsonPath('props.flash', ['success' => null, 'error' => null]);
-});
-
-test('the assistant\'s skip refreshes the live schedule board, like the board\'s own', function () {
-    $date = $this->tenant->today()->toDateString();
-    $stop = hardeningStop($date);
-    Event::fake([RouteUpdated::class]);
-
-    $reply = (new SkipStopTool)->execute(['customer_name' => 'Robert Anderson', 'date' => $date], $this->tenant->id);
-
-    expect($reply)->toContain('Skipped')
-        ->and($stop->fresh()?->status)->toBe('skipped');
-    Event::assertDispatched(RouteUpdated::class, fn (RouteUpdated $e): bool => $e->date === $date);
 });
 
 test('removing a tech hands their plans and upcoming stops back to the office', function () {

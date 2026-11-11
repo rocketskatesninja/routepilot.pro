@@ -12,8 +12,8 @@ use App\Models\Tenant;
 use App\Models\User;
 
 /**
- * System prompt + context for the field-tech assistant — pool/spa care
- * expertise scoped to the agent's assigned pools and today's route.
+ * The tech assistant's live data: today's route and recent readings on the
+ * tech's own pools, as the field app shows them.
  */
 class AgentContext
 {
@@ -54,15 +54,10 @@ class AgentContext
             ->map(fn (ChemicalReading $r): string => "{$r->serviceVisit->pool->name}: FC={$r->free_chlorine} pH={$r->ph} TA={$r->alkalinity} CH={$r->calcium_hardness} CYA={$r->cyanuric_acid} LSI={$r->lsi_score}")
             ->join("\n  ");
 
-        $context = "AGENT: {$agent->displayName()}\n"
-            .'Date: '.Tenant::localToday()->format('l, F j, Y')."\n"
+        $context = "Technician: {$agent->displayName()}\n"
             ."{$stopSummary}\n"
             .($recentReadings !== '' ? "\nRecent chemistry readings:\n  {$recentReadings}\n" : '');
 
-        return "You are RoutePilot AI, an expert pool & spa care assistant for technician {$agent->displayName()}. "
-            .'You help with water chemistry (LSI, dosing, treatment), equipment troubleshooting (pumps, filters, '
-            .'salt cells, heaters), service best practices, and problem diagnosis (green/cloudy water, staining, '
-            ."scaling). Be specific and practical; reference the pool's actual data when available.\n\n"
-            .$context;
+        return "YOUR DAY\n".$context;
     }
 }

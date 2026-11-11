@@ -43,6 +43,7 @@ class CaptureLeadTool extends AiTool
         ];
     }
 
+    /** @param  array<string, mixed>  $params */
     public function execute(array $params, int $tenantId): string
     {
         $name = trim((string) ($params['name'] ?? ''));

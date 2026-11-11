@@ -4,99 +4,59 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
+use App\Models\ChemicalInventory;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Pool;
-use App\Models\RouteStop;
+use App\Models\Route;
+use App\Models\ServiceRequest;
 use App\Models\ServiceSubscription;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\WorkOrder;
 
 /**
- * System prompt + live business data for the tenant-admin assistant. The
- * data block is a SUMMARY — details (addresses, readings, balances) come
- * from the lookup tools.
+ * The office assistant's live data: a summary of the company right now, never
+ * its customer list. Details come from the look-up tools when asked.
  */
 class TenantContext
 {
-    public function build(int $tenantId): string
+    public function build(Tenant $tenant): string
     {
-        $name = Tenant::query()->whereKey($tenantId)->value('name');
-        $tenantName = is_string($name) ? $name : 'your company';
+        $id = $tenant->id;
+        $today = Tenant::localToday();
 
-        $agents = User::query()->where('tenant_id', $tenantId)->where('role', 'agent')->where('is_active', true)->get();
-        $agentList = $agents->map(function (User $a): string {
-            $pools = ServiceSubscription::query()->where('assigned_agent_id', $a->id)->where('status', 'active')->count();
+        $techs = User::query()->where('tenant_id', $id)->where('role', 'agent')->where('is_active', true)->orderBy('first_name')->get()
+            ->map(fn (User $a): string => '- [[agent:'.$a->id.':'.$a->displayName().']]'.((bool) $a->getAttribute('agent_plus') ? ' (Agent Plus)' : '')
+                .', '.ServiceSubscription::query()->where('tenant_id', $id)->where('assigned_agent_id', $a->id)->where('status', 'active')->count().' active plans')
+            ->join("\n");
 
-            return "- {$a->displayName()} [id:{$a->id}] ({$pools} pools)";
-        })->join("\n") ?: 'No agents.';
+        $routes = Route::query()->where('tenant_id', $id)->whereDate('scheduled_date', $today->toDateString())->with('agent', 'stops')->get()
+            ->map(fn (Route $r): string => '- '.($r->agent?->displayName() ?? 'Unassigned').': '.$r->stops->count().' stops ('
+                .$r->stops->countBy('status')->map(fn (int $n, string $s): string => "{$n} {$s}")->join(', ').')')
+            ->join("\n");
 
-        $customers = Customer::query()->with([
-            'pools.subscriptions' => fn ($q) => $q->where('status', 'active'),
-            'pools.subscriptions.serviceType',
-            'pools.subscriptions.agent',
-        ])->get();
+        $warnings = array_filter([
+            ($n = ServiceSubscription::query()->where('tenant_id', $id)->where('status', 'active')->whereNull('assigned_agent_id')->count()) > 0 ? "{$n} active plans have no tech" : null,
+            ($n = ServiceRequest::query()->where('tenant_id', $id)->where('status', 'pending')->count()) > 0 ? "{$n} customer requests are waiting" : null,
+            ($n = WorkOrder::query()->where('tenant_id', $id)->where('status', 'open')->where('urgent', true)->count()) > 0 ? "{$n} urgent work orders are open" : null,
+            $tenant->customer_billing !== false && ($n = Invoice::query()->where('tenant_id', $id)->where('status', 'overdue')->count()) > 0 ? "{$n} invoices are overdue" : null,
+            $tenant->inventory_tracking !== false && ($n = ChemicalInventory::query()->where('tenant_id', $id)->active()->get()->filter->isLowStock()->count()) > 0 ? "{$n} stock items are low" : null,
+        ]);
 
-        $customerList = $customers->map(function (Customer $c): string {
-            $pools = $c->pools->map(function (Pool $p): string {
-                $subs = $p->subscriptions->map(function (ServiceSubscription $s): string {
-                    $agent = $s->agent?->displayName() ?? 'unassigned';
+        $switches = collect([
+            'customer billing' => $tenant->customer_billing !== false,
+            'stock counting' => $tenant->inventory_tracking !== false,
+            'prices shown to customers' => (bool) $tenant->show_prices,
+        ])->map(fn (bool $on, string $what): string => $what.' '.($on ? 'on' : 'off'))->join(', ');
 
-                    $price = '$'.number_format((float) $s->price, 2).($s->frequency === 'one_time' ? '' : '/visit');
-
-                    return "{$s->serviceType->name} ({$s->scheduleLabel()}, {$price}) — agent: {$agent}";
-                })->join('; ');
-                $vol = $p->volume_gallons !== null ? number_format($p->volume_gallons).' gal' : '?';
-
-                return "  Pool: {$p->name} [id:{$p->id}] ({$p->type}, {$vol})".($subs !== '' ? " → {$subs}" : ' (no active subscription)');
-            })->join("\n");
-
-            return "- {$c->displayName()} [id:{$c->id}]".($c->email !== null ? " ({$c->email})" : '')."\n{$pools}";
-        })->join("\n") ?: 'No customers.';
-
-        $todayStops = RouteStop::query()
-            ->whereHas('route', fn ($q) => $q->where('tenant_id', $tenantId)->whereDate('scheduled_date', Tenant::localToday()))
-            ->with('route.agent', 'pool.customer')
-            ->orderBy('stop_order')
-            ->get();
-        $todaySummary = $todayStops->isEmpty()
-            ? 'No stops scheduled today.'
-            : $todayStops->map(fn (RouteStop $s): string => '- '.($s->pool?->customer?->displayName() ?? '?')." / {$s->pool?->name} → ".($s->route?->agent?->displayName() ?? '?')." ({$s->status})")->join("\n");
-
-        $unassigned = ServiceSubscription::query()->where('status', 'active')->whereNull('assigned_agent_id')->count();
-        $overdue = Tenant::query()->find($tenantId)?->customer_billing !== false ? Invoice::query()->where('status', 'overdue')->count() : 0;
-        $warnings = '';
-        if ($unassigned > 0) {
-            $warnings .= "- {$unassigned} active subscriptions have no assigned agent\n";
-        }
-        if ($overdue > 0) {
-            $warnings .= "- {$overdue} invoices are past their due date and unpaid\n";
-        }
-
-        $data = "BUSINESS DATA for {$tenantName} (as of ".Tenant::localToday()->format('l, F j, Y')."):\n\n"
-            ."AGENTS:\n{$agentList}\n\n"
-            ."CUSTOMERS & POOLS:\n{$customerList}\n\n"
-            ."TODAY'S SCHEDULE:\n{$todaySummary}\n\n"
-            .($warnings !== '' ? "WARNINGS:\n{$warnings}\n" : '');
-
-        return "You are RoutePilot AI, an expert pool-service business assistant for \"{$tenantName}\". "
-            .'Use the real business data below to answer accurately. You help with water chemistry, '
-            ."scheduling and routing, agent and customer management, equipment, and inventory.\n\n"
-            .'The data below is a SUMMARY — it does NOT include addresses, chemistry readings, visit history, '
-            .'balances, or detailed specs. When asked for details not shown, you MUST call a lookup tool rather '
-            ."than saying you lack the data.\n\n"
-            .'You can look things up but you cannot change anything. When asked to make a change, never say it is '
-            .'done: say you can\'t make changes yet and tell them where to do it. To skip or restore a visit: '
-            .'Schedule (/schedule), find the day and use the stop\'s skip button. To change a plan\'s day, tech, '
-            .'price or end it: Pools (/pools), pick the pool and edit its plan. Customers and their details: '
-            ."People (/people). Requests from customers: Requests (/inbox).\n\n"
-            .'Back-office surfaces: Dashboard (/dashboard), Pools (/pools), People (/people), Services (/services), '
-            ."Assistant (/assistant). Match customer names loosely; if multiple pools match and the admin didn't "
-            ."specify, ask which.\n\n"
-            ."Your available tools:\n".ToolRegistry::descriptionList()."\n\n"
-            .'ENTITY LINKING: when you mention a specific customer, pool, agent, or inventory item by name AND you '
-            .'know its id from the data, wrap it as [[type:id:Display Name]] (types: customer, pool, agent, inventory). '
-            ."Example: [[customer:5:John Smith]]. Never invent ids.\n\n"
-            .$data;
+        return "THE COMPANY RIGHT NOW\n"
+            .Customer::query()->where('tenant_id', $id)->count().' customers, '
+            .Pool::query()->where('tenant_id', $id)->count().' pools, '
+            .ServiceSubscription::query()->where('tenant_id', $id)->where('status', 'active')->count()." active plans.\n"
+            ."Features: {$switches}.\n\n"
+            ."Techs:\n".($techs !== '' ? $techs : 'No techs yet.')."\n\n"
+            .'Today ([[day:'.$today->format('Ymd').":Today's schedule]]):\n".($routes !== '' ? $routes : 'No stops today.')
+            .($warnings !== [] ? "\n\nNeeds attention:\n- ".implode("\n- ", $warnings) : '');
     }
 }

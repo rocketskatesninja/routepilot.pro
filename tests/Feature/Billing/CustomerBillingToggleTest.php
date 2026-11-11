@@ -408,12 +408,12 @@ test('with it off, the billing notification switches are gone', function () {
 
 test('the assistant knows, too', function () {
     overdueBill();
-    expect(app(TenantContext::class)->build($this->tenant->id))->toContain('past their due date');
+    expect(app(TenantContext::class)->build($this->tenant->fresh()))->toContain('invoices are overdue');
 
     billingOff($this->tenant);
 
-    expect(app(TenantContext::class)->build($this->tenant->id))->not->toContain('past their due date')
-        ->and((new LookupBalance)->execute([], $this->tenant->id))->toContain('doesn’t bill its customers');
+    expect(app(TenantContext::class)->build($this->tenant->fresh()))->not->toContain('invoices are overdue')
+        ->and((new LookupBalance)->availableTo($this->admin))->toBeFalse(); // not offered at all
 });
 
 test('the field app is told, so it can leave prices off offline', function () {

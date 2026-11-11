@@ -41,10 +41,32 @@ class AiQuota
         return max(0, $this->limit($tenantId) - $this->used($tenantId));
     }
 
+    /**
+     * What's left for this kind of account. Customers can't use the last share
+     * of the month (config ai.staff_reserve), so the office and techs always
+     * have some left however much customers ask.
+     */
+    public function remainingFor(int $tenantId, string $role): int
+    {
+        $reserve = $role === 'customer' ? (int) ceil($this->limit($tenantId) * (float) config('ai.staff_reserve', 0)) : 0;
+
+        return max(0, $this->remaining($tenantId) - $reserve);
+    }
+
     /** Count one AI message against the tenant's monthly allowance. */
     public function record(int $tenantId): void
     {
-        $usage = AiUsage::query()->firstOrCreate(['period' => now()->format('Y-m')]);
+        $usage = AiUsage::query()->firstOrCreate(['tenant_id' => $tenantId, 'period' => now()->format('Y-m')]);
         $usage->increment('messages');
+    }
+
+    /** Add what a message cost (tokens and USD) to this month's record; the allowance itself counts messages. */
+    public function addTokens(int $tenantId, int $tokens, float $cost): void
+    {
+        if ($tokens <= 0) {
+            return;
+        }
+        $usage = AiUsage::query()->firstOrCreate(['tenant_id' => $tenantId, 'period' => now()->format('Y-m')]);
+        $usage->forceFill(['tokens' => (int) $usage->getAttribute('tokens') + $tokens, 'cost' => round((float) $usage->getAttribute('cost') + $cost, 4)])->save();
     }
 }

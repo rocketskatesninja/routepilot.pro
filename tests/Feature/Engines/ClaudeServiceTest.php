@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Services\AiTurn;
 use App\Services\ClaudeService;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\Facades\Http;
@@ -15,9 +16,9 @@ beforeEach(function () {
 });
 
 /** @param  list<array<string, mixed>>  $content */
-function anthropicReply(array $content): PromiseInterface
+function anthropicReply(array $content, array $usage = []): PromiseInterface
 {
-    return Http::response(['content' => $content], 200);
+    return Http::response(['content' => $content, 'usage' => $usage], 200);
 }
 
 test('returns null when no API key is supplied (no request made)', function () {
@@ -92,12 +93,52 @@ test('adaptive thinking is opt-in and adds the request param', function () {
     Http::assertSent(fn ($request) => $request['thinking'] === ['type' => 'adaptive']);
 });
 
-test('an Anthropic API error returns a friendly message', function () {
-    Http::fake(['api.anthropic.com/*' => Http::response(['error' => ['message' => 'overloaded']], 529)]);
+test('an API error returns a friendly message, never the provider\'s own text', function () {
+    Http::fake(['api.anthropic.com/*' => Http::response(['error' => ['message' => 'Your credit balance is too low']], 400)]);
 
     $result = $this->ai->chat('anthropic', 'sk-key', 'claude-haiku-4-5', [['role' => 'user', 'content' => 'hi']]);
 
-    expect($result)->toBe('AI error: overloaded');
+    expect($result)->toBe(AiTurn::UNAVAILABLE);
+});
+
+test('a turn returns every tool call, the reply to send back, and what it cost (Anthropic)', function () {
+    config(['ai.prices.claude-haiku-4-5' => ['input' => 1.0, 'output' => 5.0, 'cached_input' => 0.1]]);
+    Http::fake(['api.anthropic.com/*' => anthropicReply([
+        ['type' => 'thinking', 'thinking' => 'hmm', 'signature' => 'sig'],
+        ['type' => 'tool_use', 'id' => 'a', 'name' => 'lookup_pool', 'input' => ['pool_id' => 1]],
+        ['type' => 'tool_use', 'id' => 'b', 'name' => 'lookup_customer', 'input' => ['name' => 'Jo']],
+    ], ['input_tokens' => 100, 'cache_creation_input_tokens' => 1000, 'cache_read_input_tokens' => 2000, 'output_tokens' => 50])]);
+
+    $turn = $this->ai->turn('anthropic', 'sk', 'claude-haiku-4-5', 'stable rules', 'live data', [['role' => 'user', 'content' => 'hi']],
+        [['name' => 'lookup_pool', 'description' => 'd', 'parameters' => ['type' => 'object']]], allowTools: false);
+
+    expect(collect($turn->toolCalls)->pluck('id')->all())->toBe(['a', 'b'])
+        ->and($turn->message['content'][0]['type'])->toBe('thinking') // sent back unmodified
+        ->and($turn->tokens)->toBe(3150)
+        ->and(round($turn->cost, 6))->toBe(round((100 * 1 + 1000 * 1.25 + 2000 * 0.1 + 50 * 5) / 1_000_000, 6))
+        ->and($this->ai->toolResults('anthropic', [['id' => 'a', 'content' => 'x']]))->toBe([['role' => 'user', 'content' => [['type' => 'tool_result', 'tool_use_id' => 'a', 'content' => 'x']]]]);
+
+    Http::assertSent(fn ($request) => $request['system'][0] === ['type' => 'text', 'text' => 'stable rules', 'cache_control' => ['type' => 'ephemeral']]
+        && $request['system'][1] === ['type' => 'text', 'text' => 'live data']
+        && $request['tool_choice'] === ['type' => 'none']);
+});
+
+test('a turn returns every tool call and its echo (OpenAI)', function () {
+    $calls = [
+        ['id' => 'c1', 'type' => 'function', 'function' => ['name' => 'lookup_pool', 'arguments' => '{"pool_id":1}']],
+        ['id' => 'c2', 'type' => 'function', 'function' => ['name' => 'lookup_customer', 'arguments' => '{"name":"Jo"}']],
+    ];
+    Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => null, 'tool_calls' => $calls]]], 'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5]])]);
+
+    $turn = $this->ai->turn('openai', 'sk', 'gpt-4o-mini', 'rules', 'data', [['role' => 'user', 'content' => 'hi']]);
+
+    expect(collect($turn->toolCalls)->pluck('arguments')->all())->toBe([['pool_id' => 1], ['name' => 'Jo']])
+        ->and($turn->message)->toBe(['role' => 'assistant', 'content' => null, 'tool_calls' => $calls])
+        ->and($turn->tokens)->toBe(15)
+        ->and($this->ai->toolResults('openai', [['id' => 'c1', 'content' => 'x'], ['id' => 'c2', 'content' => 'y']]))
+        ->toBe([['role' => 'tool', 'tool_call_id' => 'c1', 'content' => 'x'], ['role' => 'tool', 'tool_call_id' => 'c2', 'content' => 'y']]);
+
+    Http::assertSent(fn ($request) => $request['messages'][0] === ['role' => 'system', 'content' => "rules\n\ndata"]);
 });
 
 test('parses an OpenAI text reply and prepends the system prompt', function () {

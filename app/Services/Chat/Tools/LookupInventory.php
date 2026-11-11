@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Chat\Tools;
 
 use App\Models\ChemicalInventory;
-use App\Models\Tenant;
-use App\Services\Chat\AiTool;
+use App\Models\User;
+use App\Services\Chat\AssistantTool;
 use App\Support\StandardChemicals;
 
-/**
- * Check chemical inventory stock levels — a specific chemical or all items
- * with low-stock flags.
- */
-class LookupInventory extends AiTool
+/** Office, when the company counts its stock: stock levels, low items first. */
+class LookupInventory extends AssistantTool
 {
     public function name(): string
     {
@@ -22,8 +19,8 @@ class LookupInventory extends AiTool
 
     public function description(): string
     {
-        return 'Check chemical inventory stock levels. '
-            .'Use when asked about inventory, stock, what chemicals are available, or what\'s running low.';
+        return 'Check chemical and repair-part stock: how much is left, the reorder level, cost and supplier. Low items '
+            .'come first. Leave out the name for everything.';
     }
 
     /** @return array<string, mixed> */
@@ -32,48 +29,45 @@ class LookupInventory extends AiTool
         return [
             'type' => 'object',
             'properties' => [
-                'chemical_name' => ['type' => 'string', 'description' => 'Chemical name to search for (optional — omit to list all inventory)'],
+                'chemical_name' => ['type' => 'string', 'description' => 'A chemical or part name or number (optional).'],
             ],
             'required' => [],
         ];
     }
 
-    public function execute(array $params, int $tenantId): string
+    public function availableTo(User $user): bool
     {
-        if (Tenant::query()->find($tenantId)?->inventory_tracking === false) {
-            return 'This company doesn’t count its stock in RoutePilot, so there are no stock levels here.';
-        }
+        return $user->role === 'tenant_admin' && $this->tenant($user)?->inventory_tracking !== false;
+    }
 
+    public function execute(array $params, User $user): string
+    {
         $search = trim((string) ($params['chemical_name'] ?? ''));
-
         $items = ChemicalInventory::query()
+            ->where('tenant_id', (int) $user->tenant_id)
             ->active()
             ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('chemical_name', 'like', "%{$search}%")->orWhere('part_number', 'like', "%{$search}%")))
             ->orderBy('chemical_name')
-            ->get();
+            ->get()
+            ->sortByDesc(fn (ChemicalInventory $i): bool => $i->isLowStock())
+            ->values();
 
         if ($items->isEmpty()) {
-            $what = $search !== '' ? " matching \"{$search}\"" : '';
-
-            return "No inventory items found{$what}.";
+            return 'No stock items found'.($search !== '' ? " matching \"{$search}\"" : '').'.';
         }
 
-        $rows = $items->map(function (ChemicalInventory $item): string {
+        $shown = $items->take(self::ROWS);
+        $low = $items->filter(fn (ChemicalInventory $i): bool => $i->isLowStock())->count();
+
+        return "Stock ({$items->count()} items".($low > 0 ? ", {$low} low" : '')."):\n".$shown->map(function (ChemicalInventory $item): string {
             $stock = StandardChemicals::amount((float) $item->current_stock, $item->unit);
-            $threshold = $item->reorder_threshold !== null ? StandardChemicals::amount((float) $item->reorder_threshold, $item->unit) : 'none set';
-            $low = $item->isLowStock() ? ' (LOW STOCK)' : '';
-            $cost = $item->cost_per_unit !== null ? '$'.number_format((float) $item->cost_per_unit, 2).'/'.StandardChemicals::unitFor(1, $item->unit) : '';
-            $supplier = $item->supplier !== null ? " (from {$item->supplier})" : '';
+            $reorder = $item->reorder_threshold !== null ? StandardChemicals::amount((float) $item->reorder_threshold, $item->unit) : 'not set';
+            $cost = $item->cost_per_unit !== null ? ', $'.number_format((float) $item->cost_per_unit, 2).'/'.StandardChemicals::unitFor(1, $item->unit) : '';
 
-            $part = $item->isPart() ? ' (repair part'.($item->part_number !== null ? ", #{$item->part_number}" : '').')' : '';
-
-            return "- **{$item->chemical_name}**{$part} [id:{$item->id}]: {$stock} (reorder at: {$threshold}){$low}"
-                .($cost !== '' ? "\n  Cost: {$cost}{$supplier}" : '');
-        })->join("\n");
-
-        $lowCount = $items->filter(fn (ChemicalInventory $i): bool => $i->isLowStock())->count();
-        $summary = $lowCount > 0 ? "\n\n{$lowCount} item(s) at or below reorder threshold." : '';
-
-        return "Inventory ({$items->count()} items):\n\n{$rows}{$summary}";
+            return '- '.self::link('inventory', $item->id, $item->chemical_name)
+                .($item->isPart() ? ' (repair part'.($item->part_number !== null ? " #{$item->part_number}" : '').')' : '')
+                .": {$stock} (reorder at {$reorder})".($item->isLowStock() ? ' LOW' : '')
+                .$cost.($item->supplier !== null ? ", from {$item->supplier}" : '');
+        })->join("\n").self::more($items->count(), $shown->count());
     }
 }

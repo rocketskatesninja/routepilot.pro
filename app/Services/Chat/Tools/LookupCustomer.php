@@ -6,13 +6,12 @@ namespace App\Services\Chat\Tools;
 
 use App\Models\Customer;
 use App\Models\Pool;
-use App\Services\Chat\AiTool;
+use App\Models\ServiceSubscription;
+use App\Models\User;
+use App\Services\Chat\AssistantTool;
 
-/**
- * Find customer details by name or address — contact info, address, notes,
- * and their pools.
- */
-class LookupCustomer extends AiTool
+/** Office: find customers and see their contact details, pools and plans. */
+class LookupCustomer extends AssistantTool
 {
     public function name(): string
     {
@@ -21,10 +20,8 @@ class LookupCustomer extends AiTool
 
     public function description(): string
     {
-        return 'Look up customer details — contact info, address, notes, and pools. '
-            .'Pass a name to search for a specific customer, or pass "all" to list ALL customers with addresses. '
-            .'Also searches by address (e.g. "Oak Lane"). '
-            .'Use when asked about a customer\'s info, who lives somewhere, or to compare customer locations.';
+        return 'Find customers by name, address, city, zip, email or phone, and see their contact details, notes, pools '
+            .'and plans (service, day, price, tech). Pass "all" to list every customer.';
     }
 
     /** @return array<string, mixed> */
@@ -33,42 +30,47 @@ class LookupCustomer extends AiTool
         return [
             'type' => 'object',
             'properties' => [
-                'name' => [
-                    'type' => 'string',
-                    'description' => 'Customer name (fuzzy match), partial address, or "all" to list every customer with their address',
-                ],
+                'name' => ['type' => 'string', 'description' => 'Part of a name, address, city, zip, email or phone, or "all".'],
             ],
             'required' => ['name'],
         ];
     }
 
-    public function execute(array $params, int $tenantId): string
+    public function availableTo(User $user): bool
+    {
+        return $user->role === 'tenant_admin';
+    }
+
+    public function execute(array $params, User $user): string
     {
         $search = trim((string) ($params['name'] ?? ''));
+        $base = Customer::query()->where('customers.tenant_id', (int) $user->tenant_id);
 
         if (strtolower($search) === 'all') {
-            $customers = Customer::query()->with('pools')->get();
-            if ($customers->isEmpty()) {
-                return 'No customers on file.';
-            }
+            $total = (clone $base)->count();
+            $customers = $base->withCount('pools')->orderBy('last_name')->orderBy('first_name')->limit(self::ROWS)->get();
 
-            return "All customers ({$customers->count()}):\n\n".$customers->map(function (Customer $c): string {
-                $address = collect([$c->address_line1, $c->city, $c->state, $c->zip])->filter()->join(', ');
-                $poolCount = $c->pools->count();
-
-                return "- **{$c->displayName()}** [id:{$c->id}] — ".($address !== '' ? $address : 'No address')
-                    ." ({$poolCount} pool".($poolCount !== 1 ? 's' : '').')';
-            })->join("\n");
+            return $customers->isEmpty() ? 'No customers yet.' : "Customers ({$total}):\n"
+                .$customers->map(fn (Customer $c): string => '- '.self::link('customer', $c->id, $c->displayName())
+                    .' — '.($this->address($c) ?: 'no address').' ('.$c->getAttribute('pools_count').' pool'.((int) $c->getAttribute('pools_count') === 1 ? '' : 's').')')->join("\n")
+                .self::more($total, $customers->count());
         }
 
-        $customers = Customer::query()
-            ->where(function ($q) use ($search) {
-                $this->whereNameLike($q, $search);
-                $q->orWhere('address_line1', 'like', "%{$search}%")
-                    ->orWhere('city', 'like', "%{$search}%")
-                    ->orWhere('zip', 'like', "%{$search}%");
+        if (($problem = $this->nameProblem($search)) !== null) {
+            return $problem;
+        }
+
+        $like = '%'.$search.'%';
+        $customers = $base
+            ->where(function ($q) use ($search, $like) {
+                $q->where(fn ($n) => $this->whereNameLike($n, $search))
+                    ->orWhere('address_line1', 'like', $like)
+                    ->orWhere('city', 'like', $like)
+                    ->orWhere('zip', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('phone', 'like', $like);
             })
-            ->with('pools')
+            ->with(['pools.subscriptions' => fn ($s) => $s->whereIn('status', ['active', 'paused']), 'pools.subscriptions.serviceType', 'pools.subscriptions.agent'])
             ->limit(10)
             ->get();
 
@@ -77,21 +79,23 @@ class LookupCustomer extends AiTool
         }
 
         return $customers->map(function (Customer $c): string {
-            $address = collect([$c->address_line1, $c->address_line2, $c->city, $c->state, $c->zip])->filter()->join(', ');
-            $pools = $c->pools->map(function (Pool $p): string {
-                $vol = $p->volume_gallons !== null ? number_format($p->volume_gallons).' gal' : 'unknown volume';
-
-                return "  - {$p->name} [id:{$p->id}] ({$p->type}, {$vol})";
-            })->join("\n");
+            $pools = $c->pools->map(fn (Pool $p): string => '  - '.self::link('pool', $p->id, $p->name)
+                .($p->subscriptions->isEmpty() ? ': no active plan' : "\n".$p->subscriptions->map(fn (ServiceSubscription $s): string => '    - '.$this->planLine($s))->join("\n")))->join("\n");
 
             return collect([
-                "**{$c->displayName()}** [id:{$c->id}]",
-                $c->email !== null ? "Email: {$c->email}" : null,
+                self::link('customer', $c->id, $c->displayName()),
+                $c->email !== null ? "Email: {$c->email}" : 'No email on file',
                 $c->phone !== null ? "Phone: {$c->phone}" : null,
-                $address !== '' ? "Address: {$address}" : null,
-                $c->notes !== null ? "Notes: {$c->notes}" : null,
+                ($address = $this->address($c)) !== '' ? "Address: {$address}" : null,
+                'Customer portal: '.$c->portalStatus(),
+                ($note = self::note($c->notes)) !== null ? "Notes: {$note}" : null,
                 $c->pools->isNotEmpty() ? "Pools:\n{$pools}" : 'No pools on file.',
             ])->filter()->join("\n");
         })->join("\n\n---\n\n");
+    }
+
+    private function address(Customer $c): string
+    {
+        return collect([$c->address_line1, $c->address_line2, $c->city, $c->state, $c->zip])->filter()->join(', ');
     }
 }

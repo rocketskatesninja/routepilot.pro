@@ -4,61 +4,56 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
+use App\Models\User;
+use App\Services\Chat\Tools\AnalyzeWater;
 use App\Services\Chat\Tools\LookupBalance;
 use App\Services\Chat\Tools\LookupChemistry;
 use App\Services\Chat\Tools\LookupCustomer;
 use App\Services\Chat\Tools\LookupInventory;
 use App\Services\Chat\Tools\LookupPool;
+use App\Services\Chat\Tools\LookupRequests;
+use App\Services\Chat\Tools\LookupSchedule;
 use App\Services\Chat\Tools\LookupServiceHistory;
+use App\Services\Chat\Tools\LookupWorkOrders;
 
 /**
- * Registry of AI tools available to the assistant (tenant-admin role).
- * Add a tool by appending its class here.
+ * Every look-up the in-app assistant has. Each tool decides who is offered it
+ * (availableTo); none of them changes anything. The assistant is guide-only:
+ * it explains how and links to the page where the change is made.
  */
 class ToolRegistry
 {
-    /**
-     * Registered tool classes.
-     *
-     * @var list<class-string<AiTool>>
-     */
+    /** @var list<class-string<AssistantTool>> */
     protected static array $toolClasses = [
-        // Look-ups only. The change tools (ChangePreferredDay, ReassignAgent,
-        // SkipStop) are switched off: they acted at once, on the first fuzzy
-        // match, with no confirmation or audit. They come back as confirm cards
-        // in the assistant rebuild.
         LookupCustomer::class,
         LookupPool::class,
         LookupChemistry::class,
         LookupServiceHistory::class,
+        LookupSchedule::class,
+        LookupRequests::class,
+        LookupWorkOrders::class,
         LookupInventory::class,
         LookupBalance::class,
+        AnalyzeWater::class,
     ];
 
-    /**
-     * Cached tool instances (built once per request).
-     *
-     * @var list<AiTool>|null
-     */
-    protected static ?array $instances = null;
-
-    /** @return list<AiTool> */
+    /** @return list<AssistantTool> */
     public static function all(): array
     {
-        return static::$instances ??= array_map(fn (string $cls): AiTool => new $cls, static::$toolClasses);
+        return array_map(fn (string $cls): AssistantTool => new $cls, static::$toolClasses);
     }
 
     /**
-     * Provider-agnostic schemas for the AI request.
+     * The look-ups this person is offered.
      *
-     * @return list<array{name: string, description: string, parameters: array<string, mixed>}>
+     * @return list<AssistantTool>
      */
-    public static function schemas(): array
+    public static function for(User $user): array
     {
-        return array_map(fn (AiTool $t): array => $t->toSchema(), static::all());
+        return array_values(array_filter(static::all(), fn (AssistantTool $t): bool => $t->availableTo($user)));
     }
 
-    public static function find(string $name): ?AiTool
+    public static function find(string $name): ?AssistantTool
     {
         foreach (static::all() as $tool) {
             if ($tool->name() === $name) {
@@ -67,14 +62,5 @@ class ToolRegistry
         }
 
         return null;
-    }
-
-    /** Name + description list for embedding in a system prompt. */
-    public static function descriptionList(): string
-    {
-        return implode("\n", array_map(
-            fn (AiTool $t): string => "- {$t->name()} — {$t->description()}",
-            static::all(),
-        ));
     }
 }
