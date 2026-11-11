@@ -11,6 +11,7 @@ use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Chat\ToolRegistry;
 use App\Services\Chat\Tools\LookupCustomer;
 use App\Services\Chat\Tools\LookupInventory;
 use App\Services\Chat\Tools\ReassignAgent;
@@ -23,6 +24,16 @@ beforeEach(function () {
     $this->tenant = Tenant::factory()->create();
     app()->instance('tenant', $this->tenant);
     app()->instance('tenant_id', $this->tenant->id);
+});
+
+test('the assistant is only offered look-ups until changes need a confirm tap', function () {
+    $names = array_column(ToolRegistry::schemas(), 'name');
+
+    expect($names)->not->toBeEmpty()
+        ->and($names)->each->toStartWith('lookup_')
+        ->and(ToolRegistry::find('skip_stop'))->toBeNull()
+        ->and(ToolRegistry::find('reassign_agent'))->toBeNull()
+        ->and(ToolRegistry::find('change_preferred_day'))->toBeNull();
 });
 
 test('lookup_customer returns matching customers and their pools', function () {

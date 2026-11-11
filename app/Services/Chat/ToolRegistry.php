@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
-use App\Services\Chat\Tools\ChangePreferredDay;
 use App\Services\Chat\Tools\LookupBalance;
 use App\Services\Chat\Tools\LookupChemistry;
 use App\Services\Chat\Tools\LookupCustomer;
 use App\Services\Chat\Tools\LookupInventory;
 use App\Services\Chat\Tools\LookupPool;
 use App\Services\Chat\Tools\LookupServiceHistory;
-use App\Services\Chat\Tools\ReassignAgent;
-use App\Services\Chat\Tools\SkipStop;
 
 /**
  * Registry of AI tools available to the assistant (tenant-admin role).
@@ -26,11 +23,10 @@ class ToolRegistry
      * @var list<class-string<AiTool>>
      */
     protected static array $toolClasses = [
-        // Action tools — mutate the schedule / assignments.
-        ChangePreferredDay::class,
-        ReassignAgent::class,
-        SkipStop::class,
-        // Lookup tools — read-only queries.
+        // Look-ups only. The change tools (ChangePreferredDay, ReassignAgent,
+        // SkipStop) are switched off: they acted at once, on the first fuzzy
+        // match, with no confirmation or audit. They come back as confirm cards
+        // in the assistant rebuild.
         LookupCustomer::class,
         LookupPool::class,
         LookupChemistry::class,

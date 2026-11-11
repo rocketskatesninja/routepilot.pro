@@ -84,7 +84,12 @@ class TenantContext
             ."scheduling and routing, agent and customer management, equipment, and inventory.\n\n"
             .'The data below is a SUMMARY — it does NOT include addresses, chemistry readings, visit history, '
             .'balances, or detailed specs. When asked for details not shown, you MUST call a lookup tool rather '
-            ."than saying you lack the data. When asked to make a change that matches an action tool, call it.\n\n"
+            ."than saying you lack the data.\n\n"
+            .'You can look things up but you cannot change anything. When asked to make a change, never say it is '
+            .'done: say you can\'t make changes yet and tell them where to do it. To skip or restore a visit: '
+            .'Schedule (/schedule), find the day and use the stop\'s skip button. To change a plan\'s day, tech, '
+            .'price or end it: Pools (/pools), pick the pool and edit its plan. Customers and their details: '
+            ."People (/people). Requests from customers: Requests (/inbox).\n\n"
             .'Back-office surfaces: Dashboard (/dashboard), Pools (/pools), People (/people), Services (/services), '
             ."Assistant (/assistant). Match customer names loosely; if multiple pools match and the admin didn't "
             ."specify, ask which.\n\n"
