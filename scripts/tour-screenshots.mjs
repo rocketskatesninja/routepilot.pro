@@ -12,6 +12,10 @@
  * Usage:
  *   npm run screenshots:tour                    # everything
  *   npm run screenshots:tour tenant customer    # just these parts (tenant, agent, customer)
+ *   SCREENSHOT_ONLY=assistant,billing npm run screenshots:tour   # just these screens (file names)
+ *
+ * The Assistant screens ask a real question first (it costs a fraction of a
+ * cent and leaves a chat on each demo account: delete those afterwards).
  *
  * Env overrides: SCREENSHOT_BASE, SCREENSHOT_DATE, CHROME_PATH, DEMO_PASSWORD
  * — same as screenshots.mjs — plus SCREENSHOT_INSECURE=1 to accept a
@@ -34,6 +38,11 @@ const PASSWORD = process.env.DEMO_PASSWORD ?? 'password';
 const INSECURE = process.env.SCREENSHOT_INSECURE === '1';
 const PARTS = process.argv.slice(2);
 const want = (part) => PARTS.length === 0 || PARTS.includes(part);
+const ONLY = (process.env.SCREENSHOT_ONLY ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+const only = (file) => ONLY.length === 0 || ONLY.includes(file);
 
 const OUT = resolve(dirname(fileURLToPath(import.meta.url)), '../public/assets/images/screenshots/tour');
 for (const dir of ['tenant', 'tenant/dark', 'agent', 'agent/dark', 'customer', 'customer/desktop']) mkdirSync(`${OUT}/${dir}`, { recursive: true });
@@ -61,7 +70,7 @@ const TENANT_PAGES = [
     { file: 'company', path: '/company' },
     { file: 'billing', path: '/billing' },
     { file: 'landing-editor', path: '/company/landing' },
-    { file: 'assistant', path: '/assistant' },
+    { file: 'assistant', path: '/assistant', ask: "What's on the schedule Monday?" },
 ];
 
 /** The customer portal's pages; the simple Home is the portal's own front page. */
@@ -71,7 +80,26 @@ const CUSTOMER_PAGES = [
     { file: 'history', path: '/history' },
     { file: 'balance', path: '/balance' },
     { file: 'services', path: '/requests' },
+    { file: 'assistant', path: '/assistant', ask: 'How did my last water test look?' },
 ];
+
+/** The tech's Assistant question. */
+const AGENT_ASK = "What's on my route Monday?";
+
+/** On the Assistant page: start a fresh chat, ask, and wait for the whole answer. */
+async function ask(page, question) {
+    const fresh = page.locator('button:has-text("New conversation")');
+    if (await fresh.count()) {
+        await fresh.click();
+        await page.waitForTimeout(1500);
+    }
+    await page.fill('#assistant-message', question);
+    await page.press('#assistant-message', 'Enter');
+    await page.waitForFunction(() => !document.body.innerText.includes('Thinking…'), null, { timeout: 90000 });
+    await page.locator('#assistant-message').blur();
+    await page.mouse.move(1, 1); // off the buttons, so nothing shows a hover state
+    await page.waitForTimeout(800);
+}
 
 /** Out-of-range readings so the on-device chemistry engine surfaces real dosing recommendations. */
 const BAD_READING = {
@@ -95,9 +123,10 @@ async function login(ctx, email) {
     return page;
 }
 
-async function shoot(page, path, file, { openRow = false, settle = 2500 } = {}) {
+async function shoot(page, path, file, { openRow = false, settle = 2500, question = null } = {}) {
     await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1200);
+    if (question) await ask(page, question);
     if (openRow) {
         await page
             .locator('tbody tr')
@@ -114,8 +143,8 @@ async function shoot(page, path, file, { openRow = false, settle = 2500 } = {}) 
 async function tenantTour(browser, scheme, dir) {
     const ctx = await browser.newContext({ viewport: DESKTOP_VIEWPORT, deviceScaleFactor: 2, colorScheme: scheme, ignoreHTTPSErrors: INSECURE });
     const page = await login(ctx, TENANT);
-    for (const p of TENANT_PAGES) {
-        await shoot(page, p.path, `${OUT}/tenant/${dir}${p.file}.png`, { openRow: p.openRow, settle: p.settle ?? 2500 });
+    for (const p of TENANT_PAGES.filter((p) => only(p.file))) {
+        await shoot(page, p.path, `${OUT}/tenant/${dir}${p.file}.png`, { openRow: p.openRow, settle: p.settle ?? 2500, question: p.ask });
     }
     await ctx.close();
     console.log(`tenant ${scheme} done`);
@@ -143,6 +172,19 @@ async function agentTour(browser, scheme, dir) {
             .evaluate((el) => el.scrollIntoView({ block: 'start' }));
         await page.waitForTimeout(300);
     };
+
+    if (only('assistant')) {
+        await page.goto(`${BASE}/assistant`, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1200);
+        await ask(page, AGENT_ASK);
+        await snap('assistant');
+    }
+    const FIELD_SHOTS = ['day', 'visit-checklist', 'visit-water', 'visit-analysis', 'visit-treatments', 'day-offline', 'day-queued'];
+    if (!FIELD_SHOTS.some(only)) {
+        await ctx.close();
+        console.log(`agent ${scheme} done`);
+        return;
+    }
 
     await page.goto(`${BASE}/field`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(2000);
@@ -228,15 +270,19 @@ async function customerTour(browser) {
             ignoreHTTPSErrors: INSECURE,
         });
         const page = await login(ctx, CUSTOMER);
-        // Customers choose a widget grid or the simple Home; the tour shows the simple one.
-        await page
-            .locator('[aria-label="Dashboard style"] button:has-text("Simple")')
-            .click({ timeout: 3000 })
-            .catch(() => {});
-        await page.waitForTimeout(1000);
-        for (const p of pages) {
+        // Customers choose a widget grid or the simple Home; the tour shows the simple one
+        // (a saved choice, so only switched when the Home screen is being shot).
+        if (only('home')) {
+            await page
+                .locator('[aria-label="Dashboard style"] button:has-text("Simple")')
+                .click({ timeout: 3000 })
+                .catch(() => {});
+            await page.waitForTimeout(1000);
+        }
+        for (const p of pages.filter((p) => only(p.file))) {
             await page.goto(`${BASE}${p.path}`, { waitUntil: 'networkidle' });
             await page.waitForTimeout(1500);
+            if (p.ask) await ask(page, p.ask);
             await page.screenshot({ path: `${OUT}/customer/${dir}${p.file}.png`, ...(mobile ? { clip: PHONE_CLIP } : {}) });
             console.log('  ✓', `customer/${dir}${p.file}.png`);
         }

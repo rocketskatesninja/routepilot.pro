@@ -71,7 +71,7 @@ class MyVisits extends AssistantTool
             $treat = collect($treatments)->map(fn (array $t): string => trim("{$t['name']} {$t['amount']} ".($t['unit'] ?? '')))->join(', ');
             $parts = collect($used)->map(fn (array $t): string => "{$t['name']} ×{$t['amount']}")->join(', ');
 
-            return '- '.self::link('visit', $v->id, (string) ($a['on'] ?? 'visit')).' — '.($a['pool'] ?? 'pool')
+            return '- '.self::link('visit', $v->id, self::day($v->completed_at, 'M j').' visit').' ('.self::day($v->completed_at, 'Y').') — '.($a['pool'] ?? 'pool')
                 .(isset($a['service']) ? " — {$a['service']}" : '').' — '.($a['agent'] ?? 'your technician')
                 .($reading !== '' ? "\n  Water test: {$reading}" : '')
                 .($treat !== '' ? "\n  Chemicals added: {$treat}" : '')

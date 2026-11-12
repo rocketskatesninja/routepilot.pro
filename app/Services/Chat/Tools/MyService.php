@@ -89,7 +89,7 @@ class MyService extends AssistantTool
             return collect([
                 "{$pool->name}: {$pool->type}, ".($pool->volume_gallons !== null ? number_format($pool->volume_gallons).' gallons' : 'size not on file').", {$pool->sanitizer_type}",
                 $lines->isNotEmpty() ? "Service:\n".$lines->join("\n") : 'No current service.',
-                $last !== null ? 'Last visit: '.self::link('visit', $last->id, self::day($last->completed_at, 'M j')).' by '.($last->agent?->firstName() ?? 'your technician') : 'No visits yet.',
+                $last !== null ? 'Last visit: '.self::link('visit', $last->id, self::day($last->completed_at, 'M j').' visit').' by '.($last->agent?->firstName() ?? 'your technician') : 'No visits yet.',
                 $reading !== null ? "Last water test: FC {$reading->free_chlorine}, pH {$reading->ph}, alkalinity {$reading->alkalinity}".($reading->cyanuric_acid !== null ? ", stabilizer {$reading->cyanuric_acid}" : '').($reading->salt !== null ? ", salt {$reading->salt}" : '') : null,
             ])->filter()->join("\n");
         })->join("\n\n");

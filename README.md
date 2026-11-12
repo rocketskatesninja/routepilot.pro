@@ -48,7 +48,9 @@ codebase, with each company's data kept strictly to itself.
 - **Inventory** — chemical usage deducts automatically from every service visit.
 - **Build-your-own dashboard** — drag-to-arrange widgets for stops, the map, weather, and
   billing.
-- **AI assistant** — ask about a customer, a route, or pool chemistry in plain English.
+- **AI assistant** — for the office, techs and homeowners alike: answers questions about their own
+  routes, pools, visits and balances, explains how to do anything in RoutePilot with a link straight
+  to the right page, and knows pool and spa care inside out. It never changes anything itself.
 - **Insights** — revenue, visits, receivables aging, and top techs at a glance.
 - **Security built in** — per-company data isolation, optional two-factor sign-in, signed
   payment and unsubscribe links, and an audit log of billing, permission, delete, and
@@ -104,7 +106,22 @@ An installable app for technicians that keeps working without signal.
 </tr>
 </table>
 
-<p align="center"><sub>Every screen, light and dark, is in <a href="public/assets/images/screenshots/tour/">the full tour</a> (51 screens).</sub></p>
+## The assistant
+
+Everyone gets an assistant that knows their own corner of the business and pool care inside out.
+It looks things up and explains how to do anything, with links straight to the right page; it
+never changes anything itself.
+
+![Office assistant](public/assets/images/screenshots/tour/tenant/assistant.png)
+
+<table>
+<tr>
+<td width="50%"><img src="public/assets/images/screenshots/tour/agent/assistant.png" alt="Tech assistant"><br><sub>Techs — their own route and stops, gate codes, and doses</sub></td>
+<td width="50%"><img src="public/assets/images/screenshots/tour/customer/assistant.png" alt="Homeowner assistant"><br><sub>Homeowners — their own service, visits, and water</sub></td>
+</tr>
+</table>
+
+<p align="center"><sub>Every screen, light and dark, is in <a href="public/assets/images/screenshots/tour/">the full tour</a> (55 screens).</sub></p>
 
 ## Pricing
 

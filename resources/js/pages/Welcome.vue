@@ -134,7 +134,11 @@ const features = [
         title: 'Build-your-own dashboard',
         desc: 'Drag-to-reorder widgets for stops, map, weather, and billing — every user builds their view.',
     },
-    { icon: Bot, title: 'AI assistant', desc: 'Ask about a customer, a route, or pool chemistry and get an answer in plain English.' },
+    {
+        icon: Bot,
+        title: 'AI assistant',
+        desc: 'Ask about a customer, a route or a water test, or how to do anything — answers link straight to the right page.',
+    },
     { icon: Move, title: 'Drag-to-reassign', desc: 'Move a stop to another tech in one drag and every future visit follows automatically.' },
     { icon: Users, title: 'Customer management', desc: 'A pool company CRM built in — pools, contacts, notes, and history in one place.' },
 ];
@@ -143,7 +147,7 @@ const features = [
 const demoFeatures = [
     'Browse services with photos, pricing, and FAQs',
     'Book a visit online — no phone tag',
-    'An AI assistant that answers pool questions around the clock',
+    'An AI assistant that answers pool questions around the clock and passes new leads to you',
     'A customer login to track pool health, chemistry, and visit history',
     'Your branding end to end — logo, colors, and your own domain',
 ];
