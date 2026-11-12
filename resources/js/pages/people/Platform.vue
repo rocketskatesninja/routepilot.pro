@@ -40,7 +40,7 @@ interface TenantDetail {
     users: number;
     created: string | null;
     logo_url: string | null;
-    ai: { enabled: boolean; allow_override: boolean; quota: number | string | null; limit: number; used: number };
+    ai: { enabled: boolean; allow_override: boolean; quota: number | string | null; limit: number; used: number; cost: number };
 }
 interface PersonDetail {
     type: 'agent' | 'customer';
@@ -514,9 +514,9 @@ function closePane() {
                                     <span>
                                         <Label for="t_quota" class="font-medium">Monthly allowance</Label>
                                         <span class="text-muted-foreground block"
-                                            >Used {{ tenant.ai.used }} of {{ aiLimit }} this month. Leave blank for the platform default ({{
-                                                props.aiDefaultQuota
-                                            }}).</span
+                                            >Used {{ tenant.ai.used }} of {{ aiLimit }} this month (${{
+                                                tenant.ai.cost.toFixed(tenant.ai.cost < 1 ? 4 : 2)
+                                            }}). Leave blank for the platform default ({{ props.aiDefaultQuota }}).</span
                                         >
                                     </span>
                                     <Input

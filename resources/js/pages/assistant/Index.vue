@@ -179,6 +179,7 @@ async function send(text?: string) {
                                     class="text-primary font-medium underline underline-offset-2 hover:opacity-80"
                                     >{{ part.text }}</Link
                                 ><strong v-else-if="part.kind === 'bold'">{{ part.text }}</strong
+                                ><em v-else-if="part.kind === 'italic'">{{ part.text }}</em
                                 ><template v-else>{{ part.text }}</template></template
                             >
                         </template>

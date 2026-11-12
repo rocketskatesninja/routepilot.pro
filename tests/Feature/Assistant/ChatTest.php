@@ -141,6 +141,17 @@ test('tokens and cost are recorded for the company', function () {
         ->and((float) $usage->getAttribute('cost'))->toBe(0.002);
 });
 
+test('a message only counts against the allowance when the AI answered', function () {
+    Http::fake(['api.anthropic.com/*' => Http::response(['error' => ['message' => 'overloaded']], 529)]);
+    $this->actingAs($this->admin)->postJson('/assistant/send', ['message' => 'hi'])
+        ->assertOk()->assertJsonPath('reply', fn (string $r): bool => str_contains($r, 'isn’t available'));
+
+    config(['ai.platform_keys.anthropic' => '']);
+    $this->actingAs($this->admin)->postJson('/assistant/send', ['message' => 'hi again'])->assertOk();
+
+    expect(AiUsage::query()->where('tenant_id', $this->tenant->id)->value('messages') ?? 0)->toBe(0);
+});
+
 test('the office prompt has the guide and pool know-how but no customer list', function () {
     Customer::factory()->for($this->tenant)->create(['first_name' => 'Secret', 'email' => 'secret@example.com']);
     Http::fake(['api.anthropic.com/*' => Http::response(anthropic([['type' => 'text', 'text' => 'ok']]))]);

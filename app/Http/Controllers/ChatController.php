@@ -126,9 +126,6 @@ class ChatController extends Controller
         if (is_numeric($daily)) {
             RateLimiter::hit($dayKey, 86400);
         }
-        if ($tenantId !== null) {
-            $quota->record((int) $tenantId);
-        }
 
         return response()->json([
             'reply' => $reply,

@@ -125,7 +125,7 @@ class PeopleController extends Controller
         }
 
         $ai = app(PlatformAiSettings::class)->tenantAi([$t->id])[$t->id]
-            ?? ['enabled' => true, 'allow_override' => false, 'quota' => null, 'limit' => 0, 'used' => 0];
+            ?? ['enabled' => true, 'allow_override' => false, 'quota' => null, 'limit' => 0, 'used' => 0, 'cost' => 0.0];
 
         return [
             'type' => 'tenant',

@@ -21,74 +21,56 @@ function anthropicReply(array $content, array $usage = []): PromiseInterface
     return Http::response(['content' => $content, 'usage' => $usage], 200);
 }
 
-test('returns null when no API key is supplied (no request made)', function () {
-    Http::fake();
-
-    $result = $this->ai->chat('anthropic', '', 'claude-haiku-4-5', [
-        ['role' => 'user', 'content' => 'hi'],
-    ]);
-
-    expect($result)->toBeNull();
-    Http::assertNothingSent();
-});
-
 test('parses an Anthropic text reply', function () {
     Http::fake(['api.anthropic.com/*' => anthropicReply([
         ['type' => 'text', 'text' => 'Your pH looks high.'],
     ])]);
 
-    $result = $this->ai->chat('anthropic', 'sk-key', 'claude-haiku-4-5', [
-        ['role' => 'user', 'content' => 'how is my pool?'],
-    ]);
+    $turn = $this->ai->turn('anthropic', 'sk-key', 'claude-haiku-4-5', '', '', [['role' => 'user', 'content' => 'how is my pool?']]);
 
-    expect($result)->toBe('Your pH looks high.');
+    expect($turn->text)->toBe('Your pH looks high.')->and($turn->toolCalls)->toBe([])->and($turn->failed)->toBeFalse();
 
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.anthropic.com/v1/messages'
             && $request['model'] === 'claude-haiku-4-5'
             && $request->hasHeader('x-api-key', 'sk-key')
-            && ! isset($request['thinking']); // off by default
+            && ! isset($request['thinking']) // off by default
+            && ! isset($request['system']); // nothing sent when there's no prompt
     });
 });
 
-test('a tool_use block normalizes to a tool_call (Anthropic)', function () {
+test('a tool_use block becomes a tool call (Anthropic), with tools in its input_schema shape', function () {
     Http::fake(['api.anthropic.com/*' => anthropicReply([
-        ['type' => 'tool_use', 'name' => 'lookup_chemistry', 'input' => ['pool' => 'Smith', 'days' => 30]],
+        ['type' => 'tool_use', 'id' => 'tu_1', 'name' => 'lookup_chemistry', 'input' => ['pool' => 'Smith', 'days' => 30]],
     ])]);
 
-    $result = $this->ai->chat('anthropic', 'sk-key', 'claude-haiku-4-5',
+    $turn = $this->ai->turn('anthropic', 'sk-key', 'claude-haiku-4-5', '', '',
         [['role' => 'user', 'content' => 'last readings for Smith?']],
-        tools: [['name' => 'lookup_chemistry', 'description' => 'Look up readings', 'parameters' => ['type' => 'object']]],
+        [['name' => 'lookup_chemistry', 'description' => 'Look up readings', 'parameters' => ['type' => 'object']]],
     );
 
-    expect($result)->toBe([
-        'tool_call' => ['name' => 'lookup_chemistry', 'arguments' => ['pool' => 'Smith', 'days' => 30]],
-    ]);
-
-    // Tools are mapped to Anthropic's input_schema shape.
+    expect($turn->toolCalls)->toBe([['id' => 'tu_1', 'name' => 'lookup_chemistry', 'arguments' => ['pool' => 'Smith', 'days' => 30]]]);
     Http::assertSent(fn ($request) => $request['tools'][0]['input_schema'] === ['type' => 'object']
         && ! isset($request['tools'][0]['parameters']));
 });
 
-test('thinking blocks are skipped; tool_use wins over text', function () {
+test('thinking blocks aren\'t text; the text and the tool call both come through', function () {
     Http::fake(['api.anthropic.com/*' => anthropicReply([
         ['type' => 'thinking', 'thinking' => ''],
         ['type' => 'text', 'text' => 'some preamble'],
-        ['type' => 'tool_use', 'name' => 'skip_stop', 'input' => ['id' => 5]],
+        ['type' => 'tool_use', 'id' => 'tu_2', 'name' => 'lookup_pool', 'input' => ['pool_id' => 5]],
     ])]);
 
-    $result = $this->ai->chat('anthropic', 'sk-key', 'claude-haiku-4-5', [['role' => 'user', 'content' => 'skip it']]);
+    $turn = $this->ai->turn('anthropic', 'sk-key', 'claude-haiku-4-5', '', '', [['role' => 'user', 'content' => 'find it']]);
 
-    expect($result)->toBe(['tool_call' => ['name' => 'skip_stop', 'arguments' => ['id' => 5]]]);
+    expect($turn->text)->toBe('some preamble')
+        ->and($turn->toolCalls)->toBe([['id' => 'tu_2', 'name' => 'lookup_pool', 'arguments' => ['pool_id' => 5]]]);
 });
 
 test('adaptive thinking is opt-in and adds the request param', function () {
     Http::fake(['api.anthropic.com/*' => anthropicReply([['type' => 'text', 'text' => 'ok']])]);
 
-    $this->ai->chat('anthropic', 'sk-key', 'claude-sonnet-4-6',
-        [['role' => 'user', 'content' => 'think hard']],
-        adaptiveThinking: true,
-    );
+    $this->ai->turn('anthropic', 'sk-key', 'claude-sonnet-4-6', '', '', [['role' => 'user', 'content' => 'think hard']], adaptiveThinking: true);
 
     Http::assertSent(fn ($request) => $request['thinking'] === ['type' => 'adaptive']);
 });
@@ -96,9 +78,9 @@ test('adaptive thinking is opt-in and adds the request param', function () {
 test('an API error returns a friendly message, never the provider\'s own text', function () {
     Http::fake(['api.anthropic.com/*' => Http::response(['error' => ['message' => 'Your credit balance is too low']], 400)]);
 
-    $result = $this->ai->chat('anthropic', 'sk-key', 'claude-haiku-4-5', [['role' => 'user', 'content' => 'hi']]);
+    $turn = $this->ai->turn('anthropic', 'sk-key', 'claude-haiku-4-5', '', '', [['role' => 'user', 'content' => 'hi']]);
 
-    expect($result)->toBe(AiTurn::UNAVAILABLE);
+    expect($turn->failed)->toBeTrue()->and($turn->text)->toBe(AiTurn::UNAVAILABLE)->and($turn->tokens)->toBe(0);
 });
 
 test('a turn returns every tool call, the reply to send back, and what it cost (Anthropic)', function () {
@@ -141,17 +123,14 @@ test('a turn returns every tool call and its echo (OpenAI)', function () {
     Http::assertSent(fn ($request) => $request['messages'][0] === ['role' => 'system', 'content' => "rules\n\ndata"]);
 });
 
-test('parses an OpenAI text reply and prepends the system prompt', function () {
+test('parses an OpenAI text reply and puts the system prompt first', function () {
     Http::fake(['api.openai.com/*' => Http::response([
         'choices' => [['message' => ['content' => 'Hello from GPT.']]],
     ], 200)]);
 
-    $result = $this->ai->chat('openai', 'sk-o', 'gpt-4o-mini',
-        [['role' => 'user', 'content' => 'hi']],
-        systemPrompt: 'You are a pool assistant.',
-    );
+    $turn = $this->ai->turn('openai', 'sk-o', 'gpt-4o-mini', 'You are a pool assistant.', '', [['role' => 'user', 'content' => 'hi']]);
 
-    expect($result)->toBe('Hello from GPT.');
+    expect($turn->text)->toBe('Hello from GPT.');
     Http::assertSent(fn ($request) => $request->url() === 'https://api.openai.com/v1/chat/completions'
         && $request['messages'][0] === ['role' => 'system', 'content' => 'You are a pool assistant.']
         && $request['messages'][1]['content'] === 'hi');
@@ -160,15 +139,13 @@ test('parses an OpenAI text reply and prepends the system prompt', function () {
 test('an OpenAI tool call has its JSON-string arguments decoded', function () {
     Http::fake(['api.openai.com/*' => Http::response([
         'choices' => [['message' => ['tool_calls' => [
-            ['function' => ['name' => 'lookup_pool', 'arguments' => '{"name":"Smith Pool"}']],
+            ['id' => 'c9', 'type' => 'function', 'function' => ['name' => 'lookup_pool', 'arguments' => '{"name":"Smith Pool"}']],
         ]]]],
     ], 200)]);
 
-    $result = $this->ai->chat('openai', 'sk-o', 'gpt-4o-mini', [['role' => 'user', 'content' => 'find it']]);
+    $turn = $this->ai->turn('openai', 'sk-o', 'gpt-4o-mini', '', '', [['role' => 'user', 'content' => 'find it']]);
 
-    expect($result)->toBe([
-        'tool_call' => ['name' => 'lookup_pool', 'arguments' => ['name' => 'Smith Pool']],
-    ]);
+    expect($turn->toolCalls)->toBe([['id' => 'c9', 'name' => 'lookup_pool', 'arguments' => ['name' => 'Smith Pool']]]);
 });
 
 test('OpenAI models that need it get reasoning switched off for tools, and dotted names find their price', function () {

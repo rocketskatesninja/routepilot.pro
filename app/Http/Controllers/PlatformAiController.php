@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\AiUsage;
 use App\Models\AuditLog;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
@@ -36,7 +37,44 @@ class PlatformAiController extends Controller
             ],
             'keys' => $platform->keyStatus(),
             'modelHints' => config('ai.models'),
+            'usage' => $this->usage($platform),
         ]);
+    }
+
+    /**
+     * What the assistants cost this month, per company (most expensive first),
+     * with the platform total and last month's for comparison. Only answered
+     * messages are counted (AiQuota::charge).
+     *
+     * @return array{month: string, rows: list<array{tenant: string, messages: int, limit: int, tokens: int, cost: float}>, total: array{messages: int, tokens: int, cost: float}, last_month: array{messages: int, cost: float}}
+     */
+    private function usage(PlatformAiSettings $platform): array
+    {
+        $rows = AiUsage::withoutGlobalScopes()
+            ->where('period', now()->format('Y-m'))
+            ->join('tenants', 'tenants.id', '=', 'ai_usage.tenant_id')
+            ->orderByDesc('ai_usage.cost')->orderByDesc('ai_usage.messages')
+            ->get(['ai_usage.tenant_id', 'tenants.name', 'ai_usage.messages', 'ai_usage.tokens', 'ai_usage.cost']);
+        $limits = $platform->tenantAi($rows->pluck('tenant_id')->map(fn ($id): int => (int) $id)->all());
+        $last = AiUsage::withoutGlobalScopes()->where('period', now()->subMonthNoOverflow()->format('Y-m'))
+            ->selectRaw('coalesce(sum(messages), 0) as messages, coalesce(sum(cost), 0) as cost')->first();
+
+        return [
+            'month' => now()->format('F Y'),
+            'rows' => $rows->map(fn (AiUsage $u): array => [
+                'tenant' => (string) $u->getAttribute('name'),
+                'messages' => (int) $u->getAttribute('messages'),
+                'limit' => (int) ($limits[(int) $u->getAttribute('tenant_id')]['limit'] ?? 0),
+                'tokens' => (int) $u->getAttribute('tokens'),
+                'cost' => (float) $u->getAttribute('cost'),
+            ])->values()->all(),
+            'total' => [
+                'messages' => (int) $rows->sum('messages'),
+                'tokens' => (int) $rows->sum('tokens'),
+                'cost' => round((float) $rows->sum('cost'), 4),
+            ],
+            'last_month' => ['messages' => (int) ($last?->getAttribute('messages') ?? 0), 'cost' => round((float) ($last?->getAttribute('cost') ?? 0), 4)],
+        ];
     }
 
     public function update(Request $request, PlatformAiSettings $platform): RedirectResponse

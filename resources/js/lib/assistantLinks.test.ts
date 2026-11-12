@@ -60,6 +60,17 @@ describe('assistant links', () => {
         expect(renderParts('[[schedule:/schedule]]', 'customer')).toEqual([{ kind: 'text', text: '/schedule' }]); // not in a customer's menu
     });
 
+    it('shows *italic* without its stars, but leaves sums and bullets alone', () => {
+        expect(renderParts('The *Anderson Pool* is worst', 'customer')).toEqual([
+            { kind: 'text', text: 'The ' },
+            { kind: 'italic', text: 'Anderson Pool' },
+            { kind: 'text', text: ' is worst' },
+        ]);
+        expect(renderParts('2 * 3 * 4', 'customer')).toEqual([{ kind: 'text', text: '2 * 3 * 4' }]);
+        expect(renderParts('* first\n* second', 'customer')).toEqual([{ kind: 'text', text: '* first\n* second' }]);
+        expect(renderParts('**Bold** then *it*.', 'customer').map((p) => p.kind)).toEqual(['bold', 'text', 'italic', 'text']);
+    });
+
     it('keeps **bold** and plain text', () => {
         expect(renderParts('A **big** deal', 'customer')).toEqual([
             { kind: 'text', text: 'A ' },

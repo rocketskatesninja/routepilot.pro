@@ -69,36 +69,6 @@ class ClaudeService
     }
 
     /**
-     * A single call that takes the first tool call or the text (the website
-     * chatbot's one-shot use). Null when no key is supplied.
-     *
-     * @param  list<array{role: string, content: string}>  $messages
-     * @param  list<array{name: string, description: string, parameters: array<string, mixed>}>  $tools
-     * @return string|array{tool_call: array{name: string, arguments: array<string, mixed>}}|null
-     */
-    public function chat(
-        string $provider,
-        string $apiKey,
-        string $model,
-        array $messages,
-        string $systemPrompt = '',
-        int $maxTokens = 4096,
-        array $tools = [],
-        bool $adaptiveThinking = false,
-    ): string|array|null {
-        if ($apiKey === '') {
-            return null;
-        }
-
-        $turn = $this->turn($provider, $apiKey, $model, $systemPrompt, '', $messages, $tools, true, $maxTokens, $adaptiveThinking);
-        $call = $turn->toolCalls[0] ?? null;
-
-        return $call !== null && ! $turn->failed
-            ? ['tool_call' => ['name' => $call['name'], 'arguments' => $call['arguments']]]
-            : $turn->text;
-    }
-
-    /**
      * Anthropic Messages API: the stable system block carries the cache mark,
      * and the reply's own content blocks (thinking included) go back as-is.
      *

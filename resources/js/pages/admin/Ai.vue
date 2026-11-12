@@ -17,11 +17,29 @@ interface KeyStatus {
     hint: string;
 }
 
+interface UsageRow {
+    tenant: string;
+    messages: number;
+    limit: number;
+    tokens: number;
+    cost: number;
+}
+
 const props = defineProps<{
     defaults: { provider: string; model: string; default_quota: number };
     keys: Record<string, KeyStatus>;
     modelHints: Record<string, string>;
+    usage: {
+        month: string;
+        rows: UsageRow[];
+        total: { messages: number; tokens: number; cost: number };
+        last_month: { messages: number; cost: number };
+    };
 }>();
+
+// AI costs are fractions of a cent per question: show that detail until it adds up to a dollar.
+const dollars = (n: number): string => `$${n.toFixed(n < 1 ? 4 : 2)}`;
+const count = (n: number): string => n.toLocaleString();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'AI', href: '/platform/ai' }];
 
@@ -63,6 +81,46 @@ const save = () =>
                 title="Platform AI"
                 summary="Every tenant’s assistant runs on the provider, model and key you set here. Tenants just get a monthly allowance."
             />
+
+            <PaneSection :title="`This month's use (${usage.month})`">
+                <p v-if="usage.rows.length === 0" class="text-muted-foreground border-border rounded-2xl border p-5 text-sm">
+                    No questions answered yet this month.
+                </p>
+                <div v-else class="border-border overflow-x-auto rounded-2xl border">
+                    <table class="w-full text-sm">
+                        <thead class="text-muted-foreground border-border border-b text-left text-xs">
+                            <tr>
+                                <th class="px-4 py-2.5 font-medium">Company</th>
+                                <th class="px-4 py-2.5 text-right font-medium">Questions</th>
+                                <th class="px-4 py-2.5 text-right font-medium">Tokens</th>
+                                <th class="px-4 py-2.5 text-right font-medium">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in usage.rows" :key="row.tenant" class="border-border border-b last:border-b-0">
+                                <td class="px-4 py-2.5 font-medium">{{ row.tenant }}</td>
+                                <td class="text-muted-foreground px-4 py-2.5 text-right tabular-nums">
+                                    {{ count(row.messages) }} of {{ count(row.limit) }}
+                                </td>
+                                <td class="text-muted-foreground px-4 py-2.5 text-right tabular-nums">{{ count(row.tokens) }}</td>
+                                <td class="px-4 py-2.5 text-right font-medium tabular-nums">{{ dollars(row.cost) }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-muted/40">
+                            <tr>
+                                <td class="px-4 py-3 font-semibold">All companies</td>
+                                <td class="px-4 py-3 text-right font-semibold tabular-nums">{{ count(usage.total.messages) }}</td>
+                                <td class="px-4 py-3 text-right font-semibold tabular-nums">{{ count(usage.total.tokens) }}</td>
+                                <td class="px-4 py-3 text-right font-bold tabular-nums">{{ dollars(usage.total.cost) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <p class="text-muted-foreground mt-2 text-sm">
+                    Last month: {{ count(usage.last_month.messages) }} questions, {{ dollars(usage.last_month.cost) }}. Only answered questions count;
+                    costs use each model's list price.
+                </p>
+            </PaneSection>
 
             <form class="space-y-8" @submit.prevent="save">
                 <PaneSection title="Which AI">

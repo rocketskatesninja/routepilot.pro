@@ -121,13 +121,17 @@ class AssembleLandingData
         ];
     }
 
-    /** Whether the public chatbot can actually run: AI key present, enabled, and in-quota for this tenant. */
+    /**
+     * Whether the public chatbot can actually run: AI key present, enabled, and
+     * the visitors' share of the allowance not used up (the same check the chat
+     * endpoint makes, so the button never shows for a chat that can't answer).
+     */
     private function chatEnabled(Tenant $tenant): bool
     {
         [, $key] = app(AiCredentials::class)->for((int) $tenant->id);
         $quota = app(AiQuota::class);
 
-        return $key !== '' && $quota->enabled((int) $tenant->id) && $quota->remaining((int) $tenant->id) > 0;
+        return $key !== '' && $quota->enabled((int) $tenant->id) && $quota->remainingFor((int) $tenant->id, 'public') > 0;
     }
 
     /**

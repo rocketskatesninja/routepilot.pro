@@ -9,14 +9,18 @@ use App\Models\Tenant;
 use App\Services\AiQuota;
 use App\Services\Chat\AiCredentials;
 use App\Services\Chat\PublicAssistant;
+use App\Support\SensitiveText;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 /**
  * Public lead-capture chatbot endpoint (unauthenticated, per tenant). A visitor
- * token resumes the anonymous conversation; the tenant's AI allowance is metered
- * the same as the authed assistants. Rate-limited per IP at the route.
+ * token resumes the anonymous conversation. Rate-limited per IP at the route;
+ * website visitors can't use the staff's share of the company's monthly AI
+ * allowance (like customers); one message at a time per conversation.
  */
 class PublicChatController extends Controller
 {
@@ -29,20 +33,24 @@ class PublicChatController extends Controller
 
         app()->instance('tenant_id', $tenant->id);
 
-        // Gate: AI must be configured for this tenant and within its monthly allowance.
+        // Gate: AI must be configured for this tenant, and the visitors' share of its allowance not used up.
         [, $key] = app(AiCredentials::class)->for($tenant->id);
-        if ($key === '' || ! $quota->enabled($tenant->id) || $quota->remaining($tenant->id) <= 0) {
-            return response()->json([
-                'reply' => "Thanks for reaching out! Our chat assistant isn't available right now — please use the contact form and we'll get back to you shortly.",
-                'unavailable' => true,
-            ]);
+        if ($key === '' || ! $quota->enabled($tenant->id) || $quota->remainingFor($tenant->id, 'public') <= 0) {
+            return response()->json(['reply' => PublicAssistant::UNAVAILABLE, 'unavailable' => true]);
         }
 
         $session = $this->session($tenant, $data['visitor_token'] ?? null);
-        $reply = $assistant->reply($tenant, $session, $data['message']);
-        $quota->record($tenant->id);
+        try {
+            $reply = Cache::lock("public-chat:{$session->id}", 60)->block(10, fn (): string => $assistant->reply($tenant, $session, $data['message']));
+        } catch (LockTimeoutException) {
+            return response()->json(['reply' => 'One moment, I’m still answering your last message.', 'visitor_token' => $session->visitor_token]);
+        }
 
-        return response()->json(['reply' => $reply, 'visitor_token' => $session->visitor_token]);
+        return response()->json([
+            'reply' => $reply,
+            'message' => SensitiveText::redact($data['message']), // as saved: card numbers blanked
+            'visitor_token' => $session->visitor_token,
+        ]);
     }
 
     /** Resume the visitor's session by token (scoped to this tenant) or start a new one. */

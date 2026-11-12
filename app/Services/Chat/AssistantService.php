@@ -46,6 +46,7 @@ class AssistantService
         $rounds = max(1, (int) config('ai.max_rounds', 4));
         $tokens = 0;
         $cost = 0.0;
+        $answered = false;
         $reply = '';
 
         for ($round = 1; $round <= $rounds; $round++) {
@@ -57,6 +58,7 @@ class AssistantService
             );
             $tokens += $turn->tokens;
             $cost += $turn->cost;
+            $answered = $answered || ! $turn->failed;
 
             if ($turn->failed || $turn->toolCalls === []) {
                 $reply = $turn->text;
@@ -68,8 +70,10 @@ class AssistantService
             array_push($messages, ...$this->claude->toolResults($provider, $results));
         }
 
-        if ($user->tenant_id !== null) {
-            app(AiQuota::class)->addTokens((int) $user->tenant_id, $tokens, $cost);
+        // A message counts against the allowance only when the AI actually answered
+        // (not when it was down or not set up); its tokens and cost go with it.
+        if ($user->tenant_id !== null && $answered) {
+            app(AiQuota::class)->charge((int) $user->tenant_id, $tokens, $cost);
         }
 
         return $this->save($session, $reply !== '' ? $reply : 'Sorry, I couldn’t put an answer together. Please try asking another way.');

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\AiUsage;
 use App\Models\PlatformSetting;
 use App\Models\Tenant;
 use App\Models\TenantSetting;
@@ -21,6 +22,23 @@ test('the AI console is super-admin only and platform-level', function () {
     $this->actingAs($this->super)->get('/platform/ai')
         ->assertOk()
         ->assertInertia(fn ($page) => $page->component('admin/Ai')->has('defaults')->has('keys')->missing('tenants'));
+});
+
+test('the AI console shows this month\'s use per company, priciest first, with last month\'s total', function () {
+    $other = Tenant::factory()->create(['name' => 'Big Pools']);
+    $usage = fn (Tenant $t, string $period, int $messages, int $tokens, float $cost) => (new AiUsage)
+        ->forceFill(['tenant_id' => $t->id, 'period' => $period, 'messages' => $messages, 'tokens' => $tokens, 'cost' => $cost])->save();
+    $usage($this->tenant, now()->format('Y-m'), 3, 30000, 0.006);
+    $usage($other, now()->format('Y-m'), 40, 900000, 0.09);
+    $usage($other, now()->subMonthNoOverflow()->format('Y-m'), 10, 100000, 0.02);
+
+    $this->actingAs($this->super)->get('/platform/ai')->assertInertia(fn ($page) => $page
+        ->where('usage.rows.0.tenant', 'Big Pools')
+        ->where('usage.rows.0.messages', 40)
+        ->where('usage.rows.1.tokens', 30000)
+        ->where('usage.total.messages', 43)
+        ->where('usage.total.cost', 0.096)
+        ->where('usage.last_month.messages', 10));
 });
 
 test('the super People screen carries per-tenant AI in the tenant detail', function () {

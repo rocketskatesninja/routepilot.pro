@@ -16,7 +16,23 @@ const messages = ref<Msg[]>([
 ]);
 const input = ref('');
 const sending = ref(false);
-const token = ref<string | null>(localStorage.getItem('rp_chat_token'));
+// The visitor token resumes the conversation. Browser storage can be missing
+// (server render) or blocked (private windows, strict settings): chat still works.
+const remembered = (): string | null => {
+    try {
+        return typeof localStorage !== 'undefined' ? localStorage.getItem('rp_chat_token') : null;
+    } catch {
+        return null;
+    }
+};
+const remember = (value: string) => {
+    try {
+        localStorage.setItem('rp_chat_token', value);
+    } catch {
+        // not saved: this page keeps it in memory instead
+    }
+};
+const token = ref<string | null>(remembered());
 const scroller = ref<HTMLElement | null>(null);
 
 async function scrollDown() {
@@ -38,11 +54,14 @@ async function send() {
     await scrollDown();
     try {
         const res = await postJson(props.action, { message: text, visitor_token: token.value });
-        const data = (await res.json()) as { reply?: string; visitor_token?: string };
+        const data = (await res.json()) as { reply?: string; message?: string; visitor_token?: string };
         if (data.visitor_token) {
             token.value = data.visitor_token;
-            localStorage.setItem('rp_chat_token', data.visitor_token);
+            remember(data.visitor_token);
         }
+        // Show the message as it was saved (a card number typed in is blanked out).
+        const mine = messages.value[messages.value.length - 1];
+        if (mine?.role === 'user' && typeof data.message === 'string') mine.content = data.message;
         messages.value.push({ role: 'assistant', content: data.reply || 'Sorry, something went wrong — please try the contact form.' });
     } catch {
         messages.value.push({ role: 'assistant', content: 'Sorry, I had trouble connecting. Please try the contact form below.' });

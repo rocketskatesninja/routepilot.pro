@@ -10,7 +10,7 @@ import { navPaths, navTitle } from '@/lib/nav';
  * app, so an instruction planted in someone's note can't smuggle data out in
  * a link.
  */
-export type Part = { kind: 'text' | 'bold' | 'link'; text: string; url?: string };
+export type Part = { kind: 'text' | 'bold' | 'italic' | 'link'; text: string; url?: string };
 
 const office: Record<string, (id: string) => string> = {
     customer: (id) => `/people?selected=${id}&selected_type=customer`,
@@ -45,16 +45,21 @@ export function linkUrl(role: string, type: string, id: string): string | null {
     return to ? to(id) : null;
 }
 
+/**
+ * **bold** and *italic* (the italic star hugs its words, so "2 * 3" and a
+ * "* item" bullet stay as they are). No lookbehind: older Safari can't parse it.
+ */
 function pushText(parts: Part[], text: string) {
-    const bold = /\*\*([^*]+)\*\*/g;
+    const marks = /\*\*([^*]+)\*\*|(^|[^*\w])\*([^\s*](?:[^*\n]*[^\s*])?)\*(?![*\w])/g;
     let last = 0;
     let m: RegExpExecArray | null;
-    while ((m = bold.exec(text)) !== null) {
-        if (m.index > last) {
-            parts.push({ kind: 'text', text: text.slice(last, m.index) });
+    while ((m = marks.exec(text)) !== null) {
+        const start = m[1] !== undefined ? m.index : m.index + m[2].length;
+        if (start > last) {
+            parts.push({ kind: 'text', text: text.slice(last, start) });
         }
-        parts.push({ kind: 'bold', text: m[1] });
-        last = bold.lastIndex;
+        parts.push(m[1] !== undefined ? { kind: 'bold', text: m[1] } : { kind: 'italic', text: m[3] });
+        last = marks.lastIndex;
     }
     if (last < text.length) {
         parts.push({ kind: 'text', text: text.slice(last) });

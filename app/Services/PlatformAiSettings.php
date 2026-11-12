@@ -85,7 +85,7 @@ class PlatformAiSettings
      * Per-tenant AI status (settings + this month's usage), keyed by tenant id.
      *
      * @param  list<int>  $tenantIds
-     * @return array<int, array{enabled: bool, allow_override: bool, quota: int|null, limit: int, used: int}>
+     * @return array<int, array{enabled: bool, allow_override: bool, quota: int|null, limit: int, used: int, cost: float}>
      */
     public function tenantAi(array $tenantIds): array
     {
@@ -102,7 +102,8 @@ class PlatformAiSettings
         $usage = AiUsage::withoutGlobalScopes()
             ->where('period', now()->format('Y-m'))
             ->whereIn('tenant_id', $tenantIds)
-            ->pluck('messages', 'tenant_id');
+            ->get(['tenant_id', 'messages', 'cost'])
+            ->keyBy('tenant_id');
 
         $default = $this->defaultQuota();
         $out = [];
@@ -115,7 +116,8 @@ class PlatformAiSettings
                 'allow_override' => $s->get('ai_allow_override')?->getAttribute('value') === '1',
                 'quota' => $hasOverride ? (int) $override : null,
                 'limit' => $hasOverride ? (int) $override : $default,
-                'used' => (int) ($usage[$id] ?? 0),
+                'used' => (int) ($usage->get($id)?->getAttribute('messages') ?? 0),
+                'cost' => round((float) ($usage->get($id)?->getAttribute('cost') ?? 0), 4),
             ];
         }
 

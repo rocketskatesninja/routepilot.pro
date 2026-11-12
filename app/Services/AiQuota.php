@@ -42,31 +42,29 @@ class AiQuota
     }
 
     /**
-     * What's left for this kind of account. Customers can't use the last share
-     * of the month (config ai.staff_reserve), so the office and techs always
-     * have some left however much customers ask.
+     * What's left for this kind of account. Customers and website visitors
+     * ('public') can't use the last share of the month (config ai.staff_reserve),
+     * so the office and techs always have some left however much they ask.
      */
     public function remainingFor(int $tenantId, string $role): int
     {
-        $reserve = $role === 'customer' ? (int) ceil($this->limit($tenantId) * (float) config('ai.staff_reserve', 0)) : 0;
+        $reserve = in_array($role, ['customer', 'public'], true) ? (int) ceil($this->limit($tenantId) * (float) config('ai.staff_reserve', 0)) : 0;
 
         return max(0, $this->remaining($tenantId) - $reserve);
     }
 
-    /** Count one AI message against the tenant's monthly allowance. */
-    public function record(int $tenantId): void
+    /**
+     * Count one answered message against this month's allowance, with what it
+     * cost (tokens and USD), in a single update so messages answered at the
+     * same moment can't lose a count. Callers charge only when the AI answered.
+     */
+    public function charge(int $tenantId, int $tokens = 0, float $cost = 0.0): void
     {
         $usage = AiUsage::query()->firstOrCreate(['tenant_id' => $tenantId, 'period' => now()->format('Y-m')]);
-        $usage->increment('messages');
-    }
-
-    /** Add what a message cost (tokens and USD) to this month's record; the allowance itself counts messages. */
-    public function addTokens(int $tenantId, int $tokens, float $cost): void
-    {
-        if ($tokens <= 0) {
-            return;
-        }
-        $usage = AiUsage::query()->firstOrCreate(['tenant_id' => $tenantId, 'period' => now()->format('Y-m')]);
-        $usage->forceFill(['tokens' => (int) $usage->getAttribute('tokens') + $tokens, 'cost' => round((float) $usage->getAttribute('cost') + $cost, 4)])->save();
+        AiUsage::query()->whereKey($usage->getKey())->incrementEach([
+            'messages' => 1,
+            'tokens' => max(0, $tokens),
+            'cost' => round(max(0.0, $cost), 6),
+        ]);
     }
 }
