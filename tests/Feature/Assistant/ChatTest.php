@@ -75,23 +75,22 @@ test('look-ups go back to the model as tool results, and only the question and a
         ->and(ChatMessage::query()->count())->toBe(2);
 });
 
-test('OpenAI look-ups go back as tool messages', function () {
-    config(['ai.default_provider' => 'openai', 'ai.platform_keys.openai' => 'sk-o', 'ai.models.openai' => 'gpt-4o-mini']);
+test('OpenAI look-ups go back as the call items plus their outputs', function () {
+    config(['ai.default_provider' => 'openai', 'ai.platform_keys.openai' => 'sk-o', 'ai.models.openai' => 'gpt-6-luna']);
     Customer::factory()->for($this->tenant)->create(['first_name' => 'Jane', 'last_name' => 'Doe']);
 
+    $call = ['type' => 'function_call', 'id' => 'fc_1', 'call_id' => 'call_1', 'name' => 'lookup_customer', 'arguments' => '{"name":"Jane"}'];
     Http::fake(['api.openai.com/*' => Http::sequence()
-        ->push(['choices' => [['message' => ['content' => null, 'tool_calls' => [
-            ['id' => 'call_1', 'type' => 'function', 'function' => ['name' => 'lookup_customer', 'arguments' => '{"name":"Jane"}']],
-        ]]]]])
-        ->push(['choices' => [['message' => ['content' => 'Found Jane Doe.']]]])]);
+        ->push(['output' => [['type' => 'reasoning', 'id' => 'rs_1', 'encrypted_content' => 'opaque'], $call]])
+        ->push(['output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'Found Jane Doe.']]]]])]);
 
     $this->actingAs($this->admin)->postJson('/assistant/send', ['message' => 'Jane?'])->assertJsonPath('reply', 'Found Jane Doe.');
 
-    $messages = aiRequests()[1]->data()['messages'];
-    expect($messages[0]['role'])->toBe('system')
-        ->and($messages[count($messages) - 2]['tool_calls'][0]['id'])->toBe('call_1')
-        ->and(end($messages))->toMatchArray(['role' => 'tool', 'tool_call_id' => 'call_1'])
-        ->and(end($messages)['content'])->toContain('Jane Doe');
+    $input = aiRequests()[1]->data()['input'];
+    expect($input[count($input) - 3]['type'])->toBe('reasoning')
+        ->and($input[count($input) - 2])->toBe($call)
+        ->and(end($input))->toMatchArray(['type' => 'function_call_output', 'call_id' => 'call_1'])
+        ->and(end($input)['output'])->toContain('Jane Doe');
 });
 
 test('after a few rounds of look-ups the model has to answer', function () {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -58,7 +59,7 @@ class ClaudeService
     public function toolResults(string $provider, array $results): array
     {
         if ($provider === 'openai') {
-            return array_map(fn (array $r): array => ['role' => 'tool', 'tool_call_id' => $r['id'], 'content' => $r['content']], $results);
+            return array_map(fn (array $r): array => ['type' => 'function_call_output', 'call_id' => $r['id'], 'output' => $r['content']], $results);
         }
 
         return [[
@@ -140,45 +141,50 @@ class ClaudeService
         return new AiTurn(
             text: trim(implode("\n\n", array_filter($text, fn (string $t): bool => trim($t) !== ''))),
             toolCalls: $calls,
-            message: ['role' => 'assistant', 'content' => $content],
+            messages: [['role' => 'assistant', 'content' => $content]],
             tokens: $fresh + $written + $read + $out,
             cost: ($fresh * $price['input'] + $written * $price['input'] * 1.25 + $read * $price['cached_input'] + $out * $price['output']) / 1_000_000,
         );
     }
 
     /**
-     * OpenAI Chat Completions: the system prompt is the first message, tool-call
-     * arguments arrive as JSON strings and are decoded.
+     * OpenAI Responses API, which (unlike Chat Completions) lets reasoning
+     * models use tools at any reasoning setting, so every current model works.
+     * store:false keeps chats off OpenAI's servers; a reasoning model then hands
+     * its reasoning back encrypted, and the turn's output items go back as-is
+     * ahead of the look-up results. Tool arguments arrive as JSON strings.
      *
      * @param  list<array<string, mixed>>  $messages
      * @param  list<array{name: string, description: string, parameters: array<string, mixed>}>  $tools
      */
     protected function callOpenAI(string $key, string $model, string $system, array $messages, array $tools, bool $allowTools, int $maxTokens): AiTurn
     {
-        $body = [
-            'model' => $model,
-            // The newer name every chat model accepts (the GPT-5 family refuses the old max_tokens).
-            'max_completion_tokens' => $maxTokens,
-            'messages' => [...($system !== '' ? [['role' => 'system', 'content' => $system]] : []), ...$messages],
-        ];
-        if (($effort = $this->reasoningEffort($model)) !== null) {
-            $body['reasoning_effort'] = $effort;
+        $body = ['model' => $model, 'store' => false, 'max_output_tokens' => $maxTokens, 'input' => $messages];
+        if ($system !== '') {
+            $body['instructions'] = $system;
+        }
+        // Reasoning models (GPT-5 on, o-series); older ones reject both settings.
+        $effort = config('ai.openai_reasoning_effort');
+        if (preg_match('/^(gpt-([5-9]|\d\d)|o\d)/', $model) === 1) {
+            $body['include'] = ['reasoning.encrypted_content'];
+            if (is_string($effort) && $effort !== '') {
+                $body['reasoning'] = ['effort' => $effort];
+            }
         }
         if ($tools !== []) {
-            $body['tools'] = array_map(fn (array $t): array => [
-                'type' => 'function',
-                'function' => ['name' => $t['name'], 'description' => $t['description'], 'parameters' => $t['parameters']],
-            ], $tools);
+            // strict is on by default here, and would make every parameter required.
+            $body['tools'] = array_map(fn (array $t): array => ['type' => 'function', ...$t, 'strict' => false], $tools);
             if (! $allowTools) {
                 $body['tool_choice'] = 'none';
             }
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer '.$key,
-            'Content-Type' => 'application/json',
-        ])->timeout((int) config('ai.timeout', 30))
-            ->post('https://api.openai.com/v1/chat/completions', $body);
+        $response = $this->postOpenAI($key, $body);
+        // A model that won't take the configured setting thinks at its own default.
+        if ($response->status() === 400 && isset($body['reasoning']) && str_contains($response->body(), 'reasoning')) {
+            unset($body['reasoning']);
+            $response = $this->postOpenAI($key, $body);
+        }
 
         if (! $response->successful()) {
             Log::warning('OpenAI API error', ['status' => $response->status(), 'error' => $response->json('error.message')]);
@@ -186,58 +192,46 @@ class ClaudeService
             return AiTurn::failure();
         }
 
-        $message = $response->json('choices.0.message');
-        if (! is_array($message)) {
+        $output = $response->json('output');
+        if (! is_array($output)) {
             return AiTurn::failure();
         }
+        $items = array_values(array_filter($output, 'is_array'));
 
+        $text = [];
         $calls = [];
-        $rawCalls = is_array($message['tool_calls'] ?? null) ? array_values($message['tool_calls']) : [];
-        foreach ($rawCalls as $call) {
-            $fn = is_array($call) && is_array($call['function'] ?? null) ? $call['function'] : null;
-            if ($fn === null) {
-                continue;
+        foreach ($items as $item) {
+            if (($item['type'] ?? '') === 'message') {
+                foreach (is_array($item['content'] ?? null) ? $item['content'] : [] as $part) {
+                    $text[] = is_array($part) ? (string) ($part['text'] ?? $part['refusal'] ?? '') : '';
+                }
+            } elseif (($item['type'] ?? '') === 'function_call') {
+                $args = json_decode((string) ($item['arguments'] ?? '{}'), true);
+                $calls[] = ['id' => (string) ($item['call_id'] ?? ''), 'name' => (string) ($item['name'] ?? ''), 'arguments' => is_array($args) ? $args : []];
             }
-            $args = json_decode((string) ($fn['arguments'] ?? '{}'), true);
-            $calls[] = ['id' => (string) ($call['id'] ?? ''), 'name' => (string) ($fn['name'] ?? ''), 'arguments' => is_array($args) ? $args : []];
-        }
-
-        $text = is_string($message['content'] ?? null) ? $message['content'] : '';
-        $echo = ['role' => 'assistant', 'content' => $text !== '' ? $text : null];
-        if ($rawCalls !== []) {
-            $echo['tool_calls'] = $rawCalls;
         }
 
         $usage = $response->json('usage');
         $usage = is_array($usage) ? $usage : [];
-        $in = (int) ($usage['prompt_tokens'] ?? 0);
-        $cached = min($in, (int) ($usage['prompt_tokens_details']['cached_tokens'] ?? 0));
-        $out = (int) ($usage['completion_tokens'] ?? 0);
+        $in = (int) ($usage['input_tokens'] ?? 0);
+        $cached = min($in, (int) ($usage['input_tokens_details']['cached_tokens'] ?? 0));
+        $out = (int) ($usage['output_tokens'] ?? 0); // reasoning included
         $price = $this->price($model);
 
         return new AiTurn(
-            text: trim($text),
+            text: trim(implode("\n\n", array_filter($text, fn (string $t): bool => trim($t) !== ''))),
             toolCalls: $calls,
-            message: $echo,
+            messages: $items,
             tokens: $in + $out,
             cost: (($in - $cached) * $price['input'] + $cached * $price['cached_input'] + $out * $price['output']) / 1_000_000,
         );
     }
 
-    /**
-     * The reasoning setting a model needs (config ai.openai_reasoning_effort,
-     * by name prefix), or null to leave it out: older models reject it.
-     */
-    private function reasoningEffort(string $model): ?string
+    /** @param  array<string, mixed>  $body */
+    private function postOpenAI(string $key, array $body): Response
     {
-        $map = config('ai.openai_reasoning_effort');
-        foreach (is_array($map) ? $map : [] as $prefix => $effort) {
-            if (str_starts_with($model, (string) $prefix)) {
-                return (string) $effort;
-            }
-        }
-
-        return null;
+        return Http::withToken($key)->timeout((int) config('ai.timeout', 30))
+            ->post('https://api.openai.com/v1/responses', $body);
     }
 
     /**

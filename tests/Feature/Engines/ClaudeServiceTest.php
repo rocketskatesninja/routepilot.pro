@@ -86,7 +86,7 @@ test('a turn returns every tool call, the reply to send back, and what it cost (
         [['name' => 'lookup_pool', 'description' => 'd', 'parameters' => ['type' => 'object']]], allowTools: false);
 
     expect(collect($turn->toolCalls)->pluck('id')->all())->toBe(['a', 'b'])
-        ->and($turn->message['content'][0]['type'])->toBe('thinking') // sent back unmodified
+        ->and($turn->messages[0]['content'][0]['type'])->toBe('thinking') // sent back unmodified
         ->and($turn->tokens)->toBe(3150)
         ->and(round($turn->cost, 6))->toBe(round((100 * 1 + 1000 * 1.25 + 2000 * 0.1 + 50 * 5) / 1_000_000, 6))
         ->and($this->ai->toolResults('anthropic', [['id' => 'a', 'content' => 'x']]))->toBe([['role' => 'user', 'content' => [['type' => 'tool_result', 'tool_use_id' => 'a', 'content' => 'x']]]]);
@@ -96,59 +96,92 @@ test('a turn returns every tool call, the reply to send back, and what it cost (
         && $request['tool_choice'] === ['type' => 'none']);
 });
 
-test('a turn returns every tool call and its echo (OpenAI)', function () {
-    $calls = [
-        ['id' => 'c1', 'type' => 'function', 'function' => ['name' => 'lookup_pool', 'arguments' => '{"pool_id":1}']],
-        ['id' => 'c2', 'type' => 'function', 'function' => ['name' => 'lookup_customer', 'arguments' => '{"name":"Jo"}']],
+/** A Responses API reply: its output items and usage. */
+function openaiReply(array $output, array $usage = []): PromiseInterface
+{
+    return Http::response(['output' => $output, 'usage' => $usage], 200);
+}
+
+test('a turn returns every tool call and its items to send back (OpenAI)', function () {
+    $output = [
+        ['type' => 'reasoning', 'id' => 'rs_1', 'encrypted_content' => 'opaque', 'summary' => []],
+        ['type' => 'function_call', 'id' => 'fc_1', 'call_id' => 'c1', 'name' => 'lookup_pool', 'arguments' => '{"pool_id":1}'],
+        ['type' => 'function_call', 'id' => 'fc_2', 'call_id' => 'c2', 'name' => 'lookup_customer', 'arguments' => '{"name":"Jo"}'],
     ];
-    Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => null, 'tool_calls' => $calls]]], 'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5]])]);
+    Http::fake(['api.openai.com/*' => openaiReply($output, ['input_tokens' => 10, 'output_tokens' => 5])]);
 
-    $turn = $this->ai->turn('openai', 'sk', 'gpt-4o-mini', 'rules', 'data', [['role' => 'user', 'content' => 'hi']]);
+    $turn = $this->ai->turn('openai', 'sk', 'gpt-6-luna', 'rules', 'data', [['role' => 'user', 'content' => 'hi']],
+        [['name' => 'lookup_pool', 'description' => 'd', 'parameters' => ['type' => 'object']]], allowTools: false);
 
-    expect(collect($turn->toolCalls)->pluck('arguments')->all())->toBe([['pool_id' => 1], ['name' => 'Jo']])
-        ->and($turn->message)->toBe(['role' => 'assistant', 'content' => null, 'tool_calls' => $calls])
+    expect($turn->toolCalls)->toBe([
+        ['id' => 'c1', 'name' => 'lookup_pool', 'arguments' => ['pool_id' => 1]],
+        ['id' => 'c2', 'name' => 'lookup_customer', 'arguments' => ['name' => 'Jo']],
+    ])
+        ->and($turn->messages)->toBe($output) // reasoning included, sent back unmodified
         ->and($turn->tokens)->toBe(15)
         ->and($this->ai->toolResults('openai', [['id' => 'c1', 'content' => 'x'], ['id' => 'c2', 'content' => 'y']]))
-        ->toBe([['role' => 'tool', 'tool_call_id' => 'c1', 'content' => 'x'], ['role' => 'tool', 'tool_call_id' => 'c2', 'content' => 'y']]);
+        ->toBe([['type' => 'function_call_output', 'call_id' => 'c1', 'output' => 'x'], ['type' => 'function_call_output', 'call_id' => 'c2', 'output' => 'y']]);
 
-    Http::assertSent(fn ($request) => $request['messages'][0] === ['role' => 'system', 'content' => "rules\n\ndata"]);
+    Http::assertSent(fn ($request) => $request->url() === 'https://api.openai.com/v1/responses'
+        && $request['store'] === false
+        && $request['instructions'] === "rules\n\ndata"
+        && $request['input'] === [['role' => 'user', 'content' => 'hi']]
+        && $request['tools'] === [['type' => 'function', 'name' => 'lookup_pool', 'description' => 'd', 'parameters' => ['type' => 'object'], 'strict' => false]]
+        && $request['tool_choice'] === 'none');
 });
 
-test('parses an OpenAI text reply and puts the system prompt first', function () {
-    Http::fake(['api.openai.com/*' => Http::response([
-        'choices' => [['message' => ['content' => 'Hello from GPT.']]],
-    ], 200)]);
+test('parses an OpenAI text reply', function () {
+    Http::fake(['api.openai.com/*' => openaiReply([
+        ['type' => 'message', 'role' => 'assistant', 'content' => [['type' => 'output_text', 'text' => 'Hello from GPT.', 'annotations' => []]]],
+    ])]);
 
-    $turn = $this->ai->turn('openai', 'sk-o', 'gpt-4o-mini', 'You are a pool assistant.', '', [['role' => 'user', 'content' => 'hi']]);
+    $turn = $this->ai->turn('openai', 'sk-o', 'gpt-4o-mini', '', '', [['role' => 'user', 'content' => 'hi']]);
 
-    expect($turn->text)->toBe('Hello from GPT.');
-    Http::assertSent(fn ($request) => $request->url() === 'https://api.openai.com/v1/chat/completions'
-        && $request['messages'][0] === ['role' => 'system', 'content' => 'You are a pool assistant.']
-        && $request['messages'][1]['content'] === 'hi');
+    expect($turn->text)->toBe('Hello from GPT.')->and($turn->toolCalls)->toBe([]);
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer sk-o')
+        && ! isset($request['instructions']));
 });
 
-test('an OpenAI tool call has its JSON-string arguments decoded', function () {
-    Http::fake(['api.openai.com/*' => Http::response([
-        'choices' => [['message' => ['tool_calls' => [
-            ['id' => 'c9', 'type' => 'function', 'function' => ['name' => 'lookup_pool', 'arguments' => '{"name":"Smith Pool"}']],
-        ]]]],
-    ], 200)]);
+test('reasoning models get the reasoning setting and their reasoning back; older models get neither', function () {
+    config(['ai.openai_reasoning_effort' => 'low', 'ai.prices' => ['gpt-5.4-mini' => ['input' => 1.0, 'output' => 2.0, 'cached_input' => 0.5]]]);
+    Http::fake(['api.openai.com/*' => openaiReply(
+        [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'ok']]]],
+        ['input_tokens' => 1000, 'input_tokens_details' => ['cached_tokens' => 400], 'output_tokens' => 500],
+    )]);
 
-    $turn = $this->ai->turn('openai', 'sk-o', 'gpt-4o-mini', '', '', [['role' => 'user', 'content' => 'find it']]);
-
-    expect($turn->toolCalls)->toBe([['id' => 'c9', 'name' => 'lookup_pool', 'arguments' => ['name' => 'Smith Pool']]]);
-});
-
-test('OpenAI models that need it get reasoning switched off for tools, and dotted names find their price', function () {
-    config(['ai.openai_reasoning_effort' => ['gpt-6' => 'none'], 'ai.prices' => ['gpt-5.4-mini' => ['input' => 1.0, 'output' => 2.0]]]);
-    Http::fake(['api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => 'ok']]], 'usage' => ['prompt_tokens' => 1000, 'completion_tokens' => 500]])]);
-
-    $this->ai->turn('openai', 'sk', 'gpt-6-sol', '', '', [['role' => 'user', 'content' => 'hi']]);
     $turn = $this->ai->turn('openai', 'sk', 'gpt-5.4-mini', '', '', [['role' => 'user', 'content' => 'hi']]);
+    $this->ai->turn('openai', 'sk', 'o4-mini', '', '', [['role' => 'user', 'content' => 'hi']]);
+    $this->ai->turn('openai', 'sk', 'gpt-4o-mini', '', '', [['role' => 'user', 'content' => 'hi']]);
 
     $sent = Http::recorded()->map(fn (array $pair) => $pair[0]->data())->values();
-    expect($sent[0]['reasoning_effort'])->toBe('none')
-        ->and($sent[1])->not->toHaveKey('reasoning_effort')
-        ->and($sent[1])->toHaveKey('max_completion_tokens')->not->toHaveKey('max_tokens')
-        ->and($turn->cost)->toBe((1000 * 1.0 + 500 * 2.0) / 1_000_000);
+    expect($sent[0]['reasoning'])->toBe(['effort' => 'low'])
+        ->and($sent[0]['include'])->toBe(['reasoning.encrypted_content'])
+        ->and($sent[0])->toHaveKey('max_output_tokens')
+        ->and($sent[1]['reasoning'])->toBe(['effort' => 'low'])
+        ->and($sent[2])->not->toHaveKey('reasoning')->not->toHaveKey('include')
+        ->and($turn->cost)->toBe((600 * 1.0 + 400 * 0.5 + 500 * 2.0) / 1_000_000); // dotted names find their price
+});
+
+test('a model that refuses the reasoning setting is asked again at its own default', function () {
+    config(['ai.openai_reasoning_effort' => 'none']);
+    Http::fake(['api.openai.com/*' => Http::sequence()
+        ->push(['error' => ['message' => "Unsupported value: 'reasoning.effort' does not support 'none' with this model."]], 400)
+        ->push(['output' => [['type' => 'message', 'content' => [['type' => 'output_text', 'text' => 'ok']]]]])]);
+
+    $turn = $this->ai->turn('openai', 'sk', 'gpt-6.1-sol', '', '', [['role' => 'user', 'content' => 'hi']]);
+
+    $sent = Http::recorded()->map(fn (array $pair) => $pair[0]->data())->values();
+    expect($turn->text)->toBe('ok')
+        ->and($sent)->toHaveCount(2)
+        ->and($sent[1])->not->toHaveKey('reasoning')
+        ->and($sent[1]['include'])->toBe(['reasoning.encrypted_content']);
+});
+
+test('any other OpenAI error fails once, without a retry or its text', function () {
+    Http::fake(['api.openai.com/*' => Http::response(['error' => ['message' => 'Incorrect API key provided']], 401)]);
+
+    $turn = $this->ai->turn('openai', 'sk', 'gpt-6-luna', '', '', [['role' => 'user', 'content' => 'hi']]);
+
+    expect($turn->failed)->toBeTrue()->and($turn->text)->toBe(AiTurn::UNAVAILABLE);
+    Http::assertSentCount(1);
 });

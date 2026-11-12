@@ -64,9 +64,8 @@ class AssistantService
                 break;
             }
 
-            $messages[] = $turn->message;
             $results = array_map(fn (array $call): array => ['id' => $call['id'], 'content' => $this->run($call, $tools, $user)], $turn->toolCalls);
-            array_push($messages, ...$this->claude->toolResults($provider, $results));
+            array_push($messages, ...$turn->messages, ...$this->claude->toolResults($provider, $results));
         }
 
         // A message counts against the allowance only when the AI actually answered

@@ -7,7 +7,8 @@ namespace App\Services;
 /**
  * One reply from the AI provider, the same shape for Anthropic and OpenAI:
  * its text, any look-ups it asked for, the reply in the provider's own shape
- * (sent back alongside the look-up results), and what it cost.
+ * (the message or items that go back ahead of the look-up results), and what
+ * it cost.
  */
 final class AiTurn
 {
@@ -15,12 +16,12 @@ final class AiTurn
 
     /**
      * @param  list<array{id: string, name: string, arguments: array<string, mixed>}>  $toolCalls
-     * @param  array<string, mixed>  $message
+     * @param  list<array<string, mixed>>  $messages
      */
     public function __construct(
         public readonly string $text,
         public readonly array $toolCalls = [],
-        public readonly array $message = [],
+        public readonly array $messages = [],
         public readonly int $tokens = 0,
         public readonly float $cost = 0.0,
         public readonly bool $failed = false,

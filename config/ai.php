@@ -32,9 +32,10 @@ return [
     'daily_limits' => ['customer' => 20, 'agent' => 100],
     'staff_reserve' => 0.2,
 
-    // OpenAI models that need a reasoning setting sent, by name prefix. The
-    // gpt-6 family only allows tools on chat completions with reasoning off.
-    'openai_reasoning_effort' => ['gpt-6' => 'none'],
+    // How much OpenAI's reasoning models (GPT-5 on, o-series) think before
+    // answering: 'none' is fastest and cheapest, 'low' thinks a little. A model
+    // that won't take it uses its own default; older models never get one.
+    'openai_reasoning_effort' => env('AI_OPENAI_REASONING_EFFORT', 'none'),
 
     // USD per million tokens, for the usage records. Update when prices change;
     // a model missing here still records its tokens, at no cost.
