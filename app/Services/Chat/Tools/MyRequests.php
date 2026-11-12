@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
-use App\Models\Customer;
 use App\Models\ServiceRequest;
 use App\Models\ServiceType;
 use App\Models\User;
@@ -37,9 +36,9 @@ class MyRequests extends AssistantTool
 
     public function execute(array $params, User $user): string
     {
-        $customer = Customer::query()->where('tenant_id', (int) $user->tenant_id)->where('user_id', $user->id)->first();
+        $customer = $this->customer($user);
         if ($customer === null) {
-            return 'There is no customer account linked to this login.';
+            return self::NO_CUSTOMER;
         }
 
         $requests = ServiceRequest::query()->where('customer_id', $customer->id)->with('pool', 'serviceType', 'plan.serviceType')->latest('id')->limit(10)->get();

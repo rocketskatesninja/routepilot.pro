@@ -63,14 +63,13 @@ class ToolRegistry
         return array_values(array_filter(static::all(), fn (AssistantTool $t): bool => $t->availableTo($user)));
     }
 
-    public static function find(string $name): ?AssistantTool
+    /**
+     * Every look-up's name.
+     *
+     * @return list<string>
+     */
+    public static function names(): array
     {
-        foreach (static::all() as $tool) {
-            if ($tool->name() === $name) {
-                return $tool;
-            }
-        }
-
-        return null;
+        return array_map(fn (AssistantTool $t): string => $t->name(), static::all());
     }
 }

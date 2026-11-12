@@ -691,7 +691,8 @@ class ChemistryService
         $lsi = $this->calculateLSI($reading);
         $lsiStatus = $this->getLSIStatus($lsi);
         $paramAnalysis = $this->analyzeReading($reading, $ranges);
-        $trends = $this->analyzeTrends($pool->id, $reading, $ranges);
+        // A pool that isn't on file (just a volume and readings) has no history to trend.
+        $trends = $pool->exists ? $this->analyzeTrends($pool->id, $reading, $ranges) : ['has_history' => false, 'parameters' => []];
         $recommendations = $this->generateRecommendations($reading, $pool, $paramAnalysis, $trends, $weather);
         $weatherAlerts = $weather ? $this->getWeatherAlerts($weather) : [];
 

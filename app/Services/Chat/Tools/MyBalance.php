@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
-use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\BillingService;
@@ -40,9 +39,9 @@ class MyBalance extends AssistantTool
 
     public function execute(array $params, User $user): string
     {
-        $customer = Customer::query()->where('tenant_id', (int) $user->tenant_id)->where('user_id', $user->id)->first();
+        $customer = $this->customer($user);
         if ($customer === null) {
-            return 'There is no customer account linked to this login.';
+            return self::NO_CUSTOMER;
         }
 
         $b = app(BillingService::class)->breakdownForCustomer($customer);

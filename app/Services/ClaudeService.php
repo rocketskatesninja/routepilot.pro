@@ -37,12 +37,11 @@ class ClaudeService
         array $tools = [],
         bool $allowTools = true,
         int $maxTokens = 4096,
-        bool $adaptiveThinking = false,
     ): AiTurn {
         try {
             return $provider === 'openai'
                 ? $this->callOpenAI($apiKey, $model, trim($stableSystem."\n\n".$liveSystem), $messages, $tools, $allowTools, $maxTokens)
-                : $this->callAnthropic($apiKey, $model, $stableSystem, $liveSystem, $messages, $tools, $allowTools, $maxTokens, $adaptiveThinking);
+                : $this->callAnthropic($apiKey, $model, $stableSystem, $liveSystem, $messages, $tools, $allowTools, $maxTokens);
         } catch (\Throwable $e) {
             Log::warning('AI API call failed', ['provider' => $provider, 'error' => $e->getMessage()]);
 
@@ -75,7 +74,7 @@ class ClaudeService
      * @param  list<array<string, mixed>>  $messages
      * @param  list<array{name: string, description: string, parameters: array<string, mixed>}>  $tools
      */
-    protected function callAnthropic(string $key, string $model, string $stable, string $live, array $messages, array $tools, bool $allowTools, int $maxTokens, bool $adaptiveThinking): AiTurn
+    protected function callAnthropic(string $key, string $model, string $stable, string $live, array $messages, array $tools, bool $allowTools, int $maxTokens): AiTurn
     {
         $system = array_values(array_filter([
             $stable !== '' ? ['type' => 'text', 'text' => $stable, 'cache_control' => ['type' => 'ephemeral']] : null,
@@ -85,9 +84,6 @@ class ClaudeService
         $body = ['model' => $model, 'max_tokens' => $maxTokens, 'messages' => $messages];
         if ($system !== []) {
             $body['system'] = $system;
-        }
-        if ($adaptiveThinking) {
-            $body['thinking'] = ['type' => 'adaptive'];
         }
         if ($tools !== []) {
             // Anthropic uses input_schema rather than parameters.

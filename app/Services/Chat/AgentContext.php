@@ -4,63 +4,33 @@ declare(strict_types=1);
 
 namespace App\Services\Chat;
 
-use App\Models\ChemicalReading;
 use App\Models\Route;
-use App\Models\RouteStop;
-use App\Models\ServiceSubscription;
 use App\Models\Tenant;
 use App\Models\User;
 
 /**
- * The tech assistant's live data: today's route and recent readings on the
- * tech's own pools, as the field app shows them.
+ * The tech assistant's live data: who they are, what Agent Plus lets them do,
+ * and how far along today's route is. Stop details (address, gate code, last
+ * test, work orders) come from the my_route look-up.
  */
 class AgentContext
 {
     public function build(User $agent): string
     {
-        $tenantId = (int) $agent->tenant_id;
-
-        $route = Route::query()
+        $stops = Route::query()
             ->where('agent_id', $agent->id)
             ->whereDate('scheduled_date', Tenant::localToday())
-            ->with(['stops.pool.customer', 'stops.pool.serviceLocation'])
-            ->first();
+            ->with('stops')
+            ->first()?->stops;
 
-        $stopSummary = 'No stops scheduled today.';
-        if ($route !== null && $route->stops->isNotEmpty()) {
-            $completed = $route->stops->where('status', 'completed')->count();
-            $total = $route->stops->count();
-            $stops = $route->stops->map(function (RouteStop $s): string {
-                $cust = $s->pool?->customer?->displayName() ?? '';
-                $loc = $s->pool?->serviceLocation?->getAttribute('address_line1');
+        $today = $stops === null || $stops->isEmpty()
+            ? 'No stops today.'
+            : "Today: {$stops->count()} stops (".$stops->countBy('status')->map(fn (int $n, string $s): string => "{$n} {$s}")->join(', ').'). Use my_route for the details.';
 
-                return "#{$s->stop_order} {$cust} — {$s->pool?->name} ({$s->status})".($loc ? " at {$loc}" : '');
-            })->join("\n  ");
-            $stopSummary = "Today's route: {$completed}/{$total} completed\n  {$stops}";
-        }
-
-        $assignedPoolIds = ServiceSubscription::query()
-            ->where('assigned_agent_id', $agent->id)
-            ->where('status', 'active')
-            ->pluck('pool_id');
-
-        $recentReadings = ChemicalReading::query()
-            ->whereHas('serviceVisit', fn ($q) => $q->whereIn('pool_id', $assignedPoolIds))
-            ->with('serviceVisit.pool')
-            ->latest()
-            ->limit(5)
-            ->get()
-            ->map(fn (ChemicalReading $r): string => "{$r->serviceVisit->pool->name}: FC={$r->free_chlorine} pH={$r->ph} TA={$r->alkalinity} CH={$r->calcium_hardness} CYA={$r->cyanuric_acid} LSI={$r->lsi_score}")
-            ->join("\n  ");
-
-        $context = "Technician: {$agent->displayName()}\n"
+        return "YOUR DAY\nTechnician: {$agent->displayName()}\n"
             .($agent->isAgentPlus()
                 ? "Agent Plus: yes. They can rearrange their own route and skip or unskip their own stops on My Route, and see every report and work order.\n"
                 : "Agent Plus: no. They can't skip, move or reassign stops themselves: the office does that, so tell them to ask the office.\n")
-            ."{$stopSummary}\n"
-            .($recentReadings !== '' ? "\nRecent chemistry readings:\n  {$recentReadings}\n" : '');
-
-        return "YOUR DAY\n".$context;
+            .$today;
     }
 }

@@ -26,9 +26,13 @@ class TenantContext
         $id = $tenant->id;
         $today = Tenant::localToday();
 
+        // Active plans per tech (the null key is plans with no tech), in one query.
+        $plans = ServiceSubscription::query()->where('tenant_id', $id)->where('status', 'active')
+            ->selectRaw('assigned_agent_id, count(*) as n')->groupBy('assigned_agent_id')->pluck('n', 'assigned_agent_id');
+
         $techs = User::query()->where('tenant_id', $id)->where('role', 'agent')->where('is_active', true)->orderBy('first_name')->get()
-            ->map(fn (User $a): string => '- [[agent:'.$a->id.':'.$a->displayName().']]'.((bool) $a->getAttribute('agent_plus') ? ' (Agent Plus)' : '')
-                .', '.ServiceSubscription::query()->where('tenant_id', $id)->where('assigned_agent_id', $a->id)->where('status', 'active')->count().' active plans')
+            ->map(fn (User $a): string => '- '.AssistantTool::link('agent', $a->id, $a->displayName()).($a->isAgentPlus() ? ' (Agent Plus)' : '')
+                .', '.(int) ($plans[$a->id] ?? 0).' active plans')
             ->join("\n");
 
         $routes = Route::query()->where('tenant_id', $id)->whereDate('scheduled_date', $today->toDateString())->with('agent', 'stops')->get()
@@ -37,7 +41,7 @@ class TenantContext
             ->join("\n");
 
         $warnings = array_filter([
-            ($n = ServiceSubscription::query()->where('tenant_id', $id)->where('status', 'active')->whereNull('assigned_agent_id')->count()) > 0 ? "{$n} active plans have no tech" : null,
+            ($n = (int) ($plans[''] ?? 0)) > 0 ? "{$n} active plans have no tech" : null,
             ($n = ServiceRequest::query()->where('tenant_id', $id)->where('status', 'pending')->count()) > 0 ? "{$n} customer requests are waiting" : null,
             ($n = WorkOrder::query()->where('tenant_id', $id)->where('status', 'open')->where('urgent', true)->count()) > 0 ? "{$n} urgent work orders are open" : null,
             $tenant->customer_billing !== false && ($n = Invoice::query()->where('tenant_id', $id)->where('status', 'overdue')->count()) > 0 ? "{$n} invoices are overdue" : null,
@@ -53,10 +57,10 @@ class TenantContext
         return "THE COMPANY RIGHT NOW\n"
             .Customer::query()->where('tenant_id', $id)->count().' customers, '
             .Pool::query()->where('tenant_id', $id)->count().' pools, '
-            .ServiceSubscription::query()->where('tenant_id', $id)->where('status', 'active')->count()." active plans.\n"
+            .(int) $plans->sum()." active plans.\n"
             ."Features: {$switches}.\n\n"
             ."Techs:\n".($techs !== '' ? $techs : 'No techs yet.')."\n\n"
-            .'Today ([[day:'.$today->format('Ymd').":Today's schedule]]):\n".($routes !== '' ? $routes : 'No stops today.')
+            .'Today ('.AssistantTool::link('day', $today->format('Ymd'), "Today's schedule")."):\n".($routes !== '' ? $routes : 'No stops today.')
             .($warnings !== [] ? "\n\nNeeds attention:\n- ".implode("\n- ", $warnings) : '');
     }
 }

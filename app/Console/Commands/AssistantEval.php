@@ -100,9 +100,9 @@ class AssistantEval extends Command
 
             public float $cost = 0.0;
 
-            public function turn(string $provider, string $apiKey, string $model, string $stableSystem, string $liveSystem, array $messages, array $tools = [], bool $allowTools = true, int $maxTokens = 4096, bool $adaptiveThinking = false): AiTurn
+            public function turn(string $provider, string $apiKey, string $model, string $stableSystem, string $liveSystem, array $messages, array $tools = [], bool $allowTools = true, int $maxTokens = 4096): AiTurn
             {
-                $turn = parent::turn($provider, $apiKey, $model, $stableSystem, $liveSystem, $messages, $tools, $allowTools, $maxTokens, $adaptiveThinking);
+                $turn = parent::turn($provider, $apiKey, $model, $stableSystem, $liveSystem, $messages, $tools, $allowTools, $maxTokens);
                 array_push($this->tools, ...array_column($turn->toolCalls, 'name'));
                 $this->tokens += $turn->tokens;
                 $this->cost += $turn->cost;

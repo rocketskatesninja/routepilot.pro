@@ -46,6 +46,15 @@ abstract class AssistantTool extends AiTool
         return Tenant::query()->find($user->tenant_id);
     }
 
+    /** A homeowner's own customer record (null when the login has none). */
+    protected function customer(User $user): ?Customer
+    {
+        return Customer::query()->where('tenant_id', (int) $user->tenant_id)->where('user_id', $user->id)->first();
+    }
+
+    /** What a homeowner's look-up says when their login has no customer record. */
+    protected const NO_CUSTOMER = 'There is no customer account linked to this login.';
+
     /** Why a name search can't run (no word of two letters or more), or null when it can. */
     protected function nameProblem(string $name): ?string
     {
@@ -77,8 +86,8 @@ abstract class AssistantTool extends AiTool
         return $query;
     }
 
-    /** A link the model copies into its answer: [[type:id:Label]]. */
-    protected static function link(string $type, int|string $id, string $label): string
+    /** A link the model copies into its answer: [[type:id:Label]] (lib/assistantLinks.ts turns it into one). */
+    public static function link(string $type, int|string $id, string $label): string
     {
         $label = trim(str_replace(['[', ']', "\n", "\r"], ['(', ')', ' ', ' '], $label));
 

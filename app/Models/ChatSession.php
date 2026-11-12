@@ -9,8 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * ChatSession — a user's assistant conversation. The `context` records the
- * surface/role (e.g. tenant_admin, agent, customer) that shaped its prompt.
+ * ChatSession — one assistant conversation: a signed-in person's (`context` is
+ * their role, or "support" for one a super admin had while signed in as them)
+ * or an anonymous website visitor's (`visitor_token`, context "public_lead").
  */
 class ChatSession extends Model
 {
@@ -27,5 +28,30 @@ class ChatSession extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(ChatMessage::class);
+    }
+
+    /**
+     * What the AI is sent: the last 20 messages, oldest first, starting on the
+     * person's own (the newest one included).
+     *
+     * @return list<array{role: string, content: string}>
+     */
+    public function history(): array
+    {
+        $rows = $this->messages()
+            ->whereIn('role', ['user', 'assistant'])
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get()
+            ->reverse()
+            ->map(fn (ChatMessage $m): array => ['role' => $m->role, 'content' => $m->content])
+            ->values()
+            ->all();
+
+        while ($rows !== [] && $rows[0]['role'] !== 'user') {
+            array_shift($rows);
+        }
+
+        return $rows;
     }
 }

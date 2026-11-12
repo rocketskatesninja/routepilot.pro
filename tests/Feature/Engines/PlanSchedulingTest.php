@@ -172,7 +172,7 @@ test('archiving a customer clears their upcoming visits', function () {
 });
 
 test('the old "delete stops" workaround tool is gone', function () {
-    expect(ToolRegistry::find('delete_stops'))->toBeNull();
+    expect(ToolRegistry::names())->not->toContain('delete_stops');
 });
 
 test('the schedule board can\'t drag a visit onto a different day', function () {

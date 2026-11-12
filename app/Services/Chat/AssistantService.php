@@ -42,7 +42,7 @@ class AssistantService
         [$stable, $live] = app(AssistantPrompt::class)->for($user);
         $tools = ToolRegistry::for($user);
         $schemas = array_map(fn (AssistantTool $t): array => $t->toSchema(), $tools);
-        $messages = $this->history($session);
+        $messages = $session->history();
         $rounds = max(1, (int) config('ai.max_rounds', 4));
         $tokens = 0;
         $cost = 0.0;
@@ -54,7 +54,6 @@ class AssistantService
                 $provider, $key, $model, $stable, $live, $messages, $schemas,
                 allowTools: $round < $rounds,
                 maxTokens: (int) config('ai.max_tokens', 4096),
-                adaptiveThinking: $user->role === 'agent' && $provider === 'anthropic',
             );
             $tokens += $turn->tokens;
             $cost += $turn->cost;
@@ -106,29 +105,5 @@ class AssistantService
         ChatMessage::create(['chat_session_id' => $session->id, 'role' => 'assistant', 'content' => $reply]);
 
         return $reply;
-    }
-
-    /**
-     * The last 20 messages, starting on a question (the newest one included).
-     *
-     * @return list<array{role: string, content: string}>
-     */
-    private function history(ChatSession $session): array
-    {
-        $rows = $session->messages()
-            ->whereIn('role', ['user', 'assistant'])
-            ->orderByDesc('id')
-            ->limit(20)
-            ->get()
-            ->reverse()
-            ->map(fn (ChatMessage $m): array => ['role' => $m->role, 'content' => $m->content])
-            ->values()
-            ->all();
-
-        while ($rows !== [] && $rows[0]['role'] !== 'user') {
-            array_shift($rows);
-        }
-
-        return $rows;
     }
 }

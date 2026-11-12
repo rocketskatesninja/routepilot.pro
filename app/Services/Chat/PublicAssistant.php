@@ -34,7 +34,7 @@ class PublicAssistant
         $turn = $this->claude->turn(
             $provider, $key, $model,
             app(PublicLeadContext::class)->build($tenant), '',
-            $this->history($session),
+            $session->history(),
             [(new CaptureLeadTool)->toSchema()],
             maxTokens: 1024,
         );
@@ -70,29 +70,5 @@ class PublicAssistant
         }
 
         return (new CaptureLeadTool)->execute($call['arguments'], $tenantId);
-    }
-
-    /**
-     * The last 20 messages, starting on the visitor's (the newest one included).
-     *
-     * @return list<array{role: string, content: string}>
-     */
-    private function history(ChatSession $session): array
-    {
-        $rows = $session->messages()
-            ->whereIn('role', ['user', 'assistant'])
-            ->orderByDesc('id')
-            ->limit(20)
-            ->get()
-            ->reverse()
-            ->map(fn (ChatMessage $m): array => ['role' => $m->role, 'content' => $m->content])
-            ->values()
-            ->all();
-
-        while ($rows !== [] && $rows[0]['role'] !== 'user') {
-            array_shift($rows);
-        }
-
-        return $rows;
     }
 }

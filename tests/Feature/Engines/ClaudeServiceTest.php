@@ -34,7 +34,6 @@ test('parses an Anthropic text reply', function () {
         return $request->url() === 'https://api.anthropic.com/v1/messages'
             && $request['model'] === 'claude-haiku-4-5'
             && $request->hasHeader('x-api-key', 'sk-key')
-            && ! isset($request['thinking']) // off by default
             && ! isset($request['system']); // nothing sent when there's no prompt
     });
 });
@@ -65,14 +64,6 @@ test('thinking blocks aren\'t text; the text and the tool call both come through
 
     expect($turn->text)->toBe('some preamble')
         ->and($turn->toolCalls)->toBe([['id' => 'tu_2', 'name' => 'lookup_pool', 'arguments' => ['pool_id' => 5]]]);
-});
-
-test('adaptive thinking is opt-in and adds the request param', function () {
-    Http::fake(['api.anthropic.com/*' => anthropicReply([['type' => 'text', 'text' => 'ok']])]);
-
-    $this->ai->turn('anthropic', 'sk-key', 'claude-sonnet-4-6', '', '', [['role' => 'user', 'content' => 'think hard']], adaptiveThinking: true);
-
-    Http::assertSent(fn ($request) => $request['thinking'] === ['type' => 'adaptive']);
 });
 
 test('an API error returns a friendly message, never the provider\'s own text', function () {

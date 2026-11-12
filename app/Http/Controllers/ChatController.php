@@ -80,7 +80,7 @@ class ChatController extends Controller
 
         $latest = $this->sessions($request)->latest('id')->first();
         if ($latest === null || $latest->messages()->exists()) {
-            ChatSession::create(['user_id' => $user->id, 'context' => $this->impersonating($request) ? 'support' : $user->role]);
+            $this->newSession($request);
         }
 
         return redirect()->route('assistant.index');
@@ -113,7 +113,7 @@ class ChatController extends Controller
 
         $sessionId = $request->integer('session_id');
         $session = $sessionId > 0 ? $this->sessions($request)->whereKey($sessionId)->first() : null;
-        $session ??= ChatSession::create(['user_id' => $user->id, 'context' => $this->impersonating($request) ? 'support' : $user->role]);
+        $session ??= $this->newSession($request);
 
         // One message at a time per chat (two tabs would interleave the history).
         try {
@@ -131,9 +131,13 @@ class ChatController extends Controller
             'reply' => $reply,
             'message' => SensitiveText::redact((string) $request->string('message')), // as saved: card numbers blanked
             'session_id' => $session->id,
-            'remaining' => max(0, 30 - RateLimiter::attempts($rateKey)),
-            'ai_remaining' => $tenantId !== null ? $quota->remaining((int) $tenantId) : null,
         ]);
+    }
+
+    /** A new chat for this person (a separate "support" one while a super admin is signed in as them). */
+    private function newSession(Request $request): ChatSession
+    {
+        return ChatSession::create(['user_id' => $request->user()?->id, 'context' => $this->impersonating($request) ? 'support' : $request->user()?->role]);
     }
 
     /**

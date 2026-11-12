@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
-use App\Models\Customer;
 use App\Models\ServiceVisit;
 use App\Models\User;
 use App\Services\Chat\AssistantTool;
@@ -43,9 +42,9 @@ class MyVisits extends AssistantTool
 
     public function execute(array $params, User $user): string
     {
-        $customer = Customer::query()->where('tenant_id', (int) $user->tenant_id)->where('user_id', $user->id)->first();
+        $customer = $this->customer($user);
         if ($customer === null) {
-            return 'There is no customer account linked to this login.';
+            return self::NO_CUSTOMER;
         }
         $limit = max(1, min(is_numeric($params['limit'] ?? null) ? (int) $params['limit'] : 5, 15));
 

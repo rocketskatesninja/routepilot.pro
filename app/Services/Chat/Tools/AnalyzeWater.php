@@ -96,25 +96,17 @@ class AnalyzeWater extends AssistantTool
             return 'Ask for the test results (at least pH and chlorine), and the pool\'s size in gallons.';
         }
 
-        $chem = app(ChemistryService::class);
         if ($pool !== null) {
-            $result = $chem->fullAnalysis($readings, $pool);
             $what = self::link('pool', $pool->id, $pool->name).' ('.($pool->volume_gallons !== null ? number_format($pool->volume_gallons).' gallons' : 'size unknown: doses assume 10,000 gallons').", {$pool->sanitizer_type}){$source}";
         } else {
+            // Numbers for a pool that isn't on file: an unsaved pool of that size, so the doses scale.
             $gallons = is_numeric($params['volume_gallons'] ?? null) ? max(100, (int) $params['volume_gallons']) : null;
             $sanitizer = in_array($params['sanitizer'] ?? null, ['chlorine', 'salt', 'bromine'], true) ? $params['sanitizer'] : 'chlorine';
             $pool = (new Pool)->forceFill(['volume_gallons' => $gallons, 'sanitizer_type' => $sanitizer, 'type' => 'pool']);
-            $analysis = $chem->analyzeReading($readings, $chem->targetsFor($pool));
-            $lsi = $chem->calculateLSI($readings);
-            $result = [
-                'lsi' => ['value' => $lsi, ...$chem->getLSIStatus($lsi)],
-                'parameters' => $analysis,
-                'recommendations' => $chem->generateRecommendations($readings, $pool, $analysis, ['has_history' => false, 'parameters' => []]),
-            ];
             $what = 'the water you gave ('.($gallons !== null ? number_format($gallons).' gallons' : 'size not given: doses assume 10,000 gallons').", {$sanitizer})";
         }
 
-        return $this->describe($what, $result);
+        return $this->describe($what, app(ChemistryService::class)->fullAnalysis($readings, $pool));
     }
 
     /**

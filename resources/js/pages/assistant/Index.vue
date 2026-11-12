@@ -71,6 +71,8 @@ async function showReply() {
 // Keep the cursor in the message box after every send (and after tapping an example).
 const focusBox = () => void nextTick(() => document.getElementById('assistant-message')?.focus({ preventScroll: true }));
 
+const say = (content: string) => messages.value.push({ role: 'assistant', content });
+
 async function send(text?: string) {
     const message = (text ?? draft.value).trim();
     if (message === '' || sending.value || !online.value) {
@@ -81,39 +83,24 @@ async function send(text?: string) {
     sending.value = true;
     await scrollDown();
 
-    let res: Response;
     try {
-        res = await postJson('/assistant/send', { message, session_id: sessionId.value });
-    } catch {
-        // It never got through (the connection dropped): put the message back to send again.
-        messages.value.pop();
-        // Put it back, ahead of anything typed since (the box stays usable while waiting).
-        draft.value = draft.value.trim() === '' ? message : `${message} ${draft.value}`;
-        messages.value.push({
-            role: 'assistant',
-            content: 'Couldn’t reach the assistant. Check your connection: your message is back in the box to send again.',
-        });
-        sending.value = false;
-        await scrollDown();
-        focusBox();
-        return;
-    }
-    try {
-        const data = await res.json();
-        if (res.ok) {
-            sessionId.value = data.session_id;
+        const res = await postJson('/assistant/send', { message, session_id: sessionId.value });
+        const data = (await res.json().catch(() => ({}))) as { reply?: string; message?: string; session_id?: number; error?: string };
+        if (res.ok && data.reply) {
+            sessionId.value = data.session_id ?? sessionId.value;
             // Show the message as it was saved (a card number typed in is blanked out).
             const mine = messages.value[messages.value.length - 1];
-            if (mine?.role === 'user' && typeof data.message === 'string') mine.content = data.message;
-            messages.value.push({ role: 'assistant', content: data.reply });
+            if (mine?.role === 'user' && data.message) mine.content = data.message;
+            say(data.reply);
         } else {
-            messages.value.push({
-                role: 'assistant',
-                content: data.error ?? 'The assistant isn’t available right now. Please try again in a minute.',
-            });
+            say(data.error ?? 'The assistant isn’t available right now. Please try again in a minute.');
         }
     } catch {
-        messages.value.push({ role: 'assistant', content: 'The assistant isn’t available right now. Please try again in a minute.' });
+        // It never got through (the connection dropped): put it back in the box to send again,
+        // ahead of anything typed since (the box stays usable while waiting).
+        messages.value.pop();
+        draft.value = draft.value.trim() === '' ? message : `${message} ${draft.value}`;
+        say('Couldn’t reach the assistant. Check your connection: your message is back in the box to send again.');
     } finally {
         sending.value = false;
         await showReply();

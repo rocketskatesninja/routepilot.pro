@@ -57,7 +57,7 @@ test('each kind of account is offered its own look-ups', function () {
         ->toBe(['lookup_chemistry', 'lookup_service_history', 'lookup_schedule', 'lookup_work_orders', 'my_route', 'analyze_water'])
         ->and($names(User::factory()->customer()->for($this->tenant)->create()))
         ->toBe(['my_service', 'my_visits', 'my_requests', 'my_balance', 'analyze_water'])
-        ->and(ToolRegistry::find('skip_stop'))->toBeNull();
+        ->and(ToolRegistry::names())->not->toContain('skip_stop')->each->toMatch('/^(lookup_|my_|analyze_)/'); // look-ups only: nothing that changes things
 
     $this->tenant->forceFill(['customer_billing' => false, 'inventory_tracking' => false])->save();
     expect($names($this->admin))->not->toContain('lookup_balance')->not->toContain('lookup_inventory')
