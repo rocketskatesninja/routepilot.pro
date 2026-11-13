@@ -266,7 +266,7 @@ class PeopleController extends Controller
         $next = RouteStop::query()->select('route_stops.*')
             ->join('routes', 'routes.id', '=', 'route_stops.route_id')
             ->whereIn('route_stops.pool_id', $poolIds)
-            ->where('route_stops.status', 'pending')
+            ->whereIn('route_stops.status', RouteStop::DUE)
             ->where('routes.scheduled_date', '>=', Tenant::localToday()->toDateString())
             ->with(['route:id,scheduled_date,agent_id', 'route.agent:id,first_name,last_name', 'pool:id,name'])
             ->orderBy('routes.scheduled_date')

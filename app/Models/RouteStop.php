@@ -23,6 +23,9 @@ class RouteStop extends Model
     /** @use HasFactory<RouteStopFactory> */
     use HasFactory;
 
+    /** Still to do: not started yet, or the tech has the visit open in the field app. */
+    public const DUE = ['pending', 'in_progress'];
+
     /** @var list<string> */
     protected $fillable = [
         'route_id', 'pool_id', 'service_subscription_id', 'stop_order',

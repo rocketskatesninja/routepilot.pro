@@ -67,7 +67,7 @@ class AssemblePortalHome
         $stops = RouteStop::query()->select('route_stops.*')
             ->join('routes', 'routes.id', '=', 'route_stops.route_id')
             ->whereIn('route_stops.pool_id', $poolIds)
-            ->where('route_stops.status', 'pending')
+            ->whereIn('route_stops.status', RouteStop::DUE)
             ->whereDate('routes.scheduled_date', '>=', Tenant::localToday())
             ->with(['route:id,scheduled_date,agent_id', 'route.agent:id,first_name,last_name', 'serviceSubscription.serviceType:id,name', 'pool:id,name'])
             ->orderBy('routes.scheduled_date')->orderBy('route_stops.stop_order')

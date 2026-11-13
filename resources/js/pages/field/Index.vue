@@ -17,6 +17,7 @@ import {
     reopenFailed,
     retryFailed,
 } from '@/lib/field/sync';
+import { postJson } from '@/lib/http';
 import { formatDay, localDay } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -88,6 +89,11 @@ watch(selected, (stop) => {
         else sessionStorage.removeItem(OPEN_STOP);
     } catch {
         // Storage blocked — a refresh just lands on the list; the visit's entries are still kept.
+    }
+    // Opening a stop on today's own route shows it "In progress" on the office's schedule.
+    // Best effort: offline, the stop just stays pending until the visit is sent.
+    if (stop && !isDone(stop) && !bundle.value?.office && !bundle.value?.past) {
+        postJson(`/api/field/stops/${stop.id}/start`).catch(() => {});
     }
 });
 function rememberedStop(): number {

@@ -137,7 +137,7 @@ class PortalController extends Controller
         // Each plan's next visit on the route (holds are already left off the schedule).
         $nextVisits = RouteStop::query()
             ->whereIn('route_stops.service_subscription_id', $plans->pluck('id'))
-            ->where('route_stops.status', 'pending')
+            ->whereIn('route_stops.status', RouteStop::DUE)
             ->join('routes', 'routes.id', '=', 'route_stops.route_id')
             ->where('routes.scheduled_date', '>=', $today->toDateString())
             ->groupBy('route_stops.service_subscription_id')

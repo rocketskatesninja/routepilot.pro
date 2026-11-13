@@ -8,6 +8,7 @@ use App\Actions\AddExtraStop;
 use App\Actions\CompleteVisit;
 use App\Actions\RemoveExtraStop;
 use App\Actions\SendVisitFollowups;
+use App\Actions\StartVisit;
 use App\Events\AgentLocationUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CompleteVisitRequest;
@@ -328,6 +329,19 @@ class FieldController extends Controller
     {
         return User::query()->where('tenant_id', $user->tenant_id)->whereIn('role', ['agent', 'tenant_admin'])
             ->where('is_active', true)->orderBy('first_name')->orderBy('last_name')->get();
+    }
+
+    /**
+     * The tech opened a stop: the office's schedule shows it in progress. Only for
+     * the tech's own route (an admin entering a report for someone else changes
+     * nothing), and never while support is signed in as them.
+     */
+    public function startStop(Request $request, RouteStop $stop, StartVisit $action): JsonResponse
+    {
+        $this->authorizeStop($request, $stop);
+        $mine = (int) $stop->route?->getAttribute('agent_id') === $request->user()?->id;
+
+        return response()->json(['started' => $mine && ! $request->session()->has('impersonator_id') && $action->handle($stop)]);
     }
 
     /** Take an extra visit that hasn't been done back off the route. */

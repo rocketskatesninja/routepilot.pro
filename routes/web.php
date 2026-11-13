@@ -140,6 +140,7 @@ Route::middleware(['auth', 'verified', EnsureBillingActive::class])->group(funct
         Route::get('api/field/pools', [FieldController::class, 'pools'])->name('field.pools');
         Route::post('api/field/pools/{pool}/visit', [FieldController::class, 'addStop'])->name('field.extra.add');
         Route::delete('api/field/stops/{stop}', [FieldController::class, 'removeStop'])->name('field.extra.remove');
+        Route::post('api/field/stops/{stop}/start', [FieldController::class, 'startStop'])->middleware('throttle:60,1')->name('field.stop.start');
         Route::post('api/field/ping', [FieldController::class, 'ping'])->middleware('throttle:12,1')->name('field.ping');
 
         Route::get('pools', [PoolController::class, 'index'])->name('pools.index');

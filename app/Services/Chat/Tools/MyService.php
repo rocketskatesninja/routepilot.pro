@@ -57,7 +57,7 @@ class MyService extends AssistantTool
         $plans = ServiceSubscription::query()->whereIn('pool_id', $pools->pluck('id'))->current()->with('serviceType', 'agent')->get()->groupBy('pool_id');
         $next = RouteStop::query()
             ->whereIn('route_stops.service_subscription_id', $plans->flatten()->pluck('id'))
-            ->where('route_stops.status', 'pending')
+            ->whereIn('route_stops.status', RouteStop::DUE)
             ->join('routes', 'routes.id', '=', 'route_stops.route_id')
             ->where('routes.scheduled_date', '>=', $today->toDateString())
             ->groupBy('route_stops.service_subscription_id')

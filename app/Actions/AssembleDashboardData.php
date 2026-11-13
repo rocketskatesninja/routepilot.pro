@@ -218,7 +218,7 @@ class AssembleDashboardData
         return ['tiles' => [
             ['label' => 'Stops today', 'value' => $stops->count()],
             ['label' => 'Completed', 'value' => $stops->where('status', 'completed')->count(), 'accent' => 'text-emerald-600 dark:text-emerald-400'],
-            ['label' => 'Remaining', 'value' => $stops->whereIn('status', ['pending', 'in_progress'])->count()],
+            ['label' => 'Remaining', 'value' => $stops->whereIn('status', RouteStop::DUE)->count()],
             ['label' => 'Agents', 'value' => User::query()->where('tenant_id', $user->getAttribute('tenant_id'))->where('role', 'agent')->where('is_active', true)->count()],
             ['label' => 'Customers', 'value' => Customer::query()->count()],
             ['label' => 'Pools', 'value' => Pool::query()->count()],
@@ -241,7 +241,7 @@ class AssembleDashboardData
         return ['tiles' => [
             ['label' => 'Stops today', 'value' => $stops->count()],
             ['label' => 'Completed', 'value' => $stops->where('status', 'completed')->count(), 'accent' => 'text-emerald-600 dark:text-emerald-400'],
-            ['label' => 'Remaining', 'value' => $stops->whereIn('status', ['pending', 'in_progress'])->count()],
+            ['label' => 'Remaining', 'value' => $stops->whereIn('status', RouteStop::DUE)->count()],
             ['label' => 'Done this week', 'value' => $week],
         ]];
     }
@@ -305,7 +305,7 @@ class AssembleDashboardData
         }
 
         $next = RouteStop::query()
-            ->whereIn('pool_id', $customer->pools->pluck('id'))->where('status', 'pending')
+            ->whereIn('pool_id', $customer->pools->pluck('id'))->whereIn('status', RouteStop::DUE)
             ->whereHas('route', fn ($q) => $q->whereDate('scheduled_date', '>=', Tenant::localToday()))
             ->with(['route:id,scheduled_date', 'pool:id,name'])->get()
             ->sortBy(fn (RouteStop $s) => $s->route?->scheduled_date)->first();
@@ -504,7 +504,7 @@ class AssembleDashboardData
         $route = Route::query()
             ->where('agent_id', $user->id)
             ->whereDate('scheduled_date', '>=', Tenant::localToday())
-            ->whereHas('stops', fn ($q) => $q->where('status', 'pending'))
+            ->whereHas('stops', fn ($q) => $q->whereIn('status', RouteStop::DUE))
             ->with(['stops' => fn ($q) => $q->with('pool:id,name,photo_path')->orderBy('stop_order')])
             ->orderBy('scheduled_date')
             ->first();

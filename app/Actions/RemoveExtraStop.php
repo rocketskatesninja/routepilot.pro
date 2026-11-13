@@ -19,7 +19,7 @@ class RemoveExtraStop
     public function handle(RouteStop $stop): bool
     {
         $route = $stop->route;
-        if ($route === null || $stop->service_subscription_id !== null || $stop->status !== 'pending' || $stop->serviceVisit()->exists()) {
+        if ($route === null || $stop->service_subscription_id !== null || ! in_array($stop->status, RouteStop::DUE, true) || $stop->serviceVisit()->exists()) {
             return false;
         }
 

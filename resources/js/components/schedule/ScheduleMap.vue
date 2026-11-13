@@ -169,12 +169,12 @@ watch(canMap, (now) => {
     }
 });
 
-// A pick re-highlights the pin and pans/zooms to it; un-picking leaves the view.
+// A pick re-highlights the pin and pans/zooms to it; letting go zooms back out to the whole day.
 watch(
     () => props.focusId,
     (id) => {
         if (!map) return;
-        draw(false);
+        draw(id === null);
         const s = stops.value.find((x) => x.id === id);
         if (s) {
             map.panTo({ lat: s.lat, lng: s.lng });

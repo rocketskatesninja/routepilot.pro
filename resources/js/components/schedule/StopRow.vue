@@ -48,7 +48,7 @@ defineEmits<{ skip: []; unskip: [] }>();
             <p v-if="stop.service" class="text-muted-foreground truncate text-xs" :title="stop.service">{{ stop.service }}</p>
         </div>
         <button
-            v-if="skippable && stop.status === 'pending'"
+            v-if="skippable && (stop.status === 'pending' || stop.status === 'in_progress')"
             class="text-muted-foreground hover:bg-muted shrink-0 rounded p-2 hover:text-amber-600 sm:p-1"
             title="Skip stop"
             @click.stop="$emit('skip')"
