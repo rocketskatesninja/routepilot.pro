@@ -242,7 +242,8 @@ function toggleAgent(id: number | null) {
     }
     hiddenAgents.value = next;
 }
-// Show every route again (the header's Clear filters, there while a chip is off).
+// Show every route again: the legend's Clear filters, which stays put and is
+// only enabled while a chip is off (so the chips don't shift as you toggle).
 const clearFilters = () => (hiddenAgents.value = new Set());
 
 // The legend's entries: each agent with stops, plus the unassigned bucket.
@@ -257,6 +258,8 @@ const mapAgents = computed(() => {
 });
 
 const visibleMarkers = computed(() => mapMarkers.value.filter((m) => !isAgentHidden(m.agent_id)));
+// A hidden agent's live dot goes too.
+const visibleAgents = computed(() => agentMarkers.value.filter((a) => !isAgentHidden(a.agent_id)));
 const filtering = computed(() => mapAgents.value.some((a) => isAgentHidden(a.id)));
 const allHidden = computed(() => mapAgents.value.length > 0 && mapAgents.value.every((a) => isAgentHidden(a.id)));
 
@@ -289,7 +292,6 @@ const prettyDate = computed(() =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
-            <Button v-if="filtering" size="sm" variant="ghost" @click="clearFilters"><X class="mr-1 size-4" /> Clear filters</Button>
             <Hint v-if="props.canManage" :text="generateHint">
                 <Button size="sm" variant="outline" :disabled="busy" @click="materialize"><Sparkles class="mr-1 size-4" /> Generate</Button>
             </Hint>
@@ -483,6 +485,14 @@ const prettyDate = computed(() =>
                 <!-- Map legend / agent toggles: click a chip to hide that route. -->
                 <div v-if="props.mapsKey && mapAgents.length" class="flex flex-wrap gap-1.5">
                     <button
+                        type="button"
+                        class="border-border hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
+                        :disabled="!filtering"
+                        @click="clearFilters"
+                    >
+                        <X class="size-3" /> Clear filters
+                    </button>
+                    <button
                         v-for="a in mapAgents"
                         :key="a.id ?? 'unassigned'"
                         type="button"
@@ -499,7 +509,7 @@ const prettyDate = computed(() =>
                     :maps-key="props.mapsKey"
                     :hq="props.hq"
                     :markers="visibleMarkers"
-                    :agents="agentMarkers"
+                    :agents="visibleAgents"
                     :colors="agentColors"
                     :focus-id="focusId"
                     :all-hidden="allHidden"

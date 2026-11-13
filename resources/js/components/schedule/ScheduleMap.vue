@@ -35,6 +35,8 @@ const props = defineProps<{
     allHidden: boolean;
 }>();
 
+const HIDDEN_NOTE = 'Every route is hidden. Use Clear filters above the map to show them again.';
+
 const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || props.hq !== null || props.agents.length > 0));
 const mapEl = ref<HTMLElement | null>(null);
 
@@ -280,7 +282,13 @@ watch(
 
 <template>
     <div class="min-h-0 flex-1">
-        <div v-if="canMap" ref="mapEl" class="border-border h-full min-h-[260px] w-full overflow-hidden rounded-xl border"></div>
+        <div v-if="canMap" class="relative h-full min-h-[260px]">
+            <div ref="mapEl" class="border-border h-full min-h-[260px] w-full overflow-hidden rounded-xl border"></div>
+            <!-- The office pin (or a live tech) keeps the map up with every route hidden: say why it's empty. -->
+            <div v-if="allHidden" class="pointer-events-none absolute inset-0 flex items-center justify-center p-6">
+                <p class="bg-background/95 border-border max-w-xs rounded-xl border px-4 py-3 text-center text-xs shadow-md">{{ HIDDEN_NOTE }}</p>
+            </div>
+        </div>
         <div
             v-else
             class="border-border bg-muted/20 text-muted-foreground flex h-full min-h-[260px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 text-center text-sm"
@@ -288,7 +296,7 @@ watch(
             <MapPin class="size-7 opacity-40" />
             <p v-if="!mapsKey" class="font-medium">Maps aren't configured yet</p>
             <p v-if="!mapsKey" class="max-w-xs text-xs">Add a Google Maps browser key to plot the day's routes here.</p>
-            <p v-else-if="allHidden" class="max-w-xs text-xs">Every route is hidden. Use Clear filters at the top to show them again.</p>
+            <p v-else-if="allHidden" class="max-w-xs text-xs">{{ HIDDEN_NOTE }}</p>
             <p v-else class="max-w-xs text-xs">No geocoded stops for this day. Stops appear once their pools have a service address.</p>
         </div>
     </div>
