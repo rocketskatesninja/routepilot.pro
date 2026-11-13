@@ -258,6 +258,7 @@ const mapAgents = computed(() => {
 
 const visibleMarkers = computed(() => mapMarkers.value.filter((m) => !isAgentHidden(m.agent_id)));
 const filtering = computed(() => mapAgents.value.some((a) => isAgentHidden(a.id)));
+const allHidden = computed(() => mapAgents.value.length > 0 && mapAgents.value.every((a) => isAgentHidden(a.id)));
 
 // Click-to-focus: clicking a stop pans/zooms the map to its pin (toggle off by
 // clicking it again). The id is shared with the map (highlight) and the list row.
@@ -501,6 +502,7 @@ const prettyDate = computed(() =>
                     :agents="agentMarkers"
                     :colors="agentColors"
                     :focus-id="focusId"
+                    :all-hidden="allHidden"
                 />
             </aside>
         </div>

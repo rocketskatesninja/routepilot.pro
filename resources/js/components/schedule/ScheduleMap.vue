@@ -31,6 +31,8 @@ const props = defineProps<{
     agents: { agent_id: number; name: string; lat: number; lng: number }[];
     // The stop id the list is focusing; its pin is enlarged + the map pans to it.
     focusId: number | null;
+    // Every route is switched off in the legend, so there's nothing to plot.
+    allHidden: boolean;
 }>();
 
 const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || props.hq !== null || props.agents.length > 0));
@@ -286,6 +288,7 @@ watch(
             <MapPin class="size-7 opacity-40" />
             <p v-if="!mapsKey" class="font-medium">Maps aren't configured yet</p>
             <p v-if="!mapsKey" class="max-w-xs text-xs">Add a Google Maps browser key to plot the day's routes here.</p>
+            <p v-else-if="allHidden" class="max-w-xs text-xs">Every route is hidden. Use Clear filters at the top to show them again.</p>
             <p v-else class="max-w-xs text-xs">No geocoded stops for this day. Stops appear once their pools have a service address.</p>
         </div>
     </div>
