@@ -53,7 +53,7 @@ class ScheduleController extends Controller
             ->whereDate('scheduled_date', $date)
             ->whereNotNull('agent_id')
             ->with([
-                'agent' => fn ($q) => $q->withTrashed()->select('id', 'first_name', 'last_name', 'avatar_path', 'map_color'),
+                'agent' => fn ($q) => $q->withTrashed()->select('id', 'first_name', 'last_name', 'role', 'avatar_path', 'map_color'),
                 'stops' => $stopLoad,
             ])
             ->get();
@@ -276,6 +276,8 @@ class ScheduleController extends Controller
             'id' => $route->id,
             'agent' => $route->agent?->displayName(),
             'agent_id' => $route->agent?->getKey(),
+            // Only a tech (role agent) has a People profile to link to; an admin's own route doesn't.
+            'agent_role' => $route->agent?->role,
             'agent_photo' => $this->photoUrl($route->agent?->getAttribute('avatar_path')),
             'color' => $this->agentColor($route->agent),
             'stops' => $route->stops->map(fn (RouteStop $s): array => $this->presentStop($s))->values()->all(),
@@ -326,6 +328,8 @@ class ScheduleController extends Controller
 
         return [
             'tested_on' => is_string($testedAt) ? Tenant::localDate(Carbon::parse($testedAt, 'UTC')) : null,
+            // The visit the test was taken on: its report.
+            'report_id' => $reading->service_visit_id,
             'free_chlorine' => $reading->free_chlorine,
             'ph' => $reading->ph,
             'alkalinity' => $reading->alkalinity,
@@ -358,6 +362,7 @@ class ScheduleController extends Controller
             'id' => null,
             'agent' => $agent?->displayName(),
             'agent_id' => $agent?->id,
+            'agent_role' => $agent?->role,
             'agent_photo' => $this->photoUrl($agent?->getAttribute('avatar_path')),
             'color' => $this->agentColor($agent),
             'stops' => [],

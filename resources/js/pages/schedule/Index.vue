@@ -378,7 +378,7 @@ function pickPin(id: number) {
                     :all-hidden="allHidden"
                     @select="pickPin"
                 />
-                <StopDetail :stop="selected?.stop ?? null" :tech="selected?.route.agent ?? null" />
+                <StopDetail :stop="selected?.stop ?? null" :route="selected?.route ?? null" />
             </aside>
         </div>
     </AppLayout>

@@ -25,16 +25,18 @@ beforeEach(function () {
     $this->route = Route::factory()->for($this->tenant)->create(['agent_id' => $this->agent->id, 'scheduled_date' => today()]);
 });
 
-function scheduleTestedOn(Pool $pool, User $agent, string $completedAt, float $ph): void
+function scheduleTestedOn(Pool $pool, User $agent, string $completedAt, float $ph): ServiceVisit
 {
     $visit = ServiceVisit::factory()->create(['tenant_id' => $pool->tenant_id, 'pool_id' => $pool->id, 'agent_id' => $agent->id, 'completed_at' => $completedAt]);
     ChemicalReading::factory()->create(['tenant_id' => $pool->tenant_id, 'service_visit_id' => $visit->id, 'ph' => $ph]);
+
+    return $visit;
 }
 
 test('a stop carries its pool, customer and the pool’s latest water test', function () {
     scheduleTestedOn($this->pool, $this->agent, '2026-10-01 15:00:00', 7.2);
     // 02:30 UTC on Oct 25 is still Oct 24 in New York: the day shown is the company's.
-    scheduleTestedOn($this->pool, $this->agent, '2026-10-25 02:30:00', 7.8);
+    $latest = scheduleTestedOn($this->pool, $this->agent, '2026-10-25 02:30:00', 7.8);
     RouteStop::factory()->for($this->route)->for($this->pool)->create(['status' => 'pending', 'stop_order' => 1]);
 
     $this->actingAs($this->admin)
@@ -47,6 +49,11 @@ test('a stop carries its pool, customer and the pool’s latest water test', fun
             ->where('routes.1.stops.0.reading.tested_on', '2026-10-24')
             ->where('routes.1.stops.0.reading.ph', 7.8)
             ->where('routes.1.stops.0.reading.free_chlorine', 2)
+            // The test's day links to the report it was taken on.
+            ->where('routes.1.stops.0.reading.report_id', $latest->id)
+            // Only a tech has a People profile to link to; the admin's own card doesn't.
+            ->where('routes.1.agent_role', 'agent')
+            ->where('routes.0.agent_role', $this->admin->role)
         );
 });
 

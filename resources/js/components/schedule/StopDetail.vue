@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
-import { customerLink, mapsLink, poolLink, reportLink } from '@/lib/links';
+import { agentLink, customerLink, mapsLink, poolLink, reportLink } from '@/lib/links';
 import { visitStatusClass } from '@/lib/statusColors';
 import { formatDay } from '@/lib/utils';
 import { Link } from '@inertiajs/vue3';
 import { MousePointerClick } from 'lucide-vue-next';
 import { computed } from 'vue';
-import type { Stop, StopReading } from './types';
+import type { RouteCard, Stop, StopReading } from './types';
 
 /**
  * The panel under the Schedule map: the visit picked in the list or on the map.
@@ -14,11 +14,11 @@ import type { Stop, StopReading } from './types';
  */
 const props = defineProps<{
     stop: Stop | null;
-    /** The tech on the visit's route (null: the unassigned bucket). */
-    tech: string | null;
+    /** The card the visit is on: its tech (none on the unassigned bucket). */
+    route: RouteCard | null;
 }>();
 
-const LEVELS: [Exclude<keyof StopReading, 'tested_on'>, string][] = [
+const LEVELS: [Exclude<keyof StopReading, 'tested_on' | 'report_id'>, string][] = [
     ['free_chlorine', 'FC'],
     ['ph', 'pH'],
     ['alkalinity', 'TA'],
@@ -27,14 +27,18 @@ const LEVELS: [Exclude<keyof StopReading, 'tested_on'>, string][] = [
     ['salt', 'Salt'],
 ];
 
+// The last water test: its day (a link to that visit's report) and the levels.
 const lastTest = computed(() => {
     const r = props.stop?.reading;
     if (!r) return null;
     const levels = LEVELS.filter(([k]) => r[k] !== null)
         .map(([k, label]) => `${label} ${r[k]}`)
         .join(' · ');
-    return r.tested_on ? `${formatDay(r.tested_on)}: ${levels}` : levels;
+    const day = r.tested_on ? formatDay(r.tested_on) : null;
+    return { day, levels, report: r.report_id, text: day ? `${day}: ${levels}` : levels };
 });
+// A tech's name opens their People profile; an admin running their own route has none.
+const techLink = computed(() => (props.route?.agent_role === 'agent' && props.route.agent_id !== null ? agentLink(props.route.agent_id) : null));
 
 // The app's record-link look (as on the reports and pools pages).
 const LINK = 'text-primary font-medium underline-offset-4 hover:underline';
@@ -94,10 +98,18 @@ const streetView = computed(() => {
 
                 <dl class="grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-4 gap-y-1 text-xs">
                     <dt class="text-muted-foreground">Tech</dt>
-                    <dd class="truncate">{{ tech ?? 'Unassigned' }}</dd>
+                    <dd class="truncate">
+                        <Link v-if="techLink" :href="techLink" :class="LINK">{{ route?.agent }}</Link>
+                        <template v-else>{{ route?.agent ?? 'Unassigned' }}</template>
+                    </dd>
                     <dt class="text-muted-foreground">Last test</dt>
-                    <dd class="truncate" :title="lastTest ?? undefined">
-                        <template v-if="lastTest">{{ lastTest }}</template>
+                    <dd class="truncate" :title="lastTest?.text">
+                        <template v-if="lastTest">
+                            <template v-if="lastTest.day"
+                                ><Link :href="reportLink(lastTest.report)" :class="LINK">{{ lastTest.day }}</Link
+                                >: </template
+                            >{{ lastTest.levels }}
+                        </template>
                         <span v-else class="text-muted-foreground">Never tested</span>
                     </dd>
                     <template v-if="stop.skip_reason">

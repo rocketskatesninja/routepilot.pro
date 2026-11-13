@@ -2,6 +2,8 @@
 
 export interface StopReading {
     tested_on: string | null;
+    /** The report (visit) the test was taken on. */
+    report_id: number;
     free_chlorine: number | null;
     ph: number | null;
     alkalinity: number | null;
@@ -34,6 +36,8 @@ export interface RouteCard {
     id: number | null;
     agent: string | null;
     agent_id: number | null;
+    /** 'agent' for a tech (who has a People profile); an admin running their own route is 'tenant_admin'. */
+    agent_role: string | null;
     agent_photo: string | null;
     color: string;
     stops: Stop[];
