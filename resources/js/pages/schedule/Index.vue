@@ -248,7 +248,7 @@ function pickPin(id: number) {
                 <div
                     v-for="route in cards"
                     :key="route.id ?? `agent-${route.agent_id}`"
-                    class="border-border overflow-hidden rounded-xl border transition-opacity"
+                    class="border-border shrink-0 overflow-hidden rounded-xl border transition-opacity"
                     :class="[isBucket(route) ? 'bg-muted/20 border-dashed' : 'border-l-[3px]', { 'opacity-50': isHidden(route.agent_id) }]"
                     :style="isBucket(route) ? undefined : { borderLeftColor: route.color }"
                 >

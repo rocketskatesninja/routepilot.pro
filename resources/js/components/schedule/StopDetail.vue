@@ -56,7 +56,8 @@ const streetView = computed(() => {
             <div v-else class="grid gap-x-6 gap-y-2 @xl:grid-cols-2">
                 <!-- The visit: its names open their records, a finished one links its report. -->
                 <div class="flex min-w-0 gap-3">
-                    <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" />
+                    <!-- As tall as the three lines beside it (3.25rem of line height). -->
+                    <span class="size-13 shrink-0"><EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="fill" /></span>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
                             <Link v-if="stop.pool_id" :href="poolLink(stop.pool_id)" :class="[LINK, 'truncate']" :title="stop.pool ?? undefined">{{

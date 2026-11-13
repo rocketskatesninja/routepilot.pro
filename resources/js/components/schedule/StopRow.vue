@@ -35,8 +35,9 @@ defineEmits<{ skip: []; unskip: [] }>();
         />
         <span v-else class="size-4 shrink-0" aria-hidden="true" />
         <span class="text-muted-foreground shrink-0">{{ number }}.</span>
-        <!-- No photo on a phone: the room goes to the names. -->
-        <span class="hidden shrink-0 sm:block"><EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="sm" /></span>
+        <!-- As tall as the three lines beside it (their line heights add up to 3.5rem, so Big view
+             grows it too). No photo on a phone: the room goes to the names. -->
+        <span class="hidden size-14 shrink-0 sm:block"><EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="fill" /></span>
         <div class="min-w-0 flex-1">
             <p class="truncate" :title="stop.pool">{{ stop.pool }}</p>
             <div class="flex items-center gap-2 text-xs">

@@ -7,7 +7,8 @@ const props = withDefaults(
         src?: string | null;
         type?: 'pool' | 'person' | 'inventory' | 'part' | 'tenant';
         name?: string | null;
-        size?: 'sm' | 'md' | 'lg';
+        /** fill: as big as its box (e.g. a square stretched to the height of the text beside it). */
+        size?: 'sm' | 'md' | 'lg' | 'fill';
         shape?: 'square' | 'circle';
     }>(),
     { src: null, type: 'person', name: null, size: 'md', shape: 'square' },
@@ -15,8 +16,8 @@ const props = withDefaults(
 
 const icons = { pool: Waves, person: User, inventory: FlaskConical, part: Wrench, tenant: Building2 };
 const icon = computed(() => icons[props.type]);
-const sizeClass = computed(() => ({ sm: 'size-7', md: 'size-10', lg: 'size-20' })[props.size]);
-const iconClass = computed(() => ({ sm: 'size-3.5', md: 'size-5', lg: 'size-9' })[props.size]);
+const sizeClass = computed(() => ({ sm: 'size-7', md: 'size-10', lg: 'size-20', fill: 'size-full' })[props.size]);
+const iconClass = computed(() => ({ sm: 'size-3.5', md: 'size-5', lg: 'size-9', fill: 'size-1/2' })[props.size]);
 const shapeClass = computed(() => (props.shape === 'circle' ? 'rounded-full' : 'rounded-md'));
 </script>
 
