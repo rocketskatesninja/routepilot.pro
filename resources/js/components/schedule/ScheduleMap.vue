@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { AgentDot, MapRoute } from './types';
 
 const props = defineProps<{
@@ -117,8 +117,10 @@ function draw(fit = true) {
     }
 }
 
+// Only on screen: below the desktop layout the map's column is hidden, and a hidden map
+// would still be a billed Google map load (with its images downloaded for nothing).
 async function ensureMap() {
-    if (map || creating || !canMap.value || !mapEl.value || !props.mapsKey) return;
+    if (map || creating || !canMap.value || !mapEl.value?.offsetWidth || !props.mapsKey) return;
     creating = true;
     try {
         g = await loadGoogleMaps(props.mapsKey);
@@ -142,7 +144,14 @@ async function ensureMap() {
     }
 }
 
-onMounted(ensureMap);
+// Make the map once its element is on screen (on mount, or later when the window widens).
+let sized: ResizeObserver | null = null;
+watch(mapEl, (el) => {
+    sized?.disconnect();
+    sized = el ? new ResizeObserver(() => void ensureMap()) : null;
+    if (el) sized?.observe(el);
+});
+onBeforeUnmount(() => sized?.disconnect());
 
 // Redraw on a change, creating the map first if the day had nothing to show.
 // flush:'post' means the map element is mounted before we touch it.
