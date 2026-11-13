@@ -109,9 +109,20 @@ class EmailHtml
     /** Put a recipient's first name in (escaped for HTML), or "there" when we don't have one. */
     public static function personalise(string $html, ?string $firstName): string
     {
+        return str_ireplace(self::FIRST_NAME, e(self::firstNameOr($firstName)), $html);
+    }
+
+    /** The same for plain text (a subject line; escaped wherever it's shown). */
+    public static function personalisePlain(string $text, ?string $firstName): string
+    {
+        return str_ireplace(self::FIRST_NAME, self::firstNameOr($firstName), $text);
+    }
+
+    private static function firstNameOr(?string $firstName): string
+    {
         $name = trim((string) $firstName);
 
-        return str_ireplace(self::FIRST_NAME, e($name !== '' ? $name : 'there'), $html);
+        return $name !== '' ? $name : 'there';
     }
 
     /**

@@ -85,6 +85,8 @@ test('the email opens as written: styled HTML, a plain-text part, and no automat
     $mail = new CampaignMail('Spring, {first name}', '<p>Hi {first name},</p><p>See <a href="https://x.test">this</a></p>', 'Robert Anderson', null, null, $this->tenant, null, 'Robert');
 
     $html = $mail->render();
+    // The subject is the email's title too: the name goes in there as well, and no placeholder is left anywhere.
+    expect($html)->toContain('<title>Spring, Robert</title>', '>Spring, Robert</h1>')->not->toContain('{first name}');
     expect($html)->toContain('<p style="margin: 0 0 12px;">Hi Robert,</p>', 'style="color: #0284c7; text-decoration: underline;" href="https://x.test"')
         ->not->toContain('Hi Robert Anderson,');
 

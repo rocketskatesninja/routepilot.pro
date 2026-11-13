@@ -75,7 +75,7 @@ class CampaignMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: str_ireplace(EmailHtml::FIRST_NAME, trim((string) $this->firstName) !== '' ? trim((string) $this->firstName) : 'there', $this->subjectLine),
+            subject: EmailHtml::personalisePlain($this->subjectLine, $this->firstName),
             from: $this->fromAddress !== null ? new Address($this->fromAddress['address'], $this->fromAddress['name']) : null,
             replyTo: EmailBrand::replyTo($this->tenant),
         );
@@ -90,7 +90,13 @@ class CampaignMail extends Mailable
         return new Content(
             view: 'emails.campaign',
             text: 'emails.campaign-text',
-            with: ['brand' => EmailBrand::for($this->tenant), 'html' => EmailHtml::styled($html), 'text' => EmailHtml::toText($html)],
+            // The subject is also the email's own title: it gets the first name too.
+            with: [
+                'brand' => EmailBrand::for($this->tenant),
+                'title' => EmailHtml::personalisePlain($this->subjectLine, $this->firstName),
+                'html' => EmailHtml::styled($html),
+                'text' => EmailHtml::toText($html),
+            ],
         );
     }
 }
