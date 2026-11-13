@@ -39,16 +39,27 @@ class WorkOrderController extends Controller
         $status = $request->string('status')->toString() === 'done' ? 'done' : 'open';
         $mine = $runsTheList && $request->boolean('mine');
 
-        $orders = WorkOrder::query()
+        $query = WorkOrder::query()
             ->with(['pool:id,name,customer_id', 'pool.customer:id,first_name,last_name', 'assignee:id,first_name,last_name'])
             ->where('status', $status)
             ->visibleTo($user)
-            ->when($mine, fn ($q) => $q->where('assigned_to', $user->id))
-            ->when(
-                $status === 'open',
-                fn ($q) => $q->pressingFirst(),
-                fn ($q) => $q->latest('completed_at')->latest('id'),
-            )
+            ->when($mine, fn ($q) => $q->where('assigned_to', $user->id));
+
+        // Sortable columns. Unsorted, open orders put the pressing ones first and done ones the
+        // latest first. "date" is the Due column on open orders and the Done column on finished
+        // ones; orders with no date, or nobody assigned, go last either way.
+        $sort = $this->applySort($query, $request, [
+            'default' => fn ($q) => $status === 'open' ? $q->pressingFirst() : $q->latest('completed_at'),
+            'title' => 'title',
+            'date' => fn ($q, string $dir) => $status === 'open'
+                ? $q->orderByRaw('due_on is null')->orderBy('due_on', $dir)
+                : $q->orderBy('completed_at', $dir),
+            'assignee' => fn ($q, string $dir) => $q->orderByRaw('assigned_to is null')
+                ->orderBy(User::query()->select('first_name')->whereColumn('users.id', 'work_orders.assigned_to'), $dir),
+        ], 'default');
+
+        $orders = $query
+            ->latest('id') // a steady order for ties, so pages don't shuffle
             ->paginate($this->perPage($request, 20))
             ->withQueryString()
             ->through(fn (WorkOrder $o): array => [
@@ -79,6 +90,7 @@ class WorkOrderController extends Controller
             'orders' => $orders,
             'selected' => $selected,
             'status' => $status,
+            'sort' => $sort,
             'mine' => $mine,
             'runsTheList' => $runsTheList,
             'canCreate' => $canCreate,

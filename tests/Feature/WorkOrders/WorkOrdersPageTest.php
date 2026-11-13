@@ -76,6 +76,34 @@ test('open work orders sort urgent first, then by due date (overdue first, none 
         ->assertInertia(fn (Assert $page) => $page->where('orders.data.1.overdue', true)->where('orders.data.2.overdue', false));
 });
 
+test('the columns sort both ways; no date or nobody assigned goes last either way', function () {
+    $today = $this->tenant->today();
+    $this->tech->forceFill(['first_name' => 'Zed'])->save();
+    $this->otherTech->forceFill(['first_name' => 'Amy'])->save();
+    workOrder(['title' => 'Bravo', 'due_on' => $today->copy()->addDays(2)->toDateString(), 'assigned_to' => $this->tech->id]);
+    workOrder(['title' => 'Alpha', 'urgent' => true]);
+    workOrder(['title' => 'Charlie', 'due_on' => $today->copy()->addDay()->toDateString(), 'assigned_to' => $this->otherTech->id]);
+
+    expect(listedFor($this->admin, '?sort=title'))->toBe(['Alpha', 'Bravo', 'Charlie'])
+        ->and(listedFor($this->admin, '?sort=title&dir=desc'))->toBe(['Charlie', 'Bravo', 'Alpha'])
+        ->and(listedFor($this->admin, '?sort=date'))->toBe(['Charlie', 'Bravo', 'Alpha'])
+        ->and(listedFor($this->admin, '?sort=date&dir=desc'))->toBe(['Bravo', 'Charlie', 'Alpha'])
+        ->and(listedFor($this->admin, '?sort=assignee'))->toBe(['Charlie', 'Bravo', 'Alpha'])
+        ->and(listedFor($this->admin, '?sort=assignee&dir=desc'))->toBe(['Bravo', 'Charlie', 'Alpha']);
+
+    $this->actingAs($this->admin)->get('/work-orders?sort=title&dir=desc')
+        ->assertInertia(fn (Assert $page) => $page->where('sort', ['key' => 'title', 'dir' => 'desc']));
+});
+
+test('finished work orders sort by the day they were done', function () {
+    workOrder(['title' => 'Earlier', 'status' => 'done', 'completed_at' => now()->subDays(3)]);
+    workOrder(['title' => 'Later', 'status' => 'done', 'completed_at' => now()->subDay()]);
+
+    expect(listedFor($this->admin, '?status=done'))->toBe(['Later', 'Earlier'])
+        ->and(listedFor($this->admin, '?status=done&sort=date'))->toBe(['Earlier', 'Later'])
+        ->and(listedFor($this->admin, '?status=done&sort=date&dir=desc'))->toBe(['Later', 'Earlier']);
+});
+
 test('a tech can see, note and close their own work order, but not edit, add or delete one', function () {
     $theirs = workOrder(['title' => 'Replace the skimmer lid', 'assigned_to' => $this->tech->id]);
     $notTheirs = workOrder(['assigned_to' => $this->otherTech->id]);

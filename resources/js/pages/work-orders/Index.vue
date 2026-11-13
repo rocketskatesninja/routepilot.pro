@@ -8,6 +8,7 @@ import Chip from '@/components/pane/Chip.vue';
 import PaneFacts from '@/components/pane/PaneFacts.vue';
 import PaneHeader from '@/components/pane/PaneHeader.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
+import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,6 +65,7 @@ const props = defineProps<{
     orders: Paginated<OrderRow>;
     selected: OrderDetail | null;
     status: 'open' | 'done';
+    sort: { key: string; dir: string };
     mine: boolean;
     runsTheList: boolean;
     canCreate: boolean;
@@ -207,9 +209,11 @@ function addNote() {
                         @select="(o) => open(o.id)"
                     >
                         <template #head>
-                            <th class="px-4 py-2 text-left font-medium">Work order</th>
-                            <th class="px-4 py-2 text-left font-medium">{{ props.status === 'done' ? 'Done' : 'Due' }}</th>
-                            <th class="hidden px-4 py-2 text-left font-medium @sm:table-cell">Assigned to</th>
+                            <SortableTh sort-key="title" :active="props.sort" class="text-left">Work order</SortableTh>
+                            <SortableTh sort-key="date" :active="props.sort" class="text-left">{{
+                                props.status === 'done' ? 'Done' : 'Due'
+                            }}</SortableTh>
+                            <SortableTh sort-key="assignee" :active="props.sort" class="hidden text-left @sm:table-cell">Assigned to</SortableTh>
                         </template>
                         <template #row="{ item: o }">
                             <td class="px-4 py-2.5">
