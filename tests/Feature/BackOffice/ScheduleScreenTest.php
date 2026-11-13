@@ -29,7 +29,7 @@ test('the day view groups stops under their route/agent', function () {
             ->component('schedule/Index')
             ->where('date', today()->toDateString())
             ->has('routes', 2) // the admin's own (empty) card leads
-            ->where('routes.1.total', 1)
+            ->has('routes.1.stops', 1)
             ->where('routes.1.stops.0.pool', 'Smith Pool')
             ->missing('routes.1.stops.0.eta') // no arrival estimates, anywhere
         );

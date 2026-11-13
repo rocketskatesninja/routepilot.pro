@@ -80,7 +80,7 @@ test('a skip\'s message shows once: the board\'s live refresh after it carries n
         'X-Inertia' => 'true',
         'X-Inertia-Version' => (string) app(HandleInertiaRequests::class)->version(request()),
         'X-Inertia-Partial-Component' => 'schedule/Index',
-        'X-Inertia-Partial-Data' => 'routes,unassigned,coords,agentLocations',
+        'X-Inertia-Partial-Data' => 'routes,unassigned,agentLocations',
     ])->assertOk()
         ->assertJsonMissingPath('props.today')
         ->assertJsonPath('props.flash', ['success' => null, 'error' => null]);

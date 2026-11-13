@@ -2,196 +2,123 @@
 import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
-
-interface StopMarker {
-    id: number;
-    lat: number;
-    lng: number;
-    order: number;
-    pool: string | null;
-    address: string | null;
-    status: string;
-    agent: string | null;
-    agent_id: number | null;
-}
-interface Hq {
-    lat: number;
-    lng: number;
-    label: string | null;
-}
+import type { AgentDot, MapRoute } from './types';
 
 const props = defineProps<{
     mapsKey: string | null;
-    hq: Hq | null;
-    markers: StopMarker[];
-    // Live per-agent colours, keyed by agent id — the schedule page mutates this
-    // when the tenant picks a colour, and the map redraws.
-    colors: Record<number, string>;
-    // Live agent positions (GPS), drawn as ringed dots that move in place.
-    agents: { agent_id: number; name: string; lat: number; lng: number }[];
-    // The stop id the list is focusing; its pin is enlarged + the map pans to it.
+    hq: { lat: number; lng: number; label: string | null } | null;
+    /** The routes shown (hidden ones left out), each in its own colour. */
+    routes: MapRoute[];
+    /** Live tech positions, drawn as ringed dots that move in place. */
+    agents: (AgentDot & { color: string })[];
+    /** The picked stop: its pin is enlarged and the map pans to it. */
     focusId: number | null;
-    // Every route is switched off in the legend, so there's nothing to plot.
+    /** Every route is switched off in the legend, so there's nothing to plot. */
     allHidden: boolean;
 }>();
 
-const HIDDEN_NOTE = 'Every route is hidden. Use Clear filters above the map to show them again.';
+/** A pin was clicked: pick its stop, as clicking it in the list does. */
+const emit = defineEmits<{ select: [id: number] }>();
 
-const canMap = computed(() => !!props.mapsKey && (props.markers.length > 0 || props.hq !== null || props.agents.length > 0));
+const HIDDEN_NOTE = 'Every route is hidden. Use Clear filters above the map to show them again.';
+// Finished, skipped and missed stops show their state instead of the route's colour.
+const STATUS_COLOR: Record<string, string> = { completed: '#10b981', skipped: '#9ca3af', missed: '#ef4444' };
+
+const stops = computed(() => props.routes.flatMap((r) => r.stops));
+const canMap = computed(() => !!props.mapsKey && (stops.value.length > 0 || props.hq !== null || props.agents.length > 0));
 const mapEl = ref<HTMLElement | null>(null);
 
-// Completed/skipped stops override the agent colour, mirroring the legacy map.
-const STATUS_COLOR: Record<string, string> = { completed: '#10b981', skipped: '#9ca3af', missed: '#ef4444' };
-const UNASSIGNED = '#9ca3af';
-
-const lineColorFor = (agentId: number | null): string => (agentId !== null ? (props.colors[agentId] ?? UNASSIGNED) : UNASSIGNED);
-const markerColorFor = (mk: StopMarker): string => STATUS_COLOR[mk.status] ?? lineColorFor(mk.agent_id);
-
+type Overlay = { setMap: (m: unknown) => void; addListener: (ev: string, cb: () => void) => void };
 let g: GoogleMaps | null = null;
 let map: GMap | null = null;
 let creating = false;
-// Drawn overlays we own, so a redraw can wipe the previous frame.
-let overlays: Array<{ setMap: (m: unknown) => void }> = [];
-// One reused info window — opening it on a new pin moves it.
-let infoWindow: { setContent: (s: string) => void; open: (o: unknown) => void; close: () => void } | null = null;
+// What the last draw put on the map, so the next one can wipe it.
+let overlays: Overlay[] = [];
 
-function clearOverlays() {
-    infoWindow?.close();
-    for (const o of overlays) {
-        o.setMap(null);
-    }
+function clear() {
+    for (const o of overlays) o.setMap(null);
     overlays = [];
 }
 
-const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
-
-// Pin click → info window: pool, address, agent + a Street View link.
-function openInfo(mk: StopMarker, anchor: unknown) {
-    if (!infoWindow || !map) {
-        return;
-    }
-    const streetView = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${mk.lat},${mk.lng}`;
-    const rows = [
-        `<div style="font-weight:600;font-size:13px;color:#0f172a">${esc(mk.pool ?? 'Stop')}</div>`,
-        mk.address ? `<div style="color:#475569">${esc(mk.address)}</div>` : '',
-        mk.agent ? `<div style="color:#475569">Tech: ${esc(mk.agent)}</div>` : '',
-        `<a href="${streetView}" target="_blank" rel="noopener" style="color:#0ea5e9;text-decoration:none">Street View</a>`,
-    ];
-    infoWindow.setContent(
-        `<div style="display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.35;padding:1px 2px">${rows.join('')}</div>`,
-    );
-    infoWindow.open({ map, anchor });
-}
-
 function draw(fit = true) {
-    if (!g || !map) {
-        return;
-    }
+    if (!g || !map) return;
     const m = g.maps;
-    clearOverlays();
+    clear();
     const bounds = new m.LatLngBounds();
+    const place = (Kind: GoogleMaps['maps']['Marker'], opts: Record<string, unknown>): Overlay => {
+        const o = new Kind({ map, ...opts }) as Overlay;
+        overlays.push(o);
+        return o;
+    };
 
-    // Group stops by agent so each route gets one threaded polyline.
-    const groups: Record<string, StopMarker[]> = {};
-    for (const mk of props.markers) {
-        const position = { lat: mk.lat, lng: mk.lng };
-        const focused = mk.id === props.focusId;
-        const marker = new m.Marker({
-            position,
-            map,
-            title: `${mk.order}. ${mk.pool ?? 'Stop'}${mk.agent ? ` — ${mk.agent}` : ''}`,
-            label: { text: String(mk.order), color: '#ffffff', fontSize: focused ? '13px' : '11px', fontWeight: '600' },
-            // The focused pin is enlarged with a gold ring so it stands out.
-            icon: {
-                path: m.SymbolPath.CIRCLE,
-                scale: focused ? 17 : 12,
-                fillColor: markerColorFor(mk),
-                fillOpacity: 1,
-                strokeColor: focused ? '#facc15' : '#ffffff',
-                strokeWeight: focused ? 3.5 : 2,
-            },
-            zIndex: focused ? 999 : undefined,
-        }) as unknown as { setMap: (x: unknown) => void; addListener: (ev: string, cb: () => void) => void };
-        marker.addListener('click', () => openInfo(mk, marker));
-        overlays.push(marker);
-        bounds.extend(position);
-        (groups[mk.agent_id ?? '__unassigned'] ??= []).push(mk);
-    }
-
-    // Dashed straight polyline per agent, in visit order (legacy-style — no
-    // road-following Directions API).
-    for (const [key, stops] of Object.entries(groups)) {
-        if (stops.length < 2) {
-            continue;
+    for (const r of props.routes) {
+        for (const s of r.stops) {
+            const focused = s.id === props.focusId;
+            const position = { lat: s.lat, lng: s.lng };
+            place(m.Marker, {
+                position,
+                title: `${s.order}. ${s.pool ?? 'Stop'}${r.agent ? ` — ${r.agent}` : ''}`,
+                label: { text: String(s.order), color: '#ffffff', fontSize: focused ? '13px' : '11px', fontWeight: '600' },
+                // The picked pin is bigger, with a gold ring.
+                icon: {
+                    path: m.SymbolPath.CIRCLE,
+                    scale: focused ? 17 : 12,
+                    fillColor: STATUS_COLOR[s.status] ?? r.color,
+                    fillOpacity: 1,
+                    strokeColor: focused ? '#facc15' : '#ffffff',
+                    strokeWeight: focused ? 3.5 : 2,
+                },
+                zIndex: focused ? 999 : undefined,
+            }).addListener('click', () => emit('select', s.id));
+            bounds.extend(position);
         }
-        const agentId = key === '__unassigned' ? null : Number(key);
-        const line = new m.Polyline({
-            map,
-            path: stops.map((s) => ({ lat: s.lat, lng: s.lng })),
-            geodesic: true,
-            strokeColor: lineColorFor(agentId),
-            strokeOpacity: 0,
-            icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.75, scale: 3 }, offset: '0', repeat: '12px' }],
-        }) as unknown as { setMap: (x: unknown) => void };
-        overlays.push(line);
+        // A dashed straight line through the route in visit order (no road-following Directions API).
+        if (r.stops.length > 1) {
+            place(m.Polyline, {
+                path: r.stops.map((s) => ({ lat: s.lat, lng: s.lng })),
+                geodesic: true,
+                strokeColor: r.color,
+                strokeOpacity: 0,
+                icons: [{ icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.75, scale: 3 }, offset: '0', repeat: '12px' }],
+            });
+        }
     }
 
-    // HQ marker (dark star), so the office anchors the day.
+    // The office anchors the day.
+    const points = stops.value.map((s) => ({ lat: s.lat, lng: s.lng }));
     if (props.hq) {
         const position = { lat: props.hq.lat, lng: props.hq.lng };
-        const hqMarker = new m.Marker({
-            position,
-            map,
-            title: props.hq.label ?? 'Headquarters',
-            icon: hqIcon(m),
-        }) as unknown as { setMap: (x: unknown) => void };
-        overlays.push(hqMarker);
+        place(m.Marker, { position, title: props.hq.label ?? 'Headquarters', icon: hqIcon(m) });
         bounds.extend(position);
+        points.push(position);
     }
 
-    // Live agent positions — a dark-ringed dot in the agent's colour with their
-    // initial, drawn on top so they're never hidden behind a stop pin.
+    // Live techs: a dark-ringed dot in the route's colour with their initial, on top of the pins.
     for (const a of props.agents) {
         const position = { lat: a.lat, lng: a.lng };
-        const agentMarker = new m.Marker({
+        place(m.Marker, {
             position,
-            map,
             title: `${a.name} (live)`,
             label: { text: (a.name?.[0] ?? '?').toUpperCase(), color: '#ffffff', fontSize: '11px', fontWeight: '700' },
-            icon: {
-                path: m.SymbolPath.CIRCLE,
-                scale: 13,
-                fillColor: props.colors[a.agent_id] ?? '#0ea5e9',
-                fillOpacity: 1,
-                strokeColor: '#0f172a',
-                strokeWeight: 3,
-            },
+            icon: { path: m.SymbolPath.CIRCLE, scale: 13, fillColor: a.color, fillOpacity: 1, strokeColor: '#0f172a', strokeWeight: 3 },
             zIndex: 1000,
-        }) as unknown as { setMap: (x: unknown) => void };
-        overlays.push(agentMarker);
+        });
         bounds.extend(position);
+        points.push(position);
     }
 
-    // A focus pan owns the viewport; only auto-fit on a normal (re)draw.
-    if (!fit) {
-        return;
-    }
-    const count = props.markers.length + (props.hq ? 1 : 0) + props.agents.length;
-    if (count === 1) {
-        const p = props.markers[0] ?? props.hq ?? props.agents[0];
-        if (p) {
-            map.setCenter({ lat: p.lat, lng: p.lng });
-            map.setZoom(13);
-        }
-    } else if (count > 1) {
+    // A focus pan owns the view; otherwise fit everything drawn.
+    if (!fit || points.length === 0) return;
+    if (points.length === 1) {
+        map.setCenter(points[0]);
+        map.setZoom(13);
+    } else {
         map.fitBounds(bounds, 48);
     }
 }
 
 async function ensureMap() {
-    if (map || creating || !canMap.value || !mapEl.value || !props.mapsKey) {
-        return;
-    }
+    if (map || creating || !canMap.value || !mapEl.value || !props.mapsKey) return;
     creating = true;
     try {
         g = await loadGoogleMaps(props.mapsKey);
@@ -207,7 +134,6 @@ async function ensureMap() {
             opts.backgroundColor = DARK_MAP_BG;
         }
         map = new g.maps.Map(mapEl.value, opts);
-        infoWindow = new g.maps.InfoWindow() as unknown as typeof infoWindow;
         draw();
     } catch {
         /* loading or the API failed — the fallback container stays in place */
@@ -218,62 +144,40 @@ async function ensureMap() {
 
 onMounted(ensureMap);
 
-// Date navigation / drag / colour change refresh the props; redraw (creating the
-// map first if a previously-empty day now has something to show). flush:'post'
-// guarantees the map element ref is mounted before we touch it.
+// Redraw on a change, creating the map first if the day had nothing to show.
+// flush:'post' means the map element is mounted before we touch it.
+const redraw = (fit: boolean) => (map ? draw(fit) : ensureMap());
+// A new day, a drag or a colour pick: refit, unless a picked pin owns the view.
 watch(
-    () => [props.markers, props.colors] as const,
-    async () => {
-        if (!map) {
-            await ensureMap();
-        } else {
-            // Keep a focused pan steady through drags/recolours; refit otherwise.
-            draw(props.focusId === null);
-        }
-    },
+    () => props.routes,
+    () => redraw(props.focusId === null),
     { deep: true, flush: 'post' },
 );
-
-// Live agent movement: redraw in place without refitting the viewport, so a
-// moving marker never yanks the map around.
+// Live movement: redraw in place, so a moving dot never yanks the view.
 watch(
     () => props.agents,
-    async () => {
-        if (!map) {
-            await ensureMap();
-        } else {
-            draw(false);
-        }
-    },
+    () => redraw(false),
     { deep: true, flush: 'post' },
 );
 
-// If the day empties out (fallback shown, element unmounted) drop the stale map
-// so it re-inits cleanly when stops return.
+// The fallback replaced the map element: drop the stale map so it starts fresh.
 watch(canMap, (now) => {
     if (!now) {
-        clearOverlays();
+        clear();
         map = null;
         g = null;
-        infoWindow = null;
     }
 });
 
-// Click-to-focus: re-highlight the pin (without refitting bounds) and pan/zoom
-// the map to it. Clearing focus (null) just drops the highlight, leaving the view.
+// A pick re-highlights the pin and pans/zooms to it; un-picking leaves the view.
 watch(
     () => props.focusId,
     (id) => {
-        if (!map) {
-            return;
-        }
+        if (!map) return;
         draw(false);
-        if (id === null) {
-            return;
-        }
-        const mk = props.markers.find((m) => m.id === id);
-        if (mk) {
-            map.panTo({ lat: mk.lat, lng: mk.lng });
+        const s = stops.value.find((x) => x.id === id);
+        if (s) {
+            map.panTo({ lat: s.lat, lng: s.lng });
             map.setZoom(15);
         }
     },
@@ -294,8 +198,10 @@ watch(
             class="border-border bg-muted/20 text-muted-foreground flex h-full min-h-[260px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 text-center text-sm"
         >
             <MapPin class="size-7 opacity-40" />
-            <p v-if="!mapsKey" class="font-medium">Maps aren't configured yet</p>
-            <p v-if="!mapsKey" class="max-w-xs text-xs">Add a Google Maps browser key to plot the day's routes here.</p>
+            <template v-if="!mapsKey">
+                <p class="font-medium">Maps aren't configured yet</p>
+                <p class="max-w-xs text-xs">Add a Google Maps browser key to plot the day's routes here.</p>
+            </template>
             <p v-else-if="allHidden" class="max-w-xs text-xs">{{ HIDDEN_NOTE }}</p>
             <p v-else class="max-w-xs text-xs">No geocoded stops for this day. Stops appear once their pools have a service address.</p>
         </div>

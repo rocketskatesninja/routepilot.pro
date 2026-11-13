@@ -28,7 +28,7 @@ test('an admin gets their own card first, even on a day they have no stops', fun
             ->where('routes.0.id', null)
             ->where('routes.0.agent_id', $this->admin->id)
             ->where('routes.0.agent', 'Glynn Owner')
-            ->where('routes.0.total', 0)
+            ->has('routes.0.stops', 0)
             ->where('routes.1.agent_id', $this->agent->id)
         );
 

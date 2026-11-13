@@ -8,6 +8,7 @@ use App\Actions\SkipStop;
 use App\Actions\UnskipStop;
 use App\Events\RouteUpdated;
 use App\Models\AgentLocation;
+use App\Models\ChemicalReading;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\Tenant;
@@ -42,7 +43,10 @@ class ScheduleController extends Controller
             'pool' => fn ($p) => $p->withTrashed()->select('id', 'name', 'customer_id', 'photo_path'),
             'pool.customer:id,first_name,last_name,photo_path',
             'pool.serviceLocation:id,pool_id,lat,lng,address_line1,city,state,zip',
+            // The panel under the map: the pool's last water test, with the day it was taken.
+            'pool.latestReading' => fn ($q) => $q->addSelect('chemical_readings.*', 'service_visits.completed_at as tested_at'),
             'serviceSubscription.serviceType:id,name',
+            'serviceVisit:id,route_stop_id',
         ]);
 
         $routeModels = Route::query()
@@ -84,7 +88,6 @@ class ScheduleController extends Controller
             'canManage' => $canManage,
             // An Agent+ may manage only their own route card; the UI matches this id.
             'manageAgentId' => $user?->isAgentPlus() ? $user->id : null,
-            'coords' => $this->buildCoords($routeModels, $unassignedRoute),
             'hq' => $hq,
             'mapsKey' => is_string($browserKey) && $browserKey !== '' ? $browserKey : null,
             'agentLocations' => $this->liveAgents($date, $routeModels),
@@ -118,7 +121,6 @@ class ScheduleController extends Controller
                     'name' => $agent->displayName(),
                     'lat' => $loc->lat,
                     'lng' => $loc->lng,
-                    'recorded_at' => $loc->recorded_at?->toIso8601String(),
                 ];
             })
             ->filter()
@@ -270,64 +272,76 @@ class ScheduleController extends Controller
      */
     private function presentRoute(Route $route): array
     {
-        $stops = $route->stops;
-
         return [
             'id' => $route->id,
             'agent' => $route->agent?->displayName(),
             'agent_id' => $route->agent?->getKey(),
             'agent_photo' => $this->photoUrl($route->agent?->getAttribute('avatar_path')),
             'color' => $this->agentColor($route->agent),
-            'completed' => $stops->where('status', 'completed')->count(),
-            'total' => $stops->count(),
-            'stops' => $stops->map(fn (RouteStop $s): array => [
-                'id' => $s->id,
-                'order' => $s->stop_order,
-                'pool' => $s->pool?->name,
-                'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
-                'customer' => $s->pool?->customer?->displayName(),
-                'service' => $s->serviceSubscription?->serviceType?->name,
-                'status' => $s->status,
-            ])->values()->all(),
+            'stops' => $route->stops->map(fn (RouteStop $s): array => $this->presentStop($s))->values()->all(),
         ];
     }
 
     /**
-     * Geocoded coordinates for the day's stops, keyed by stop id. The map joins
-     * these to the live (drag-reorderable) route lists client-side, so a stop
-     * dragged between agents re-plots without a round-trip. Stops without
-     * coordinates are omitted (the map simply can't place them). Tenant-scoped
-     * via the Route global scope on the queries that built these collections.
+     * One stop for its card, the map and the panel under the map. Its position
+     * rides along, so a stop dragged to another route re-plots with no round-trip.
      *
-     * @param  Collection<int, Route>  $routes
-     * @return array<int, array{lat: float, lng: float, address: string|null}>
+     * @return array<string, mixed>
      */
-    private function buildCoords(Collection $routes, ?Route $unassigned): array
+    private function presentStop(RouteStop $s): array
     {
-        $all = $routes->all();
-        if ($unassigned !== null) {
-            $all[] = $unassigned;
-        }
+        $at = $s->pool?->coordinates();
 
-        $coords = [];
-        foreach ($all as $route) {
-            foreach ($route->stops as $stop) {
-                $c = $stop->pool->coordinates();
-                if ($c !== null) {
-                    $coords[$stop->id] = ['lat' => $c[0], 'lng' => $c[1], 'address' => $stop->pool->serviceLocation?->formattedAddress()];
-                }
-            }
-        }
-
-        return $coords;
+        return [
+            'id' => $s->id,
+            'pool' => $s->pool?->name,
+            'pool_photo' => $this->photoUrl($s->pool?->getAttribute('photo_path')),
+            'customer' => $s->pool?->customer?->displayName(),
+            'service' => $s->serviceSubscription?->serviceType?->name,
+            'status' => $s->status,
+            'pool_id' => $s->pool?->id,
+            'customer_id' => $s->pool?->customer_id,
+            'skip_reason' => $s->status === 'skipped' ? $s->skip_reason : null,
+            // A finished stop's report is its completed visit.
+            'report_id' => $s->status === 'completed' ? $s->serviceVisit?->id : null,
+            'reading' => $this->presentReading($s->pool?->latestReading),
+            'lat' => $at[0] ?? null,
+            'lng' => $at[1] ?? null,
+            'address' => $s->pool?->serviceLocation?->formattedAddress(),
+        ];
     }
 
-    /** A one-line "street, city, ST zip" address for the map info window. */
+    /**
+     * A pool's last water test for the detail panel: the day (company time) and
+     * the main levels, or null when it has never been tested.
+     *
+     * @return array<string, float|string|null>|null
+     */
+    private function presentReading(?ChemicalReading $reading): ?array
+    {
+        if ($reading === null) {
+            return null;
+        }
+        $testedAt = $reading->getAttribute('tested_at');
 
-    /** An agent's chosen route colour, falling back to the brand sky. */
+        return [
+            'tested_on' => is_string($testedAt) ? Tenant::localDate(Carbon::parse($testedAt, 'UTC')) : null,
+            'free_chlorine' => $reading->free_chlorine,
+            'ph' => $reading->ph,
+            'alkalinity' => $reading->alkalinity,
+            'cyanuric_acid' => $reading->cyanuric_acid,
+            'calcium_hardness' => $reading->calcium_hardness,
+            'salt' => $reading->salt,
+        ];
+    }
+
+    /** An agent's chosen route colour, falling back to the brand sky; the unassigned bucket is grey. */
     private function agentColor(?User $agent): string
     {
-        $color = $agent?->getAttribute('map_color');
+        if ($agent === null) {
+            return '#9ca3af';
+        }
+        $color = $agent->getAttribute('map_color');
 
         return is_string($color) && $color !== '' ? $color : '#0ea5e9';
     }
@@ -346,8 +360,6 @@ class ScheduleController extends Controller
             'agent_id' => $agent?->id,
             'agent_photo' => $this->photoUrl($agent?->getAttribute('avatar_path')),
             'color' => $this->agentColor($agent),
-            'completed' => 0,
-            'total' => 0,
             'stops' => [],
         ];
     }

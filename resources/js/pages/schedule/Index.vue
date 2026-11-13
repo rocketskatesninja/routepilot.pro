@@ -2,151 +2,112 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import Hint from '@/components/Hint.vue';
 import ScheduleMap from '@/components/schedule/ScheduleMap.vue';
+import StopDetail from '@/components/schedule/StopDetail.vue';
 import StopRow from '@/components/schedule/StopRow.vue';
+import type { AgentDot, MapRoute, RouteCard, Stop } from '@/components/schedule/types';
 import { Button } from '@/components/ui/button';
 import { subscribeTenantSchedule } from '@/echo';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { clone } from '@/lib/utils';
+import { clone, localDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { CalendarDays, ChevronLeft, ChevronRight, EyeOff, Inbox, Sparkles, Wand2, X } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
-
-interface Stop {
-    id: number;
-    order: number;
-    pool: string | null;
-    pool_photo: string | null;
-    customer: string | null;
-    service: string | null;
-    status: string;
-}
-
-interface RouteCard {
-    id: number | null; // null: the unassigned bucket, or an admin's own route, before it has ever held a stop
-    agent: string | null;
-    agent_id: number | null;
-    agent_photo: string | null;
-    color: string;
-    completed: number;
-    total: number;
-    stops: Stop[];
-}
-
-interface MapMarker {
-    id: number;
-    lat: number;
-    lng: number;
-    order: number;
-    pool: string | null;
-    address: string | null;
-    status: string;
-    agent: string | null;
-    agent_id: number | null;
-}
-
-interface AgentMarker {
-    agent_id: number;
-    name: string;
-    lat: number;
-    lng: number;
-    recorded_at?: string;
-}
 
 const props = defineProps<{
     date: string;
     today: string;
     routes: RouteCard[];
+    /** The day's unassigned bucket (agent_id null); admins always get one to drop stops into. */
     unassigned: RouteCard | null;
     canManage: boolean;
     manageAgentId: number | null;
-    coords: Record<number, { lat: number; lng: number; address: string | null }>;
     hq: { lat: number; lng: number; label: string | null } | null;
     mapsKey: string | null;
-    agentLocations: AgentMarker[];
+    agentLocations: AgentDot[];
 }>();
-
-// Admins manage every route; an Agent+ manages only their own route card.
-const canManageRoute = (route: RouteCard): boolean => props.canManage || (props.manageAgentId !== null && route.agent_id === props.manageAgentId);
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Schedule', href: '/schedule' }];
 const busy = ref(false);
 const dateInput = ref<HTMLInputElement | null>(null);
 
-// A local, mutable copy of the routes that drag-and-drop reorders optimistically;
-// it re-syncs from the server (the source of truth) whenever the props change.
+// Admins manage every route; an Agent+ manages only their own.
+const canManageRoute = (route: RouteCard): boolean => props.canManage || (props.manageAgentId !== null && route.agent_id === props.manageAgentId);
+const isBucket = (route: RouteCard) => route.agent_id === null;
+
+// Local copies that drag-and-drop reorders at once; they re-sync whenever the server sends the day again.
 const localRoutes = ref<RouteCard[]>(clone(props.routes));
 watch(
     () => props.routes,
     (value) => (localRoutes.value = clone(value)),
 );
-
-// The per-day "unassigned" bucket is just a route whose agent_id is null; it
-// rides the same drag group so a stop dragged onto/off it is (un)assigned.
-const localUnassigned = ref<RouteCard | null>(props.unassigned ? clone(props.unassigned) : null);
+const localUnassigned = ref<RouteCard | null>(clone(props.unassigned));
 watch(
     () => props.unassigned,
-    (value) => (localUnassigned.value = value ? clone(value) : null),
+    (value) => (localUnassigned.value = clone(value)),
 );
+// Every card, in screen order: the unassigned bucket first. All share one drag group,
+// so a stop dragged onto or off the bucket is un- or re-assigned.
+const cards = computed(() => (localUnassigned.value ? [localUnassigned.value, ...localRoutes.value] : localRoutes.value));
 
-// Live sync: route changes refresh the board (debounced, only the day on
-// screen); agent movement slides each marker on the map in place.
+// Live sync: a route change reloads the day on screen (debounced); a tech's ping moves their dot.
 const page = usePage();
 const tenantId = Number((page.props.auth as { user?: { tenant_id?: number } } | undefined)?.user?.tenant_id ?? 0);
-const liveAgents = ref<Record<number, AgentMarker>>(Object.fromEntries(props.agentLocations.map((a) => [a.agent_id, a])));
+const toDots = (list: AgentDot[]) => Object.fromEntries(list.map((a) => [a.agent_id, a]));
+const liveAgents = ref<Record<number, AgentDot>>(toDots(props.agentLocations));
 watch(
     () => props.agentLocations,
-    (value) => (liveAgents.value = Object.fromEntries(value.map((a) => [a.agent_id, a]))),
+    (value) => (liveAgents.value = toDots(value)),
 );
-const agentMarkers = computed<AgentMarker[]>(() => Object.values(liveAgents.value));
 
 let unsubscribe: (() => void) | null = null;
-let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-
+let reloadTimer: ReturnType<typeof setTimeout> | undefined;
 onMounted(() => {
     if (!tenantId) return;
     unsubscribe = subscribeTenantSchedule(tenantId, {
         onRouteUpdate: (e) => {
             if (e.date !== props.date) return;
-            if (reloadTimer) clearTimeout(reloadTimer);
-            reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'coords', 'agentLocations'], preserveScroll: true }), 400);
+            clearTimeout(reloadTimer);
+            reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'agentLocations'], preserveScroll: true }), 400);
         },
         onAgentMove: (e) => {
-            // Only show movement on today's board, and only for a known agent name.
+            // Today's board only, and only for a tech it knows.
             if (props.date !== props.today) return;
-            const name = liveAgents.value[e.agent_id]?.name ?? props.routes.find((r) => r.agent_id === e.agent_id)?.agent ?? null;
-            if (name === null) return;
-            liveAgents.value = {
-                ...liveAgents.value,
-                [e.agent_id]: { agent_id: e.agent_id, name, lat: e.lat, lng: e.lng, recorded_at: e.recorded_at },
-            };
+            const name = liveAgents.value[e.agent_id]?.name ?? props.routes.find((r) => r.agent_id === e.agent_id)?.agent;
+            if (!name) return;
+            liveAgents.value = { ...liveAgents.value, [e.agent_id]: { agent_id: e.agent_id, name, lat: e.lat, lng: e.lng } };
         },
     });
 });
-
 onBeforeUnmount(() => {
-    if (reloadTimer) clearTimeout(reloadTimer);
+    clearTimeout(reloadTimer);
     unsubscribe?.();
 });
 
-const isToday = computed(() => props.date === props.today);
-const routeCount = computed(() => props.routes.filter((r) => r.total > 0).length);
-const totalStops = computed(() => props.routes.reduce((n, r) => n + r.total, 0));
-const completedStops = computed(() => props.routes.reduce((n, r) => n + r.completed, 0));
+// The day's numbers, live as stops are dragged.
 const doneCount = (stops: Stop[]) => stops.filter((s) => s.status === 'completed').length;
+const stats = computed(() => {
+    const stops = cards.value.flatMap((r) => r.stops);
+    return [
+        { label: 'Routes', value: localRoutes.value.filter((r) => r.stops.length > 0).length, tone: '' },
+        { label: 'Stops', value: stops.length, tone: '' },
+        { label: 'Completed', value: doneCount(stops), tone: 'text-emerald-600 dark:text-emerald-400' },
+    ];
+});
 
-function go(date?: string) {
-    router.get('/schedule', date ? { date } : {}, { preserveState: true, preserveScroll: true });
-}
-
+// Date navigation.
+const isToday = computed(() => props.date === props.today);
+const prettyDate = computed(() =>
+    new Date(props.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+);
+const go = (date?: string) => router.get('/schedule', date ? { date } : {}, { preserveState: true, preserveScroll: true });
 // Step a day on the local calendar (toISOString would convert to UTC and can skip a day).
 function shift(days: number) {
     const d = new Date(props.date + 'T00:00:00');
     d.setDate(d.getDate() + days);
-    go([d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-'));
+    go(localDay(d));
 }
-
 function openCalendar() {
     try {
         dateInput.value?.showPicker();
@@ -167,17 +128,14 @@ function materialize() {
     router.post('/schedule/materialize', {}, { preserveScroll: true, onFinish: () => (busy.value = false) });
 }
 
-// Persist the current arrangement after a drag (debounced — a cross-route move
-// fires a change on both lists). Idempotent on the server, so a double send is safe.
+// Save the arrangement after a drag (debounced: a move between cards fires a change on
+// both). The server is idempotent, so a double send is safe. agent_id lets it save an
+// unsaved card (the bucket, an admin's own) the first time a stop lands on it.
 let persistTimer: ReturnType<typeof setTimeout> | undefined;
 function persist() {
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
-        // agent_id lets the server save an admin's own card the first time a stop lands on it.
-        const routes = localRoutes.value.map((r) => ({ id: r.id, agent_id: r.agent_id, stop_ids: r.stops.map((s) => s.id) }));
-        if (localUnassigned.value) {
-            routes.push({ id: localUnassigned.value.id, agent_id: null, stop_ids: localUnassigned.value.stops.map((s) => s.id) });
-        }
+        const routes = cards.value.map((r) => ({ id: r.id, agent_id: r.agent_id, stop_ids: r.stops.map((s) => s.id) }));
         router.post('/schedule/arrange', { date: props.date, routes }, { preserveScroll: true, preserveState: true });
     }, 120);
 }
@@ -186,105 +144,64 @@ const optimize = (id: number | null) => id !== null && router.post(`/routes/${id
 const skipStop = (id: number) => router.post(`/stops/${id}/skip`, {}, { preserveScroll: true });
 const unskipStop = (id: number) => router.post(`/stops/${id}/unskip`, {}, { preserveScroll: true });
 
-// Live per-agent route colours drive both the card headers and the map lines.
-// Derived from the local (mutable) routes so a colour pick updates instantly.
-const agentColors = computed<Record<number, string>>(() => {
-    const out: Record<number, string> = {};
-    for (const r of localRoutes.value) {
-        if (r.agent_id !== null) {
-            out[r.agent_id] = r.color;
-        }
-    }
-    return out;
-});
-
-// Map markers are computed from the LIVE route lists joined to the server's
-// geocode table — so dragging a stop between agents re-plots it immediately
-// (new colour, new polyline grouping) with no round-trip. Order follows the
-// list position; stops without coordinates are dropped.
-const mapMarkers = computed<MapMarker[]>(() => {
-    const out: MapMarker[] = [];
-    const add = (route: RouteCard) => {
-        route.stops.forEach((s, i) => {
-            const c = props.coords[s.id];
-            if (!c) return;
-            out.push({
-                id: s.id,
-                lat: c.lat,
-                lng: c.lng,
-                order: i + 1,
-                pool: s.pool,
-                address: c.address,
-                status: s.status,
-                agent: route.agent,
-                agent_id: route.agent_id,
-            });
-        });
-    };
-    localRoutes.value.forEach(add);
-    if (localUnassigned.value) add(localUnassigned.value);
-    return out;
-});
-
-// Agent toggles: a map legend whose chips hide/show each route. Keyed by agent
-// id, with the unassigned bucket under the 'unassigned' key.
-type AgentKey = number | 'unassigned';
-const hiddenAgents = ref<Set<AgentKey>>(new Set());
-const keyOf = (id: number | null): AgentKey => id ?? 'unassigned';
-const isAgentHidden = (id: number | null) => hiddenAgents.value.has(keyOf(id));
-function toggleAgent(id: number | null) {
-    const next = new Set(hiddenAgents.value);
-    const k = keyOf(id);
-    if (next.has(k)) {
-        next.delete(k);
-    } else {
-        next.add(k);
-    }
-    hiddenAgents.value = next;
-}
-// Show every route again: the legend's Clear filters, which stays put and is
-// only enabled while a chip is off (so the chips don't shift as you toggle).
-const clearFilters = () => (hiddenAgents.value = new Set());
-
-// The legend's entries: each agent with stops, plus the unassigned bucket.
-const mapAgents = computed(() => {
-    const list = localRoutes.value
-        .filter((r) => r.stops.length > 0)
-        .map((r) => ({ id: r.agent_id as number | null, label: r.agent, color: r.color }));
-    if (localUnassigned.value && localUnassigned.value.stops.length > 0) {
-        list.push({ id: null, label: 'Unassigned', color: '#9ca3af' });
-    }
-    return list;
-});
-
-const visibleMarkers = computed(() => mapMarkers.value.filter((m) => !isAgentHidden(m.agent_id)));
-// A hidden agent's live dot goes too.
-const visibleAgents = computed(() => agentMarkers.value.filter((a) => !isAgentHidden(a.agent_id)));
-const filtering = computed(() => mapAgents.value.some((a) => isAgentHidden(a.id)));
-const allHidden = computed(() => mapAgents.value.length > 0 && mapAgents.value.every((a) => isAgentHidden(a.id)));
-
-// Click-to-focus: clicking a stop pans/zooms the map to its pin (toggle off by
-// clicking it again). The id is shared with the map (highlight) and the list row.
-// A route hidden on the map is greyed out, and its stops have no pin to focus.
-const focusId = ref<number | null>(null);
-function focusStop(stop: Stop, agentId: number | null) {
-    if (isAgentHidden(agentId)) {
-        return;
-    }
-    focusId.value = focusId.value === stop.id ? null : stop.id;
-}
-
 function setColor(route: RouteCard, event: Event) {
-    const hex = (event.target as HTMLInputElement).value;
-    route.color = hex; // optimistic — header + map recolour at once
+    route.color = (event.target as HTMLInputElement).value; // the card and the map recolour at once
     if (route.agent_id !== null) {
-        router.patch(`/agents/${route.agent_id}/color`, { map_color: hex }, { preserveScroll: true, preserveState: true });
+        router.patch(`/agents/${route.agent_id}/color`, { map_color: route.color }, { preserveScroll: true, preserveState: true });
     }
 }
 
-const prettyDate = computed(() =>
-    new Date(props.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+// The map legend: a chip per card with stops hides or shows that route (and its tech's
+// live dot). A hidden card is greyed out and its stops can't be picked.
+const hidden = ref(new Set<number | null>());
+const isHidden = (agentId: number | null) => hidden.value.has(agentId);
+const legend = computed(() => cards.value.filter((r) => r.stops.length > 0));
+const filtering = computed(() => legend.value.some((r) => isHidden(r.agent_id)));
+const allHidden = computed(() => legend.value.length > 0 && legend.value.every((r) => isHidden(r.agent_id)));
+function toggleHidden(agentId: number | null) {
+    const next = new Set(hidden.value);
+    if (!next.delete(agentId)) next.add(agentId);
+    hidden.value = next;
+    // A hidden route's stop can't stay picked: its pin is gone.
+    if (selected.value && isHidden(selected.value.route.agent_id)) focusId.value = null;
+}
+const clearFilters = () => (hidden.value = new Set());
+
+// What the map draws: the shown routes' placed stops, numbered as on their card, and the
+// shown techs' live dots in their route's colour.
+const mapRoutes = computed<MapRoute[]>(() =>
+    cards.value
+        .filter((r) => !isHidden(r.agent_id))
+        .map((r) => ({
+            agent: r.agent,
+            color: r.color,
+            stops: r.stops.flatMap((s, i) =>
+                s.lat !== null && s.lng !== null ? [{ id: s.id, order: i + 1, lat: s.lat, lng: s.lng, pool: s.pool, status: s.status }] : [],
+            ),
+        })),
 );
+const mapAgents = computed(() =>
+    Object.values(liveAgents.value)
+        .filter((a) => !isHidden(a.agent_id))
+        .map((a) => ({ ...a, color: localRoutes.value.find((r) => r.agent_id === a.agent_id)?.color ?? '#0ea5e9' })),
+);
+
+// The picked stop (from its row or its pin): highlighted in the list, enlarged on the
+// map, and shown in the panel under it. Picking it again lets it go.
+const focusId = ref<number | null>(null);
+const selected = computed(() => {
+    for (const route of cards.value) {
+        const stop = route.stops.find((s) => s.id === focusId.value);
+        if (stop) return { stop, route };
+    }
+    return null;
+});
+const pick = (id: number) => (focusId.value = focusId.value === id ? null : id);
+// A pin click also brings its row into view in the list.
+function pickPin(id: number) {
+    pick(id);
+    void nextTick(() => document.querySelector(`[data-stop-id="${id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+}
 </script>
 
 <template>
@@ -314,13 +231,10 @@ const prettyDate = computed(() =>
             </div>
         </template>
 
-        <div class="flex h-full flex-1 gap-4 p-4">
-            <!-- Left: the day's routes as a vertical, drag-and-drop list -->
+        <div class="rp-fit-screen flex min-h-0 flex-1 gap-4 p-4">
+            <!-- Left: the day's cards, a drag-and-drop list that scrolls on its own. -->
             <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[30rem] lg:shrink-0">
-                <div
-                    v-if="localRoutes.length === 0 && !localUnassigned"
-                    class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center"
-                >
+                <div v-if="cards.length === 0" class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
                     <CalendarDays class="size-8 opacity-50" />
                     <p>No routes scheduled for this day.</p>
                     <Hint v-if="props.canManage" :text="generateHint">
@@ -330,73 +244,27 @@ const prettyDate = computed(() =>
                     </Hint>
                 </div>
 
-                <!-- Unassigned bucket: the day's stops on no agent. A persistent
-                     drop target — dragging a stop here un-assigns it. -->
+                <!-- A tech's route, or the unassigned bucket (dashed): dragging a stop there un-assigns it. -->
                 <div
-                    v-if="localUnassigned"
-                    class="border-border bg-muted/20 rounded-xl border border-dashed transition-opacity"
-                    :class="{ 'opacity-50': isAgentHidden(null) }"
+                    v-for="route in cards"
+                    :key="route.id ?? `agent-${route.agent_id}`"
+                    class="border-border overflow-hidden rounded-xl border transition-opacity"
+                    :class="[isBucket(route) ? 'bg-muted/20 border-dashed' : 'border-l-[3px]', { 'opacity-50': isHidden(route.agent_id) }]"
+                    :style="isBucket(route) ? undefined : { borderLeftColor: route.color }"
                 >
-                    <div class="border-border flex items-center justify-between border-b px-4 py-2">
-                        <div class="flex items-center gap-2">
+                    <div
+                        class="border-border flex items-center justify-between border-b px-4 py-2"
+                        :style="isBucket(route) ? undefined : { backgroundColor: route.color + '14' }"
+                    >
+                        <div v-if="isBucket(route)" class="flex items-center gap-2">
                             <span class="bg-muted text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full">
                                 <Inbox class="size-4" />
                             </span>
                             <span class="font-medium">Unassigned stops</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <button
-                                v-if="isAgentHidden(null)"
-                                type="button"
-                                class="text-muted-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
-                                title="Hidden on the map. Click to show it again."
-                                @click="toggleAgent(null)"
-                            >
-                                <EyeOff class="size-3" /> Hidden
-                            </button>
-                            <span class="text-muted-foreground text-xs">{{ localUnassigned.stops.length }}</span>
-                        </div>
-                    </div>
-
-                    <draggable
-                        :list="localUnassigned.stops"
-                        tag="ul"
-                        item-key="id"
-                        group="route-stops"
-                        :animation="150"
-                        :disabled="!props.canManage"
-                        handle=".drag-handle"
-                        ghost-class="bg-muted/60"
-                        class="divide-border min-h-[2.75rem] divide-y text-sm"
-                        @change="persist"
-                    >
-                        <template #item="{ element: stop, index }">
-                            <StopRow
-                                :stop="stop"
-                                :number="index + 1"
-                                :focused="focusId === stop.id"
-                                :movable="props.canManage"
-                                :skippable="false"
-                                @click="focusStop(stop, null)"
-                            />
-                        </template>
-                    </draggable>
-                    <p v-if="localUnassigned.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">
-                        No unassigned stops for this day.
-                    </p>
-                </div>
-
-                <div
-                    v-for="route in localRoutes"
-                    :key="route.id ?? `agent-${route.agent_id}`"
-                    class="border-border overflow-hidden rounded-xl border border-l-[3px] transition-opacity"
-                    :class="{ 'opacity-50': isAgentHidden(route.agent_id) }"
-                    :style="{ borderLeftColor: route.color }"
-                >
-                    <div class="border-border flex items-center justify-between border-b px-4 py-2" :style="{ backgroundColor: route.color + '14' }">
-                        <div class="flex min-w-0 items-center gap-2">
+                        <div v-else class="flex min-w-0 items-center gap-2">
                             <EntityAvatar :src="route.agent_photo" type="person" :name="route.agent" size="sm" shape="circle" />
-                            <span class="truncate font-medium" :title="route.agent">{{ route.agent }}</span>
+                            <span class="truncate font-medium" :title="route.agent ?? undefined">{{ route.agent }}</span>
                             <label
                                 v-if="props.canManage"
                                 class="relative inline-flex size-4 shrink-0 cursor-pointer items-center justify-center"
@@ -413,17 +281,19 @@ const prettyDate = computed(() =>
                         </div>
                         <div class="flex items-center gap-2">
                             <button
-                                v-if="isAgentHidden(route.agent_id)"
+                                v-if="isHidden(route.agent_id)"
                                 type="button"
                                 class="text-muted-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
                                 title="Hidden on the map. Click to show it again."
-                                @click="toggleAgent(route.agent_id)"
+                                @click="toggleHidden(route.agent_id)"
                             >
                                 <EyeOff class="size-3" /> Hidden
                             </button>
-                            <span class="text-muted-foreground text-xs">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
+                            <span class="text-muted-foreground text-xs">{{
+                                isBucket(route) ? route.stops.length : `${doneCount(route.stops)}/${route.stops.length} done`
+                            }}</span>
                             <Hint
-                                v-if="canManageRoute(route) && route.stops.length > 1"
+                                v-if="!isBucket(route) && canManageRoute(route) && route.stops.length > 1"
                                 text="Reorders the stops still to do for the shortest drive. Finished ones keep their place."
                             >
                                 <button
@@ -455,35 +325,29 @@ const prettyDate = computed(() =>
                                 :number="index + 1"
                                 :focused="focusId === stop.id"
                                 :movable="canManageRoute(route)"
-                                :skippable="canManageRoute(route)"
-                                @click="focusStop(stop, route.agent_id)"
+                                :skippable="!isBucket(route) && canManageRoute(route)"
+                                @click="isHidden(route.agent_id) || pick(stop.id)"
                                 @skip="skipStop(stop.id)"
                                 @unskip="unskipStop(stop.id)"
                             />
                         </template>
                     </draggable>
-                    <p v-if="route.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">No stops — drag one here.</p>
+                    <p v-if="route.stops.length === 0" class="text-muted-foreground px-4 py-3 text-center text-xs">
+                        {{ isBucket(route) ? 'No unassigned stops for this day.' : 'No stops — drag one here.' }}
+                    </p>
                 </div>
             </div>
 
-            <!-- Right: route map + day details (reserved space) -->
+            <!-- Right: the day's numbers, the map and the picked visit. -->
             <aside class="hidden min-h-0 flex-1 flex-col gap-4 lg:flex">
                 <div class="grid grid-cols-3 gap-3">
-                    <div class="border-border rounded-xl border p-3 text-center">
-                        <div class="text-xl font-semibold">{{ routeCount }}</div>
-                        <div class="text-muted-foreground text-xs">Routes</div>
-                    </div>
-                    <div class="border-border rounded-xl border p-3 text-center">
-                        <div class="text-xl font-semibold">{{ totalStops }}</div>
-                        <div class="text-muted-foreground text-xs">Stops</div>
-                    </div>
-                    <div class="border-border rounded-xl border p-3 text-center">
-                        <div class="text-xl font-semibold text-emerald-600 dark:text-emerald-400">{{ completedStops }}</div>
-                        <div class="text-muted-foreground text-xs">Completed</div>
+                    <div v-for="s in stats" :key="s.label" class="border-border rounded-xl border p-3 text-center">
+                        <div class="text-xl font-semibold" :class="s.tone">{{ s.value }}</div>
+                        <div class="text-muted-foreground text-xs">{{ s.label }}</div>
                     </div>
                 </div>
-                <!-- Map legend / agent toggles: click a chip to hide that route. -->
-                <div v-if="props.mapsKey && mapAgents.length" class="flex flex-wrap gap-1.5">
+                <!-- The legend: Clear filters stays put (disabled until a chip is off), so the chips never shift. -->
+                <div v-if="props.mapsKey && legend.length" class="flex flex-wrap gap-1.5">
                     <button
                         type="button"
                         class="border-border hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors disabled:pointer-events-none disabled:opacity-40"
@@ -493,27 +357,28 @@ const prettyDate = computed(() =>
                         <X class="size-3" /> Clear filters
                     </button>
                     <button
-                        v-for="a in mapAgents"
-                        :key="a.id ?? 'unassigned'"
+                        v-for="r in legend"
+                        :key="r.agent_id ?? 'unassigned'"
                         type="button"
                         class="border-border inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors"
-                        :class="isAgentHidden(a.id) ? 'text-muted-foreground line-through opacity-50' : 'hover:bg-muted'"
-                        :title="isAgentHidden(a.id) ? `Show ${a.label}` : `Hide ${a.label}`"
-                        @click="toggleAgent(a.id)"
+                        :class="isHidden(r.agent_id) ? 'text-muted-foreground line-through opacity-50' : 'hover:bg-muted'"
+                        :title="`${isHidden(r.agent_id) ? 'Show' : 'Hide'} ${r.agent ?? 'Unassigned'}`"
+                        @click="toggleHidden(r.agent_id)"
                     >
-                        <span class="size-2.5 rounded-full" :style="{ backgroundColor: a.color }" />
-                        {{ a.label }}
+                        <span class="size-2.5 rounded-full" :style="{ backgroundColor: r.color }" />
+                        {{ r.agent ?? 'Unassigned' }}
                     </button>
                 </div>
                 <ScheduleMap
                     :maps-key="props.mapsKey"
                     :hq="props.hq"
-                    :markers="visibleMarkers"
-                    :agents="visibleAgents"
-                    :colors="agentColors"
+                    :routes="mapRoutes"
+                    :agents="mapAgents"
                     :focus-id="focusId"
                     :all-hidden="allHidden"
+                    @select="pickPin"
                 />
+                <StopDetail :stop="selected?.stop ?? null" :tech="selected?.route.agent ?? null" />
             </aside>
         </div>
     </AppLayout>

@@ -306,3 +306,14 @@ header[data-tight] [data-header-actions] .sm\:mr-1 {
         margin-inline: auto;
     }
 }
+
+/* A page that fits the window (the Schedule: visit list | map over the visit
+   panel). On a wide screen the content area is exactly the window's height (less
+   the inset margin), so the list scrolls in its own column instead of stretching
+   the page and the map with it. Narrower, the page scrolls as usual. */
+@media (min-width: 1024px) {
+    .rp-page-content:has(.rp-fit-screen) {
+        height: calc(100svh - 1rem);
+        min-height: 0;
+    }
+}

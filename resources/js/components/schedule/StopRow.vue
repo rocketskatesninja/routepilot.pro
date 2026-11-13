@@ -2,14 +2,16 @@
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { visitStatusClass } from '@/lib/statusColors';
 import { GripVertical, SkipForward, Undo2 } from 'lucide-vue-next';
+import type { Stop } from './types';
 
 /**
  * One stop on a Schedule card (a tech's route or the unassigned bucket). Pool name on its
  * own line; the customer shares the next with the status, which never shrinks; then the
- * service. A click on the row (falls through to the <li>) focuses the map.
+ * service. A click on the row (falls through to the <li>) picks the stop for the
+ * map and the panel; a pin click scrolls its row into view by data-stop-id.
  */
 defineProps<{
-    stop: { pool: string | null; pool_photo: string | null; customer: string | null; service: string | null; status: string };
+    stop: Stop;
     number: number;
     focused: boolean;
     /** Show the drag handle on a stop that's still due. */
@@ -23,6 +25,7 @@ defineEmits<{ skip: []; unskip: [] }>();
 
 <template>
     <li
+        :data-stop-id="stop.id"
         class="flex cursor-pointer items-center gap-2 px-4 py-2 transition-colors"
         :class="focused ? 'bg-primary/10 ring-primary/40 ring-1 ring-inset' : 'hover:bg-muted/40'"
     >

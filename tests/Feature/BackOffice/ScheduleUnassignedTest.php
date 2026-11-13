@@ -29,7 +29,7 @@ test('the day view surfaces the unassigned bucket with its stops', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('schedule/Index')
             ->where('unassigned.agent', null)
-            ->where('unassigned.total', 1)
+            ->has('unassigned.stops', 1)
             ->where('unassigned.stops.0.pool', 'Lonely Pool')
             ->has('routes', 1) // just the admin's own empty card
             ->where('routes.0.id', null)
@@ -39,7 +39,7 @@ test('the day view surfaces the unassigned bucket with its stops', function () {
 test('opening a day saves nothing, but an admin still gets an empty bucket to drop into', function () {
     $this->actingAs($this->admin)
         ->get('/schedule')
-        ->assertInertia(fn (Assert $page) => $page->where('unassigned.id', null)->where('unassigned.total', 0));
+        ->assertInertia(fn (Assert $page) => $page->where('unassigned.id', null)->has('unassigned.stops', 0));
 
     expect(Route::query()->count())->toBe(0);
 });
