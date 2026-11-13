@@ -233,7 +233,7 @@ function pickPin(id: number) {
 
         <div class="rp-fit-screen flex min-h-0 flex-1 gap-4 p-4">
             <!-- Left: the day's cards, a drag-and-drop list that scrolls on its own. -->
-            <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[30rem] lg:shrink-0">
+            <div class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[36rem] lg:shrink-0">
                 <div v-if="cards.length === 0" class="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
                     <CalendarDays class="size-8 opacity-50" />
                     <p>No routes scheduled for this day.</p>

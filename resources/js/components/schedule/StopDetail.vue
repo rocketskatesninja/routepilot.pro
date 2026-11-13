@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
-import { Button } from '@/components/ui/button';
 import { customerLink, mapsLink, poolLink, reportLink } from '@/lib/links';
 import { visitStatusClass } from '@/lib/statusColors';
 import { formatDay } from '@/lib/utils';
@@ -37,6 +36,9 @@ const lastTest = computed(() => {
     return r.tested_on ? `${formatDay(r.tested_on)}: ${levels}` : levels;
 });
 
+// The app's record-link look (as on the reports and pools pages).
+const LINK = 'text-primary font-medium underline-offset-4 hover:underline';
+
 const directions = computed(() => mapsLink(props.stop?.address ?? null));
 const streetView = computed(() => {
     const s = props.stop;
@@ -45,7 +47,7 @@ const streetView = computed(() => {
 </script>
 
 <template>
-    <section class="border-border h-52 shrink-0 overflow-y-auto rounded-xl border p-4 text-sm" aria-live="polite">
+    <section class="border-border h-40 shrink-0 overflow-y-auto rounded-xl border p-4 text-sm" aria-live="polite">
         <div v-if="!stop" class="text-muted-foreground flex h-full items-center justify-center gap-2 text-center">
             <MousePointerClick class="size-4 shrink-0" /> Click a visit to see its details here.
         </div>
@@ -53,19 +55,26 @@ const streetView = computed(() => {
             <div class="flex items-center gap-3">
                 <EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" />
                 <div class="min-w-0 flex-1">
+                    <!-- The names open their records; a finished visit links its report. -->
                     <div class="flex items-center gap-2">
-                        <p class="truncate font-medium" :title="stop.pool ?? undefined">{{ stop.pool }}</p>
+                        <Link v-if="stop.pool_id" :href="poolLink(stop.pool_id)" :class="[LINK, 'truncate']" :title="stop.pool ?? undefined">{{
+                            stop.pool
+                        }}</Link>
+                        <span v-else class="truncate font-medium">{{ stop.pool }}</span>
                         <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="visitStatusClass(stop.status)">{{
                             stop.status.replace('_', ' ')
                         }}</span>
+                        <Link v-if="stop.report_id" :href="reportLink(stop.report_id)" :class="[LINK, 'shrink-0 text-xs']">View report</Link>
                     </div>
                     <p class="text-muted-foreground truncate text-xs" :title="[stop.customer, stop.service].filter(Boolean).join(' · ')">
-                        {{ [stop.customer, stop.service].filter(Boolean).join(' · ') }}
+                        <Link v-if="stop.customer_id" :href="customerLink(stop.customer_id)" :class="LINK">{{ stop.customer }}</Link>
+                        <template v-else>{{ stop.customer }}</template>
+                        <template v-if="stop.service"> · {{ stop.service }}</template>
                     </p>
                 </div>
             </div>
 
-            <dl class="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">
+            <dl class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-xs">
                 <dt class="text-muted-foreground">Tech</dt>
                 <dd>{{ tech ?? 'Unassigned' }}</dd>
                 <dt class="text-muted-foreground">Address</dt>
@@ -94,16 +103,6 @@ const streetView = computed(() => {
                     <dd>{{ stop.skip_reason }}</dd>
                 </template>
             </dl>
-
-            <div class="mt-3 flex flex-wrap gap-2">
-                <Button v-if="stop.pool_id" as-child size="sm" variant="outline"><Link :href="poolLink(stop.pool_id)">Open pool</Link></Button>
-                <Button v-if="stop.customer_id" as-child size="sm" variant="outline"
-                    ><Link :href="customerLink(stop.customer_id)">Open customer</Link></Button
-                >
-                <Button v-if="stop.report_id" as-child size="sm" variant="outline"
-                    ><Link :href="reportLink(stop.report_id)">Open report</Link></Button
-                >
-            </div>
         </template>
     </section>
 </template>
