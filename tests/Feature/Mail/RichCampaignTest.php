@@ -55,6 +55,12 @@ test('the plain-text copy keeps paragraphs and lists apart and spells links out'
     expect($text)->toBe("Hi there,\n\n- Skimmer\n- Pump\n\nSee our site (https://x.test) & more");
 });
 
+test('the plain-text copy numbers a numbered list, and ignores line breaks between tags', function () {
+    $text = EmailHtml::toText("<p>Steps:</p>\n<ol>\n<li>Cover off</li>\n<li>Pump on</li>\n</ol>\n<ul>\n<li>Gate open</li>\n</ul>");
+
+    expect($text)->toBe("Steps:\n\n1. Cover off\n2. Pump on\n\n- Gate open");
+});
+
 test('{first name} becomes each person\'s first name, escaped, or "there" without one', function () {
     expect(EmailHtml::personalise('<p>Hi {first name},</p>', 'Robert'))->toBe('<p>Hi Robert,</p>')
         ->and(EmailHtml::personalise('<p>Hi {First Name},</p>', '<b>Bo</b>'))->toBe('<p>Hi &lt;b&gt;Bo&lt;/b&gt;,</p>')

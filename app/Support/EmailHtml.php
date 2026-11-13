@@ -85,7 +85,17 @@ class EmailHtml
     /** The plain-text copy of an email: paragraphs and list items on their own lines, links spelled out. */
     public static function toText(string $html): string
     {
-        $text = preg_replace('#<a [^>]*href="([^"]*)"[^>]*>(.*?)</a>#is', '$2 ($1)', $html) ?? $html;
+        // Line breaks between tags are just layout in the HTML; they'd double the spacing here.
+        $text = preg_replace('#>\s+<#', '><', $html) ?? $html;
+        $text = preg_replace('#<a [^>]*href="([^"]*)"[^>]*>(.*?)</a>#is', '$2 ($1)', $text) ?? $text;
+        // Numbered lists count; bulleted ones get a dash.
+        $text = preg_replace_callback('#<ol[^>]*>(.*?)</ol>#is', function (array $m): string {
+            $n = 0;
+
+            return '<ol>'.(preg_replace_callback('#<li[^>]*>#i', function () use (&$n): string {
+                return ++$n.'. ';
+            }, $m[1]) ?? $m[1]).'</ol>';
+        }, $text) ?? $text;
         $text = preg_replace('#<li[^>]*>#i', '- ', $text) ?? $text;
         $text = preg_replace('#<br\s*/?>#i', "\n", $text) ?? $text;
         // Blocks get a blank line between them; list items and line breaks just a new line.
