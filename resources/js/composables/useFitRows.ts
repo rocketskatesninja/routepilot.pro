@@ -13,6 +13,10 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 export function useFitRows(currentPerPage: () => number, total: () => number) {
     const listRef = ref<HTMLElement | null>(null);
     let raf = 0;
+    // Right after our own re-request, only shrink. More rows can bring a scrollbar, which
+    // narrows the list so names wrap and rows grow (fewer fit); fewer rows drop it again
+    // (more fit). Growing back then would bounce between two sizes forever.
+    let justResized = false;
 
     const clamp = (n: number): number => Math.max(5, Math.min(40, n));
 
@@ -35,18 +39,22 @@ export function useFitRows(currentPerPage: () => number, total: () => number) {
         // Reserve room for the pagination bar + the page's bottom padding + a
         // little slack so a boundary case never produces a 1-row overflow.
         const avail = window.innerHeight - top - theadH - 76;
-        const fit = clamp(Math.floor(avail / rowH));
+        const cur = currentPerPage();
+        const settling = justResized;
+        justResized = false;
+        // Held at the current size while settling (see justResized).
+        const fit = settling ? Math.min(cur, clamp(Math.floor(avail / rowH))) : clamp(Math.floor(avail / rowH));
 
         // Seed future requests so query-replacing navigations don't reflow.
         document.cookie = `rp_per_page=${fit};path=/;max-age=31536000;samesite=lax`;
 
-        const cur = currentPerPage();
         if (Math.abs(fit - cur) <= 1) {
             return; // deadzone — avoids oscillation
         }
         if (fit > cur && total() <= cur) {
             return; // already showing everything; no need to grow
         }
+        justResized = true;
         const url = new URL(window.location.href);
         url.searchParams.set('perPage', String(fit));
         router.get(url.pathname + url.search, {}, { preserveState: true, preserveScroll: true, replace: true });

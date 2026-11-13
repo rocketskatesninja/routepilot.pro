@@ -9,6 +9,7 @@ import { computed } from 'vue';
  * that it falls back to an overlay Sheet. The `#detail` slot is authored once
  * and rendered into whichever host is live — no markup duplication. The content
  * swap animates on `selectionKey` change so navigating item-to-item glides.
+ * The slot gets `docked`: false when it covers the list (so it can offer to step aside).
  *
  * The pane is intentionally NOT a modal: no focus trap, no backdrop, and it must
  * not steal focus (that would hijack keyboard list navigation).
@@ -54,7 +55,7 @@ const overlayOpen = computed(() => !isDocked.value && props.hasSelection && (pro
             <div class="min-h-0 flex-1 overflow-y-auto p-5" aria-live="polite">
                 <Transition name="swap" mode="out-in">
                     <div :key="props.selectionKey ?? '__empty__'">
-                        <slot v-if="props.hasSelection" name="detail" />
+                        <slot v-if="props.hasSelection" name="detail" :docked="true" />
                         <slot v-else name="empty">
                             <div class="text-muted-foreground flex min-h-[60vh] items-center justify-center text-center text-sm">
                                 {{ props.emptyText }}
@@ -71,7 +72,7 @@ const overlayOpen = computed(() => !isDocked.value && props.hasSelection && (pro
         <SheetContent class="w-full overflow-y-auto sm:max-w-lg">
             <Transition name="swap">
                 <div :key="props.selectionKey ?? '__empty__'">
-                    <slot name="detail" />
+                    <slot name="detail" :docked="false" />
                 </div>
             </Transition>
         </SheetContent>

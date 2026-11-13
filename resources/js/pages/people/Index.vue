@@ -141,6 +141,9 @@ function toggleAll() {
 }
 
 const emailOpen = ref(false);
+// Below the docked layout the email form covers the list; "Choose people" tucks it away
+// so the boxes can be ticked, and the header's Email button brings it back.
+const picking = ref(false);
 const emailForm = useForm<{ audience: string; subject: string; body: string; recipients: string[] }>({
     audience: 'customers',
     subject: '',
@@ -155,15 +158,21 @@ const emailCount = computed(() => audienceOptions.value.find((a) => a.key === em
 function openEmail() {
     emailForm.audience = picked.value.length ? 'selected' : (props.audiences[0]?.key ?? 'customers');
     emailForm.clearErrors();
+    picking.value = false;
     emailOpen.value = true;
+}
+function backToEmail() {
+    picking.value = false;
+    if (picked.value.length) emailForm.audience = 'selected';
 }
 /** Put the email form away; the checkboxes, and anyone ticked, go with it (a typed draft stays). */
 function closeEmail() {
     emailOpen.value = false;
+    picking.value = false;
     picked.value = [];
     emailForm.clearErrors();
 }
-const toggleEmail = () => (emailOpen.value ? closeEmail() : openEmail());
+const toggleEmail = () => (!emailOpen.value ? openEmail() : picking.value ? backToEmail() : closeEmail());
 
 // Export: the list exactly as shown — same tab, search and sort, every page.
 function exportUrl(format: 'csv' | 'pdf') {
@@ -178,6 +187,7 @@ function submitEmail() {
         preserveScroll: true,
         onSuccess: () => {
             emailOpen.value = false;
+            picking.value = false;
             emailForm.reset();
             picked.value = [];
         },
@@ -196,6 +206,7 @@ watch(
             picked.value = [compose];
             emailForm.audience = 'selected';
             emailForm.clearErrors();
+            picking.value = false;
             emailOpen.value = true;
         }
     },
@@ -504,11 +515,14 @@ function destroyAgent() {
                 size="sm"
                 :variant="emailOpen ? 'default' : 'outline'"
                 :aria-pressed="emailOpen"
-                :title="emailOpen ? 'Close the email form' : 'Email people'"
+                :title="picking ? 'Back to the email form' : emailOpen ? 'Close the email form' : 'Email people'"
                 @click="toggleEmail"
             >
-                <Mail class="size-4 sm:mr-1" /><span class="hidden sm:inline">Email</span
-                ><span v-if="picked.length" class="ml-1">({{ picked.length }})</span>
+                <Mail class="size-4 sm:mr-1" />
+                <!-- While choosing, say how to get back even when the crowded header drops its words. -->
+                <span v-if="picking" class="ml-1">Back to email</span>
+                <span v-else class="hidden sm:inline">Email</span>
+                <span v-if="picked.length" class="ml-1">({{ picked.length }})</span>
             </Button>
             <DropdownMenu v-if="props.canManage">
                 <DropdownMenuTrigger as-child>
@@ -532,6 +546,7 @@ function destroyAgent() {
                 :has-selection="anyFormOpen || props.selected !== null"
                 :selection-key="anyFormOpen ? formKey : selectedKey"
                 empty-text="Select a person to see details."
+                :pane-open="!picking"
                 @close="closePane"
             >
                 <template #list>
@@ -619,7 +634,7 @@ function destroyAgent() {
                     </ListTable>
                 </template>
 
-                <template #detail>
+                <template #detail="{ docked }">
                     <!-- create / edit customer form: hosted in the docked pane, not an overlay -->
                     <form v-if="formOpen" class="space-y-4 text-sm" @submit.prevent="submitForm">
                         <PaneHeader
@@ -796,6 +811,10 @@ function destroyAgent() {
                                 <option v-for="a in audienceOptions" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
                             </select>
                             <p class="text-muted-foreground text-xs">{{ emailCount }} recipient(s).</p>
+                            <!-- Covering the list: step aside so people can be ticked. -->
+                            <Button v-if="!docked" type="button" variant="outline" size="sm" class="justify-self-start" @click="picking = true">
+                                <Users class="mr-1 size-4" /> Choose people
+                            </Button>
                         </div>
                         <div class="grid gap-1.5">
                             <Label for="esub">Subject</Label>
