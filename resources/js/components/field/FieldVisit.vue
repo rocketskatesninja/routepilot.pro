@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading, type Recommendation } from '@/lib/chemistry';
 import { partLabel, SUGGESTION_KEYS, toStockAmount } from '@/lib/field/chemicals';
 import { shrinkPhoto } from '@/lib/field/photo';
-import { isSignedOut, SIGNED_OUT } from '@/lib/field/session';
+import { isSignedOut } from '@/lib/field/session';
 import {
     deleteDraft,
     getDraft,
@@ -23,7 +23,7 @@ import {
     type WorkOrderDraft,
 } from '@/lib/field/store';
 import { queueCompletion } from '@/lib/field/sync';
-import { deleteJson } from '@/lib/http';
+import { deleteJson, SIGNED_OUT } from '@/lib/http';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
 import { formatAmount, formatDay, isEmail, unitFor } from '@/lib/utils';

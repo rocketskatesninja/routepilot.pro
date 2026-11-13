@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
-import { postForm } from '@/lib/http';
+import { isSignedOutResponse, postForm, SIGNED_OUT } from '@/lib/http';
 import { ImagePlus, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -22,6 +22,10 @@ async function onPick(e: Event) {
         const fd = new FormData();
         fd.append('image', file);
         const res = await postForm('/company/landing/image', fd);
+        if (isSignedOutResponse(res)) {
+            error.value = SIGNED_OUT;
+            return;
+        }
         if (!res.ok) {
             throw new Error('upload failed');
         }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { isSignedOut, SIGNED_OUT } from '@/lib/field/session';
-import { postJson } from '@/lib/http';
+import { isSignedOut } from '@/lib/field/session';
+import { postJson, SIGNED_OUT } from '@/lib/http';
 import { ChevronLeft, LoaderCircle, Plus, Search } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -36,6 +36,10 @@ async function find() {
             credentials: 'same-origin',
             headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         });
+        if (isSignedOut(res)) {
+            if (ask === latest) error.value = SIGNED_OUT;
+            return;
+        }
         if (!res.ok) throw new Error(String(res.status));
         const data = (await res.json()) as { pools: PoolHit[] };
         if (ask !== latest) return;

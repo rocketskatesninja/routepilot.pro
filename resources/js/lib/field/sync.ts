@@ -131,10 +131,10 @@ async function sync(item: QueuedVisit): Promise<void> {
     // Signed out: the visit is fine, it just needs the person signed in again — keep it waiting.
     if (isSignedOut(res)) return;
     // A definitive client error won't succeed on retry — surface it (with the server's reason), stop retrying.
-    if (res.status >= 400 && res.status < 500 && res.status !== 419) {
+    if (res.status >= 400 && res.status < 500) {
         await patchQueued(item.idempotency_key, { status: 'failed', error: await refusal(res) });
     }
-    // 419 (CSRF) / 5xx stay pending for a later retry.
+    // 5xx stays pending for a later retry.
 }
 
 export async function queuedCount(): Promise<number> {

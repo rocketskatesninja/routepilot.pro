@@ -4,6 +4,7 @@ import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { useFeature } from '@/composables/useFeature';
 import { useInventoryTracking } from '@/composables/useInventoryTracking';
+import { isSignedOutResponse } from '@/lib/http';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
@@ -29,6 +30,8 @@ const mounted = ref(false); // gate the Teleport to client-only — keeps it out
 const q = ref('');
 const remote = ref<Group[]>([]);
 const loading = ref(false);
+// The session ran out while the tab sat idle: say so, rather than "No matches".
+const signedOut = ref(false);
 const active = ref(0);
 const inputEl = ref<HTMLInputElement | null>(null);
 let seq = 0;
@@ -96,8 +99,10 @@ watch(q, () => {
         const mine = ++seq;
         try {
             const res = await fetch(`/search?q=${encodeURIComponent(term)}`, { headers: { Accept: 'application/json' } });
-            const data = await res.json();
+            const out = isSignedOutResponse(res);
+            const data = out ? {} : await res.json();
             if (mine === seq) {
+                signedOut.value = out;
                 remote.value = data.groups ?? [];
             }
         } catch {
@@ -227,7 +232,11 @@ onBeforeUnmount(() => {
                             <span class="text-muted-foreground shrink-0 text-[10px] tracking-wide uppercase">{{ it.type }}</span>
                         </button>
                     </template>
-                    <p v-if="q.trim() && !loading && !flat.length" class="text-muted-foreground px-2 py-6 text-center text-sm">No matches.</p>
+                    <p v-if="q.trim() && !loading && signedOut" class="text-muted-foreground px-2 py-6 text-center text-sm">
+                        You’ve been signed out, so search isn’t working.
+                        <a :href="page.url" class="text-primary font-medium underline underline-offset-2">Sign in again</a>
+                    </p>
+                    <p v-else-if="q.trim() && !loading && !flat.length" class="text-muted-foreground px-2 py-6 text-center text-sm">No matches.</p>
                 </div>
             </div>
         </div>

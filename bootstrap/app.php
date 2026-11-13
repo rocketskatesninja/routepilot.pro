@@ -9,6 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -47,8 +48,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions) {
         // A 419 (expired CSRF/session) — e.g. signing out from a long-idle tab —
         // should redirect back with a notice, not show the bare "page expired" page.
-        $exceptions->respond(function (Response $response): Response {
+        // A page's own fetch() (the assistant, search, uploads) gets a plain 419 with
+        // the reason instead: a redirect would land it on a bare 401 it can't explain.
+        $exceptions->respond(function (Response $response, Throwable $e, Request $request): Response {
             if ($response->getStatusCode() === 419) {
+                if ($request->expectsJson()) {
+                    return response()->json(['error' => 'You’ve been signed out. Sign in again, then try it.'], 419);
+                }
+
                 return back()->with('error', 'Your session expired — please sign in again.');
             }
 

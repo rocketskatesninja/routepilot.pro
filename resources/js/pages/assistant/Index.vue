@@ -4,10 +4,10 @@ import { Input } from '@/components/ui/input';
 import { useOnline } from '@/composables/useOnline';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { renderParts } from '@/lib/assistantLinks';
-import { postJson } from '@/lib/http';
+import { isSignedOutResponse, postJson } from '@/lib/http';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Bot, MessageSquarePlus, Send, WifiOff } from 'lucide-vue-next';
+import { Bot, LogIn, MessageSquarePlus, Send, WifiOff } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 interface Message {
@@ -44,6 +44,8 @@ const draft = ref('');
 const sending = ref(false);
 // The assistant needs the internet: offline (a tech out of signal), it says so and waits.
 const online = useOnline();
+// The session ran out while the page sat idle (or ended on another device): say so, not "unavailable".
+const signedOut = ref(false);
 
 // Links in a reply follow this account's allow-list (lib/assistantLinks).
 const role = computed(() => page.props.auth.role ?? 'customer');
@@ -73,6 +75,13 @@ const focusBox = () => void nextTick(() => document.getElementById('assistant-me
 
 const say = (content: string) => messages.value.push({ role: 'assistant', content });
 
+// A question that never got through goes back in the box to send again,
+// ahead of anything typed since (the box stays usable while waiting).
+function putBack(message: string) {
+    messages.value.pop();
+    draft.value = draft.value.trim() === '' ? message : `${message} ${draft.value}`;
+}
+
 async function send(text?: string) {
     const message = (text ?? draft.value).trim();
     if (message === '' || sending.value || !online.value) {
@@ -85,6 +94,12 @@ async function send(text?: string) {
 
     try {
         const res = await postJson('/assistant/send', { message, session_id: sessionId.value });
+        if (isSignedOutResponse(res)) {
+            // Nothing was saved: keep the question and point to signing in again.
+            putBack(message);
+            signedOut.value = true;
+            return;
+        }
         const data = (await res.json().catch(() => ({}))) as { reply?: string; message?: string; session_id?: number; error?: string };
         if (res.ok && data.reply) {
             sessionId.value = data.session_id ?? sessionId.value;
@@ -96,10 +111,8 @@ async function send(text?: string) {
             say(data.error ?? 'The assistant isn’t available right now. Please try again in a minute.');
         }
     } catch {
-        // It never got through (the connection dropped): put it back in the box to send again,
-        // ahead of anything typed since (the box stays usable while waiting).
-        messages.value.pop();
-        draft.value = draft.value.trim() === '' ? message : `${message} ${draft.value}`;
+        // It never got through (the connection dropped).
+        putBack(message);
         say('Couldn’t reach the assistant. Check your connection: your message is back in the box to send again.');
     } finally {
         sending.value = false;
@@ -187,6 +200,17 @@ async function send(text?: string) {
                 >
                     <WifiOff class="mt-0.5 size-4 shrink-0" />
                     <p>You’re offline, so the assistant isn’t available. It needs an internet connection and will be back as soon as you are.</p>
+                </div>
+                <div
+                    v-else-if="signedOut"
+                    role="alert"
+                    class="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300"
+                >
+                    <LogIn class="mt-0.5 size-4 shrink-0" />
+                    <p>
+                        You’ve been signed out, so your question wasn’t sent. It’s back in the box if you want to copy it.
+                        <a href="/assistant" class="font-medium underline underline-offset-2">Sign in again</a> to come back here.
+                    </p>
                 </div>
 
                 <form class="flex items-center gap-2" @submit.prevent="send()">

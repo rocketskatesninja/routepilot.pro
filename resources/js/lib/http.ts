@@ -32,6 +32,17 @@ async function sendJson(method: 'POST' | 'DELETE', url: string, body?: unknown):
 }
 
 /**
+ * Whether a response says this browser is signed out: the session ran out while
+ * the page sat idle (419), or the account was signed out or signed in on another
+ * device (401). Not a connection problem: signing in again fixes it.
+ */
+export function isSignedOutResponse(res: Response): boolean {
+    return res.status === 401 || res.status === 419;
+}
+
+export const SIGNED_OUT = 'You’ve been signed out. Sign in again, then try it.';
+
+/**
  * The reason a failed request gives in its JSON `error` field, written to be
  * shown to the person (null when it gave none — fall back to a generic line).
  */
