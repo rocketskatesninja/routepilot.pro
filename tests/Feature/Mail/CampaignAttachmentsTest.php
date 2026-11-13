@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\DataRetention;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -93,4 +94,27 @@ test('after 90 days the files are cleared and the names stay', function () {
     Storage::disk('local')->assertMissing($oldPath);
     Storage::disk('local')->assertExists($new->fresh()->attachments[0]['path']);
     expect($old->fresh()->attachments)->toBe([['name' => 'old.pdf', 'size' => 20480, 'mime' => 'application/pdf', 'path' => null]]);
+});
+
+test('a file cleared after 90 days is left off, but one that should be there and can\'t be read fails the send', function () {
+    $cleared = new CampaignMail('A', '<p>Hi</p>', 'R', null, null, $this->tenant, null, 'R', [['name' => 'old.pdf', 'size' => 1, 'mime' => 'application/pdf', 'path' => null]]);
+    expect($cleared->attachments())->toBe([]);
+
+    $missing = new CampaignMail('A', '<p>Hi</p>', 'R', null, null, $this->tenant, null, 'R', [['name' => 'gone.pdf', 'size' => 1, 'mime' => 'application/pdf', 'path' => 'campaigns/x/gone.pdf']]);
+    expect(fn () => $missing->attachments())->toThrow(RuntimeException::class, "Can't read the attachment gone.pdf.");
+});
+
+test('attachment folders can be opened by the queue workers, not just the web server', function () {
+    // The real local disk in a scratch root (the fake ignores modes).
+    $root = sys_get_temp_dir().'/rp-modes-'.uniqid();
+    config(['filesystems.disks.local.root' => $root]);
+    Storage::forgetDisk('local');
+
+    sendWith([UploadedFile::fake()->create('menu.pdf', 20, 'application/pdf')])->assertSessionHasNoErrors();
+    $campaign = MailCampaign::query()->latest('id')->firstOrFail();
+
+    expect(decoct(fileperms("{$root}/campaigns") & 0777))->toBe('755')
+        ->and(decoct(fileperms("{$root}/campaigns/{$this->tenant->id}/{$campaign->id}") & 0777))->toBe('755');
+
+    File::deleteDirectory($root);
 });

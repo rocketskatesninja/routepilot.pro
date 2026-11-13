@@ -16,6 +16,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * A single campaign email. Body is treated as plain text (escaped) for
@@ -41,7 +42,7 @@ class CampaignMail extends Mailable
         public ?string $oneClickUrl = null,
         /** Fills {first name} in the subject and message. */
         public ?string $firstName = null,
-        /** @var list<array{name: string, size: int, mime: string, path: string}> Files sent with it (private disk). */
+        /** @var list<array{name: string, size: int, mime: string, path: string|null}> Files sent with it (private disk). */
         public array $files = [],
     ) {}
 
@@ -50,9 +51,15 @@ class CampaignMail extends Mailable
     {
         $out = [];
         foreach ($this->files as $file) {
-            if (Storage::disk('local')->exists($file['path'])) {
-                $out[] = Attachment::fromStorageDisk('local', $file['path'])->as($file['name'])->withMime($file['mime']);
+            // Cleared after 90 days: nothing to attach. One that should be there but can't be
+            // read fails the send (the queue retries) rather than going out without it.
+            if ($file['path'] === null) {
+                continue;
             }
+            if (! Storage::disk('local')->exists($file['path'])) {
+                throw new RuntimeException("Can't read the attachment {$file['name']}.");
+            }
+            $out[] = Attachment::fromStorageDisk('local', $file['path'])->as($file['name'])->withMime($file['mime']);
         }
 
         return $out;

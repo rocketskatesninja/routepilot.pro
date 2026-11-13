@@ -91,7 +91,10 @@ class SendCampaign
             $ext = strtolower($upload->extension());
             $base = Str::limit(Str::slug(pathinfo($upload->getClientOriginalName(), PATHINFO_FILENAME)), 80, '') ?: 'attachment';
             $name = $base.'.'.$ext;
-            $path = $upload->storeAs($dir, ($i + 1).'-'.$name, 'local');
+            // Folders others can open (0755, the disk's default is 0700): the web server saves the
+            // files, and the queue workers that attach them run as other users. The private disk
+            // is never served, so this doesn't put them on the web.
+            $path = $upload->storeAs($dir, ($i + 1).'-'.$name, ['disk' => 'local', 'directory_visibility' => 'public']);
             if ($path === false) {
                 continue;
             }

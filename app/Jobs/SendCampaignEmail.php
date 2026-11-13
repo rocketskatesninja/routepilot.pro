@@ -43,7 +43,7 @@ class SendCampaignEmail implements ShouldQueue
         public ?string $oneClickUrl = null,
         /** For {first name}; null on jobs queued before it existed. */
         public ?string $firstName = null,
-        /** @var list<array{name: string, size: int, mime: string, path: string}> Files sent with it (private disk). */
+        /** @var list<array{name: string, size: int, mime: string, path: string|null}> Files sent with it (private disk). */
         public array $attachments = [],
     ) {}
 
