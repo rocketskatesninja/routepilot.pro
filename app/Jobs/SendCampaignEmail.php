@@ -41,6 +41,10 @@ class SendCampaignEmail implements ShouldQueue
         public ?int $tenantId,
         public ?int $recipientId = null,
         public ?string $oneClickUrl = null,
+        /** For {first name}; null on jobs queued before it existed. */
+        public ?string $firstName = null,
+        /** @var list<array{name: string, size: int, mime: string, path: string}> Files sent with it (private disk). */
+        public array $attachments = [],
     ) {}
 
     public function handle(TenantMailer $tenantMailer): void
@@ -53,6 +57,8 @@ class SendCampaignEmail implements ShouldQueue
                 $this->subject, $this->body, $this->recipientName, $this->unsubscribeUrl, $prepared['from'],
                 $this->tenantId !== null ? Tenant::query()->find($this->tenantId) : null,
                 $this->oneClickUrl,
+                $this->firstName,
+                $this->attachments,
             ));
 
         $this->mark('sent', null);

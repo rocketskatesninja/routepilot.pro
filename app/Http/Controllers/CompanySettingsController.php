@@ -16,6 +16,7 @@ use App\Services\GeocodingService;
 use App\Services\PhotoService;
 use App\Services\StripeService;
 use App\Services\TenantMailer;
+use App\Support\EmailHtml;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -50,6 +51,8 @@ class CompanySettingsController extends Controller
                 // An address that couldn't be placed on the map (its website's service-area map can't show).
                 'unlocated' => $tenant->isUnlocated(),
                 'reply_to_email' => $tenant->reply_to_email,
+                // What emails sign off with now (the default until the company writes its own).
+                'email_signature' => $tenant->emailSignature(),
                 'report_messages' => $tenant->takesReportMessages(),
             ],
             'mail' => $this->mailConfig($tenant),
@@ -237,6 +240,11 @@ class CompanySettingsController extends Controller
             'postal_code' => $data['postal_code'] ?? null,
             'reply_to_email' => $data['reply_to_email'] ?? null,
         ]);
+        if (array_key_exists('email_signature', $data)) {
+            // Emptied, it goes back to the default made from the company's details.
+            $signature = (string) $data['email_signature'];
+            $tenant->fill(['email_signature' => EmailHtml::hasText($signature) ? $signature : null]);
+        }
         if (array_key_exists('report_messages', $data)) {
             TenantSetting::setFor($tenant->id, 'report_messages', $data['report_messages'] ? '1' : '0');
         }

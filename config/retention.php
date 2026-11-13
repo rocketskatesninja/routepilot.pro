@@ -24,6 +24,9 @@ return [
     // the live map only shows the last 30 minutes).
     'agent_location_days' => (int) env('RETENTION_AGENT_LOCATION_DAYS', 7),
 
+    // Files sent with Email people messages (the record of what was sent stays).
+    'campaign_attachment_days' => (int) env('RETENTION_CAMPAIGN_ATTACHMENT_DAYS', 90),
+
     // Clear where a website lead was sent from (its IP) once it's this old —
     // the same window the web server keeps its logs. The lead itself stays.
     'lead_ip_days' => (int) env('RETENTION_LEAD_IP_DAYS', 90),

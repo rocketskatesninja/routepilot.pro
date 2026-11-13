@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\EmailHtml;
 use Carbon\CarbonInterface;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -69,7 +70,7 @@ class Tenant extends Model
     protected $fillable = [
         'name', 'slug', 'primary_domain', 'timezone',
         'logo_path', 'brand_color', 'status',
-        'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'reply_to_email',
+        'address_line1', 'address_line2', 'city', 'state', 'postal_code', 'reply_to_email', 'email_signature',
     ];
 
     /**
@@ -163,6 +164,38 @@ class Tenant extends Model
      * Single-line business address for geocoding / display, or null when no
      * street address is set. Excludes line 2 (suite) — it confuses geocoders.
      */
+    /**
+     * The signature added to emails from Email people: the company's own, or until it
+     * writes one, a default from its details. Always cleaned rich text.
+     */
+    public function emailSignature(): string
+    {
+        $own = $this->getAttribute('email_signature');
+        if (is_string($own) && EmailHtml::hasText($own)) {
+            return EmailHtml::clean($own);
+        }
+
+        $lines = array_filter([
+            '<strong>'.e($this->name).'</strong>',
+            e((string) $this->formattedAddress()),
+            e((string) $this->reply_to_email),
+            ($site = $this->websiteUrl()) !== null ? '<a href="'.e($site).'">'.e(preg_replace('#^https?://#', '', $site)).'</a>' : '',
+        ]);
+
+        return '<p>Thanks,<br>'.implode('<br>', $lines).'</p>';
+    }
+
+    /** The company's public site: its own domain, or its page on RoutePilot while that's switched on. */
+    public function websiteUrl(): ?string
+    {
+        $domain = $this->getAttribute('primary_domain');
+        if (is_string($domain) && $domain !== '') {
+            return 'https://'.$domain;
+        }
+
+        return $this->getAttribute('landing_page') && $this->slug !== '' ? url('/t/'.$this->slug) : null;
+    }
+
     public function formattedAddress(): ?string
     {
         $parts = array_filter([

@@ -71,6 +71,8 @@ class PeopleController extends Controller
             'canManage' => $this->canManage($user),
             'canEmail' => $this->canManage($user),
             'audiences' => $this->canManage($user) ? $campaigns->audiencesFor($user) : [],
+            // What the email form's "Include signature" adds (Company settings edits it).
+            'signature' => $this->canManage($user) ? $user->tenant?->emailSignature() : null,
             'recent' => $this->recentCampaigns(),
         ]);
     }
@@ -237,6 +239,8 @@ class PeopleController extends Controller
                 'sent' => $c->sent_count,
                 'failed' => $c->failed_count,
                 'sent_on' => $c->sent_at?->toDateString(),
+                // The files it carried (names stay after the files themselves are cleared).
+                'files' => array_column($c->attachments ?? [], 'name'),
             ])->all();
     }
 

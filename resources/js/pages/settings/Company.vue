@@ -3,6 +3,7 @@ import FeatureSwitch from '@/components/FeatureSwitch.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import RichTextEditor from '@/components/RichTextEditor.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ const props = defineProps<{
         postal_code: string | null;
         unlocated: boolean; // a saved address that couldn't be placed on the map
         reply_to_email: string | null;
+        email_signature: string;
         report_messages: boolean;
     };
     mail: {
@@ -60,6 +62,7 @@ const form = useForm({
     state: props.company.state ?? '',
     postal_code: props.company.postal_code ?? '',
     reply_to_email: props.company.reply_to_email ?? '',
+    email_signature: props.company.email_signature,
     report_messages: props.company.report_messages,
     logo: null as File | null,
 });
@@ -210,6 +213,15 @@ const onCompanyTab = computed(() => ['profile', 'address'].includes(activeTab.va
                                 <p v-else class="text-muted-foreground text-sm">
                                     When a customer hits Reply on one of your emails, it lands here. Left blank, replies go to RoutePilot instead of
                                     you.
+                                </p>
+                            </div>
+                            <div class="grid max-w-xl gap-2">
+                                <Label>Email signature</Label>
+                                <RichTextEditor v-model="form.email_signature" label="Email signature" min-height="5rem" />
+                                <p v-if="form.errors.email_signature" class="text-sm text-red-600">{{ form.errors.email_signature }}</p>
+                                <p v-else class="text-muted-foreground text-sm">
+                                    Added to the end of the emails you send from People → Email (you can leave it off any one email). Clear it to go
+                                    back to the default made from your company’s details.
                                 </p>
                             </div>
                             <div class="grid gap-1.5">

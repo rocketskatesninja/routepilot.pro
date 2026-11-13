@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $sent_count
  * @property int $failed_count
  * @property Carbon|null $sent_at
+ * @property list<array{name: string, size: int, mime: string, path: string|null}>|null $attachments path null once cleared (DataRetention)
  */
 class MailCampaign extends Model
 {
@@ -28,14 +29,14 @@ class MailCampaign extends Model
 
     /** @var list<string> */
     protected $fillable = [
-        'created_by', 'subject', 'body', 'audience',
+        'created_by', 'subject', 'body', 'attachments', 'audience',
         'recipient_count', 'sent_count', 'failed_count', 'sent_at',
     ];
 
     /** @return array<string, string> */
     protected function casts(): array
     {
-        return ['sent_at' => 'datetime'];
+        return ['sent_at' => 'datetime', 'attachments' => 'array'];
     }
 
     /** @return BelongsTo<User, $this> */

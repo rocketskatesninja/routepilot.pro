@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmailAttachments from '@/components/EmailAttachments.vue';
 import EmailChoices from '@/components/EmailChoices.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import Hint from '@/components/Hint.vue';
@@ -6,6 +7,7 @@ import ImageUpload from '@/components/ImageUpload.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
+import RichTextEditor from '@/components/RichTextEditor.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
@@ -15,6 +17,7 @@ import PaneItem from '@/components/pane/PaneItem.vue';
 import PaneList from '@/components/pane/PaneList.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +32,22 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Download, FileSpreadsheet, FileText, HardHat, Mail, Pencil, RotateCcw, Send, Trash2, UserPlus, Users, UserX, Waves } from 'lucide-vue-next';
+import {
+    Download,
+    FileSpreadsheet,
+    FileText,
+    HardHat,
+    Mail,
+    Paperclip,
+    Pencil,
+    RotateCcw,
+    Send,
+    Trash2,
+    UserPlus,
+    UserX,
+    Users,
+    Waves,
+} from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
@@ -115,7 +133,18 @@ const props = defineProps<{
     canManage: boolean;
     canEmail: boolean;
     audiences: { key: string; label: string; count: number }[];
-    recent: { id: number; subject: string; audience: string; recipients: number; sent: number; failed: number; sent_on: string | null }[];
+    /** The company signature (cleaned HTML) the email form can add; null for RoutePilot's own broadcasts. */
+    signature: string | null;
+    recent: {
+        id: number;
+        subject: string;
+        audience: string;
+        recipients: number;
+        sent: number;
+        failed: number;
+        sent_on: string | null;
+        files: string[];
+    }[];
 }>();
 
 const billing = useCustomerBilling();
@@ -144,16 +173,30 @@ const emailOpen = ref(false);
 // Below the docked layout the email form covers the list; "Choose people" tucks it away
 // so the boxes can be ticked, and the header's Email button brings it back.
 const picking = ref(false);
-const emailForm = useForm<{ audience: string; subject: string; body: string; recipients: string[] }>({
+const emailForm = useForm<{ audience: string; subject: string; body: string; signature: boolean; attachments: File[]; recipients: string[] }>({
     audience: 'customers',
     subject: '',
-    body: '',
+    // A new message opens with a greeting the writer can change; {first name} is each person's own.
+    body: '<p>Hi {first name},</p><p></p>',
+    signature: true,
+    attachments: [],
     recipients: [],
 });
+// Ticking someone means "send to these people": the audience follows. Untick everyone and
+// it goes back to the first group (there's no "Selected people" left to pick).
+watch(
+    () => picked.value.length,
+    (now, before) => {
+        if (now > before) emailForm.audience = 'selected';
+        else if (now === 0 && emailForm.audience === 'selected') emailForm.audience = props.audiences[0]?.key ?? 'customers';
+    },
+);
 const audienceOptions = computed(() => [
     ...(picked.value.length ? [{ key: 'selected', label: 'Selected people', count: picked.value.length }] : []),
     ...props.audiences,
 ]);
+// The server's word on the files (the list as a whole, or one of them).
+const attachmentError = computed(() => Object.entries(emailForm.errors as Record<string, string>).find(([k]) => k.startsWith('attachments'))?.[1]);
 const emailCount = computed(() => audienceOptions.value.find((a) => a.key === emailForm.audience)?.count ?? 0);
 function openEmail() {
     emailForm.audience = picked.value.length ? 'selected' : (props.audiences[0]?.key ?? 'customers');
@@ -822,20 +865,39 @@ function destroyAgent() {
                             <p v-if="emailForm.errors.subject" class="text-xs text-red-600">{{ emailForm.errors.subject }}</p>
                         </div>
                         <div class="grid gap-1.5">
-                            <Label for="ebody">Message</Label>
-                            <textarea
-                                id="ebody"
-                                v-model="emailForm.body"
-                                rows="7"
-                                class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                            ></textarea>
+                            <Label>Message</Label>
+                            <RichTextEditor v-model="emailForm.body" first-name />
                             <p v-if="emailForm.errors.body" class="text-xs text-red-600">{{ emailForm.errors.body }}</p>
+                        </div>
+                        <EmailAttachments v-model="emailForm.attachments" :recipients="emailCount" :error="attachmentError" />
+                        <!-- The company signature: on by default, edited on Company settings. -->
+                        <div v-if="props.signature" class="grid gap-1.5">
+                            <div class="flex items-center justify-between gap-2">
+                                <Label for="esig" class="flex items-center gap-2 font-normal">
+                                    <Checkbox id="esig" v-model:checked="emailForm.signature" /> Include signature
+                                </Label>
+                                <Link href="/company" class="text-primary text-xs font-medium hover:underline">Edit signature</Link>
+                            </div>
+                            <!-- Cleaned on the server (Tenant::emailSignature), so it's safe to show as HTML. -->
+                            <!-- eslint-disable-next-line vue/no-v-html -->
+                            <div
+                                v-if="emailForm.signature"
+                                class="rich-text border-border bg-muted/30 rounded-md border px-3 py-2 text-sm"
+                                style="min-height: 0"
+                                v-html="props.signature"
+                            />
                         </div>
                         <div v-if="props.recent.length" class="border-border border-t pt-2">
                             <p class="text-muted-foreground mb-1 text-xs font-medium">Recent</p>
                             <ul class="text-muted-foreground space-y-0.5 text-xs">
                                 <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
-                                    <span class="truncate" :title="c.subject">{{ c.subject }}</span
+                                    <span class="flex min-w-0 items-center gap-1"
+                                        ><span class="truncate" :title="c.subject">{{ c.subject }}</span
+                                        ><Paperclip
+                                            v-if="c.files?.length"
+                                            class="size-3 shrink-0"
+                                            :title="c.files.join(', ')"
+                                            :aria-label="`${c.files.length} file(s)`" /></span
                                     ><span class="shrink-0"
                                         >{{ c.sent }}/{{ c.recipients }} sent<span v-if="c.failed" class="text-red-500">
                                             · {{ c.failed }} failed</span

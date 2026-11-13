@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\MailCampaign;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Weekly housekeeping: prune read in-app notifications and techs' stale
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 class DataRetention
 {
     /**
-     * @return array{notifications_pruned: int, agent_locations_pruned: int, lead_ips_cleared: int, chats_pruned: int}
+     * @return array{notifications_pruned: int, agent_locations_pruned: int, lead_ips_cleared: int, chats_pruned: int, attachments_cleared: int}
      */
     public function purge(bool $apply = true, ?int $notificationDays = null): array
     {
@@ -28,7 +30,39 @@ class DataRetention
             'agent_locations_pruned' => $this->pruneStaleLocations($apply),
             'lead_ips_cleared' => $this->clearLeadIps($apply),
             'chats_pruned' => $this->pruneChats($apply),
+            'attachments_cleared' => $this->clearCampaignFiles($apply),
         ];
+    }
+
+    /**
+     * Delete the files sent with Email people messages once they're old. The campaign keeps
+     * each file's name and size (so Recent still shows what went out); its path goes.
+     */
+    private function clearCampaignFiles(bool $apply): int
+    {
+        $days = (int) config('retention.campaign_attachment_days');
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $cleared = 0;
+        MailCampaign::withoutGlobalScopes()
+            ->whereNotNull('attachments')
+            ->where('sent_at', '<', now()->subDays($days))
+            ->each(function (MailCampaign $campaign) use ($apply, &$cleared): void {
+                $files = $campaign->attachments ?? [];
+                $paths = array_filter(array_column($files, 'path'));
+                if ($paths === []) {
+                    return;
+                }
+                $cleared += count($paths);
+                if ($apply) {
+                    Storage::disk('local')->delete($paths);
+                    $campaign->update(['attachments' => array_map(fn (array $f): array => [...$f, 'path' => null], $files)]);
+                }
+            });
+
+        return $cleared;
     }
 
     /** Clear (or count) the IP a website lead was sent from once it's old; the lead itself stays. */

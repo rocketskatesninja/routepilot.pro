@@ -25,12 +25,13 @@ class PurgeRetention extends Command
         $counts = $retention->purge($apply);
 
         $this->info(sprintf(
-            '%sRetention: %d notification(s), %d location(s), %d lead IP(s), %d chat(s).',
+            '%sRetention: %d notification(s), %d location(s), %d lead IP(s), %d chat(s), %d email attachment(s).',
             $apply ? '' : '[dry-run] would purge — ',
             $counts['notifications_pruned'],
             $counts['agent_locations_pruned'],
             $counts['lead_ips_cleared'],
             $counts['chats_pruned'],
+            $counts['attachments_cleared'],
         ));
 
         // Record an applied run that did something as a platform compliance entry.

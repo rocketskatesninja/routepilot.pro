@@ -70,7 +70,8 @@ test('every email renders in the shared layout with the company\'s name', functi
         new PaymentFailedMail('Robert', 40.0, 'Blue Lagoon Pools', 'https://example.test/pay', $this->tenant),
         new EmailChangeVerificationMail('Robert', 'new@example.test', 'https://example.test/confirm', $this->tenant),
         new ServiceRequestAnsweredMail('Robert', 'Blue Lagoon Pools', 'You’re scheduled', 'Weekly service starts Monday.', 'See you then!', false, null, $this->tenant),
-        new CampaignMail('Spring opening', 'We open pools in March.', 'Robert', 'https://example.test/unsub', null, $this->tenant),
+        // A broadcast opens how its writer wrote it; {first name} fills in their greeting.
+        new CampaignMail('Spring opening', '<p>Hi {first name},</p><p>We open pools in March.</p>', 'Robert Anderson', 'https://example.test/unsub', null, $this->tenant, null, 'Robert'),
     ];
 
     foreach ($mails as $mail) {

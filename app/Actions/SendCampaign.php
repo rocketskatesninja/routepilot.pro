@@ -10,6 +10,8 @@ use App\Models\MailCampaign;
 use App\Models\User;
 use App\Support\EmailPreferences;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 
 /**
  * Resolve a campaign's audience (role-scoped) and queue a branded email to
@@ -27,6 +29,10 @@ class SendCampaign
         $audience = (string) $data['audience'];
         $subject = (string) $data['subject'];
         $body = (string) $data['body'];
+        // The company's signature goes on the end, and is kept with the campaign as it went out.
+        if (($data['signature'] ?? false) && $sender->tenant !== null) {
+            $body .= $sender->tenant->emailSignature();
+        }
         $recipients = $audience === 'selected'
             ? $this->resolveSelected(is_array($data['recipients'] ?? null) ? $data['recipients'] : [], $sender)
             : $this->recipients($audience, $sender);
@@ -41,6 +47,7 @@ class SendCampaign
             'failed_count' => 0,
             'sent_at' => now(),
         ]);
+        $files = $this->storeFiles($campaign, is_array($data['attachments'] ?? null) ? $data['attachments'] : [], $sender);
 
         foreach ($recipients as $recipient) {
             // One tracked delivery row per address; the job flips it sent/failed.
@@ -57,10 +64,44 @@ class SendCampaign
                 $customerId !== null ? EmailPreferences::pageUrl($customerId, 'news') : null,
                 $sender->tenant_id, $row->id,
                 $customerId !== null ? EmailPreferences::oneClickUrl($customerId, 'news') : null,
+                $recipient['first_name'],
+                $files,
             );
         }
 
         return $campaign;
+    }
+
+    /**
+     * Keep the files on the private disk under the company and the campaign (never a
+     * public URL; only the queue reads them), and record them on the campaign.
+     *
+     * @param  array<int, mixed>  $uploads
+     * @return list<array{name: string, size: int, mime: string, path: string}>
+     */
+    private function storeFiles(MailCampaign $campaign, array $uploads, User $sender): array
+    {
+        $files = [];
+        $dir = 'campaigns/'.($sender->tenant_id ?? 'platform').'/'.$campaign->id;
+        foreach ($uploads as $i => $upload) {
+            if (! $upload instanceof UploadedFile) {
+                continue;
+            }
+            // A tidy name for the inbox: the original, cut down to letters, digits, dashes and dots.
+            $ext = strtolower($upload->extension());
+            $base = Str::limit(Str::slug(pathinfo($upload->getClientOriginalName(), PATHINFO_FILENAME)), 80, '') ?: 'attachment';
+            $name = $base.'.'.$ext;
+            $path = $upload->storeAs($dir, ($i + 1).'-'.$name, 'local');
+            if ($path === false) {
+                continue;
+            }
+            $files[] = ['name' => $name, 'size' => (int) $upload->getSize(), 'mime' => (string) $upload->getMimeType(), 'path' => $path];
+        }
+        if ($files !== []) {
+            $campaign->update(['attachments' => $files]);
+        }
+
+        return $files;
     }
 
     /**
@@ -97,7 +138,7 @@ class SendCampaign
      * their own customers/agents; tenant keys are super-admin only.
      *
      * @param  array<int, mixed>  $keys
-     * @return list<array{email: string, name: string, customer_id: int|null}>
+     * @return list<array{email: string, name: string, first_name: string|null, customer_id: int|null}>
      */
     private function resolveSelected(array $keys, User $sender): array
     {
@@ -126,13 +167,13 @@ class SendCampaign
         if ($customerIds !== []) {
             // Customer global scope restricts a tenant admin to their own.
             foreach ($this->customerQuery()->whereKey($customerIds)->get() as $c) {
-                $out[] = ['email' => (string) $c->email, 'name' => $c->displayName(), 'customer_id' => $c->id];
+                $out[] = ['email' => (string) $c->email, 'name' => $c->displayName(), 'first_name' => $c->first_name, 'customer_id' => $c->id];
             }
         }
 
         if ($agentIds !== []) {
             foreach ($this->staffQuery('agent', $sender)->whereKey($agentIds)->get() as $u) {
-                $out[] = ['email' => (string) $u->getAttribute('email'), 'name' => $u->displayName(), 'customer_id' => null];
+                $out[] = ['email' => (string) $u->getAttribute('email'), 'name' => $u->displayName(), 'first_name' => $u->first_name, 'customer_id' => null];
             }
         }
 
@@ -141,7 +182,7 @@ class SendCampaign
                 ->where('role', 'tenant_admin')->where('is_active', true)->whereNotNull('email')
                 ->whereIn('tenant_id', $tenantIds)->get();
             foreach ($admins as $u) {
-                $out[] = ['email' => (string) $u->getAttribute('email'), 'name' => $u->displayName(), 'customer_id' => null];
+                $out[] = ['email' => (string) $u->getAttribute('email'), 'name' => $u->displayName(), 'first_name' => $u->first_name, 'customer_id' => null];
             }
         }
 
@@ -149,7 +190,7 @@ class SendCampaign
     }
 
     /**
-     * @return list<array{email: string, name: string, customer_id: int|null}>
+     * @return list<array{email: string, name: string, first_name: string|null, customer_id: int|null}>
      */
     private function recipients(string $audience, User $sender): array
     {
@@ -159,6 +200,7 @@ class SendCampaign
             'customers' => $this->customerQuery()->get()->map(fn (Customer $c): array => [
                 'email' => (string) $c->email,
                 'name' => $c->displayName(),
+                'first_name' => $c->first_name,
                 'customer_id' => $c->id,
             ])->all(),
             default => [],
@@ -191,13 +233,14 @@ class SendCampaign
 
     /**
      * @param  Builder<User>  $query
-     * @return list<array{email: string, name: string, customer_id: null}>
+     * @return list<array{email: string, name: string, first_name: string|null, customer_id: null}>
      */
     private function mapStaff(Builder $query): array
     {
         return $query->get()->map(fn (User $u): array => [
             'email' => (string) $u->getAttribute('email'),
             'name' => $u->displayName(),
+            'first_name' => $u->first_name,
             'customer_id' => null,
         ])->all();
     }
