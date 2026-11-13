@@ -9,7 +9,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, Inbox, Sparkles, Wand2 } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, EyeOff, Inbox, Sparkles, Wand2, X } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 
@@ -242,6 +242,8 @@ function toggleAgent(id: number | null) {
     }
     hiddenAgents.value = next;
 }
+// Show every route again (the header's Clear filters, there while a chip is off).
+const clearFilters = () => (hiddenAgents.value = new Set());
 
 // The legend's entries: each agent with stops, plus the unassigned bucket.
 const mapAgents = computed(() => {
@@ -255,11 +257,16 @@ const mapAgents = computed(() => {
 });
 
 const visibleMarkers = computed(() => mapMarkers.value.filter((m) => !isAgentHidden(m.agent_id)));
+const filtering = computed(() => mapAgents.value.some((a) => isAgentHidden(a.id)));
 
 // Click-to-focus: clicking a stop pans/zooms the map to its pin (toggle off by
 // clicking it again). The id is shared with the map (highlight) and the list row.
+// A route hidden on the map is greyed out, and its stops have no pin to focus.
 const focusId = ref<number | null>(null);
-function focusStop(stop: Stop) {
+function focusStop(stop: Stop, agentId: number | null) {
+    if (isAgentHidden(agentId)) {
+        return;
+    }
     focusId.value = focusId.value === stop.id ? null : stop.id;
 }
 
@@ -281,6 +288,7 @@ const prettyDate = computed(() =>
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <template #actions>
+            <Button v-if="filtering" size="sm" variant="ghost" @click="clearFilters"><X class="mr-1 size-4" /> Clear filters</Button>
             <Hint v-if="props.canManage" :text="generateHint">
                 <Button size="sm" variant="outline" :disabled="busy" @click="materialize"><Sparkles class="mr-1 size-4" /> Generate</Button>
             </Hint>
@@ -321,7 +329,11 @@ const prettyDate = computed(() =>
 
                 <!-- Unassigned bucket: the day's stops on no agent. A persistent
                      drop target — dragging a stop here un-assigns it. -->
-                <div v-if="localUnassigned" class="border-border bg-muted/20 rounded-xl border border-dashed">
+                <div
+                    v-if="localUnassigned"
+                    class="border-border bg-muted/20 rounded-xl border border-dashed transition-opacity"
+                    :class="{ 'opacity-50': isAgentHidden(null) }"
+                >
                     <div class="border-border flex items-center justify-between border-b px-4 py-2">
                         <div class="flex items-center gap-2">
                             <span class="bg-muted text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full">
@@ -329,7 +341,18 @@ const prettyDate = computed(() =>
                             </span>
                             <span class="font-medium">Unassigned stops</span>
                         </div>
-                        <span class="text-muted-foreground text-xs">{{ localUnassigned.stops.length }}</span>
+                        <div class="flex items-center gap-2">
+                            <button
+                                v-if="isAgentHidden(null)"
+                                type="button"
+                                class="text-muted-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                                title="Hidden on the map. Click to show it again."
+                                @click="toggleAgent(null)"
+                            >
+                                <EyeOff class="size-3" /> Hidden
+                            </button>
+                            <span class="text-muted-foreground text-xs">{{ localUnassigned.stops.length }}</span>
+                        </div>
                     </div>
 
                     <draggable
@@ -351,7 +374,7 @@ const prettyDate = computed(() =>
                                 :focused="focusId === stop.id"
                                 :movable="props.canManage"
                                 :skippable="false"
-                                @click="focusStop(stop)"
+                                @click="focusStop(stop, null)"
                             />
                         </template>
                     </draggable>
@@ -363,7 +386,8 @@ const prettyDate = computed(() =>
                 <div
                     v-for="route in localRoutes"
                     :key="route.id ?? `agent-${route.agent_id}`"
-                    class="border-border overflow-hidden rounded-xl border border-l-[3px]"
+                    class="border-border overflow-hidden rounded-xl border border-l-[3px] transition-opacity"
+                    :class="{ 'opacity-50': isAgentHidden(route.agent_id) }"
                     :style="{ borderLeftColor: route.color }"
                 >
                     <div class="border-border flex items-center justify-between border-b px-4 py-2" :style="{ backgroundColor: route.color + '14' }">
@@ -385,6 +409,15 @@ const prettyDate = computed(() =>
                             </label>
                         </div>
                         <div class="flex items-center gap-2">
+                            <button
+                                v-if="isAgentHidden(route.agent_id)"
+                                type="button"
+                                class="text-muted-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+                                title="Hidden on the map. Click to show it again."
+                                @click="toggleAgent(route.agent_id)"
+                            >
+                                <EyeOff class="size-3" /> Hidden
+                            </button>
                             <span class="text-muted-foreground text-xs">{{ doneCount(route.stops) }}/{{ route.stops.length }} done</span>
                             <Hint
                                 v-if="canManageRoute(route) && route.stops.length > 1"
@@ -420,7 +453,7 @@ const prettyDate = computed(() =>
                                 :focused="focusId === stop.id"
                                 :movable="canManageRoute(route)"
                                 :skippable="canManageRoute(route)"
-                                @click="focusStop(stop)"
+                                @click="focusStop(stop, route.agent_id)"
                                 @skip="skipStop(stop.id)"
                                 @unskip="unskipStop(stop.id)"
                             />
