@@ -22,6 +22,8 @@ interface CatalogMeta {
 
 const props = defineProps<{
     layout: LayoutItem[];
+    /** Both arrangements, for the first paint (see firstPaint). */
+    layouts: Record<'desktop' | 'mobile', LayoutItem[]>;
     editing: boolean;
     catalog: Record<string, CatalogMeta>;
     widgets: Record<string, unknown>;
@@ -32,7 +34,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:layout': [LayoutItem[]]; remove: [string] }>();
 
 // The interactive grid touches the DOM, so it only renders after mount — SSR
-// and first paint get the static fallback stack below.
+// and first paint get the static copy below.
 const mounted = ref(false);
 onMounted(() => (mounted.value = true));
 
@@ -49,8 +51,20 @@ watch(
 const fallback: CatalogMeta = { label: '', icon: 'LayoutGrid', w: 6, h: 4, minW: 2, minH: 2 };
 const meta = (key: string): CatalogMeta => props.catalog[key] ?? { ...fallback, label: key };
 
-// Stack order follows the layout's reading order (top row first, then left→right).
-const ordered = computed(() => [...work.value].sort((a, b) => a.y - b.y || a.x - b.x));
+// First paint (SSR, until the grid mounts): the server can't know the screen, so each widget
+// carries its desktop and its phone spot and CSS picks one (the phone layout below 768px, as
+// the page does). Same 12 columns, row height and gaps as the grid, so nothing moves when it
+// takes over. A widget missing from one arrangement is hidden there.
+const firstPaint = computed(() => {
+    const spot = (layout: LayoutItem[], key: string, p: 'd' | 'm'): Record<string, string> => {
+        const it = layout.find((i) => i.i === key);
+        return it
+            ? { [`--${p}-col`]: `${it.x + 1} / span ${it.w}`, [`--${p}-row`]: `${it.y + 1} / span ${it.h}`, [`--${p}-show`]: 'block' }
+            : { [`--${p}-show`]: 'none' };
+    };
+    const keys = [...new Set([...props.layouts.desktop, ...props.layouts.mobile].map((i) => i.i))];
+    return keys.map((key) => ({ key, style: { ...spot(props.layouts.desktop, key, 'd'), ...spot(props.layouts.mobile, key, 'm') } }));
+});
 
 const commit = () =>
     emit(
@@ -102,12 +116,11 @@ const dragOption = { autoScroll: { enabled: true, margin: 72, speed: 700 } };
             </GridItem>
         </GridLayout>
 
-        <!-- SSR / pre-mount only: a static single-column stack until the interactive
-             grid hydrates, so first paint has no layout shift and no clipping. -->
-        <div v-else class="space-y-3">
-            <div v-for="item in ordered" :key="item.i" class="h-64">
-                <DashboardWidgetCard :title="meta(item.i).label" :icon="meta(item.i).icon" :editing="editing" @remove="emit('remove', item.i)">
-                    <WidgetRenderer :widget-key="item.i" :data="widgets[item.i]" />
+        <!-- SSR / pre-mount only: the same arrangement as the grid, phone or desktop picked by CSS. -->
+        <div v-else class="dashboard-first-paint">
+            <div v-for="item in firstPaint" :key="item.key" :style="item.style">
+                <DashboardWidgetCard :title="meta(item.key).label" :icon="meta(item.key).icon" :editing="editing" @remove="emit('remove', item.key)">
+                    <WidgetRenderer :widget-key="item.key" :data="widgets[item.key]" />
                 </DashboardWidgetCard>
             </div>
         </div>

@@ -237,6 +237,7 @@ onBeforeUnmount(() => {
                     v-else
                     :key="deviceMode"
                     :layout="activeLayout"
+                    :layouts="layouts"
                     :editing="editing"
                     :catalog="catalog"
                     :widgets="widgets"

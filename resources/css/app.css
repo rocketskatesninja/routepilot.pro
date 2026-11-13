@@ -317,3 +317,34 @@ header[data-tight] [data-header-actions] .sm\:mr-1 {
         min-height: 0;
     }
 }
+
+/*
+ * The dashboard's first paint (DashboardGrid, before its grid mounts). It's here, in the
+ * head stylesheet, because a page's own styles only arrive with its code, after first
+ * paint. It mirrors grid-layout-plus: 12 columns, 60px rows, 12px gaps with the same
+ * margin round the edge, and on a phone no side margin (the page passes [0, 12] there).
+ */
+.dashboard-first-paint {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-auto-rows: 60px;
+    gap: 12px;
+    padding: 12px;
+}
+.dashboard-first-paint > * {
+    grid-column: var(--d-col);
+    grid-row: var(--d-row);
+    display: var(--d-show);
+    min-width: 0;
+}
+@media (max-width: 767px) {
+    .dashboard-first-paint {
+        column-gap: 0;
+        padding: 12px 0;
+    }
+    .dashboard-first-paint > * {
+        grid-column: var(--m-col);
+        grid-row: var(--m-row);
+        display: var(--m-show);
+    }
+}
