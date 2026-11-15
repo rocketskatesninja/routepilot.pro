@@ -230,9 +230,11 @@ header[data-tight] [data-header-actions] .sm\:mr-1 {
 [data-sidebar='menu'] {
     transition: gap var(--sidebar-duration) var(--sidebar-ease);
 }
-/* No collapse animation on the first paint: `preload` is set on <html> in the
-   root template and removed after mount (app.ts). Scoped to the sidebar shell
-   so intentional entrance animations elsewhere (e.g. the landing hero) survive. */
+/* No collapse animation while a sidebar is first drawn: `preload` is set on <html>
+   in the root template for the first page load, and by AppSidebar each time a page
+   draws a new one; AppSidebar removes it once that has painted. Scoped to the
+   sidebar shell so intentional entrance animations elsewhere (e.g. the landing
+   hero) survive. */
 .preload [class*='sidebar-wrapper'] * {
     transition: none !important;
 }

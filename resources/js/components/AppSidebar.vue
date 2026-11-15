@@ -19,10 +19,20 @@ import { useOnline } from '@/composables/useOnline';
 import { navByRole, type NavSection } from '@/lib/nav';
 import { type NavCounts, type NavItem, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, onBeforeMount, onMounted } from 'vue';
 import AppLogo from './AppLogo.vue';
 
 const page = usePage<SharedData>();
+
+// Every page wraps itself in AppLayout, so this sidebar is drawn afresh on each page.
+// Hold its collapse animations off (the `preload` class, app.css) until the new one has
+// painted: Firefox first sizes the links from the window's height, before the nav's own
+// height is known, and would otherwise animate them from that guess to the real size,
+// a twitch on every page change. On the first page load the class is already on <html>
+// (app.blade.php) from before the CSS arrives.
+const classes = () => document.documentElement.classList;
+onBeforeMount(() => classes().add('preload'));
+onMounted(() => requestAnimationFrame(() => requestAnimationFrame(() => classes().remove('preload'))));
 
 // Links to the parts of RoutePilot a company can switch off. (/billing is its own subscription: it stays.)
 const billing = useCustomerBilling();
