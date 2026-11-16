@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver as GdDriver;
+use Intervention\Image\Format;
 use Intervention\Image\ImageManager;
 
 /**
@@ -30,10 +32,11 @@ class PhotoService
     {
         $path = trim($directory, '/').'/'.Str::uuid()->toString().($transparent ? '.png' : '.jpg');
 
-        $image = ImageManager::gd()->read($file->getRealPath());
-        $image->scaleDown($max, $max);
+        // Phone photos come out upright: decoding applies their EXIF orientation (the default).
+        $image = ImageManager::usingDriver(GdDriver::class)->decodePath($file->getRealPath())->scaleDown($max, $max);
+        $encoded = $transparent ? $image->encodeUsingFormat(Format::PNG) : $image->encodeUsingFormat(Format::JPEG, quality: $quality);
 
-        Storage::disk('public')->put($path, (string) ($transparent ? $image->toPng() : $image->toJpeg($quality)));
+        Storage::disk('public')->put($path, (string) $encoded);
 
         return $path;
     }
