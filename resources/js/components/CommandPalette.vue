@@ -7,7 +7,7 @@ import { useInventoryTracking } from '@/composables/useInventoryTracking';
 import { isSignedOutResponse } from '@/lib/http';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
-import { Search } from 'lucide-vue-next';
+import { Search } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface Item {

@@ -20,7 +20,7 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Check, Pencil, Plus, Receipt, RotateCcw, Trash2, Wrench } from 'lucide-vue-next';
+import { Check, Pencil, Plus, Receipt, RotateCcw, Trash2, Wrench } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface OrderRow {

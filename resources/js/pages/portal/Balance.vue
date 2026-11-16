@@ -5,7 +5,7 @@ import { cap } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { CheckCircle2, CreditCard } from 'lucide-vue-next';
+import { CheckCircle2, CreditCard } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = defineProps<{

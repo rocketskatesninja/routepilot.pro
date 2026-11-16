@@ -8,7 +8,7 @@ import { pageDescription } from '@/lib/pageDescriptions';
 import type { BreadcrumbItemType, SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { useResizeObserver } from '@vueuse/core';
-import { Bell, Search, Smartphone } from 'lucide-vue-next';
+import { Bell, Search, Smartphone } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 defineProps<{

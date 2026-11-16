@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { ArrowLeft, ArrowRight, Lock, RotateCw, Route as RouteIcon } from 'lucide-vue-next';
+import { ArrowLeft, ArrowRight, Lock, RotateCw, Route as RouteIcon } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineProps<{

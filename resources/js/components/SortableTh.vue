@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { visitQuery } from '@/lib/listQuery';
-import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, ChevronsUpDown } from '@lucide/vue';
 import { computed } from 'vue';
 
 /**

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { visitStatusClass } from '@/lib/statusColors';
-import { GripVertical, SkipForward, Undo2 } from 'lucide-vue-next';
+import { GripVertical, SkipForward, Undo2 } from '@lucide/vue';
 import type { Stop } from './types';
 
 /**

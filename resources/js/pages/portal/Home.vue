@@ -9,7 +9,7 @@ import { andList, cap, checkWater, longDay, waterSummary, when, type WaterReadin
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { Banknote, Check, Droplets, Inbox } from 'lucide-vue-next';
+import { Banknote, Check, Droplets, Inbox } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface Upcoming {

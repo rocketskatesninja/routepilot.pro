@@ -2,7 +2,7 @@
 import type { LiveNotification } from '@/echo';
 import { isDesktop, popupsOn } from '@/lib/push';
 import { router, usePage } from '@inertiajs/vue3';
-import { Bell, CheckCircle2, X, XCircle } from 'lucide-vue-next';
+import { Bell, CheckCircle2, X, XCircle } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface Toast {

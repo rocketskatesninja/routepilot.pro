@@ -11,7 +11,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { clone, localDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft, ChevronRight, EyeOff, Inbox, Sparkles, Wand2, X } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, ChevronRight, EyeOff, Inbox, Sparkles, Wand2, X } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 

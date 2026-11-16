@@ -14,7 +14,7 @@ import { useFeature } from '@/composables/useFeature';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { Check } from 'lucide-vue-next';
+import { Check } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{

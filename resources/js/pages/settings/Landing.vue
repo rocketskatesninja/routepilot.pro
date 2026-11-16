@@ -32,7 +32,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { clone } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Lock, RotateCw, Star } from 'lucide-vue-next';
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Eye, EyeOff, GripVertical, Loader2, Lock, RotateCw, Star } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import draggable from 'vuedraggable';
 

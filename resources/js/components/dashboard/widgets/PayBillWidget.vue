@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { formatMoney } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { CheckCircle2, CreditCard } from 'lucide-vue-next';
+import { CheckCircle2, CreditCard } from '@lucide/vue';
 import { computed } from 'vue';
 
 // `can_pay`: online payment is set up, so Pay goes straight to checkout (as on the Balance page).

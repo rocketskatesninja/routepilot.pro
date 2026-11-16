@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Building2, FlaskConical, User, Waves, Wrench } from 'lucide-vue-next';
+import { Building2, FlaskConical, User, Waves, Wrench } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = withDefaults(

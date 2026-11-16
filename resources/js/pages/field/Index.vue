@@ -21,7 +21,7 @@ import { postJson } from '@/lib/http';
 import { formatDay, localDay } from '@/lib/utils';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { Check, CloudOff, LoaderCircle, MapPin, Navigation, Plus, RefreshCw, TriangleAlert, Wifi, WifiOff, X } from 'lucide-vue-next';
+import { Check, CloudOff, LoaderCircle, MapPin, Navigation, Plus, RefreshCw, TriangleAlert, Wifi, WifiOff, X } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const {

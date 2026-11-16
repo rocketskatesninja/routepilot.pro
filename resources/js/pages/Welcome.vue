@@ -21,7 +21,7 @@ import {
     Smartphone,
     Sparkles,
     Users,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = defineProps<{

@@ -2,7 +2,7 @@
 import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Link } from '@inertiajs/vue3';
-import { CalendarX, SkipForward } from 'lucide-vue-next';
+import { CalendarX, SkipForward } from '@lucide/vue';
 
 interface Activity {
     key: string;

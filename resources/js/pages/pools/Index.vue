@@ -29,7 +29,7 @@ import { formatDay, formatMoney, localDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarDays, CalendarX, FileText, Pencil, Plus, Trash2, Waves, Wrench } from 'lucide-vue-next';
+import { CalendarDays, CalendarX, FileText, Pencil, Plus, Trash2, Waves, Wrench } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 interface PoolRow {

@@ -23,7 +23,7 @@ import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Check, CirclePause, CircleStop, ClipboardList, Inbox, MessageSquare, Trash2, UserPlus, X } from 'lucide-vue-next';
+import { CalendarCheck, Check, CirclePause, CircleStop, ClipboardList, Inbox, MessageSquare, Trash2, UserPlus, X } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 interface RequestRow {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue';
 import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
-import { MapPin } from 'lucide-vue-next';
+import { MapPin } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
 interface StopMarker {

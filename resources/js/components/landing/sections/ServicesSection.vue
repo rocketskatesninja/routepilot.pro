@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Droplet } from 'lucide-vue-next';
+import { Droplet } from '@lucide/vue';
 import { computed } from 'vue';
 import { landingIcon } from '../icons';
 import { button } from '../layout';

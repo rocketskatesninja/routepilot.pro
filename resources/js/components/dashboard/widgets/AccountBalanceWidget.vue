@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatMoney } from '@/lib/utils';
 import { Link } from '@inertiajs/vue3';
-import { ArrowRight } from 'lucide-vue-next';
+import { ArrowRight } from '@lucide/vue';
 
 defineProps<{ data: { balance: number; autopay: boolean } }>();
 </script>

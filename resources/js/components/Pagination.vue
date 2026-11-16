@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { visitQuery } from '@/lib/listQuery';
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
 
 /**

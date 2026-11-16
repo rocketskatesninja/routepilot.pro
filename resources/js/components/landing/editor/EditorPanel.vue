@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // One collapsible group in the landing editor: a settings block or a section of
 // the page (which adds its drag handle before the title and its show/hide after).
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDown } from '@lucide/vue';
 
 defineProps<{ title: string; open: boolean }>();
 defineEmits<{ toggle: [] }>();

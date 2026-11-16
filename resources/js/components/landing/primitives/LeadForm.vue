@@ -3,7 +3,7 @@
 // button; once sent, the thank-you (#sent) takes its place. The thank-you has no
 // scroll fade-in: it appears after page load, so the reveal observer would never
 // show it.
-import { CircleCheck } from 'lucide-vue-next';
+import { CircleCheck } from '@lucide/vue';
 import { button } from '../layout';
 import type { LeadFormState } from '../useLeadForm';
 

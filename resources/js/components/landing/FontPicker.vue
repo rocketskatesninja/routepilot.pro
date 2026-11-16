@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TITLE_FONTS } from '@/components/landing/titleStyle';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Check, ChevronDown } from 'lucide-vue-next';
+import { Check, ChevronDown } from '@lucide/vue';
 import { computed } from 'vue';
 
 // A font <select> can't preview each option in its own typeface — native <option>

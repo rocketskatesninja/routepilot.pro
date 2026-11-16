@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ImagePlus, X } from 'lucide-vue-next';
+import { ImagePlus, X } from '@lucide/vue';
 import { onBeforeUnmount, ref, watch } from 'vue';
 
 /**

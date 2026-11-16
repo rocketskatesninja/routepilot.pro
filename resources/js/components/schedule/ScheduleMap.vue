@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
-import { MapPin } from 'lucide-vue-next';
+import { MapPin } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { AgentDot, MapRoute } from './types';
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Droplet } from 'lucide-vue-next';
+import { Droplet } from '@lucide/vue';
 import { computed } from 'vue';
 import { LANDING_ICONS, landingIcon } from './icons';
 

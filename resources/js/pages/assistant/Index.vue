@@ -7,7 +7,7 @@ import { renderParts } from '@/lib/assistantLinks';
 import { isSignedOutResponse, postJson } from '@/lib/http';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Bot, LogIn, MessageSquarePlus, Send, WifiOff } from 'lucide-vue-next';
+import { Bot, LogIn, MessageSquarePlus, Send, WifiOff } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 interface Message {

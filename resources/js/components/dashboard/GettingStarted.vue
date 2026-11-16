@@ -3,7 +3,7 @@ import FeatureSwitch from '@/components/FeatureSwitch.vue';
 import { Card } from '@/components/ui/card';
 import { type Onboarding } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
-import { ArrowRight, Check, Rocket, User } from 'lucide-vue-next';
+import { ArrowRight, Check, Rocket, User } from '@lucide/vue';
 import { computed } from 'vue';
 
 const props = defineProps<{ data: Onboarding }>();

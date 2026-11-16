@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem, type Onboarding, type SharedData } from '@/types';
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { Check, LayoutGrid, Monitor, Pencil, Plus, Smartphone } from 'lucide-vue-next';
+import { Check, LayoutGrid, Monitor, Pencil, Plus, Smartphone } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface LayoutItem {

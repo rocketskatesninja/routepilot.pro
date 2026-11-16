@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CalendarDays } from 'lucide-vue-next';
+import { CalendarDays } from '@lucide/vue';
 
 defineProps<{ data: { pool: string | null; date: string | null } | null }>();
 </script>

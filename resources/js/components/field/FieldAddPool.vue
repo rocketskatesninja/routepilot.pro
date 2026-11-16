@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isSignedOut } from '@/lib/field/session';
 import { postJson, SIGNED_OUT } from '@/lib/http';
-import { ChevronLeft, LoaderCircle, Plus, Search } from 'lucide-vue-next';
+import { ChevronLeft, LoaderCircle, Plus, Search } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface PoolHit {

@@ -4,7 +4,7 @@ import { agentLink, customerLink, mapsLink, poolLink, reportLink } from '@/lib/l
 import { visitStatusClass } from '@/lib/statusColors';
 import { formatDay } from '@/lib/utils';
 import { Link } from '@inertiajs/vue3';
-import { MousePointerClick } from 'lucide-vue-next';
+import { MousePointerClick } from '@lucide/vue';
 import { computed } from 'vue';
 import type { RouteCard, Stop, StopReading } from './types';
 

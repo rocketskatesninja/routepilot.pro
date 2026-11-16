@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reads, type WaterCheck } from '@/lib/portal';
-import { ArrowDown, ArrowUp, Check } from 'lucide-vue-next';
+import { ArrowDown, ArrowUp, Check } from '@lucide/vue';
 import { computed } from 'vue';
 
 /**

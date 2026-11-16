@@ -4,7 +4,7 @@
  * page so they all read the same.
  */
 import { targetsFor } from '@/lib/chemistry';
-import { FlaskConical, Waves, Wrench } from 'lucide-vue-next';
+import { FlaskConical, Waves, Wrench } from '@lucide/vue';
 
 const parse = (ymd: string) => {
     const [y, m, d] = ymd.split('-').map(Number);

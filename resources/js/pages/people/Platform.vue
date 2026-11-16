@@ -17,7 +17,7 @@ import { telLink } from '@/lib/links';
 import { cap, monthYear } from '@/lib/portal';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Building2, LogIn, Mail, Paperclip, Pencil, Plus, Send, Users } from 'lucide-vue-next';
+import { Building2, LogIn, Mail, Paperclip, Pencil, Plus, Send, Users } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 type PlatformType = 'tenants' | 'agents' | 'customers';

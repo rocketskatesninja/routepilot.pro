@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { isSignedOutResponse, postForm, SIGNED_OUT } from '@/lib/http';
-import { ImagePlus, Loader2 } from 'lucide-vue-next';
+import { ImagePlus, Loader2 } from '@lucide/vue';
 import { ref } from 'vue';
 
 defineProps<{ url?: string | null; label?: string }>();

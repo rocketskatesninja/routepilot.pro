@@ -14,7 +14,7 @@ import {
     Umbrella,
     Waves,
     Wrench,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { Component } from 'vue';
 
 /**

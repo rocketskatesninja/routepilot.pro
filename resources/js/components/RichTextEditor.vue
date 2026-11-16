@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import StarterKit from '@tiptap/starter-kit';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
-import { Bold, Heading2, Italic, Link2, List, ListOrdered, Quote, Redo2, Underline, Undo2, UserRound } from 'lucide-vue-next';
+import { Bold, Heading2, Italic, Link2, List, ListOrdered, Quote, Redo2, Underline, Undo2, UserRound } from '@lucide/vue';
 import { onBeforeUnmount, watch } from 'vue';
 
 /**

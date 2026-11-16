@@ -9,7 +9,7 @@ import { formatAmount } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { Check, ChevronDown, Minus } from 'lucide-vue-next';
+import { Check, ChevronDown, Minus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface Visit {

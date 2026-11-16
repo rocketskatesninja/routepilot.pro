@@ -1,5 +1,6 @@
-import { AlignCenter, AlignLeft, AlignRight, Facebook, Instagram, Linkedin, Twitter, Youtube } from 'lucide-vue-next';
+import { AlignCenter, AlignLeft, AlignRight } from '@lucide/vue';
 import type { Component } from 'vue';
+import { Facebook, Instagram, Linkedin, Twitter, Youtube } from './brandIcons';
 import type { SectionConfig } from './types';
 
 /** A choice in an editor control (or a page list): what's stored, what's shown. */

@@ -28,7 +28,7 @@ import { formatAmount, formatDay, formatMoney, unitFor } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Check, FileText, Lock, Minus, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { Check, FileText, Lock, Minus, Pencil, Plus, Trash2, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface VisitRow {

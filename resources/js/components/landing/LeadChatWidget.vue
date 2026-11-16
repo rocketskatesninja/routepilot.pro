@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { postJson } from '@/lib/http';
-import { MessageCircle, Send, X } from 'lucide-vue-next';
+import { MessageCircle, Send, X } from '@lucide/vue';
 import { nextTick, ref } from 'vue';
 
 const props = defineProps<{ action: string; company: string }>();

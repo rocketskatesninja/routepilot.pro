@@ -12,7 +12,7 @@ import { visitQuery } from '@/lib/listQuery';
 import { formatDay, formatMoney, localDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
-import { Building2, Gift } from 'lucide-vue-next';
+import { Building2, Gift } from '@lucide/vue';
 import { computed, watch } from 'vue';
 
 interface TenantRow {

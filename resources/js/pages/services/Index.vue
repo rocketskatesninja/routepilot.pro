@@ -23,7 +23,7 @@ import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Check, ClipboardList, Eye, EyeOff, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { Check, ClipboardList, Eye, EyeOff, Pencil, Plus, Trash2, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface ServiceRow {

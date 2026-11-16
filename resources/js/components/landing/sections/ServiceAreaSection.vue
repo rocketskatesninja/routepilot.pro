@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
-import { MapPin } from 'lucide-vue-next';
+import { MapPin } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 import { frame } from '../layout';
 import { sectionHeading } from '../meta';

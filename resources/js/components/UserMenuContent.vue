@@ -5,7 +5,7 @@ import { useBigView } from '@/composables/useBigView';
 import { logOut } from '@/lib/push';
 import type { User } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LogOut, Settings, ZoomIn, ZoomOut } from 'lucide-vue-next';
+import { LogOut, Settings, ZoomIn, ZoomOut } from '@lucide/vue';
 
 interface Props {
     user: User;

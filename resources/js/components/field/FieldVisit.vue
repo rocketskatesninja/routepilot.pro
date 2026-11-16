@@ -27,7 +27,7 @@ import { deleteJson, SIGNED_OUT } from '@/lib/http';
 import { telLink } from '@/lib/links';
 import { checkWater, waterSummary, type WaterReading } from '@/lib/portal';
 import { formatAmount, formatDay, isEmail, unitFor } from '@/lib/utils';
-import { ChevronLeft, LoaderCircle, Lock, Navigation, Plus, Sparkles, Trash2, WifiOff, X } from 'lucide-vue-next';
+import { ChevronLeft, LoaderCircle, Lock, Navigation, Plus, Sparkles, Trash2, WifiOff, X } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
 // `chemicals`: the company's list (from the day bundle, so it works offline).

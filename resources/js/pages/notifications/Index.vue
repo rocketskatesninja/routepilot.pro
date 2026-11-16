@@ -21,7 +21,7 @@ import {
     UserPlus,
     X,
     type LucideIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 type Severity = 'alert' | 'warning' | 'info' | 'success';

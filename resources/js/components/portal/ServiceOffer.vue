@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { priceUnit } from '@/lib/labels';
 import { extras, iconFor, price, soldAs } from '@/lib/portal';
-import { Check, Clock } from 'lucide-vue-next';
+import { Check, Clock } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 /**

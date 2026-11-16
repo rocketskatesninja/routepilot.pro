@@ -1,4 +1,4 @@
-import { Palmtree } from 'lucide-vue-next';
+import { Palmtree } from '@lucide/vue';
 import { describe, expect, it } from 'vitest';
 import { titleMark } from './titleStyle';
 import type { TitleConfig } from './types';

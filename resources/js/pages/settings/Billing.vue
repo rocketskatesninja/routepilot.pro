@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/vue3';
-import { CheckCircle2, CreditCard, TriangleAlert } from 'lucide-vue-next';
+import { CheckCircle2, CreditCard, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 
 defineProps<{

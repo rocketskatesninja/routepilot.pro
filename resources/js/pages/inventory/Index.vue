@@ -25,7 +25,7 @@ import { formatAmount, formatDay, formatMoney, unitFor } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Archive, FlaskConical, Pencil, Plus, RotateCcw, Wrench } from 'lucide-vue-next';
+import { Archive, FlaskConical, Pencil, Plus, RotateCcw, Wrench } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface InventoryRow {

@@ -18,7 +18,7 @@ import {
     Users,
     Waves,
     Wrench,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 
 /**
  * Role-adaptive navigation. Each role sees only its own items; tenant_admin

@@ -12,7 +12,7 @@ import { andList, cap, howOften, iconFor, price, soldAs, when } from '@/lib/port
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { MessageSquare } from 'lucide-vue-next';
+import { MessageSquare } from '@lucide/vue';
 import { computed, onMounted, ref, watch } from 'vue';
 
 interface ServiceRequest {

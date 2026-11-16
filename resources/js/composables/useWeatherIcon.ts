@@ -1,4 +1,4 @@
-import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Sun, type LucideIcon } from 'lucide-vue-next';
+import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, CloudSun, Sun, type LucideIcon } from '@lucide/vue';
 
 /** Map a WMO weather code to a label + lucide icon. */
 export function weatherDescribe(code: number): { label: string; icon: LucideIcon } {

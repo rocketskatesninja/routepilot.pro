@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Paperclip, TriangleAlert, X } from 'lucide-vue-next';
+import { Paperclip, TriangleAlert, X } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 /**

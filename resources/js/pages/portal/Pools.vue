@@ -8,7 +8,7 @@ import { checkWater, describePool, howOften, longDay, waterSummary, type Schedul
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
-import { Waves } from 'lucide-vue-next';
+import { Waves } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface PoolPlan extends ScheduleLike {

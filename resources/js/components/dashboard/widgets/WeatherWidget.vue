@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue';
 import { weatherDescribe } from '@/composables/useWeatherIcon';
-import { CloudSun, Droplets, Wind } from 'lucide-vue-next';
+import { CloudSun, Droplets, Wind } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 interface Current {

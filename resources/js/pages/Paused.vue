@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { logOut } from '@/lib/push';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { PauseCircle } from 'lucide-vue-next';
+import { PauseCircle } from '@lucide/vue';
 import { computed } from 'vue';
 
 const page = usePage<SharedData>();

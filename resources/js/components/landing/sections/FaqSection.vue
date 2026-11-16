@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDown } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import SectionShell from '../primitives/SectionShell.vue';
 import type { SectionProps } from '../types';

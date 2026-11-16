@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { fitImage } from '@/lib/image';
-import { ImagePlus } from 'lucide-vue-next';
+import { ImagePlus } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 /**

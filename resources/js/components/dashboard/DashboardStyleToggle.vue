@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { LayoutGrid, Rows3 } from 'lucide-vue-next';
+import { LayoutGrid, Rows3 } from '@lucide/vue';
 
 /** For customers: switch between the simple Home page and the customizable widget dashboard. */
 defineProps<{ current: 'simple' | 'widgets' }>();

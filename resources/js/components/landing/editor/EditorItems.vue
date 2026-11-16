@@ -2,7 +2,7 @@
 // A list the company adds to (services, reviews, questions): each item in a card
 // with its number and a remove button, its fields in the slot, then "Add ...".
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-vue-next';
+import { Plus, Trash2 } from '@lucide/vue';
 
 const items = defineModel<Record<string, unknown>[]>({ required: true });
 const props = defineProps<{ noun: string; blank: Record<string, unknown> }>();

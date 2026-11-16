@@ -24,7 +24,7 @@ import { formatDay, formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { type Paginated } from '@/types/pagination';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Ban, CheckCircle2, Download, FileText, Mail, Plus, Receipt } from 'lucide-vue-next';
+import { Ban, CheckCircle2, Download, FileText, Mail, Plus, Receipt } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 interface BalanceRow {

@@ -2,7 +2,7 @@
 import { SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { useAgentTracking } from '@/composables/useAgentTracking';
 import { useOnline } from '@/composables/useOnline';
-import { MapPin, Wifi, WifiOff } from 'lucide-vue-next';
+import { MapPin, Wifi, WifiOff } from '@lucide/vue';
 import { onMounted } from 'vue';
 
 // Agent-only field-status cluster (connectivity + live location sharing), shown in

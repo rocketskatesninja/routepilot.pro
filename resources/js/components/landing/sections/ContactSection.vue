@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPin } from 'lucide-vue-next';
+import { MapPin } from '@lucide/vue';
 import { ref } from 'vue';
 import { field } from '../layout';
 import ContactFields from '../primitives/ContactFields.vue';

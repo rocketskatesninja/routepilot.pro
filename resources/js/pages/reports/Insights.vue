@@ -8,7 +8,7 @@ import { inboxLeadLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { UserPlus } from 'lucide-vue-next';
+import { UserPlus } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface LeadRow {

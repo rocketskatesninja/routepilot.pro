@@ -47,7 +47,7 @@ import {
     UserX,
     Users,
     Waves,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
 type PersonType = 'customer' | 'agent';
