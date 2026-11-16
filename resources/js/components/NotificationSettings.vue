@@ -6,6 +6,7 @@
 import EmailChoices from '@/components/EmailChoices.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import { isDesktop, popupsOn, pushState, setPopups, turnOffPush, turnOnPush, type PushState } from '@/lib/push';
+import type { SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { onMounted, ref } from 'vue';
 
@@ -16,7 +17,7 @@ const props = defineProps<{
     pushKey: string | null;
 }>();
 
-const auth = usePage().props.auth;
+const auth = usePage<SharedData>().props.auth;
 
 const busy = ref(false);
 const setType = (type: string, on: boolean) =>

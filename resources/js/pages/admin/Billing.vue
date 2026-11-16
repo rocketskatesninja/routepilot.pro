@@ -122,7 +122,7 @@ function extendTrial(days: number) {
 }
 function save() {
     if (!props.selected) return;
-    form.transform((d) => ({ ...d, trial_ends_at: d.trial_ends_at || null })).patch(route('platform.billing.update', props.selected.id), {
+    form.transform((d) => ({ ...d, trial_ends_at: d.trial_ends_at || null })).patch(route('platform.billing.update', [props.selected.id]), {
         preserveScroll: true,
         preserveState: true,
     });

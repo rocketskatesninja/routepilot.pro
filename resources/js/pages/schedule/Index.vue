@@ -69,7 +69,7 @@ onMounted(() => {
         onRouteUpdate: (e) => {
             if (e.date !== props.date) return;
             clearTimeout(reloadTimer);
-            reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'agentLocations'], preserveScroll: true }), 400);
+            reloadTimer = setTimeout(() => router.reload({ only: ['routes', 'unassigned', 'agentLocations'] }), 400);
         },
         onAgentMove: (e) => {
             // Today's board only, and only for a tech it knows.

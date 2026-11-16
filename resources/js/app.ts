@@ -17,19 +17,6 @@ import { ensureUserSubscription } from './echo';
 import { pageTitle } from './lib/pageTitle';
 import type { Tenant } from './types';
 
-// Extend ImportMeta interface for Vite...
-declare module 'vite/client' {
-    interface ImportMetaEnv {
-        readonly VITE_APP_NAME: string;
-        [key: string]: string | boolean | undefined;
-    }
-
-    interface ImportMeta {
-        readonly env: ImportMetaEnv;
-        readonly glob: <T>(pattern: string) => Record<string, () => Promise<T>>;
-    }
-}
-
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 // The page on screen, for pageTitle(): set before its <Head> renders, kept current on navigation.
 let component: string | undefined;
@@ -66,7 +53,7 @@ createInertiaApp({
 // (FlashToast). Keeps the subscription synced to the user.
 function syncNotificationSubscription(userId: number | null): void {
     ensureUserSubscription(userId, (notification) => {
-        router.reload({ only: ['auth', 'notifications'], preserveScroll: true, preserveState: true });
+        router.reload({ only: ['auth', 'notifications'] });
         window.dispatchEvent(new CustomEvent('rp:notification', { detail: notification }));
     });
 }

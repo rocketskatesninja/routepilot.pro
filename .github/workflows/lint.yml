@@ -37,3 +37,7 @@ jobs:
 
       - name: Lint Frontend (ESLint)
         run: npx eslint .
+
+      # Needs composer's vendor/ (tsconfig maps ziggy-js there).
+      - name: Type-check Frontend (vue-tsc)
+        run: npx vue-tsc --noEmit

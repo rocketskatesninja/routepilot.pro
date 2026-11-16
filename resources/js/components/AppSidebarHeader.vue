@@ -11,10 +11,13 @@ import { useResizeObserver } from '@vueuse/core';
 import { Bell, Search, Smartphone } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
-defineProps<{
-    breadcrumbs?: BreadcrumbItemType[];
-    meta?: string;
-}>();
+withDefaults(
+    defineProps<{
+        breadcrumbs?: BreadcrumbItemType[];
+        meta?: string;
+    }>(),
+    { breadcrumbs: () => [] },
+);
 
 const page = usePage<SharedData>();
 const { isMobile } = useSidebar();

@@ -77,7 +77,9 @@ export interface Onboarding {
     dismissed: boolean;
 }
 
+// The index signature matches Inertia's PageProps, which usePage<T>() requires of T.
 export interface SharedData {
+    [key: string]: unknown;
     name: string;
     sidebarOpen: boolean;
     auth: Auth;

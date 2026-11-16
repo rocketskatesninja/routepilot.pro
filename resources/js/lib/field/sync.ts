@@ -185,7 +185,7 @@ function draftFrom(item: QueuedVisit): VisitDraft {
         // Picked chemicals as the form keeps them; typed ones (older copies of the app) keep their name for the form to match.
         treatments: rows(p.treatments).map((t) =>
             t.chemical_id != null ? { chemical_id: Number(t.chemical_id), amount: t.amount != null ? String(t.amount) : '' } : t,
-        ) as VisitDraft['treatments'],
+        ) as unknown as VisitDraft['treatments'],
         parts: rows(p.parts).map((t) => ({ chemical_id: Number(t.part_id), amount: t.amount != null ? String(t.amount) : '' })),
         notes: text(p.notes),
         office_notes: text(p.office_notes),

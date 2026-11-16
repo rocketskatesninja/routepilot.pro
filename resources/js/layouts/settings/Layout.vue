@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { type NavItem } from '@/types';
+import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 // SSR-safe + reactive: Inertia provides the current URL in the page object
 // (window is undefined during server render).
-const page = usePage();
+const page = usePage<SharedData>();
 const currentPath = computed(() => page.url.split('?')[0]);
 
 // 2FA enrollment is staff-only (super_admin / tenant_admin / agent).

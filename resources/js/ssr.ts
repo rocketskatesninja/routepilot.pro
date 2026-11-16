@@ -3,15 +3,13 @@ import createServer from '@inertiajs/vue3/server';
 import { renderToString } from '@vue/server-renderer';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createSSRApp, h, type DefineComponent } from 'vue';
-import { ZiggyVue } from '../../vendor/tightenco/ziggy';
+import { ZiggyVue, type useRoute } from '../../vendor/tightenco/ziggy';
 import { pageTitle } from './lib/pageTitle';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
-interface ZiggyConfig {
-    location: string;
-    [key: string]: unknown;
-}
+// Ziggy doesn't export its Config type; useRoute's parameter carries it. The shared prop sends location as a string.
+type ZiggyConfig = Omit<NonNullable<Parameters<typeof useRoute>[0]>, 'location'> & { location: string };
 
 createServer((page) =>
     createInertiaApp({

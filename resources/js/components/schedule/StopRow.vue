@@ -39,9 +39,9 @@ defineEmits<{ skip: []; unskip: [] }>();
              grows it too). No photo on a phone: the room goes to the names. -->
         <span class="hidden size-14 shrink-0 sm:block"><EntityAvatar :src="stop.pool_photo" type="pool" :name="stop.pool" size="fill" /></span>
         <div class="min-w-0 flex-1">
-            <p class="truncate" :title="stop.pool">{{ stop.pool }}</p>
+            <p class="truncate" :title="stop.pool ?? undefined">{{ stop.pool }}</p>
             <div class="flex items-center gap-2 text-xs">
-                <span class="text-muted-foreground min-w-0 flex-1 truncate" :title="stop.customer">{{ stop.customer }}</span>
+                <span class="text-muted-foreground min-w-0 flex-1 truncate" :title="stop.customer ?? undefined">{{ stop.customer }}</span>
                 <span class="shrink-0 rounded-full px-2 py-0.5 font-medium whitespace-nowrap capitalize" :class="visitStatusClass(stop.status)">{{
                     stop.status.replace('_', ' ')
                 }}</span>

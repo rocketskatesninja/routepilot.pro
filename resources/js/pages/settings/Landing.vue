@@ -84,6 +84,8 @@ const ogUrl = ref(props.ogImageUrl);
 const theme = ref(clone(props.config.theme));
 const title = ref<TitleConfig>(clone(props.config.title));
 const social = ref(clone(props.config.social));
+// In the script, not the template: a // inside the social links' v-for makes vue-tsc 3.3 lose the loop variable.
+const URL_PLACEHOLDER = 'https://…';
 const photos = ref<RecentPhoto[]>(clone(props.recentPhotos));
 const enabledDraft = computed(() => sections.value.filter((s) => s.enabled));
 
@@ -141,6 +143,9 @@ function toggleShowcase(p: RecentPhoto) {
     );
 }
 
+// Section configs carry free-form fields (typed unknown); they are plain JSON, which Inertia posts as-is.
+type PostData = Parameters<typeof router.post>[1];
+
 const saving = ref(false);
 const saved = ref(false);
 function save() {
@@ -148,7 +153,7 @@ function save() {
     saved.value = false;
     router.post(
         '/company/landing',
-        { sections: sections.value, seo: seo.value, theme: theme.value, title: title.value, social: social.value },
+        { sections: sections.value, seo: seo.value, theme: theme.value, title: title.value, social: social.value } as PostData,
         {
             preserveScroll: true,
             preserveState: true,
@@ -198,7 +203,7 @@ function save() {
                 <EditorPanel title="Social links" data-panel="social" :open="open === '__social'" @toggle="toggle('__social')">
                     <p class="text-muted-foreground text-xs">Links for the footer icons. Leave a field blank to hide that icon.</p>
                     <EditorField v-for="l in SOCIAL_LINKS" :key="l.value" :label="l.label">
-                        <Input v-model="social[l.value]" type="url" placeholder="https://…" />
+                        <Input v-model="social[l.value]" type="url" :placeholder="URL_PLACEHOLDER" />
                     </EditorField>
                 </EditorPanel>
 

@@ -209,7 +209,42 @@ const formOpen = ref(false);
 const formMode = ref<'create' | 'edit'>('create');
 const formId = ref<number | null>(null);
 
-const form = useForm<Record<string, unknown>>({
+// Ids and numbers are '' until picked or typed.
+type PoolForm = {
+    customer_id: number | string;
+    name: string;
+    type: string;
+    volume_gallons: number | string;
+    surface_type: string;
+    sanitizer_type: string;
+    filter_type: string;
+    pump_type: string;
+    has_heater: boolean;
+    has_automation: boolean;
+    has_pool_cleaner: boolean;
+    has_cover: boolean;
+    has_water_feature: boolean;
+    has_auto_fill: boolean;
+    notes: string;
+    address_line1: string;
+    city: string;
+    state: string;
+    zip: string;
+    gate_code: string;
+    access_notes: string;
+    report_cc_email: string;
+    photo: File | null;
+    service_type_id: number | string;
+    price: number | string;
+    assigned_agent_id: number | string;
+    frequency: string;
+    preferred_day: string;
+    day_of_month: number | string;
+    starts_on: string;
+    ends_on: string;
+};
+
+const form = useForm<PoolForm>({
     customer_id: '',
     name: '',
     type: 'inground',

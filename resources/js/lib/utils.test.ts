@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { afterEach, describe, expect, it } from 'vitest';
 import { formatAmount, isEmail, localDay, unitFor } from './utils';
 

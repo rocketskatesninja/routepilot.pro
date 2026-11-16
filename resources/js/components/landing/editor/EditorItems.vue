@@ -4,8 +4,9 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from '@lucide/vue';
 
-const items = defineModel<Record<string, unknown>[]>({ required: true });
-const props = defineProps<{ noun: string; blank: Record<string, unknown> }>();
+// Every item field is text: title/body/icon, quote/author/location, q/a.
+const items = defineModel<Record<string, string>[]>({ required: true });
+const props = defineProps<{ noun: string; blank: Record<string, string> }>();
 
 const add = () => (items.value = [...items.value, { ...props.blank }]);
 const remove = (i: number) => (items.value = items.value.filter((_, j) => j !== i));
