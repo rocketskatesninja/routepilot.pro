@@ -75,8 +75,8 @@ class BillingService
         $balances = $this->balancesFor($customers->pluck('id')->all());
 
         return $customers
+            ->filter(fn (Customer $c): bool => ($balances[$c->id] ?? 0.0) > 0)
             ->map(fn (Customer $c): array => ['customer' => $c, 'balance' => $balances[$c->id] ?? 0.0])
-            ->filter(fn (array $row): bool => $row['balance'] > 0)
             ->sortByDesc('balance')
             ->values();
     }

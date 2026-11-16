@@ -215,11 +215,10 @@ class CompleteVisit
     private function when(?Route $route): array
     {
         $tenant = $route?->tenant;
-        $day = $route?->scheduled_date;
-        if ($tenant === null || $day === null || ! $day->lt($tenant->today()->toDateString())) {
+        if ($route === null || $tenant === null || ! $route->scheduled_date->lt($tenant->today()->toDateString())) {
             return [now(), false];
         }
 
-        return [Carbon::parse($day->toDateString().' 12:00', $tenant->timezoneName())->utc(), true];
+        return [Carbon::parse($route->scheduled_date->toDateString().' 12:00', $tenant->timezoneName())->utc(), true];
     }
 }
