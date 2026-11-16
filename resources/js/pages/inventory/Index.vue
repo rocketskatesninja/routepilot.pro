@@ -517,8 +517,7 @@ function submitAdjust() {
                                                 v-if="t.pool_id"
                                                 :href="poolLink(t.pool_id)"
                                                 class="text-primary underline-offset-4 hover:underline"
-                                                >{{ t.pool }}</Link
-                                            ><template v-else>{{ t.pool }}</template></template
+                                                >{{ t.pool }}</Link><template v-else>{{ t.pool }}</template></template
                                         >
                                         <Chip v-if="t.type === 'usage' && t.change === 0" tone="warn" class="ml-1.5">None in stock</Chip>
                                     </template>
@@ -530,8 +529,7 @@ function submitAdjust() {
                                                 v-if="t.agent_id"
                                                 :href="agentLink(t.agent_id)"
                                                 class="text-primary underline-offset-4 hover:underline"
-                                                >{{ t.by }}</Link
-                                            ><template v-else>{{ t.by }}</template></template
+                                                >{{ t.by }}</Link><template v-else>{{ t.by }}</template></template
                                         >
                                     </template>
                                     <template v-if="t.report_id" #trailing>

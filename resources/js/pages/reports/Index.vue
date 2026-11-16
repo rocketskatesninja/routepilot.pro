@@ -279,8 +279,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                         v-if="visit.agent_id"
                                         :href="agentLink(visit.agent_id)"
                                         class="text-primary font-medium underline-offset-4 hover:underline"
-                                        >{{ visit.agent }}</Link
-                                    ><template v-else>{{ visit.agent }}</template></template
+                                        >{{ visit.agent }}</Link><template v-else>{{ visit.agent }}</template></template
                                 >
                             </p>
                             <p v-if="visit.entered_by" class="text-muted-foreground mt-1 text-sm">Entered by {{ visit.entered_by }}</p>

@@ -153,8 +153,7 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
                                 <h3 class="text-sm font-medium">Chemicals added</h3>
                                 <ul class="mt-2 space-y-1 text-sm">
                                     <li v-for="t in v.treatments" :key="t.name" class="flex justify-between gap-4 sm:max-w-sm">
-                                        <span>{{ t.name }}</span
-                                        ><span class="text-muted-foreground tabular-nums">{{ amount(t) }}</span>
+                                        <span>{{ t.name }}</span><span class="text-muted-foreground tabular-nums">{{ amount(t) }}</span>
                                     </li>
                                 </ul>
                             </div>
@@ -163,8 +162,7 @@ const goTo = (n: number) => router.get('/history', { page: n }, { preserveScroll
                                 <h3 class="text-sm font-medium">Parts replaced</h3>
                                 <ul class="mt-2 space-y-1 text-sm">
                                     <li v-for="p in v.parts" :key="p.name" class="flex justify-between gap-4 sm:max-w-sm">
-                                        <span>{{ p.name }}</span
-                                        ><span class="text-muted-foreground tabular-nums">×{{ p.amount }}</span>
+                                        <span>{{ p.name }}</span><span class="text-muted-foreground tabular-nums">×{{ p.amount }}</span>
                                     </li>
                                 </ul>
                             </div>

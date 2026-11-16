@@ -877,8 +877,7 @@ function submitTargets() {
                             <p v-if="pool.customer.id" class="mt-2 text-[15px]">
                                 <Link :href="customerLink(pool.customer.id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
                                     pool.customer.name
-                                }}</Link
-                                ><template v-if="pool.location?.city">, {{ pool.location.city }}</template>
+                                }}</Link><template v-if="pool.location?.city">, {{ pool.location.city }}</template>
                             </p>
                             <p v-if="pool.report_cc" class="text-muted-foreground mt-1 text-sm">Reports also go to {{ pool.report_cc }}</p>
                             <template v-if="props.canManage" #actions>
@@ -918,8 +917,7 @@ function submitTargets() {
                                                 v-if="sub.agent_is_tech"
                                                 :href="agentLink(sub.agent_id)"
                                                 class="text-primary underline-offset-4 hover:underline"
-                                                >{{ sub.agent }}</Link
-                                            ><template v-else>{{ sub.agent }}</template></template
+                                                >{{ sub.agent }}</Link><template v-else>{{ sub.agent }}</template></template
                                         ><template v-if="billing"> · {{ formatMoney(sub.price) }} {{ priceUnit(sub.frequency) }}</template>
                                     </template>
                                     <p

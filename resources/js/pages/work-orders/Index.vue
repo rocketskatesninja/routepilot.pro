@@ -308,8 +308,7 @@ function addNote() {
                                     v-if="order.pool_id"
                                     :href="poolLink(order.pool_id)"
                                     class="text-primary font-medium underline-offset-4 hover:underline"
-                                    >{{ order.pool }}</Link
-                                ><template v-if="order.customer_id"
+                                    >{{ order.pool }}</Link><template v-if="order.customer_id"
                                     >{{ order.pool_id ? ', for ' : 'For ' }}
                                     <Link
                                         :href="customerLink(order.customer_id)"

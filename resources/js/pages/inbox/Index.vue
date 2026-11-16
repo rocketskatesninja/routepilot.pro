@@ -416,8 +416,7 @@ const submitConvert = () => {
                                 From
                                 <Link :href="customerLink(request.customer_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
                                     request.customer
-                                }}</Link
-                                ><template v-if="request.pool_id"
+                                }}</Link><template v-if="request.pool_id"
                                     >, for
                                     <Link :href="poolLink(request.pool_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
                                         request.pool
