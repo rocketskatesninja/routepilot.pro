@@ -1,24 +1,32 @@
-# Weekly security + version update PRs, grouped so the volume stays low.
-# This is the long-term prevention for the silent advisory drift that put CI red:
-# advisories publish over time, so audits can go red with zero code change —
-# Dependabot surfaces them as PRs instead of letting them accrue unnoticed.
+# Version updates, monthly, so they arrive as routine work instead of piling up unseen:
+# - Minor and patch updates come as ONE pull request per ecosystem (php / js / actions),
+#   to take through staging as a batch.
+# - Major upgrades (Laravel 12 → 13 and the like) come as their own pull request each,
+#   so they're easy to spot and plan one at a time; never merge one as part of a batch.
+# Security advisories don't wait for this schedule: CI's composer/npm audits go red on the
+# next push.
 version: 2
 updates:
   - package-ecosystem: composer
-    directory: "/"
+    directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
-      php:
-        patterns: ["*"]
+      php-minor-and-patch:
+        update-types: ['minor', 'patch']
+
   - package-ecosystem: npm
-    directory: "/"
+    directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
     groups:
-      js:
-        patterns: ["*"]
+      js-minor-and-patch:
+        update-types: ['minor', 'patch']
+
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: '/'
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      actions-minor-and-patch:
+        update-types: ['minor', 'patch']
