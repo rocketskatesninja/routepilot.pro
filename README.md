@@ -142,6 +142,12 @@ never changes anything itself.
 Laravel · Inertia · Vue 3 (TypeScript) · Tailwind CSS · MySQL/MariaDB · Laravel Cashier
 (Stripe) · Laravel Reverb · Google Maps · Anthropic & OpenAI
 
+## Contributors
+
+- [rocketskatesninja](https://github.com/rocketskatesninja): creator and maintainer
+- Claude, by [Anthropic](https://www.anthropic.com): code, tests and documentation,
+  written with [Claude Code](https://claude.com/claude-code)
+
 ## License
 
 **All rights reserved.** This repository is public for demonstration and
