@@ -72,6 +72,25 @@ router.on('navigate', (event) => {
     }
 });
 
+// After a deploy the server answers an old page's requests with a version
+// change. Inertia does a full load for a normal visit but silently drops it
+// for an async one (the live reloads above, the schedule board's), so a tab
+// left open across a deploy stops updating. Do the full load for both, except
+// on a page the user has typed on: a background reload must never wipe
+// unsaved input, and Inertia still does the full load on their next click.
+let typedOnPath: string | null = null;
+document.addEventListener('input', () => (typedOnPath = window.location.pathname), true);
+router.on('location', (event) => {
+    if (!event.detail.versionChange || typedOnPath === window.location.pathname) return;
+    const target = event.detail.url;
+    if (target.href.split('#')[0] === window.location.href.split('#')[0]) {
+        window.location.reload();
+    } else {
+        window.location.href = target.href;
+    }
+    return false;
+});
+
 // This will set light / dark mode on page load...
 initializeTheme();
 initializeBigView();
