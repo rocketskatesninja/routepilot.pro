@@ -19,6 +19,7 @@ use App\Models\PaymentMethod;
 use App\Models\Tenant;
 use App\Models\WorkOrder;
 use App\Services\BillingService;
+use App\Support\Csv;
 use App\Support\OptionLists;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\RedirectResponse;
@@ -359,7 +360,7 @@ class BalanceController extends Controller
             foreach ($invoices as $invoice) {
                 fputcsv($out, [
                     $invoice->number,
-                    $invoice->customer?->displayName() ?? '',
+                    Csv::cell($invoice->customer?->displayName()),
                     $invoice->issued_at?->toDateString() ?? '',
                     $invoice->due_at?->toDateString() ?? '',
                     $invoice->subtotal,

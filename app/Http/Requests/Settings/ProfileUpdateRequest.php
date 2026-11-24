@@ -28,6 +28,27 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
             'photo' => ['nullable', 'image', 'max:10240'],
+            // Staff change their sign-in email on the spot (customers confirm from
+            // the new inbox instead), so a signed-in session alone must not be
+            // enough: it would hand the account to whoever is at the keyboard.
+            'current_password' => [Rule::requiredIf($this->staffEmailChange()), 'nullable', 'current_password'],
         ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'current_password.required' => 'Enter your current password to change your sign-in email.',
+            'current_password.current_password' => 'That password is not correct.',
+        ];
+    }
+
+    private function staffEmailChange(): bool
+    {
+        $user = $this->user();
+
+        return $user->role !== 'customer'
+            && strtolower(trim((string) $this->input('email'))) !== $user->email;
     }
 }

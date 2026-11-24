@@ -51,7 +51,7 @@ return [
     'webhook' => [
         // Distinct from the Connect webhook secret: the subscription endpoint is a
         // separate Stripe webhook. Falls back to the shared secret for single-endpoint setups.
-        'secret' => env('STRIPE_SUBSCRIPTION_WEBHOOK_SECRET', env('STRIPE_WEBHOOK_SECRET')),
+        'secret' => env('STRIPE_SUBSCRIPTION_WEBHOOK_SECRET'),
         'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
         'events' => WebhookCommand::DEFAULT_EVENTS,
     ],

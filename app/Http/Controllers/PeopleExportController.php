@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Tenant;
+use App\Support\Csv;
 use App\Support\PersonListBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -85,7 +86,7 @@ class PeopleExportController extends Controller
             fputcsv($out, ['Name', 'Type', 'Email', 'Phone', 'Address', 'Portal', 'Last visit', ...($billing ? ['Balance'] : [])]);
             foreach ($rows as $r) {
                 fputcsv($out, [
-                    ...array_map($this->cell(...), [$r['name'], $r['type'], $r['email'], $r['phone'], $r['address'], $r['portal'], $r['last_visit']]),
+                    ...array_map(Csv::cell(...), [$r['name'], $r['type'], $r['email'], $r['phone'], $r['address'], $r['portal'], $r['last_visit']]),
                     ...($billing ? [$r['balance'] === null ? '' : number_format((float) $r['balance'], 2, '.', '')] : []),
                 ]);
             }
@@ -124,8 +125,4 @@ class PeopleExportController extends Controller
      * A spreadsheet-safe text cell: a value starting with = + - @ would run as a
      * formula in Excel (a name like "=HYPERLINK(…)"), so it's kept as text.
      */
-    private function cell(string $value): string
-    {
-        return $value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$value : $value;
-    }
 }

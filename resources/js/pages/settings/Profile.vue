@@ -7,6 +7,7 @@ import DeleteUser from '@/components/DeleteUser.vue';
 import HeadingSmall from '@/components/HeadingSmall.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
 import InputError from '@/components/InputError.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,11 +41,16 @@ const form = useForm({
     last_name: user.last_name ?? '',
     email: user.email,
     photo: null as File | null,
+    current_password: '',
 });
+
+// Staff change their sign-in email on the spot, so the server asks for the password.
+const needsPassword = computed(() => !isCustomer.value && form.email.trim().toLowerCase() !== user.email);
 
 const submit = () => {
     form.patch(route('profile.update'), {
         preserveScroll: true,
+        onSuccess: () => form.reset('current_password'),
     });
 };
 </script>
@@ -106,6 +112,15 @@ const submit = () => {
                             placeholder="Email address"
                         />
                         <InputError class="mt-2" :message="form.errors.email" />
+                        <div v-if="needsPassword" class="mt-2 grid gap-2">
+                            <Label for="current_password">Current password</Label>
+                            <PasswordInput id="current_password" v-model="form.current_password" autocomplete="current-password" />
+                            <p class="text-muted-foreground text-xs">
+                                Needed to change your sign-in email. If you only sign in with Google, set a password first with “Forgot password” on
+                                the sign-in page.
+                            </p>
+                            <InputError :message="form.errors.current_password" />
+                        </div>
                         <p v-if="isCustomer" class="text-muted-foreground mt-1 text-xs">
                             This is also your sign-in email. Changing it sends a confirmation link to the new address — the change takes effect only
                             after you confirm it there.

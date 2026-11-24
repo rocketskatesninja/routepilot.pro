@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Support\BrandColor;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\View\View as ViewInstance;
 use Laravel\Cashier\Cashier;
 use Minishlink\WebPush\WebPush;
@@ -31,6 +32,14 @@ class AppServiceProvider extends ServiceProvider
         // Login auditing lives in App\Listeners\RecordLoginActivity, registered
         // via Laravel's app/Listeners event auto-discovery (no explicit binding).
         Cashier::useCustomerModel(Tenant::class);
+
+        // Cashier skips signature checks when its webhook secret is empty, which
+        // would let anyone post subscription events. With no secret configured,
+        // give it one nobody knows so every call is refused (fail closed, like
+        // StripeWebhookController). The real one is STRIPE_SUBSCRIPTION_WEBHOOK_SECRET.
+        if (blank(config('cashier.webhook.secret'))) {
+            config(['cashier.webhook.secret' => 'unset-'.Str::random(40)]);
+        }
 
         // Inject the tenant's brand color into the root view server-side so the
         // SSR / first paint is on-brand before JS runs (applyBrand can't touch

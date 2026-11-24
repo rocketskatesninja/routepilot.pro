@@ -25,8 +25,13 @@ const confirmForm = useForm({ code: '' });
 
 const enable = () => router.post(route('two-factor.enable'), {}, { preserveScroll: true });
 const confirm = () => confirmForm.post(route('two-factor.confirm'), { preserveScroll: true, onSuccess: () => confirmForm.reset('code') });
-const disable = () => router.delete(route('two-factor.disable'), { preserveScroll: true });
-const regenerate = () => router.post(route('two-factor.recovery-codes'), {}, { preserveScroll: true });
+// Cancelling a half-finished setup needs no code; changing a live one does.
+const cancelSetup = () => router.delete(route('two-factor.disable'), { preserveScroll: true });
+
+const manageForm = useForm({ code: '' });
+const manageDone = { preserveScroll: true, onSuccess: () => manageForm.reset('code') };
+const disable = () => manageForm.delete(route('two-factor.disable'), manageDone);
+const regenerate = () => manageForm.post(route('two-factor.recovery-codes'), manageDone);
 </script>
 
 <template>
@@ -81,7 +86,7 @@ const regenerate = () => router.post(route('two-factor.recovery-codes'), {}, { p
                                 autofocus
                             />
                             <Button :disabled="confirmForm.processing">Confirm</Button>
-                            <Button type="button" variant="ghost" @click="disable">Cancel</Button>
+                            <Button type="button" variant="ghost" @click="cancelSetup">Cancel</Button>
                         </div>
                         <InputError :message="confirmForm.errors.code" />
                     </form>
@@ -99,9 +104,26 @@ const regenerate = () => router.post(route('two-factor.recovery-codes'), {}, { p
                         </div>
                     </div>
 
+                    <div class="space-y-2">
+                        <Label for="manage-code">Current code</Label>
+                        <p class="text-muted-foreground text-xs">
+                            To change these settings, enter a code from your authenticator app or one of your recovery codes.
+                        </p>
+                        <Input
+                            id="manage-code"
+                            v-model="manageForm.code"
+                            class="w-48 text-center tracking-[0.2em]"
+                            placeholder="123456"
+                            autocomplete="one-time-code"
+                        />
+                        <InputError :message="manageForm.errors.code" />
+                    </div>
+
                     <div class="flex items-center gap-3">
-                        <Button variant="outline" @click="regenerate">Regenerate recovery codes</Button>
-                        <Button variant="destructive" @click="disable">Turn off</Button>
+                        <Button variant="outline" :disabled="manageForm.processing || !manageForm.code" @click="regenerate">
+                            Regenerate recovery codes
+                        </Button>
+                        <Button variant="destructive" :disabled="manageForm.processing || !manageForm.code" @click="disable">Turn off</Button>
                     </div>
                 </div>
             </div>

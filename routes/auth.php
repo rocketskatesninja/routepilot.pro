@@ -22,7 +22,10 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    // Per-IP ceiling on top of LoginRequest's per-email+IP lockout, which a
+    // caller defeats by trying a different email each time.
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware('throttle:20,1');
 
     // Google OAuth (correct-by-design: verified email + linked google_id).
     Route::get('auth/google/redirect', [GoogleAuthController::class, 'redirect'])

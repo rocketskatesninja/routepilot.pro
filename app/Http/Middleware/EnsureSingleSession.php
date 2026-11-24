@@ -16,6 +16,9 @@ use Symfony\Component\HttpFoundation\Response;
  * the session; a session whose token no longer matches was superseded by a
  * newer login, so we sign it out. Impersonation is exempt (it rides the
  * super-admin's session and is separately audited).
+ *
+ * A deactivated user is signed out here too: `is_active` is otherwise only
+ * checked at sign-in, so switching someone off would leave their phone signed in.
  */
 class EnsureSingleSession
 {
@@ -30,24 +33,33 @@ class EnsureSingleSession
         }
 
         $user = $request->user();
+        if (! $user instanceof User || $request->session()->has('impersonator_id')) {
+            return $next($request);
+        }
 
-        if ($user instanceof User
-            && ! $request->session()->has('impersonator_id')
-            && is_string($user->session_token) && $user->session_token !== ''
+        // Strictly false: an unsaved/partial model reads null, which is not "switched off".
+        if ($user->is_active === false) {
+            return $this->signOut($request, 'This account has been deactivated. Please contact your administrator.');
+        }
+
+        if (is_string($user->session_token) && $user->session_token !== ''
             && $request->session()->get('auth_token') !== $user->session_token) {
-
-            Auth::guard('web')->logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-
-            if ($request->expectsJson()) {
-                abort(401, 'Signed out — this account was signed in on another device.');
-            }
-
-            return redirect()->route('login')
-                ->with('status', 'You were signed out because this account was signed in on another device.');
+            return $this->signOut($request, 'You were signed out because this account was signed in on another device.');
         }
 
         return $next($request);
+    }
+
+    private function signOut(Request $request, string $why): Response
+    {
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        if ($request->expectsJson()) {
+            abort(401, $why);
+        }
+
+        return redirect()->route('login')->with('status', $why);
     }
 }

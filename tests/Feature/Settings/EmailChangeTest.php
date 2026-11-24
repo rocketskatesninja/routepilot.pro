@@ -78,7 +78,7 @@ test('a staff email change still applies immediately (no verification round-trip
     $admin = User::factory()->for($this->tenant)->create(['email' => 'admin-old@portal.test']);
 
     $this->actingAs($admin)
-        ->patch('/settings/profile', ['first_name' => $admin->first_name, 'last_name' => $admin->last_name, 'email' => 'admin-new@portal.test'])
+        ->patch('/settings/profile', ['first_name' => $admin->first_name, 'last_name' => $admin->last_name, 'email' => 'admin-new@portal.test', 'current_password' => 'password'])
         ->assertRedirect('/settings/profile');
 
     expect($admin->fresh()?->email)->toBe('admin-new@portal.test');

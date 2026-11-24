@@ -106,9 +106,9 @@ test('an invalid challenge code is rejected and audited', function () {
 });
 
 test('disabling two-factor clears the secrets', function () {
-    [$user] = enrolledStaff($this->tenant, $this->google);
+    [$user, $secret] = enrolledStaff($this->tenant, $this->google);
 
-    $this->actingAs($user)->delete('/settings/two-factor')->assertRedirect();
+    $this->actingAs($user)->delete('/settings/two-factor', ['code' => $this->google->getCurrentOtp($secret)])->assertRedirect();
 
     $user->refresh();
     expect($user->hasTwoFactorEnabled())->toBeFalse()

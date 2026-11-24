@@ -78,6 +78,15 @@ class GoogleAuthController extends Controller
             return $this->fail('This account is inactive.');
         }
 
+        // Google proved the first factor only. A 2FA account still owes its code,
+        // exactly as after a correct password (see LoginRequest).
+        if ($user->hasTwoFactorEnabled()) {
+            session()->put('login.id', $user->getKey());
+            session()->put('login.remember', true);
+
+            return to_route('two-factor.challenge');
+        }
+
         Auth::login($user, remember: true);
 
         return to_route('dashboard');

@@ -101,7 +101,7 @@ class AnalyticsController extends Controller
             'visits_month' => ServiceVisit::query()->where('status', 'completed')->where('completed_at', '>=', $monthStart)->count(),
             'visits_week' => ServiceVisit::query()->where('status', 'completed')->where('completed_at', '>=', $weekStart)->count(),
             'active_pools' => Pool::query()->count(),
-            'active_agents' => User::query()->where('role', 'agent')->where('is_active', true)->count(),
+            'active_agents' => User::query()->where('tenant_id', $request->user()?->tenant_id)->where('role', 'agent')->where('is_active', true)->count(),
             'top_agents' => $topAgents,
             'revenue_series' => $revenueSeries,
             'visits_series' => $visitsSeries,

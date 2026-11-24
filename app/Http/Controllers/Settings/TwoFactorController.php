@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\TwoFactorAuth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -71,13 +72,14 @@ class TwoFactorController extends Controller
         return back()->with('success', 'Two-factor authentication is on.');
     }
 
-    /** Regenerate recovery codes (shown once via flash). */
+    /** Regenerate recovery codes (shown once via flash). Needs a current code. */
     public function recoveryCodes(Request $request): RedirectResponse
     {
         $user = $this->staff($request);
         if (! $user->hasTwoFactorEnabled()) {
             return back();
         }
+        $this->confirmCode($request, $user);
 
         $codes = $this->twoFactor->newRecoveryCodes();
         $user->forceFill(['two_factor_recovery_codes' => json_encode($codes)])->save();
@@ -86,10 +88,16 @@ class TwoFactorController extends Controller
         return back()->with('two_factor_recovery_codes', $codes);
     }
 
-    /** Disable 2FA and clear all secrets. */
+    /**
+     * Disable 2FA and clear all secrets. Turning off a confirmed 2FA needs a
+     * current code; cancelling a half-finished setup does not.
+     */
     public function destroy(Request $request): RedirectResponse
     {
         $user = $this->staff($request);
+        if ($user->hasTwoFactorEnabled()) {
+            $this->confirmCode($request, $user);
+        }
         $user->forceFill([
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -107,5 +115,31 @@ class TwoFactorController extends Controller
         abort_unless($user instanceof User && $user->isStaff(), 403);
 
         return $user;
+    }
+
+    /**
+     * A signed-in session alone must not be enough to weaken 2FA (an unlocked
+     * laptop, or the platform owner signed in as this person): require a code
+     * from the app, or a recovery code, which is then used up.
+     */
+    private function confirmCode(Request $request, User $user): void
+    {
+        abort_if($request->session()->has('impersonator_id'), 403, 'Not available while signed in as someone else.');
+
+        $code = trim((string) $request->input('code'));
+        if ($code !== '' && $this->twoFactor->verify((string) $user->two_factor_secret, $code)) {
+            return;
+        }
+
+        $codes = $user->recoveryCodes();
+        $index = array_search(strtoupper($code), array_map('strtoupper', $codes), true);
+        if ($code !== '' && $index !== false) {
+            unset($codes[$index]);
+            $user->forceFill(['two_factor_recovery_codes' => json_encode(array_values($codes))])->save();
+
+            return;
+        }
+
+        throw ValidationException::withMessages(['code' => 'Enter a current code from your app, or a recovery code.']);
     }
 }
