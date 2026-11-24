@@ -12,12 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { type BreadcrumbItem } from '@/types';
 
-interface Props {
-    className?: string;
-}
-
-defineProps<Props>();
-
 const breadcrumbItems: BreadcrumbItem[] = [
     {
         title: 'Password settings',

@@ -43,7 +43,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'first_name', 'last_name', 'email', 'password', 'phone',
         'address_line1', 'address_line2', 'city', 'state', 'zip',
         'avatar_path', 'map_color', 'admin_notes', 'last_login_at',
-        'dashboard_layout', 'dashboard_style', 'sidebar_state',
+        'dashboard_layout', 'dashboard_style',
     ];
 
     /** @var list<string> */
@@ -70,7 +70,6 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_active' => 'boolean',
             'agent_plus' => 'boolean',
             'dashboard_layout' => 'array',
-            'sidebar_state' => 'array',
             'reports_seen_at' => 'datetime',
         ];
     }
@@ -124,11 +123,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSuperAdmin(): bool
     {
         return $this->role === 'super_admin';
-    }
-
-    public function isTenantAdmin(): bool
-    {
-        return $this->role === 'tenant_admin';
     }
 
     public function isAgent(): bool

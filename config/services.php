@@ -14,10 +14,6 @@ return [
     |
     */
 
-    'postmark' => [
-        'token' => env('POSTMARK_TOKEN'),
-    ],
-
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
@@ -27,23 +23,6 @@ return [
         'server_maps_key' => env('GOOGLE_MAPS_SERVER_KEY'),
         // Browser-restricted key for the client-side map (map-forward dashboard).
         'browser_maps_key' => env('GOOGLE_MAPS_BROWSER_KEY'),
-    ],
-
-    'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
-        'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
-    ],
-
-    'resend' => [
-        'key' => env('RESEND_KEY'),
-    ],
-
-    'slack' => [
-        'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
-        ],
     ],
 
     // Web push to phones. Make a key pair once per environment (php -r
@@ -58,10 +37,8 @@ return [
     // Placeholder keys — set the real Stripe test/live keys in .env to enable
     // payments. The webhook fails closed without STRIPE_WEBHOOK_SECRET.
     'stripe' => [
-        'key' => env('STRIPE_KEY'),
         'secret' => env('STRIPE_SECRET'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-        'connect_client_id' => env('STRIPE_CONNECT_CLIENT_ID'),
         // Platform revenue-share on customer payments routed to a connected account.
         'application_fee_percent' => (float) env('STRIPE_APPLICATION_FEE_PERCENT', 0.5),
     ],

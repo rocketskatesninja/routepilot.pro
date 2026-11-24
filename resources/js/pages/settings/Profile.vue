@@ -19,7 +19,6 @@ interface Props {
     mustVerifyEmail: boolean;
     status?: string;
     pendingEmail?: string | null;
-    className?: string;
     canDeleteAccount?: boolean;
 }
 

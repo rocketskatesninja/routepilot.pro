@@ -52,9 +52,6 @@ test('each role reaches its own surface', function () {
     $this->actingAs($this->admin)->get('/insights')->assertOk();   // admin write surface
 });
 
-test('an impersonating super-admin acts with the impersonated role', function () {
-    // Impersonation logs in AS the tenant user, so the acting role is the tenant
-    // admin's — reaching admin surfaces the raw super could not.
-    $this->actingAs($this->admin)->get('/insights')->assertOk();
-    $this->actingAs($this->admin)->get('/platform/billing')->assertForbidden();
+test('a guest is sent to sign in', function () {
+    $this->get('/dashboard')->assertRedirect('/login');
 });

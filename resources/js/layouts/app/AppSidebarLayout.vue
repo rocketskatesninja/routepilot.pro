@@ -17,9 +17,9 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-    <AppShell variant="sidebar">
+    <AppShell>
         <AppSidebar />
-        <AppContent variant="sidebar" class="rp-page-content">
+        <AppContent class="rp-page-content">
             <AppSidebarHeader :breadcrumbs="breadcrumbs" :meta="meta">
                 <template v-if="$slots.actions" #actions><slot name="actions" /></template>
                 <template v-if="$slots.filters" #filters><slot name="filters" /></template>
