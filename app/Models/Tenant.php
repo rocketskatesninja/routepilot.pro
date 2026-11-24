@@ -252,6 +252,58 @@ class Tenant extends Model
         return $lat === null || $lng === null || ((float) $lat === 0.0 && (float) $lng === 0.0) ? null : [(float) $lat, (float) $lng];
     }
 
+    /** A stored UTC moment in this company's time zone. */
+    public function toLocal(CarbonInterface $at): Carbon
+    {
+        return Carbon::instance($at)->setTimezone($this->timezoneName());
+    }
+
+    /**
+     * Make this the current company: TenantScope reads `tenant_id`, and the
+     * static helpers below (localToday, local, localDate) read `tenant`. Always
+     * bind both, through here: binding the id alone leaves "today" on the app's
+     * time zone.
+     */
+    public function bind(): void
+    {
+        app()->instance('tenant', $this);
+        app()->instance('tenant_id', $this->id);
+    }
+
+    /**
+     * Run $each once per active company with that company bound, then put back
+     * whatever was bound before (nothing, for a console command), so the last
+     * company never leaks into whatever runs next in the process.
+     *
+     * @param  callable(self): void  $each
+     */
+    public static function eachActive(callable $each, bool $billingOnly = false): void
+    {
+        $before = app()->has('tenant') ? app('tenant') : null;
+        $beforeId = app()->has('tenant_id') ? app('tenant_id') : null;
+        $restore = match (true) {
+            $before instanceof self => fn () => $before->bind(),
+            is_int($beforeId) => fn () => app()->instance('tenant_id', $beforeId),
+            default => null,
+        };
+
+        try {
+            self::query()->where('status', 'active')
+                ->when($billingOnly, fn ($q) => $q->where('customer_billing', true))
+                ->get()
+                ->each(function (self $tenant) use ($each): void {
+                    $tenant->bind();
+                    $each($tenant);
+                });
+        } finally {
+            app()->forgetInstance('tenant');
+            app()->forgetInstance('tenant_id');
+            if ($restore !== null) {
+                $restore();
+            }
+        }
+    }
+
     /** today() for the request-bound tenant; app-timezone fallback when unbound. */
     public static function localToday(): Carbon
     {

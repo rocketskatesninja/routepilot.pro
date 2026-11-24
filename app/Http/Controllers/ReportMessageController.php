@@ -30,13 +30,12 @@ class ReportMessageController extends Controller
     {
         [$customer, $tenant] = $this->owner($visit);
         $brand = EmailBrand::for($tenant);
-        $timezone = $tenant->timezoneName();
 
         return Inertia::render('public/ReportMessage', [
             'company' => ['name' => $brand['name'], 'color' => $brand['color'], 'logo' => $brand['logo']],
             'firstName' => $customer->first_name ?: $customer->displayName(),
             'visit' => [
-                'date' => $visit->completed_at?->copy()->setTimezone($timezone)->format('l, F j'),
+                'date' => $visit->completed_at !== null ? $tenant->toLocal($visit->completed_at)->format('l, F j') : null,
                 'pool' => $visit->pool?->name,
             ],
             'sendUrl' => URL::temporarySignedRoute('report-message.store', now()->addDay(), ['visit' => $visit->id]),
@@ -77,7 +76,7 @@ class ReportMessageController extends Controller
         $customer = $visit->pool?->customer;
         $tenant = $customer?->tenant;
         abort_if($customer === null || $tenant === null || ! $tenant->takesReportMessages(), 404);
-        app()->instance('tenant_id', $tenant->id);
+        $tenant->bind();
 
         return [$customer, $tenant];
     }

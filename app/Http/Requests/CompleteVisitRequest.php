@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\VisitReportRules;
 use App\Models\RouteStop;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Log;
 
 class CompleteVisitRequest extends FormRequest
 {
+    use VisitReportRules;
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -20,33 +23,9 @@ class CompleteVisitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'free_chlorine' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'total_chlorine' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'ph' => ['nullable', 'numeric', 'min:0', 'max:14'],
-            'alkalinity' => ['nullable', 'numeric', 'min:0', 'max:1000'],
-            'calcium_hardness' => ['nullable', 'numeric', 'min:0', 'max:5000'],
-            'cyanuric_acid' => ['nullable', 'numeric', 'min:0', 'max:1000'],
-            'salt' => ['nullable', 'numeric', 'min:0', 'max:20000'],
-            'tds' => ['nullable', 'numeric', 'min:0', 'max:50000'],
-            'phosphates' => ['nullable', 'numeric', 'min:0', 'max:10000'],
-            'water_temperature' => ['nullable', 'numeric', 'min:0', 'max:120'],
-            'tasks' => ['array'],
-            'tasks.*.name' => ['nullable', 'string', 'max:255'],
-            'tasks.*.done' => ['boolean'],
-            'treatments' => ['array'],
-            // A chemical picked from the company's list (another company's id is ignored);
-            // name/unit are only sent for chemicals typed before the list existed.
-            'treatments.*.chemical_id' => ['nullable', 'integer'],
-            'treatments.*.name' => ['nullable', 'string', 'max:255'],
-            'treatments.*.amount' => ['nullable', 'numeric', 'min:0', 'max:100000'],
-            'treatments.*.unit' => ['nullable', 'string', 'max:50'],
-            // Repair parts used, from the company's list (another company's id is ignored).
-            'parts' => ['array'],
-            'parts.*.part_id' => ['nullable', 'integer'],
-            'parts.*.amount' => ['nullable', 'numeric', 'min:0', 'max:1000'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-            // For the company only; the homeowner never sees it.
-            'office_notes' => ['nullable', 'string', 'max:2000'],
+            ...$this->readingRules(),
+            ...$this->lineRules(),
+            ...$this->noteRules(),
             // A second address that gets a copy of the report, remembered on the pool. Sent
             // blank to clear it; left out (older copies of the app) to leave it alone.
             'report_cc_email' => ['nullable', 'string', 'email:rfc', 'max:255'],

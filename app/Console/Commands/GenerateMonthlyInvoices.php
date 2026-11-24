@@ -26,8 +26,7 @@ class GenerateMonthlyInvoices extends Command
         $generated = 0;
         $emailed = 0;
 
-        Tenant::query()->where('status', 'active')->where('customer_billing', true)->each(function (Tenant $tenant) use ($generate, $send, $billing, &$generated, &$emailed): void {
-            app()->instance('tenant_id', $tenant->id);
+        Tenant::eachActive(function () use ($generate, $send, $billing, &$generated, &$emailed): void {
             foreach ($billing->outstandingBalances() as $row) {
                 $invoice = $generate->handle($row['customer']);
                 if ($invoice === null) {
@@ -36,7 +35,7 @@ class GenerateMonthlyInvoices extends Command
                 $generated++;
                 $emailed += $send->handle($invoice) !== null ? 1 : 0;
             }
-        });
+        }, billingOnly: true);
 
         $this->info("Generated {$generated} invoice(s), emailed {$emailed}.");
 

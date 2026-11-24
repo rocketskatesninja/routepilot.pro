@@ -113,8 +113,7 @@ class PublicSiteController extends Controller
         // Bind the tenant so the shared `tenant` prop, brand injection, and any
         // tenant-scoped section data resolve correctly (the path route reaches
         // here without ResolveTenant having bound a tenant by host).
-        app()->instance('tenant', $tenant);
-        app()->instance('tenant_id', $tenant->id);
+        $tenant->bind();
 
         // No website: its address still works, with its name and a way for customers to log in.
         if (! $tenant->landing_page) {

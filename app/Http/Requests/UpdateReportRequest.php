@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\VisitReportRules;
 use App\Models\ServiceVisit;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -14,6 +15,8 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class UpdateReportRequest extends FormRequest
 {
+    use VisitReportRules;
+
     public function authorize(): bool
     {
         $user = $this->user();
@@ -32,31 +35,10 @@ class UpdateReportRequest extends FormRequest
     {
         return [
             'completed_on' => ['nullable', 'date'],
-            'notes' => ['nullable', 'string', 'max:5000'],
-            'office_notes' => ['nullable', 'string', 'max:5000'],
+            ...$this->noteRules(),
             'reading' => ['array'],
-            'reading.free_chlorine' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'reading.total_chlorine' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'reading.ph' => ['nullable', 'numeric', 'min:0', 'max:14'],
-            'reading.alkalinity' => ['nullable', 'numeric', 'min:0', 'max:1000'],
-            'reading.calcium_hardness' => ['nullable', 'numeric', 'min:0', 'max:5000'],
-            'reading.cyanuric_acid' => ['nullable', 'numeric', 'min:0', 'max:500'],
-            'reading.salt' => ['nullable', 'numeric', 'min:0', 'max:10000'],
-            'reading.water_temperature' => ['nullable', 'numeric', 'min:0', 'max:150'],
-            'treatments' => ['array'],
-            // A chemical picked from the company's list (another company's id is ignored);
-            // name/unit are only sent for chemicals typed before the list existed.
-            'treatments.*.chemical_id' => ['nullable', 'integer'],
-            'treatments.*.name' => ['nullable', 'string', 'max:120'],
-            'treatments.*.amount' => ['nullable', 'numeric', 'min:0'],
-            'treatments.*.unit' => ['nullable', 'string', 'max:30'],
-            // Repair parts used, from the company's list.
-            'parts' => ['array'],
-            'parts.*.part_id' => ['nullable', 'integer'],
-            'parts.*.amount' => ['nullable', 'numeric', 'min:0', 'max:1000'],
-            'tasks' => ['array'],
-            'tasks.*.name' => ['nullable', 'string', 'max:160'],
-            'tasks.*.done' => ['boolean'],
+            ...$this->readingRules('reading.'),
+            ...$this->lineRules(),
         ];
     }
 }

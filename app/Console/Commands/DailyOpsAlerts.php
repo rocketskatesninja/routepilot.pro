@@ -25,9 +25,7 @@ class DailyOpsAlerts extends Command
         $total = 0;
         $missed = 0;
 
-        Tenant::query()->where('status', 'active')->get()->each(function (Tenant $tenant) use ($markMissed, $checks, &$total, &$missed): void {
-            app()->instance('tenant_id', $tenant->id);
-            app()->instance('tenant', $tenant); // so Tenant::localToday() reads this tenant's timezone
+        Tenant::eachActive(function (Tenant $tenant) use ($markMissed, $checks, &$total, &$missed): void {
             $missed += $markMissed->handle(); // before the checks, which alert on yesterday's missed stops
             $total += $checks->run($tenant->id);
         });

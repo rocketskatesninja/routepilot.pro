@@ -32,9 +32,7 @@ class ChargeAutopay extends Command
         $charged = 0;
         $declined = 0;
 
-        Tenant::query()->where('status', 'active')->where('customer_billing', true)->each(function (Tenant $tenant) use ($charger, &$charged, &$declined): void {
-            app()->instance('tenant_id', $tenant->id);
-
+        Tenant::eachActive(function () use ($charger, &$charged, &$declined): void {
             Customer::query()
                 ->where('autopay_enabled', true)
                 ->whereNotNull('stripe_customer_id')
@@ -47,7 +45,7 @@ class ChargeAutopay extends Command
                         $declined++;
                     }
                 });
-        });
+        }, billingOnly: true);
 
         $this->info("Autopay: {$charged} charged, {$declined} declined.");
 

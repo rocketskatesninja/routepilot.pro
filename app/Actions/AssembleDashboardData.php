@@ -236,7 +236,7 @@ class AssembleDashboardData
             ->with('stops:id,route_id,status')->first();
         $stops = $route !== null ? $route->stops : collect();
         $week = ServiceVisit::query()->where('agent_id', $user->id)->where('status', 'completed')
-            ->where('completed_at', '>=', now()->startOfWeek())->count();
+            ->where('completed_at', '>=', Tenant::localToday()->startOfWeek()->utc())->count(); // the company's week, not UTC's
 
         return ['tiles' => [
             ['label' => 'Stops today', 'value' => $stops->count()],
@@ -513,7 +513,7 @@ class AssembleDashboardData
         $stops = $route !== null ? $route->stops : collect();
 
         return [
-            'label' => $date === null ? null : ($date->isToday() ? 'today' : $date->isoFormat('ddd, MMM D')),
+            'label' => $date === null ? null : ($date->toDateString() === Tenant::localToday()->toDateString() ? 'today' : $date->isoFormat('ddd, MMM D')),
             'stops' => $stops->map(fn (RouteStop $s) => [
                 'id' => $s->id,
                 'pool' => $s->pool?->getAttribute('name'),

@@ -31,7 +31,7 @@ class PublicChatController extends Controller
             'visitor_token' => ['nullable', 'string', 'size:36'],
         ]);
 
-        app()->instance('tenant_id', $tenant->id);
+        $tenant->bind();
 
         // Gate: AI must be configured for this tenant, and the visitors' share of its allowance not used up.
         [, $key] = app(AiCredentials::class)->for($tenant->id);

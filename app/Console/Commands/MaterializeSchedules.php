@@ -23,9 +23,7 @@ class MaterializeSchedules extends Command
     {
         $through = $this->option('through') ?: null;
 
-        Tenant::query()->where('status', 'active')->get()->each(function (Tenant $tenant) use ($materializer, $through): void {
-            app()->instance('tenant', $tenant);
-            app()->instance('tenant_id', $tenant->id);
+        Tenant::eachActive(function (Tenant $tenant) use ($materializer, $through): void {
             $materializer->run($tenant->id, is_string($through) ? $through : null);
         });
 

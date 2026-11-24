@@ -25,16 +25,14 @@ class FlagOverdueInvoices extends Command
     public function handle(BillingService $billing): int
     {
         $count = 0;
-        Tenant::query()->where('status', 'active')->where('customer_billing', true)->each(function (Tenant $tenant) use ($billing, &$count): void {
-            app()->instance('tenant_id', $tenant->id);
-
+        Tenant::eachActive(function (Tenant $tenant) use ($billing, &$count): void {
             $pastDue = Invoice::query()->whereIn('status', ['draft', 'sent'])
                 ->whereDate('due_at', '<', $tenant->today()->toDateString())->pluck('customer_id', 'id');
             // An archived customer's unpaid bill still goes overdue.
             Customer::withTrashed()->whereKey($pastDue->unique()->values())->each(fn (Customer $c) => $billing->refreshInvoices($c));
 
             $count += Invoice::query()->whereKey($pastDue->keys())->where('status', 'overdue')->count();
-        });
+        }, billingOnly: true);
 
         $this->info("Flagged {$count} invoice(s) overdue.");
 

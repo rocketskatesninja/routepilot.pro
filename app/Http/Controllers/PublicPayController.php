@@ -24,7 +24,9 @@ class PublicPayController extends Controller
         $record = Customer::withoutGlobalScopes()->find((int) $customer);
         abort_if($record === null, 404);
 
-        app()->instance('tenant_id', $record->getAttribute('tenant_id'));
+        $tenant = $record->tenant;
+        abort_if($tenant === null, 404);
+        $tenant->bind();
         $amount = $billing->outstandingForCustomer($record);
         if ($amount <= 0) {
             return redirect('/pay/thanks');

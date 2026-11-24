@@ -73,8 +73,6 @@ class VisitRecapMail extends Mailable
         [$parts, $chemicals] = $visit->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());
         $tenant = $customer->tenant;
         $checks = WaterReport::checks($visit->chemicalReading, $visit->pool);
-        // The company's own calendar day — a queued email has no request to tell it.
-        $timezone = (string) ($tenant->getAttribute('timezone') ?: config('app.timezone'));
 
         return new Content(view: 'emails.visit-recap', with: [
             'brand' => EmailBrand::for($tenant),
@@ -82,7 +80,8 @@ class VisitRecapMail extends Mailable
             'pool' => $visit->pool->name,
             'service' => $visit->serviceSubscription?->serviceType?->name,
             'agent' => $visit->agent?->firstName(),
-            'date' => $visit->completed_at?->copy()->setTimezone($timezone)->format('l, F j') ?? '',
+            // The company's own calendar day: a queued email has no request to tell it.
+            'date' => $visit->completed_at !== null ? $tenant->toLocal($visit->completed_at)->format('l, F j') : '',
             'tasks' => $visit->tasks,
             'checks' => $checks,
             'waterSummary' => WaterReport::summary($checks),

@@ -74,7 +74,6 @@ class ResolveTenant
 
     protected function bind(Tenant $tenant): void
     {
-        app()->instance('tenant', $tenant);
-        app()->instance('tenant_id', $tenant->id);
+        $tenant->bind();
     }
 }

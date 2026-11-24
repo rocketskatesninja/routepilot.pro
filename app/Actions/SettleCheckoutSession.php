@@ -6,6 +6,7 @@ namespace App\Actions;
 
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Models\Tenant;
 
 /**
  * Settle a paid Stripe Checkout session against the customer's balance. The
@@ -37,7 +38,11 @@ class SettleCheckoutSession
             return null;
         }
 
-        app()->instance('tenant_id', $tenantId);
+        $tenant = Tenant::query()->find($tenantId);
+        if ($tenant === null) {
+            return null;
+        }
+        $tenant->bind();
 
         $intent = is_string($session['payment_intent'] ?? null) ? $session['payment_intent'] : null;
         $customer = Customer::query()->find($customerId);

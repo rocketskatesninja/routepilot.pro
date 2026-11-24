@@ -115,7 +115,8 @@ class WeatherService
             $date = Carbon::parse($time);
             $days[] = [
                 'date' => $date->toDateString(),
-                'dow' => $date->isToday() ? 'Today' : $date->isoFormat('ddd'),
+                // The forecast is in the place's own time zone (timezone=auto) and starts today there.
+                'dow' => $i === 0 ? 'Today' : $date->isoFormat('ddd'),
                 'high' => (int) round($this->num($max[$i] ?? null)),
                 'low' => (int) round($this->num($min[$i] ?? null)),
                 'code' => (int) $this->num($codes[$i] ?? null),

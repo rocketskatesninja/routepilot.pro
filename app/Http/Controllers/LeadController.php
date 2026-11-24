@@ -26,7 +26,7 @@ class LeadController extends Controller
     /** Public capture — the {tenant} comes from the landing site's slug. */
     public function store(StoreLeadRequest $request, Tenant $tenant, CaptureLead $capture): JsonResponse
     {
-        app()->instance('tenant_id', $tenant->id);
+        $tenant->bind();
 
         if ($capture->handle($tenant->id, $request->validated(), $request->ip()) === null) {
             // `error` (not `message`) so the site's forms can tell this apart from a plain throttle.
