@@ -65,7 +65,6 @@ class LoginRequest extends FormRequest
 
         if ($user instanceof User && ! $user->is_active) {
             RateLimiter::hit($this->throttleKey());
-            $this->scopeTenant($user);
             AuditLog::record($user, 'auth.blocked_inactive', $user);
 
             throw ValidationException::withMessages([
@@ -87,18 +86,6 @@ class LoginRequest extends FormRequest
         Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
-    }
-
-    /**
-     * Bind the user's tenant so a pre-authentication audit row (deactivated
-     * login) is scoped to their company — the login request hasn't resolved a
-     * tenant yet.
-     */
-    private function scopeTenant(User $user): void
-    {
-        if ($user->tenant_id !== null && ! app()->has('tenant_id')) {
-            app()->instance('tenant_id', $user->tenant_id);
-        }
     }
 
     /**

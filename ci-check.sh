@@ -7,6 +7,7 @@ cd "$(dirname "$0")"
 echo "▶ Pint (PHP style)";            vendor/bin/pint --test
 echo "▶ Prettier (format:check)";     npm run format:check
 echo "▶ ESLint";                      npx eslint .
+echo "▶ vue-tsc (type check)";        npx vue-tsc --noEmit
 echo "▶ PHPStan (static analysis)";   vendor/bin/phpstan analyse --no-progress
 echo "▶ Build (client + SSR)";        npm run build
 echo "▶ JS unit tests (vitest)";      npm run test:js

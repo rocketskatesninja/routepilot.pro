@@ -3,12 +3,9 @@ name: tests
 on:
   push:
     branches:
-      - develop
       - main
-      - 'rebuild/**'
   pull_request:
     branches:
-      - develop
       - main
 
 jobs:
@@ -24,7 +21,7 @@ jobs:
         with:
           php-version: 8.4
           tools: composer:v2
-          coverage: xdebug
+          coverage: none # nothing reads coverage; Xdebug only slows the suite
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -46,9 +43,6 @@ jobs:
 
       - name: Generate Application Key
         run: php artisan key:generate
-
-      - name: Publish Ziggy Configuration
-        run: php artisan ziggy:generate
 
       - name: Static Analysis (Larastan)
         run: ./vendor/bin/phpstan analyse --no-progress

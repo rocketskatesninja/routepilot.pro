@@ -47,7 +47,14 @@ class AuditLog extends Model
      */
     public static function record(?User $user, string $action, ?Model $model = null, ?array $changes = null): self
     {
-        return self::create([
+        $row = new self;
+        // Before sign-in (a failed 2FA code, a blocked login) no company is bound
+        // yet, so file the row under the person's own company rather than none.
+        if (! app()->has('tenant_id') && $user?->tenant_id !== null) {
+            $row->tenant_id = $user->tenant_id;
+        }
+
+        $row->fill([
             'user_id' => $user?->id,
             'impersonator_id' => request()->hasSession() ? request()->session()->get('impersonator_id') : null,
             'action' => $action,
@@ -55,6 +62,8 @@ class AuditLog extends Model
             'model_id' => $model?->getKey(),
             'changes' => $changes,
             'ip_address' => request()->ip(),
-        ]);
+        ])->save();
+
+        return $row;
     }
 }

@@ -3,12 +3,9 @@ name: linter
 on:
   push:
     branches:
-      - develop
       - main
-      - 'rebuild/**'
   pull_request:
     branches:
-      - develop
       - main
 
 jobs:
