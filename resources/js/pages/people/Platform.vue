@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Select } from '@/components/ui/select';
+import FormField from '@/components/FormField.vue';
 import EmailComposer from '@/components/EmailComposer.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -303,25 +305,19 @@ function closePane() {
                     <!-- add tenant -->
                     <form v-if="form === 'create'" class="space-y-4 text-sm" @submit.prevent="submitCreate">
                         <PaneHeader title="New tenant" summary="Creates the company and its first admin, already verified." />
-                        <div class="grid gap-1.5">
-                            <Label for="company">Company name</Label>
-                            <Input id="company" v-model="createForm.company" />
-                            <p v-if="createForm.errors.company" class="text-xs text-red-600">{{ createForm.errors.company }}</p>
-                        </div>
+                        <FormField label="Company name" for="company" :error="createForm.errors.company"
+                            ><Input id="company" v-model="createForm.company"
+                        /></FormField>
                         <div class="grid grid-cols-2 gap-3">
-                            <div class="grid gap-1.5"><Label for="fn">Admin first name</Label><Input id="fn" v-model="createForm.first_name" /></div>
-                            <div class="grid gap-1.5"><Label for="ln">Last name</Label><Input id="ln" v-model="createForm.last_name" /></div>
+                            <FormField label="Admin first name" for="fn"><Input id="fn" v-model="createForm.first_name" /></FormField>
+                            <FormField label="Last name" for="ln"><Input id="ln" v-model="createForm.last_name" /></FormField>
                         </div>
-                        <div class="grid gap-1.5">
-                            <Label for="em">Admin email</Label>
-                            <Input id="em" v-model="createForm.email" type="email" />
-                            <p v-if="createForm.errors.email" class="text-xs text-red-600">{{ createForm.errors.email }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="pw">Temporary password</Label>
-                            <PasswordInput id="pw" v-model="createForm.password" autocomplete="new-password" />
-                            <p v-if="createForm.errors.password" class="text-xs text-red-600">{{ createForm.errors.password }}</p>
-                        </div>
+                        <FormField label="Admin email" for="em" :error="createForm.errors.email"
+                            ><Input id="em" v-model="createForm.email" type="email"
+                        /></FormField>
+                        <FormField label="Temporary password" for="pw" :error="createForm.errors.password"
+                            ><PasswordInput id="pw" v-model="createForm.password" autocomplete="new-password"
+                        /></FormField>
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="form = null">Cancel</Button>
                             <Button type="submit" :disabled="createForm.processing">Create tenant</Button>
@@ -331,11 +327,7 @@ function closePane() {
                     <!-- edit tenant -->
                     <form v-else-if="form === 'edit'" class="space-y-4 text-sm" @submit.prevent="submitEdit">
                         <PaneHeader title="Edit tenant" summary="Suspending locks their staff out. You can still sign in as them." />
-                        <div class="grid gap-1.5">
-                            <Label for="tn">Company name</Label>
-                            <Input id="tn" v-model="editForm.name" />
-                            <p v-if="editForm.errors.name" class="text-xs text-red-600">{{ editForm.errors.name }}</p>
-                        </div>
+                        <FormField label="Company name" for="tn" :error="editForm.errors.name"><Input id="tn" v-model="editForm.name" /></FormField>
                         <div class="grid gap-1.5">
                             <Label for="sl">Public slug</Label>
                             <div class="flex items-center gap-1.5">
@@ -347,14 +339,13 @@ function closePane() {
                                 Changing the slug changes this company's public URL — existing links to the old address will stop working.
                             </p>
                         </div>
-                        <div class="grid gap-1.5">
-                            <Label for="st">Status</Label>
-                            <select id="st" v-model="editForm.status" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
+                        <FormField label="Status" for="st"
+                            ><Select id="st" v-model="editForm.status">
                                 <option value="active">Active</option>
                                 <option value="suspended">Suspended</option>
                                 <option value="cancelled">Cancelled</option>
-                            </select>
-                        </div>
+                            </Select></FormField
+                        >
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="form = null">Cancel</Button>
                             <Button type="submit" :disabled="editForm.processing">Save</Button>

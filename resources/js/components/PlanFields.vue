@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Select } from '@/components/ui/select';
+import FormField from '@/components/FormField.vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
@@ -29,45 +31,41 @@ const billing = useCustomerBilling();
 </script>
 
 <template>
-    <div class="grid gap-1.5">
-        <Label :for="`${idPrefix}_agent`">Agent</Label>
-        <select
-            :id="`${idPrefix}_agent`"
-            v-model="form.assigned_agent_id"
-            class="border-input bg-background h-9 w-64 max-w-full rounded-md border px-2 text-sm"
-        >
+    <FormField label="Agent" :for="`${idPrefix}_agent`"
+        ><Select :id="`${idPrefix}_agent`" v-model="form.assigned_agent_id" class="w-64 max-w-full">
             <option value="">Unassigned</option>
             <option v-for="a in agents" :key="a.id" :value="a.id">{{ a.name }}</option>
-        </select>
-    </div>
+        </Select></FormField
+    >
     <div class="flex flex-wrap items-start gap-3">
-        <div class="grid gap-1.5">
-            <Label :for="`${idPrefix}_freq`">Schedule</Label>
-            <select :id="`${idPrefix}_freq`" v-model="form.frequency" class="border-input bg-background h-9 w-40 rounded-md border px-2 text-sm">
+        <FormField label="Schedule" :for="`${idPrefix}_freq`"
+            ><Select :id="`${idPrefix}_freq`" v-model="form.frequency" class="w-40">
                 <option v-for="(label, key) in SCHEDULES" :key="key" :value="key">{{ label }}</option>
-            </select>
-        </div>
-        <div v-if="form.frequency === 'weekly' || form.frequency === 'biweekly'" class="grid gap-1.5">
-            <Label :for="`${idPrefix}_day`">Day</Label>
-            <select :id="`${idPrefix}_day`" v-model="form.preferred_day" class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm">
+            </Select></FormField
+        >
+        <FormField
+            v-if="form.frequency === 'weekly' || form.frequency === 'biweekly'"
+            label="Day"
+            :for="`${idPrefix}_day`"
+            :error="form.errors.preferred_day"
+            ><Select :id="`${idPrefix}_day`" v-model="form.preferred_day" class="w-36">
                 <option value="" disabled>Pick a day…</option>
                 <option v-for="d in WEEKDAYS" :key="d" :value="d">{{ d.charAt(0).toUpperCase() + d.slice(1) }}</option>
-            </select>
-            <p v-if="form.errors.preferred_day" class="text-xs text-red-600">{{ form.errors.preferred_day }}</p>
-        </div>
-        <div v-else-if="form.frequency === 'monthly'" class="grid gap-1.5">
-            <Label :for="`${idPrefix}_dom`">Day of month</Label>
-            <Input :id="`${idPrefix}_dom`" v-model="form.day_of_month" type="number" min="1" max="31" class="w-20" />
-            <p v-if="form.errors.day_of_month" class="text-xs text-red-600">{{ form.errors.day_of_month }}</p>
-            <p v-else class="text-muted-foreground text-xs">31 = last day of short months</p>
-        </div>
+            </Select></FormField
+        >
+        <FormField
+            v-else-if="form.frequency === 'monthly'"
+            label="Day of month"
+            :for="`${idPrefix}_dom`"
+            :error="form.errors.day_of_month"
+            hint="31 = last day of short months"
+            ><Input :id="`${idPrefix}_dom`" v-model="form.day_of_month" type="number" min="1" max="31" class="w-20"
+        /></FormField>
     </div>
     <div class="flex flex-wrap items-start gap-3">
-        <div class="grid gap-1.5">
-            <Label :for="`${idPrefix}_start`">{{ form.frequency === 'one_time' ? 'Date' : 'Starts' }}</Label>
-            <Input :id="`${idPrefix}_start`" v-model="form.starts_on" type="date" class="w-40" />
-            <p v-if="form.errors.starts_on" class="text-xs text-red-600">{{ form.errors.starts_on }}</p>
-        </div>
+        <FormField :label="form.frequency === 'one_time' ? 'Date' : 'Starts'" :for="`${idPrefix}_start`" :error="form.errors.starts_on"
+            ><Input :id="`${idPrefix}_start`" v-model="form.starts_on" type="date" class="w-40"
+        /></FormField>
         <div v-if="form.frequency !== 'one_time'" class="grid gap-1.5">
             <Label :for="`${idPrefix}_end`">Ends <span class="text-muted-foreground font-normal">(optional)</span></Label>
             <Input :id="`${idPrefix}_end`" v-model="form.ends_on" type="date" class="w-40" />

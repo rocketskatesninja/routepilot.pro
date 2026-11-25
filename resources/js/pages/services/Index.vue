@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { saveRecord } from '@/composables/useCrudForm';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import FormField from '@/components/FormField.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import SortableTh from '@/components/SortableTh.vue';
@@ -200,11 +204,8 @@ function openEdit() {
 }
 
 function submitForm() {
-    if (formMode.value === 'create') {
-        form.post('/services', { preserveScroll: true, onSuccess: () => (formOpen.value = false) });
-    } else if (formId.value !== null) {
-        form.patch(`/services/${formId.value}`, { preserveScroll: true, onSuccess: () => (formOpen.value = false) });
-    }
+    const id = formMode.value === 'create' ? null : formId.value;
+    if (formMode.value === 'create' || id !== null) saveRecord(form, '/services', id, () => (formOpen.value = false));
 }
 
 function destroyService() {
@@ -255,15 +256,7 @@ function destroyService() {
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 @lg:table-cell">{{ service.pools }}</td>
                             <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="
-                                        service.is_active
-                                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                            : 'bg-muted text-muted-foreground'
-                                    "
-                                    >{{ service.is_active ? 'Active' : 'Inactive' }}</span
-                                >
+                                <Chip :tone="service.is_active ? 'good' : 'muted'">{{ service.is_active ? 'Active' : 'Inactive' }}</Chip>
                                 <span
                                     v-if="service.is_active && !service.requestable"
                                     class="text-muted-foreground ml-1 inline-flex items-center gap-1 text-xs"
@@ -287,14 +280,16 @@ function destroyService() {
                             summary="Set it up once. You’ll pick it when you add a plan to a pool."
                         />
 
-                        <div v-if="formMode === 'create'" class="grid gap-1.5">
-                            <Label for="template">Start from a template</Label>
-                            <select id="template" class="border-input bg-background h-9 w-64 rounded-md border px-2 text-sm" @change="applyTemplate">
+                        <FormField
+                            v-if="formMode === 'create'"
+                            label="Start from a template"
+                            for="template"
+                            hint="Fills in everything below — change whatever you like."
+                            ><Select id="template" class="w-64" @change="applyTemplate">
                                 <option value="">Blank service</option>
                                 <option v-for="(t, i) in templates" :key="t.name" :value="i">{{ t.name }}</option>
-                            </select>
-                            <p class="text-muted-foreground text-xs">Fills in everything below — change whatever you like.</p>
-                        </div>
+                            </Select></FormField
+                        >
 
                         <!-- first: these two decide whether customers see it at all (the preview below follows them) -->
                         <section class="space-y-2">
@@ -323,23 +318,20 @@ function destroyService() {
 
                         <section class="space-y-3">
                             <h3 class="text-base font-semibold tracking-tight">2. What it is</h3>
-                            <div class="grid gap-1.5">
-                                <Label for="name">Name</Label>
-                                <Input id="name" v-model="form.name" placeholder="e.g. Weekly pool service" />
-                                <p v-if="form.errors.name" class="text-xs text-red-600">{{ form.errors.name }}</p>
-                            </div>
+                            <FormField label="Name" for="name" :error="form.errors.name"
+                                ><Input id="name" v-model="form.name" placeholder="e.g. Weekly pool service"
+                            /></FormField>
                             <div class="grid gap-1.5">
                                 <Label for="desc"
                                     >Short description <span class="text-muted-foreground font-normal">(customers read this)</span></Label
                                 >
-                                <textarea
+                                <Textarea
                                     id="desc"
                                     v-model="form.description"
                                     rows="2"
                                     maxlength="500"
                                     placeholder="What's included, in a sentence or two"
-                                    class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                                ></textarea>
+                                />
                             </div>
                         </section>
 
@@ -353,17 +345,15 @@ function destroyService() {
                                     >One-time job</Button
                                 >
                             </div>
-                            <div v-if="recurring" class="grid gap-1.5">
-                                <Label for="frequency">Usual schedule</Label>
-                                <select
-                                    id="frequency"
-                                    v-model="form.frequency"
-                                    class="border-input bg-background h-9 w-40 rounded-md border px-2 text-sm"
-                                >
+                            <FormField
+                                v-if="recurring"
+                                label="Usual schedule"
+                                for="frequency"
+                                hint="New plans start with this — you can change it per pool."
+                                ><Select id="frequency" v-model="form.frequency" class="w-40">
                                     <option v-for="(label, key) in schedules" :key="key" :value="key">{{ label }}</option>
-                                </select>
-                                <p class="text-muted-foreground text-xs">New plans start with this — you can change it per pool.</p>
-                            </div>
+                                </Select></FormField
+                            >
                         </section>
 
                         <section class="space-y-3">

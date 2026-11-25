@@ -303,19 +303,33 @@ function examine(ctx, c) {
 }
 
 // Settled: the network has gone quiet and no spinner is showing (the field app fetches its day
-// after the page itself has loaded). A spinner that never stops still fails the blank-page check.
+// after the page itself has loaded). The spinner is looked for twice: a click that moves to
+// another page in place leaves the network "quiet" from the last load, so the first look can
+// land before the new page is drawn, and its spinner only starts during the pause.
+// A page that loads afresh mid-look ends the look early, so that is retried too.
+// A spinner that never stops still fails the blank-page check.
+const noSpinner = async (page) => {
+    const until = Date.now() + 15000;
+    while (Date.now() < until) {
+        try {
+            await page.waitForFunction(() => ![...document.querySelectorAll('.animate-spin')].some((s) => s.checkVisibility?.() ?? true), null, {
+                timeout: until - Date.now(),
+            });
+            return;
+        } catch (e) {
+            // The page changed under the look (a click that loads a new page): look again on the new one.
+            if (!/context|navigat/i.test(e.message)) return;
+            await page.waitForTimeout(100).catch(() => {});
+        }
+    }
+};
 const settle = (page) =>
     page
         .waitForLoadState('networkidle', { timeout: 5000 })
         .catch(() => {})
-        .then(() =>
-            page
-                .waitForFunction(() => ![...document.querySelectorAll('.animate-spin')].some((s) => s.checkVisibility?.() ?? true), null, {
-                    timeout: 5000,
-                })
-                .catch(() => {}),
-        )
-        .then(() => page.waitForTimeout(300));
+        .then(() => noSpinner(page))
+        .then(() => page.waitForTimeout(300))
+        .then(() => noSpinner(page));
 const fileFor = (ctx, path, suffix = '') =>
     `${ctx.target.id}__${ctx.role}__${(path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home') + suffix}.jpg`;
 

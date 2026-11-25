@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Chip from '@/components/pane/Chip.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import { Link } from '@inertiajs/vue3';
 
@@ -10,9 +11,6 @@ interface TenantRow {
 }
 
 defineProps<{ data: TenantRow[] }>();
-
-const statusClass = (s: string | null): string =>
-    s === 'active' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground';
 </script>
 
 <template>
@@ -30,9 +28,7 @@ const statusClass = (s: string | null): string =>
                         </span>
                         <span class="truncate" :title="t.name">{{ t.name }}</span>
                     </span>
-                    <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(t.status)">{{
-                        t.status
-                    }}</span>
+                    <Chip :tone="t.status === 'active' ? 'good' : 'muted'" class="capitalize">{{ t.status }}</Chip>
                 </Link>
             </li>
         </ul>

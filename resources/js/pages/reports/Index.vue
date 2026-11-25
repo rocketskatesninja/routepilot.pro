@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Textarea } from '@/components/ui/textarea';
+import FormField from '@/components/FormField.vue';
 import Sparkline from '@/components/charts/Sparkline.vue';
 import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
@@ -300,10 +302,7 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
 
                         <!-- edit form -->
                         <form v-if="editing" class="space-y-4 text-sm" @submit.prevent="submitEdit">
-                            <div class="grid gap-1.5">
-                                <Label for="r_date">Date</Label>
-                                <Input id="r_date" v-model="form.completed_on" type="date" />
-                            </div>
+                            <FormField label="Date" for="r_date"><Input id="r_date" v-model="form.completed_on" type="date" /></FormField>
                             <div>
                                 <span class="text-muted-foreground text-xs font-medium">Readings</span>
                                 <div class="mt-1 grid grid-cols-3 gap-2">
@@ -420,25 +419,12 @@ const canField = computed(() => ['agent', 'tenant_admin'].includes(usePage<Share
                                     </div>
                                 </div>
                             </div>
-                            <div class="grid gap-1.5">
-                                <Label for="r_notes">Note to the homeowner</Label>
-                                <textarea
-                                    id="r_notes"
-                                    v-model="form.notes"
-                                    rows="3"
-                                    class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                                ></textarea>
-                            </div>
+                            <FormField label="Note to the homeowner" for="r_notes"><Textarea id="r_notes" v-model="form.notes" rows="3" /></FormField>
                             <div class="grid gap-1.5">
                                 <Label for="r_office_notes"
                                     >Office note <span class="text-muted-foreground font-normal">(only your team sees this)</span></Label
                                 >
-                                <textarea
-                                    id="r_office_notes"
-                                    v-model="form.office_notes"
-                                    rows="3"
-                                    class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                                ></textarea>
+                                <Textarea id="r_office_notes" v-model="form.office_notes" rows="3" />
                             </div>
                             <div class="flex justify-end gap-2 pt-2">
                                 <Button type="button" variant="outline" @click="editing = false">Cancel</Button>

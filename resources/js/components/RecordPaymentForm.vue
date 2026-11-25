@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatMoney } from '@/lib/utils';
@@ -38,9 +39,9 @@ const submit = () => form.post(props.url, { preserveScroll: true });
 <template>
     <form class="space-y-1.5" @submit.prevent="submit">
         <div class="flex flex-wrap items-center gap-2">
-            <select v-model="form.method" aria-label="Paid by" class="border-input bg-background h-9 w-32 rounded-md border px-2 text-sm">
+            <Select v-model="form.method" aria-label="Paid by" class="w-32">
                 <option v-for="(name, key) in METHODS" :key="key" :value="key">{{ name }}</option>
-            </select>
+            </Select>
             <div class="relative">
                 <span class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm">$</span>
                 <Input

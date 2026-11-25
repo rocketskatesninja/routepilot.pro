@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
+import { baseMapOptions, hqIcon, loadGoogleMaps, type GMap, type GoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from '@lucide/vue';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { AgentDot, MapRoute } from './types';
@@ -124,18 +124,7 @@ async function ensureMap() {
     creating = true;
     try {
         g = await loadGoogleMaps(props.mapsKey);
-        const opts: Record<string, unknown> = {
-            disableDefaultUI: true,
-            zoomControl: true,
-            gestureHandling: 'cooperative',
-            center: { lat: 39.5, lng: -98.35 },
-            zoom: 4,
-        };
-        if (isDarkMode()) {
-            opts.styles = DARK_MAP_STYLE;
-            opts.backgroundColor = DARK_MAP_BG;
-        }
-        map = new g.maps.Map(mapEl.value, opts);
+        map = new g.maps.Map(mapEl.value, { ...baseMapOptions(), center: { lat: 39.5, lng: -98.35 }, zoom: 4 });
         draw();
     } catch {
         /* loading or the API failed — the fallback container stays in place */

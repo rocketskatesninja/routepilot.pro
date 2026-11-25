@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DARK_MAP_STYLE, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
+import { baseMapOptions, loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 import { frame } from '../layout';
@@ -27,12 +27,9 @@ onMounted(async () => {
         const center = { lat: area.value.lat as number, lng: area.value.lng as number };
         const brand = props.brand.color || '#0ea5e9';
         const map = new m.Map(mapEl.value, {
+            ...baseMapOptions(),
             center,
             zoom: 11,
-            disableDefaultUI: true,
-            zoomControl: true,
-            gestureHandling: 'cooperative',
-            styles: isDarkMode() ? DARK_MAP_STYLE : undefined,
         });
         new m.Marker({ position: center, map });
         new m.Circle({ map, center, radius: 16000, strokeColor: brand, strokeOpacity: 0.6, strokeWeight: 2, fillColor: brand, fillOpacity: 0.12 });

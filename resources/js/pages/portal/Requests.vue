@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import FormField from '@/components/FormField.vue';
 import NoteBubble from '@/components/NoteBubble.vue';
 import PortalHero from '@/components/portal/PortalHero.vue';
 import ServiceOffer from '@/components/portal/ServiceOffer.vue';
@@ -378,18 +381,16 @@ const statusClass = (status: string) =>
                     </DialogHeader>
 
                     <!-- which pool: for a new service when they have several, or optional for a note -->
-                    <div v-if="manyPools && (kind === 'service' || kind === 'other')" class="grid gap-1.5">
-                        <Label for="pool">{{ kind === 'other' ? 'Which pool is this about? (optional)' : 'Which pool?' }}</Label>
-                        <select
-                            id="pool"
-                            v-model="form.pool_id"
-                            class="border-input bg-background h-9 w-60 max-w-full rounded-md border px-2 text-sm"
-                        >
+                    <FormField
+                        v-if="manyPools && (kind === 'service' || kind === 'other')"
+                        :label="kind === 'other' ? 'Which pool is this about? (optional)' : 'Which pool?'"
+                        for="pool"
+                        :error="form.errors.pool_id"
+                        ><Select id="pool" v-model="form.pool_id" class="w-60 max-w-full">
                             <option value="">{{ kind === 'other' ? 'Not about one pool' : 'Pick a pool…' }}</option>
                             <option v-for="p in props.pools" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
-                        <p v-if="form.errors.pool_id" class="text-xs text-red-600">{{ form.errors.pool_id }}</p>
-                    </div>
+                        </Select></FormField
+                    >
 
                     <p v-if="alreadyHas" class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-amber-700 dark:text-amber-400">
                         {{ alreadyHas.pool }} already has {{ alreadyHas.service }}, {{ howOften(alreadyHas).toLowerCase() }}. Send this only if you’d
@@ -407,16 +408,12 @@ const statusClass = (status: string) =>
                     </div>
 
                     <div v-else-if="kind === 'hold'" class="flex flex-wrap gap-3">
-                        <div class="grid gap-1.5">
-                            <Label for="from">First day to skip</Label>
-                            <Input id="from" v-model="form.preferred_date" type="date" :min="props.today" class="w-44" />
-                            <p v-if="form.errors.preferred_date" class="text-xs text-red-600">{{ form.errors.preferred_date }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="to">Last day to skip</Label>
-                            <Input id="to" v-model="form.ends_on" type="date" :min="form.preferred_date || props.today" class="w-44" />
-                            <p v-if="form.errors.ends_on" class="text-xs text-red-600">{{ form.errors.ends_on }}</p>
-                        </div>
+                        <FormField label="First day to skip" for="from" :error="form.errors.preferred_date"
+                            ><Input id="from" v-model="form.preferred_date" type="date" :min="props.today" class="w-44"
+                        /></FormField>
+                        <FormField label="Last day to skip" for="to" :error="form.errors.ends_on"
+                            ><Input id="to" v-model="form.ends_on" type="date" :min="form.preferred_date || props.today" class="w-44"
+                        /></FormField>
                     </div>
 
                     <div v-else-if="kind === 'cancel' && !plan?.one_time" class="grid gap-1.5">
@@ -436,13 +433,12 @@ const statusClass = (status: string) =>
                             {{ kind === 'other' ? 'Your note' : 'Anything they should know?' }}
                             <span v-if="kind !== 'other'" class="text-muted-foreground font-normal">(optional)</span>
                         </Label>
-                        <textarea
+                        <Textarea
                             id="message"
                             v-model="form.message"
                             rows="3"
-                            class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                             :placeholder="kind === 'service' ? 'Gate code, pets, best time to come…' : ''"
-                        ></textarea>
+                        />
                         <p v-if="form.errors.message" class="text-xs text-red-600">{{ form.errors.message }}</p>
                     </div>
 

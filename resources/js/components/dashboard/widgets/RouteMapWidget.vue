@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import EmptyState from '@/components/EmptyState.vue';
-import { DARK_MAP_BG, DARK_MAP_STYLE, hqIcon, isDarkMode, loadGoogleMaps } from '@/composables/useGoogleMap';
+import { baseMapOptions, hqIcon, loadGoogleMaps } from '@/composables/useGoogleMap';
 import { MapPin } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
 
@@ -38,11 +38,7 @@ onMounted(async () => {
         ];
         const single = points.length === 1;
 
-        const opts: Record<string, unknown> = { disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative' };
-        if (isDarkMode()) {
-            opts.styles = DARK_MAP_STYLE;
-            opts.backgroundColor = DARK_MAP_BG;
-        }
+        const opts = baseMapOptions();
         if (single) {
             opts.center = points[0];
             opts.zoom = 13;

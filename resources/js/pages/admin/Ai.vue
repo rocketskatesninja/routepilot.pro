@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import FormField from '@/components/FormField.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import Chip from '@/components/pane/Chip.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
 import PortalPageHeader from '@/components/portal/PortalPageHeader.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -125,20 +125,17 @@ const save = () =>
             <form class="space-y-8" @submit.prevent="save">
                 <PaneSection title="Which AI">
                     <div class="border-border grid gap-4 rounded-2xl border p-5 sm:grid-cols-3">
-                        <div class="grid gap-1.5">
-                            <Label for="provider">Provider</Label>
-                            <select id="provider" v-model="form.provider" class="border-input bg-background h-9 rounded-md border px-3 text-sm">
+                        <FormField label="Provider" for="provider"
+                            ><select id="provider" v-model="form.provider" class="border-input bg-background h-9 rounded-md border px-3 text-sm">
                                 <option v-for="p in providers" :key="p.key" :value="p.key">{{ p.label }}</option>
-                            </select>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="model">Model</Label>
-                            <Input id="model" v-model="form.model" :placeholder="props.modelHints[form.provider] ?? ''" />
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="quota">Monthly allowance per tenant</Label>
-                            <Input id="quota" v-model.number="form.default_quota" type="number" min="0" />
-                        </div>
+                            </select></FormField
+                        >
+                        <FormField label="Model" for="model"
+                            ><Input id="model" v-model="form.model" :placeholder="props.modelHints[form.provider] ?? ''"
+                        /></FormField>
+                        <FormField label="Monthly allowance per tenant" for="quota"
+                            ><Input id="quota" v-model.number="form.default_quota" type="number" min="0"
+                        /></FormField>
                     </div>
                 </PaneSection>
 

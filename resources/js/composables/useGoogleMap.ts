@@ -1,7 +1,7 @@
 type Ctor = new (...args: unknown[]) => unknown;
 
 /** Whether the site is currently in dark mode (the .dark class on <html>). */
-export function isDarkMode(): boolean {
+function isDarkMode(): boolean {
     return typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
 }
 
@@ -10,10 +10,10 @@ export function isDarkMode(): boolean {
  * tiles). Matches DARK_MAP_STYLE's land colour so dark mode doesn't flash the
  * light-grey Google default before the map paints.
  */
-export const DARK_MAP_BG = '#1f2733';
+const DARK_MAP_BG = '#1f2733';
 
 /** A dark Google Maps style array, applied when the site is in dark mode. */
-export const DARK_MAP_STYLE: Array<Record<string, unknown>> = [
+const DARK_MAP_STYLE: Array<Record<string, unknown>> = [
     { elementType: 'geometry', stylers: [{ color: '#1f2733' }] },
     { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
     { elementType: 'labels.text.fill', stylers: [{ color: '#8a97a8' }] },
@@ -29,6 +29,19 @@ export const DARK_MAP_STYLE: Array<Record<string, unknown>> = [
     { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e161f' }] },
     { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#4a5664' }] },
 ];
+
+/**
+ * What every map in the app starts from: plain (zoom buttons only), two-finger
+ * panning so the page still scrolls, and the dark style when the site is dark.
+ */
+export function baseMapOptions(): Record<string, unknown> {
+    return {
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'cooperative',
+        ...(isDarkMode() ? { styles: DARK_MAP_STYLE, backgroundColor: DARK_MAP_BG } : {}),
+    };
+}
 
 export interface GLatLngBounds {
     extend(p: { lat: number; lng: number }): void;

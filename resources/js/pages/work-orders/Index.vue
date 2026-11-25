@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { saveRecord } from '@/composables/useCrudForm';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/select';
+import FormField from '@/components/FormField.vue';
 import Combobox from '@/components/Combobox.vue';
 import Hint from '@/components/Hint.vue';
 import ListTable from '@/components/ListTable.vue';
@@ -11,7 +15,6 @@ import PaneSection from '@/components/pane/PaneSection.vue';
 import SortableTh from '@/components/SortableTh.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { billWorkOrderLink, customerLink, poolLink, reportLink } from '@/lib/links';
@@ -139,9 +142,8 @@ function openEdit() {
 }
 
 function submitForm() {
-    const done = { preserveScroll: true, onSuccess: () => (formOpen.value = false) };
-    if (formMode.value === 'create') form.post('/work-orders', done);
-    else if (props.selected) form.patch(`/work-orders/${props.selected.id}`, done);
+    const id = formMode.value === 'create' ? null : props.selected?.id;
+    if (id !== undefined) saveRecord(form, '/work-orders', id, () => (formOpen.value = false));
 }
 
 // Marking one done that could go on a customer's balance asks, once, whether to bill it.
@@ -251,47 +253,26 @@ function addNote() {
                             :title="formMode === 'create' ? 'New work order' : 'Edit work order'"
                             summary="Something the company needs to get done."
                         />
-                        <div class="grid gap-1.5">
-                            <Label for="wo_title">What needs doing</Label>
-                            <Input id="wo_title" v-model="form.title" maxlength="160" />
-                            <p v-if="form.errors.title" class="text-xs text-red-600">{{ form.errors.title }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="wo_details">Details</Label>
-                            <textarea
-                                id="wo_details"
-                                v-model="form.details"
-                                rows="3"
-                                class="border-input bg-background placeholder:text-muted-foreground w-full rounded-md border px-3 py-2 text-sm"
-                            ></textarea>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="wo_pool">Pool</Label>
-                            <Combobox id="wo_pool" v-model="form.pool_id" :options="props.pools" placeholder="Search pools… (optional)" />
-                            <p v-if="form.errors.pool_id" class="text-xs text-red-600">{{ form.errors.pool_id }}</p>
-                        </div>
+                        <FormField label="What needs doing" for="wo_title" :error="form.errors.title"
+                            ><Input id="wo_title" v-model="form.title" maxlength="160"
+                        /></FormField>
+                        <FormField label="Details" for="wo_details">
+                            <Textarea id="wo_details" v-model="form.details" rows="3" class="placeholder:text-muted-foreground w-full" />
+                        </FormField>
+                        <FormField label="Pool" for="wo_pool" :error="form.errors.pool_id"
+                            ><Combobox id="wo_pool" v-model="form.pool_id" :options="props.pools" placeholder="Search pools… (optional)"
+                        /></FormField>
                         <div class="flex flex-wrap gap-3">
-                            <div class="grid gap-1.5">
-                                <Label for="wo_assignee">Assigned to</Label>
-                                <select
-                                    id="wo_assignee"
-                                    v-model="form.assigned_to"
-                                    class="border-input bg-background h-9 w-56 rounded-md border px-2 text-sm"
-                                >
+                            <FormField label="Assigned to" for="wo_assignee" :error="form.errors.assigned_to"
+                                ><Select id="wo_assignee" v-model="form.assigned_to" class="w-56">
                                     <option value="">Nobody yet</option>
                                     <option v-for="p in props.people" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                </select>
-                                <p v-if="form.errors.assigned_to" class="text-xs text-red-600">{{ form.errors.assigned_to }}</p>
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="wo_due">Due</Label>
-                                <Input id="wo_due" v-model="form.due_on" type="date" class="w-40" />
-                            </div>
-                            <div v-if="billing" class="grid gap-1.5">
-                                <Label for="wo_price">Price</Label>
-                                <Input id="wo_price" v-model="form.price" type="number" min="0" step="0.01" placeholder="Optional" class="w-32" />
-                                <p v-if="form.errors.price" class="text-xs text-red-600">{{ form.errors.price }}</p>
-                            </div>
+                                </Select></FormField
+                            >
+                            <FormField label="Due" for="wo_due"><Input id="wo_due" v-model="form.due_on" type="date" class="w-40" /></FormField>
+                            <FormField v-if="billing" label="Price" for="wo_price" :error="form.errors.price"
+                                ><Input id="wo_price" v-model="form.price" type="number" min="0" step="0.01" placeholder="Optional" class="w-32"
+                            /></FormField>
                         </div>
                         <label class="flex items-center gap-2"><input v-model="form.urgent" type="checkbox" class="size-4" /> Urgent</label>
                         <div class="flex justify-end gap-2 pt-2">
@@ -400,13 +381,13 @@ function addNote() {
                             </div>
                             <p v-else class="text-muted-foreground text-sm">No notes yet.</p>
                             <form v-if="order.can.comment" class="mt-3 space-y-2" @submit.prevent="addNote">
-                                <textarea
+                                <Textarea
                                     v-model="noteForm.body"
                                     rows="2"
                                     aria-label="Add a note"
                                     placeholder="Add a note: what's been done, what's next."
-                                    class="border-input bg-background placeholder:text-muted-foreground w-full rounded-md border px-3 py-2 text-sm"
-                                ></textarea>
+                                    class="placeholder:text-muted-foreground w-full"
+                                />
                                 <p v-if="noteForm.errors.body" class="text-xs text-red-600">{{ noteForm.errors.body }}</p>
                                 <div class="flex justify-end">
                                     <Button type="submit" size="sm" :disabled="noteForm.processing || noteForm.body.trim() === ''">Add note</Button>

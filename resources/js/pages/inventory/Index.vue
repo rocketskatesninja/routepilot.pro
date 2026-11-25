@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { saveRecord } from '@/composables/useCrudForm';
+import { Select } from '@/components/ui/select';
+import FormField from '@/components/FormField.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import Hint from '@/components/Hint.vue';
 import ImageUpload from '@/components/ImageUpload.vue';
@@ -188,22 +191,8 @@ function openEdit() {
 }
 
 function submitForm() {
-    if (formMode.value === 'create') {
-        form.post('/inventory', {
-            preserveScroll: true,
-            onSuccess: () => {
-                formOpen.value = false;
-                form.reset();
-            },
-        });
-    } else if (formId.value !== null) {
-        form.patch(`/inventory/${formId.value}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                formOpen.value = false;
-            },
-        });
-    }
+    const id = formMode.value === 'create' ? null : formId.value;
+    if (formMode.value === 'create' || id !== null) saveRecord(form, '/inventory', id, () => (formOpen.value = false));
 }
 
 // Archiving keeps the pane open on it, so Restore is right there as an undo.
@@ -361,40 +350,36 @@ function submitAdjust() {
                                 <p v-if="form.errors.chemical_name" class="text-xs text-red-600">{{ form.errors.chemical_name }}</p>
                             </div>
                             <!-- A part has its part number here; it's always counted in units. -->
-                            <div v-if="form.kind === 'part'" class="grid gap-1.5">
-                                <Label for="cpart">Part number</Label>
-                                <Input id="cpart" v-model="form.part_number" placeholder="Optional" />
-                                <p v-if="form.errors.part_number" class="text-xs text-red-600">{{ form.errors.part_number }}</p>
-                            </div>
+                            <FormField v-if="form.kind === 'part'" label="Part number" for="cpart" :error="form.errors.part_number"
+                                ><Input id="cpart" v-model="form.part_number" placeholder="Optional"
+                            /></FormField>
                             <div v-else class="grid gap-1.5">
                                 <!-- One unit per chemical: liquids by the gallon, dry chemicals by the pound. -->
                                 <Label for="cunit">Unit</Label>
-                                <select
+                                <Select
                                     id="cunit"
                                     v-model="form.unit"
                                     :disabled="formMode === 'edit' && props.selected?.unit_locked"
                                     :title="
                                         formMode === 'edit' && props.selected?.unit_locked ? 'Can’t change once it has stock or history' : undefined
                                     "
-                                    class="border-input bg-background h-9 rounded-md border px-2 text-sm disabled:opacity-60"
+                                    class="disabled:opacity-60"
                                 >
                                     <option value="gal">gal</option>
                                     <option value="lbs">lbs</option>
                                     <option value="bag">bag (40 lb)</option>
                                     <option value="puck">puck (3″ tablet)</option>
                                     <option value="tab">tab (1″ tablet)</option>
-                                </select>
+                                </Select>
                             </div>
                         </div>
                         <div v-if="tracking" class="grid grid-cols-2 gap-3">
-                            <div v-if="formMode === 'create'" class="grid gap-1.5">
-                                <Label for="cstock">Starting stock</Label
-                                ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01" />
-                            </div>
-                            <div class="grid gap-1.5">
-                                <Label for="creorder">Reorder at</Label
-                                ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01" />
-                            </div>
+                            <FormField v-if="formMode === 'create'" label="Starting stock" for="cstock"
+                                ><Input id="cstock" v-model="form.current_stock" type="number" min="0" step="0.01"
+                            /></FormField>
+                            <FormField label="Reorder at" for="creorder"
+                                ><Input id="creorder" v-model="form.reorder_threshold" type="number" min="0" step="0.01"
+                            /></FormField>
                         </div>
                         <div v-if="tracking || billing" class="grid grid-cols-2 gap-3">
                             <div v-if="tracking" class="grid gap-1.5">
@@ -407,7 +392,7 @@ function submitAdjust() {
                                 ><Input id="csell" v-model="form.sell_price" type="number" min="0" step="0.01" />
                             </div>
                         </div>
-                        <div v-if="tracking" class="grid gap-1.5"><Label for="csup">Supplier</Label><Input id="csup" v-model="form.supplier" /></div>
+                        <FormField v-if="tracking" label="Supplier" for="csup"><Input id="csup" v-model="form.supplier" /></FormField>
                         <div class="flex justify-end gap-2 pt-2">
                             <Button type="button" variant="outline" @click="formOpen = false">Cancel</Button>
                             <Button type="submit" :disabled="form.processing">{{ formMode === 'create' ? `Add ${form.kind}` : 'Save' }}</Button>
@@ -464,15 +449,11 @@ function submitAdjust() {
 
                         <PaneSection v-if="tracking && props.canManage && chemical.is_active" title="Update stock">
                             <form class="flex flex-wrap items-center gap-2" @submit.prevent="submitAdjust">
-                                <select
-                                    v-model="adjustForm.type"
-                                    aria-label="Kind of change"
-                                    class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
-                                >
+                                <Select v-model="adjustForm.type" aria-label="Kind of change" class="w-36">
                                     <option value="restock">Restocked</option>
                                     <option value="usage">Used</option>
                                     <option value="adjustment">Counted, now</option>
-                                </select>
+                                </Select>
                                 <Input
                                     v-model="adjustForm.quantity"
                                     type="number"

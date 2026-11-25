@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import FormField from '@/components/FormField.vue';
 import Hint from '@/components/Hint.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
@@ -144,16 +147,13 @@ const tabs = computed(() => [
     { key: 'leads', label: 'Website leads', count: props.counts.leads },
 ]);
 
-const statusClass = (status: string) =>
-    ({
-        pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-        new: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-        approved: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        converted: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        contacted: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
-        declined: 'bg-muted text-muted-foreground',
-        archived: 'bg-muted text-muted-foreground',
-    })[status] ?? 'bg-muted text-muted-foreground';
+const statusTone: Record<string, 'good' | 'warn' | 'info' | 'muted'> = {
+    pending: 'warn',
+    new: 'warn',
+    approved: 'good',
+    converted: 'good',
+    contacted: 'info',
+};
 
 const sources: Record<string, string> = { quote: 'Website quote', booking: 'Booking form', contact: 'Contact form', chatbot: 'Website chat' };
 const leadStatuses: Record<string, string> = { new: 'New', contacted: 'Contacted', converted: 'Customer', archived: 'Archived' };
@@ -342,9 +342,7 @@ const submitConvert = () => {
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap @md:table-cell">{{ formatDay(r.on) }}</td>
                             <td class="px-4 py-2.5">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(r.status)">{{
-                                    r.status_label
-                                }}</span>
+                                <Chip :tone="statusTone[r.status] ?? 'muted'">{{ r.status_label }}</Chip>
                             </td>
                         </template>
                         <template #empty>
@@ -381,9 +379,7 @@ const submitConvert = () => {
                             <td class="text-muted-foreground px-4 py-2.5">{{ l.service ?? sources[l.source] ?? l.source }}</td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap @md:table-cell">{{ formatDay(l.on) }}</td>
                             <td class="px-4 py-2.5">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(l.status)">{{
-                                    leadStatuses[l.status] ?? l.status
-                                }}</span>
+                                <Chip :tone="statusTone[l.status] ?? 'muted'">{{ leadStatuses[l.status] ?? l.status }}</Chip>
                             </td>
                         </template>
                         <template #empty>
@@ -556,12 +552,7 @@ const submitConvert = () => {
                                     <Label for="ap_reply"
                                         >Note to the customer <span class="text-muted-foreground font-normal">(optional)</span></Label
                                     >
-                                    <textarea
-                                        id="ap_reply"
-                                        v-model="approveForm.reply"
-                                        rows="2"
-                                        class="border-input bg-background rounded-md border px-3 py-2 text-sm"
-                                    ></textarea>
+                                    <Textarea id="ap_reply" v-model="approveForm.reply" rows="2" />
                                 </div>
                                 <p class="text-muted-foreground text-xs">The customer is told in their portal and by email.</p>
                                 <div class="flex justify-end gap-2">
@@ -580,13 +571,12 @@ const submitConvert = () => {
                             >
                                 <div class="grid gap-1.5">
                                     <Label for="dc_reply">Why? <span class="text-muted-foreground font-normal">The customer sees this.</span></Label>
-                                    <textarea
+                                    <Textarea
                                         id="dc_reply"
                                         v-model="declineForm.reply"
                                         rows="3"
-                                        class="border-input bg-background rounded-md border px-3 py-2 text-sm"
                                         placeholder="e.g. We're fully booked on Tuesdays — reply and we'll find another day."
-                                    ></textarea>
+                                    />
                                     <p v-if="declineForm.errors.reply" class="text-xs text-red-600">{{ declineForm.errors.reply }}</p>
                                 </div>
                                 <div class="flex justify-end gap-2">
@@ -684,66 +674,41 @@ const submitConvert = () => {
                                     </p>
                                 </div>
                                 <div class="flex flex-wrap gap-3">
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_first">First name</Label>
-                                        <Input id="cv_first" v-model="convertForm.first_name" class="w-44" />
-                                        <p v-if="convertForm.errors.first_name" class="text-xs text-red-600">{{ convertForm.errors.first_name }}</p>
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_last">Last name</Label>
-                                        <Input id="cv_last" v-model="convertForm.last_name" class="w-44" />
-                                    </div>
+                                    <FormField label="First name" for="cv_first" :error="convertForm.errors.first_name"
+                                        ><Input id="cv_first" v-model="convertForm.first_name" class="w-44"
+                                    /></FormField>
+                                    <FormField label="Last name" for="cv_last"
+                                        ><Input id="cv_last" v-model="convertForm.last_name" class="w-44"
+                                    /></FormField>
                                 </div>
                                 <div class="flex flex-wrap gap-3">
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_email">Email</Label>
-                                        <Input id="cv_email" v-model="convertForm.email" type="email" class="w-60" />
-                                        <p v-if="convertForm.errors.email" class="text-xs text-red-600">{{ convertForm.errors.email }}</p>
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_phone">Phone</Label>
-                                        <Input id="cv_phone" v-model="convertForm.phone" class="w-40" />
-                                    </div>
+                                    <FormField label="Email" for="cv_email" :error="convertForm.errors.email"
+                                        ><Input id="cv_email" v-model="convertForm.email" type="email" class="w-60"
+                                    /></FormField>
+                                    <FormField label="Phone" for="cv_phone"
+                                        ><Input id="cv_phone" v-model="convertForm.phone" class="w-40"
+                                    /></FormField>
                                 </div>
-                                <div class="grid gap-1.5">
-                                    <Label for="cv_addr">Street address</Label>
-                                    <Input id="cv_addr" v-model="convertForm.address_line1" />
+                                <FormField label="Street address" for="cv_addr"><Input id="cv_addr" v-model="convertForm.address_line1" /></FormField>
+                                <div class="flex flex-wrap gap-3">
+                                    <FormField label="City" for="cv_city"><Input id="cv_city" v-model="convertForm.city" class="w-40" /></FormField>
+                                    <FormField label="State" for="cv_state" :error="convertForm.errors.state"
+                                        ><Input id="cv_state" v-model="convertForm.state" maxlength="2" class="w-16 uppercase"
+                                    /></FormField>
+                                    <FormField label="ZIP" for="cv_zip"><Input id="cv_zip" v-model="convertForm.zip" class="w-24" /></FormField>
                                 </div>
                                 <div class="flex flex-wrap gap-3">
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_city">City</Label>
-                                        <Input id="cv_city" v-model="convertForm.city" class="w-40" />
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_state">State</Label>
-                                        <Input id="cv_state" v-model="convertForm.state" maxlength="2" class="w-16 uppercase" />
-                                        <p v-if="convertForm.errors.state" class="text-xs text-red-600">{{ convertForm.errors.state }}</p>
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_zip">ZIP</Label>
-                                        <Input id="cv_zip" v-model="convertForm.zip" class="w-24" />
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap gap-3">
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_pool">Pool name</Label>
-                                        <Input id="cv_pool" v-model="convertForm.pool_name" class="w-44" />
-                                        <p v-if="convertForm.errors.pool_name" class="text-xs text-red-600">{{ convertForm.errors.pool_name }}</p>
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_type">Type</Label>
-                                        <select
-                                            id="cv_type"
-                                            v-model="convertForm.pool_type"
-                                            class="border-input bg-background h-9 w-36 rounded-md border px-2 text-sm"
-                                        >
+                                    <FormField label="Pool name" for="cv_pool" :error="convertForm.errors.pool_name"
+                                        ><Input id="cv_pool" v-model="convertForm.pool_name" class="w-44"
+                                    /></FormField>
+                                    <FormField label="Type" for="cv_type"
+                                        ><Select id="cv_type" v-model="convertForm.pool_type" class="w-36">
                                             <option v-for="(label, key) in POOL_TYPES" :key="key" :value="key">{{ label }}</option>
-                                        </select>
-                                    </div>
-                                    <div class="grid gap-1.5">
-                                        <Label for="cv_gal">Gallons</Label>
-                                        <Input id="cv_gal" v-model="convertForm.pool_volume" type="number" min="0" class="w-28" />
-                                    </div>
+                                        </Select></FormField
+                                    >
+                                    <FormField label="Gallons" for="cv_gal"
+                                        ><Input id="cv_gal" v-model="convertForm.pool_volume" type="number" min="0" class="w-28"
+                                    /></FormField>
                                 </div>
                                 <div class="flex justify-end gap-2">
                                     <Button type="button" variant="outline" size="sm" @click="mode = 'none'">Cancel</Button>

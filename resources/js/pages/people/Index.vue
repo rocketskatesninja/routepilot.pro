@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Chip from '@/components/pane/Chip.vue';
 import EmailComposer from '@/components/EmailComposer.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import ListTable from '@/components/ListTable.vue';
@@ -250,16 +251,7 @@ function closeDrawer() {
                                 </div>
                             </td>
                             <td class="px-4 py-2.5">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize"
-                                    :class="
-                                        person.person_type === 'agent'
-                                            ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                                            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                    "
-                                >
-                                    {{ person.person_type }}
-                                </span>
+                                <Chip :tone="person.person_type === 'agent' ? 'info' : 'good'" class="capitalize">{{ person.person_type }}</Chip>
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">{{ person.email ?? '—' }}</td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 @2xl:table-cell">
@@ -267,16 +259,8 @@ function closeDrawer() {
                             </td>
                             <td class="hidden px-4 py-2.5 @4xl:table-cell">
                                 <template v-if="person.person_type === 'customer'">
-                                    <span
-                                        v-if="person.portal_status === 'active'"
-                                        class="inline-flex rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                                        >Yes</span
-                                    >
-                                    <span
-                                        v-else-if="person.portal_status === 'revoked'"
-                                        class="inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
-                                        >Revoked</span
-                                    >
+                                    <Chip v-if="person.portal_status === 'active'" tone="good">Yes</Chip>
+                                    <Chip v-else-if="person.portal_status === 'revoked'" tone="warn">Revoked</Chip>
                                     <span v-else class="text-muted-foreground text-xs">No</span>
                                 </template>
                                 <span v-else class="text-muted-foreground">—</span>

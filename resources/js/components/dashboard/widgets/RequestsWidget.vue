@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Chip from '@/components/pane/Chip.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import { Button } from '@/components/ui/button';
@@ -20,12 +21,7 @@ interface Req {
 
 defineProps<{ data: Req[] }>();
 
-const badge = (type: string) =>
-    ({
-        service: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        hold: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
-        cancel: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    })[type] ?? 'bg-muted text-muted-foreground';
+const typeTone: Record<string, 'good' | 'info' | 'warn'> = { service: 'good', hold: 'info', cancel: 'warn' };
 </script>
 
 <template>
@@ -33,7 +29,7 @@ const badge = (type: string) =>
         <ul v-if="data.length" class="divide-border divide-y text-sm">
             <li v-for="r in data" :key="r.id" class="flex items-start justify-between gap-3 px-1 py-2.5">
                 <div class="min-w-0">
-                    <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="badge(r.type)">{{ r.title }}</span>
+                    <Chip :tone="typeTone[r.type] ?? 'muted'">{{ r.title }}</Chip>
                     <span class="ml-2 inline-flex items-center gap-1.5 align-middle font-medium"
                         ><EntityAvatar :src="r.customer_photo" type="person" :name="r.customer" size="sm" shape="circle" />{{ r.customer }}</span
                     >

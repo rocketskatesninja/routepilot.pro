@@ -52,16 +52,16 @@ const props = defineProps<{
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Billing', href: '/platform/billing' }];
 
-const statusMeta: Record<string, { label: string; class: string }> = {
-    active: { label: 'Active', class: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
-    trialing: { label: 'Trialing', class: 'bg-sky-500/15 text-sky-600 dark:text-sky-400' },
-    past_due: { label: 'Past due', class: 'bg-red-500/15 text-red-600 dark:text-red-400' },
-    expired: { label: 'Expired', class: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
-    canceled: { label: 'Canceled', class: 'bg-muted text-muted-foreground' },
-    free: { label: 'Free', class: 'bg-violet-500/15 text-violet-600 dark:text-violet-400' },
-    none: { label: 'No trial', class: 'bg-muted text-muted-foreground' },
+const statusLabel: Record<string, string> = {
+    active: 'Active',
+    trialing: 'Trialing',
+    past_due: 'Past due',
+    expired: 'Expired',
+    canceled: 'Canceled',
+    free: 'Free',
+    none: 'No trial',
 };
-const meta = (s: string) => statusMeta[s] ?? statusMeta.none;
+const label = (s: string) => statusLabel[s] ?? statusLabel.none;
 
 // --- the side panel ---
 const account = computed(() => props.selected);
@@ -204,9 +204,7 @@ function save() {
                                             <div class="text-muted-foreground text-xs">/{{ t.slug }}</div>
                                         </td>
                                         <td class="px-4 py-2.5">
-                                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="meta(t.status).class">
-                                                {{ meta(t.status).label }}
-                                            </span>
+                                            <Chip :tone="statusTone[t.status] ?? 'muted'">{{ label(t.status) }}</Chip>
                                             <span v-if="t.status === 'trialing' && t.trial_ends_at" class="text-muted-foreground ml-2 text-xs">
                                                 ends {{ t.trial_ends_at }}
                                             </span>
@@ -230,7 +228,7 @@ function save() {
                         <PaneHeader :title="account.name" :summary="accountSummary(account)">
                             <template #media><IconTile :icon="Building2" size="lg" /></template>
                             <template #badge>
-                                <Chip :tone="statusTone[account.status] ?? 'muted'">{{ meta(account.status).label }}</Chip>
+                                <Chip :tone="statusTone[account.status] ?? 'muted'">{{ label(account.status) }}</Chip>
                             </template>
                             <p class="mt-2 text-[15px]">
                                 <a

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FormField from '@/components/FormField.vue';
 import Combobox from '@/components/Combobox.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import Hint from '@/components/Hint.vue';
@@ -15,7 +16,6 @@ import PaneList from '@/components/pane/PaneList.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { customerLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
@@ -140,15 +140,6 @@ const statusFilters = [
     { key: 'void', label: 'Void' },
 ];
 const setStatus = (s: string) => visitQuery({ status: s || undefined, selected: undefined, page: undefined });
-
-const statusClass = (s: string): string =>
-    ({
-        paid: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        overdue: 'bg-red-500/15 text-red-600 dark:text-red-400',
-        sent: 'bg-sky-500/15 text-sky-600 dark:text-sky-400',
-        draft: 'bg-muted text-muted-foreground',
-        void: 'bg-muted text-muted-foreground line-through',
-    })[s] ?? 'bg-muted text-muted-foreground';
 
 const PAY_METHODS: Record<string, string> = { cash: 'Cash', check: 'Check', card: 'Card', ach: 'Bank transfer', other: 'Other' };
 
@@ -333,9 +324,12 @@ function closePane() {
                             <td class="text-muted-foreground px-4 py-2.5">{{ inv.customer ?? '—' }}</td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">{{ inv.issued_on ?? '—' }}</td>
                             <td class="hidden px-4 py-2.5 @md:table-cell">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize" :class="statusClass(inv.status)">{{
-                                    inv.status
-                                }}</span>
+                                <Chip
+                                    :tone="invoiceTone[inv.status] ?? 'muted'"
+                                    class="capitalize"
+                                    :class="{ 'line-through': inv.status === 'void' }"
+                                    >{{ inv.status }}</Chip
+                                >
                             </td>
                             <td class="px-4 py-2.5 text-right font-medium">
                                 {{ money(inv.total)
@@ -375,17 +369,10 @@ function closePane() {
                             <td class="text-muted-foreground hidden px-4 py-2.5 @md:table-cell">{{ row.pools }}</td>
                             <td class="hidden px-4 py-2.5 @sm:table-cell">
                                 <span v-if="row.autopay" class="inline-flex items-center gap-2">
-                                    <span
-                                        class="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
-                                        >On</span
-                                    >
+                                    <Chip tone="good">On</Chip>
                                     <span v-if="row.card" class="text-muted-foreground text-xs">{{ row.card }}</span>
                                 </span>
-                                <span
-                                    v-else
-                                    class="bg-muted text-muted-foreground inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                                    >Off</span
-                                >
+                                <Chip v-else>Off</Chip>
                             </td>
                             <td class="px-4 py-2.5 text-right font-medium">{{ money(row.balance) }}</td>
                         </template>
@@ -404,21 +391,15 @@ function closePane() {
                             For the work order “{{ props.chargePrefill.work_order }}”.
                         </p>
                         <p v-if="chargeForm.errors.work_order_id" class="text-xs text-red-600">{{ chargeForm.errors.work_order_id }}</p>
-                        <div class="grid gap-1.5">
-                            <Label for="ch_cust">Customer</Label>
-                            <Combobox id="ch_cust" v-model="chargeForm.customer_id" :options="props.customers" placeholder="Search customers…" />
-                            <p v-if="chargeForm.errors.customer_id" class="text-xs text-red-600">{{ chargeForm.errors.customer_id }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="ch_desc">Description</Label>
-                            <Input id="ch_desc" v-model="chargeForm.description" placeholder="e.g. Filter replacement" />
-                            <p v-if="chargeForm.errors.description" class="text-xs text-red-600">{{ chargeForm.errors.description }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="ch_amt">Amount ($)</Label>
-                            <Input id="ch_amt" v-model="chargeForm.amount" type="number" min="0.01" step="0.01" />
-                            <p v-if="chargeForm.errors.amount" class="text-xs text-red-600">{{ chargeForm.errors.amount }}</p>
-                        </div>
+                        <FormField label="Customer" for="ch_cust" :error="chargeForm.errors.customer_id"
+                            ><Combobox id="ch_cust" v-model="chargeForm.customer_id" :options="props.customers" placeholder="Search customers…"
+                        /></FormField>
+                        <FormField label="Description" for="ch_desc" :error="chargeForm.errors.description"
+                            ><Input id="ch_desc" v-model="chargeForm.description" placeholder="e.g. Filter replacement"
+                        /></FormField>
+                        <FormField label="Amount ($)" for="ch_amt" :error="chargeForm.errors.amount"
+                            ><Input id="ch_amt" v-model="chargeForm.amount" type="number" min="0.01" step="0.01"
+                        /></FormField>
                         <label class="flex items-center gap-2"><input v-model="chargeForm.taxable" type="checkbox" /> Taxable</label>
                         <label class="flex items-start gap-2">
                             <input v-model="chargeForm.invoice_now" type="checkbox" class="mt-0.5" />

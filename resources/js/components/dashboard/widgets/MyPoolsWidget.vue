@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Chip from '@/components/pane/Chip.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 
@@ -12,12 +13,7 @@ interface PoolRow {
 
 defineProps<{ data: { pools: PoolRow[] } }>();
 
-const healthClass = (color: string): string =>
-    ({
-        green: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        amber: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-        red: 'bg-rose-500/15 text-rose-600 dark:text-rose-400',
-    })[color] ?? 'bg-muted text-muted-foreground';
+const healthTone: Record<string, 'good' | 'warn' | 'bad'> = { green: 'good', amber: 'warn', red: 'bad' };
 </script>
 
 <template>
@@ -28,9 +24,7 @@ const healthClass = (color: string): string =>
                     <EntityAvatar :src="p.photo" type="pool" :name="p.name" size="sm" />
                     <span class="truncate" :title="p.name">{{ p.name }}</span>
                 </span>
-                <span v-if="p.health" class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" :class="healthClass(p.health.color)">{{
-                    p.health.label
-                }}</span>
+                <Chip v-if="p.health" :tone="healthTone[p.health.color] ?? 'muted'">{{ p.health.label }}</Chip>
                 <span v-else class="text-muted-foreground shrink-0 text-xs">—</span>
             </li>
         </ul>
