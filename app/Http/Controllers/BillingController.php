@@ -25,7 +25,7 @@ class BillingController extends Controller
 {
     public function show(Request $request): Response
     {
-        $this->tenant($request); // tenant_admin guard
+        $this->adminTenant($request); // tenant_admin guard
 
         return Inertia::render('settings/Billing', [
             'configured' => $this->configured(),
@@ -40,7 +40,7 @@ class BillingController extends Controller
     /** Start (or resume) a Stripe Checkout: the base price, plus the pools over the allowance. */
     public function checkout(Request $request, BillingMeter $meter): Responsable|RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
 
         if (! $this->configured()) {
             return back()->with('error', 'Online billing isn’t available yet — hang tight.');
@@ -72,7 +72,7 @@ class BillingController extends Controller
     /** Send the tenant to the Stripe billing portal to manage their subscription. */
     public function portal(Request $request): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
 
         if (! $this->configured() || ! $tenant->hasStripeId()) {
             return back()->with('error', 'No active billing account to manage yet.');
@@ -85,15 +85,5 @@ class BillingController extends Controller
     private function configured(): bool
     {
         return filled(config('cashier.secret')) && filled(config('billing.prices.base'));
-    }
-
-    private function tenant(Request $request): Tenant
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->role === 'tenant_admin', 403);
-        $tenant = $user->tenant;
-        abort_if($tenant === null, 403);
-
-        return $tenant;
     }
 }

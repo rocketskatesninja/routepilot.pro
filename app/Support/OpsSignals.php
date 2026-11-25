@@ -65,12 +65,17 @@ final class OpsSignals
     }
 
     /**
-     * Active techs with no route today.
+     * Active techs with no route today, on a day the others are working (a day
+     * off for everyone isn't news).
      *
      * @return Collection<int, User>
      */
     public static function idleTechs(int $tenantId): Collection
     {
+        if (! Route::query()->whereDate('scheduled_date', Tenant::localToday())->exists()) {
+            return new Collection;
+        }
+
         return User::query()
             ->where('tenant_id', $tenantId)->where('role', 'agent')->where('is_active', true)
             ->whereNotIn('id', Route::query()->whereDate('scheduled_date', Tenant::localToday())->select('agent_id'))

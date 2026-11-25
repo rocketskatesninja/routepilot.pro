@@ -31,7 +31,7 @@ class MyRequests extends AssistantTool
 
     public function availableTo(User $user): bool
     {
-        return $user->role === 'customer';
+        return $user->isCustomer();
     }
 
     public function execute(array $params, User $user): string

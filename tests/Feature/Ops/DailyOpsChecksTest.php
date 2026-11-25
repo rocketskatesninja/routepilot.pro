@@ -45,11 +45,28 @@ function alertKinds(User $admin): array
     return collect(Notification::sent($admin, OpsAlert::class))->map(fn (OpsAlert $n) => $n->kind)->all();
 }
 
-test('an idle active agent raises an idle-agents alert', function () {
+/** Someone else is out on a route today, so a tech with none stands out. */
+function someoneWorksToday(): void
+{
+    Route::factory()->for(test()->tenant)->create([
+        'agent_id' => User::factory()->agent()->for(test()->tenant)->create()->id,
+        'scheduled_date' => Tenant::localToday(),
+    ]);
+}
+
+test('a tech with no route on a day the others work raises an idle-agents alert', function () {
     User::factory()->agent()->for($this->tenant)->create(); // active, no route today
+    someoneWorksToday();
     Notification::fake();
 
     expect(alertKinds($this->admin))->toContain('idle_agents');
+});
+
+test('a day nobody works is a day off, not idle techs (the dashboard says the same)', function () {
+    User::factory()->agent()->for($this->tenant)->create();
+    Notification::fake();
+
+    expect(alertKinds($this->admin))->not->toContain('idle_agents');
 });
 
 test('an active plan with no assigned agent raises an unassigned-pools alert', function () {
@@ -101,6 +118,7 @@ test('a bill past its due date raises an overdue-balances alert', function () {
 test('an admin who turned off one kind of alert still gets the others', function () {
     $this->admin->notificationPreferences()->create(['category' => 'idle_agents', 'in_app' => false]);
     User::factory()->agent()->for($this->tenant)->create(); // would trigger idle_agents
+    someoneWorksToday();
     activePlan(Pool::factory()->for($this->tenant)->create()); // triggers unassigned_pools
     Notification::fake();
 

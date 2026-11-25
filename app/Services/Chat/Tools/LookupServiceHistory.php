@@ -65,7 +65,7 @@ class LookupServiceHistory extends AssistantTool
             return "No visits yet for {$who}.";
         }
 
-        $office = $user->role === 'tenant_admin';
+        $office = $user->isAdmin();
 
         return "Recent visits for {$who}:\n".$visits->map(function (ServiceVisit $v) use ($office): string {
             [$parts, $chemicals] = $v->treatments->partition(fn (ChemicalTreatment $t): bool => $t->isPart());

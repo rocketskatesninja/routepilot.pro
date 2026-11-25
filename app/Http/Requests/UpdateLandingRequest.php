@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Support\LandingConfig;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
@@ -14,15 +13,8 @@ use Illuminate\Validation\Rule;
  * — the real trust boundary — so the raw input is passed through, not
  * validated() (which would strip the loosely-typed section fields).
  */
-class UpdateLandingRequest extends FormRequest
+class UpdateLandingRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        $user = $this->user();
-
-        return $user !== null && $user->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

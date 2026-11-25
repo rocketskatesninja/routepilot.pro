@@ -49,7 +49,7 @@ class ProfileUpdateRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user->role !== 'customer'
+        return ! $user->isCustomer()
             && strtolower(trim((string) $this->input('email'))) !== $user->email;
     }
 }

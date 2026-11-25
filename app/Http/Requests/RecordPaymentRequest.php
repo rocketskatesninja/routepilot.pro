@@ -7,7 +7,6 @@ namespace App\Http\Requests;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\BillingService;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 /**
@@ -15,13 +14,8 @@ use Illuminate\Validation\Validator;
  * invoice. Any amount up to what's owed (partial payments are fine); with no
  * amount, all of it. An optional reference notes a check number or the like.
  */
-class RecordPaymentRequest extends FormRequest
+class RecordPaymentRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

@@ -61,7 +61,7 @@ class CompleteVisit
 
             // Proof of presence only means something from the tech, at the pool. A tech's own
             // visit that syncs after midnight was still done there; an earlier day typed in wasn't.
-            $gps = $office || ($pastDay && $agent->role !== 'agent') ? ['completed_lat' => null, 'completed_lng' => null] : [
+            $gps = $office || ($pastDay && ! $agent->isAgent()) ? ['completed_lat' => null, 'completed_lng' => null] : [
                 'completed_lat' => $data['completed_lat'] ?? null,
                 'completed_lng' => $data['completed_lng'] ?? null,
             ];
@@ -96,15 +96,7 @@ class CompleteVisit
 
             $reading = $this->readingValues($data);
             if ($reading !== []) {
-                $lsi = $this->chem->calculateLSI([
-                    'temperature' => $reading['water_temperature'] ?? null,
-                    'ph' => $reading['ph'] ?? null,
-                    'alkalinity' => $reading['alkalinity'] ?? null,
-                    'calcium_hardness' => $reading['calcium_hardness'] ?? null,
-                    'salt' => $reading['salt'] ?? null,
-                    'cyanuric_acid' => $reading['cyanuric_acid'] ?? null,
-                ]);
-                $visit->chemicalReading()->create([...$reading, 'lsi_score' => $lsi]);
+                $visit->chemicalReading()->create([...$reading, 'lsi_score' => $this->chem->lsiFor($reading)]);
             }
 
             foreach ($this->rows($data['tasks'] ?? null) as $task) {

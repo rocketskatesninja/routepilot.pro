@@ -4,16 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
 /** Declining a customer's request — the reason is shown to them. */
-class DeclineServiceRequestRequest extends FormRequest
+class DeclineServiceRequestRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

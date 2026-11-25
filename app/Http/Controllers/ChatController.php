@@ -106,7 +106,7 @@ class ChatController extends Controller
             return response()->json(['error' => 'The AI assistant is disabled for this company. Contact support to enable it.'], 403);
         }
         if ($tenantId !== null && $quota->remainingFor((int) $tenantId, $user->role) <= 0) {
-            return response()->json(['error' => $user->role === 'customer'
+            return response()->json(['error' => $user->isCustomer()
                 ? 'The assistant is resting until next month. For anything urgent, contact your pool company.'
                 : 'Monthly AI allowance reached. Add a top-up or upgrade to continue.'], 429);
         }

@@ -20,7 +20,7 @@ class StoreServiceRequestRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->role === 'customer';
+        return $this->user()?->isCustomer() === true;
     }
 
     /** @return array<string, mixed> */

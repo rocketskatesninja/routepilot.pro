@@ -4,25 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Pool;
 use App\Support\Upload;
-use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class UpdatePoolRequest extends FormRequest
+class UpdatePoolRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['nullable', 'in:inground,above_ground,indoor,spa,infinity,other'],
+            'type' => ['nullable', Rule::in(Pool::TYPES)],
             'volume_gallons' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'surface_type' => ['nullable', 'string', 'max:120'],
-            'sanitizer_type' => ['nullable', 'in:chlorine,salt,bromine,biguanide,ozone,uv,other'],
+            'sanitizer_type' => ['nullable', Rule::in(Pool::SANITIZERS)],
             'filter_type' => ['nullable', 'in:cartridge,sand,de'],
             'pump_type' => ['nullable', 'in:housed,external'],
             'has_heater' => ['boolean'],

@@ -98,6 +98,32 @@ class ChemistryService
     }
 
     /**
+     * LSI for a reading as it is saved (its column names: `water_temperature`, …).
+     *
+     * @param  array<string, mixed>  $reading
+     */
+    public function lsiFor(array $reading): float
+    {
+        return $this->calculateLSI([
+            'temperature' => $reading['water_temperature'] ?? null,
+            'ph' => $reading['ph'] ?? null,
+            'alkalinity' => $reading['alkalinity'] ?? null,
+            'calcium_hardness' => $reading['calcium_hardness'] ?? null,
+            'salt' => $reading['salt'] ?? null,
+        ]);
+    }
+
+    /**
+     * Whether a saved reading's water is corrosive, balanced or scaling; null with no reading.
+     *
+     * @return array{status: string, color: string, label: string, description: string}|null
+     */
+    public function healthOf(?ChemicalReading $reading): ?array
+    {
+        return $reading === null ? null : $this->getLSIStatus($reading->lsi_score ?? $this->lsiFor($reading->getAttributes()));
+    }
+
+    /**
      * Classify an LSI value as corrosive / balanced / scaling.
      *
      * @return array{status: string, color: string, label: string, description: string}

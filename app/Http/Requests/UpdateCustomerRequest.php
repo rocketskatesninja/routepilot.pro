@@ -6,16 +6,10 @@ namespace App\Http\Requests;
 
 use App\Models\Customer;
 use App\Support\Upload;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdateCustomerRequest extends FormRequest
+class UpdateCustomerRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

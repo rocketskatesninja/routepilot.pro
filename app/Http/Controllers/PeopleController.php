@@ -183,7 +183,7 @@ class PeopleController extends Controller
             'tenant' => $c->tenant?->name,
             'photo_url' => $this->photoUrl($c->getAttribute('photo_path')),
             // Their portal login to sign in as (null = no portal access yet).
-            'login_id' => $c->user?->role === 'customer' ? $c->user->id : null,
+            'login_id' => $c->user?->isCustomer() === true ? $c->user->id : null,
         ];
     }
 
@@ -209,7 +209,7 @@ class PeopleController extends Controller
                 ->orderBy('first_name')->orderBy('last_name')
                 ->paginate(25)->withQueryString()
                 // portal = has a login the super-admin can sign in as
-                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'id' => $c->id, 'type' => 'customer', 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name, 'portal' => $c->user?->role === 'customer']),
+                ->through(fn (Customer $c): array => ['key' => 'customer:'.$c->id, 'id' => $c->id, 'type' => 'customer', 'name' => $c->displayName(), 'sub' => $c->email, 'meta' => $c->tenant?->name, 'portal' => $c->user?->isCustomer() === true]),
             default => Tenant::query()
                 ->when($search !== '', fn ($q) => $q->where('name', 'like', $like))
                 ->orderBy('name')

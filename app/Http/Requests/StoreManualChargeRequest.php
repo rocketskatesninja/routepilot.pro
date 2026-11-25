@@ -6,17 +6,11 @@ namespace App\Http\Requests;
 
 use App\Models\WorkOrder;
 use Closure;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
-class StoreManualChargeRequest extends FormRequest
+class StoreManualChargeRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

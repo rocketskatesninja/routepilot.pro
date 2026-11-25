@@ -25,7 +25,7 @@ class UpdateReportRequest extends FormRequest
             return false;
         }
 
-        return $user->role === 'tenant_admin' || (int) $visit->getAttribute('agent_id') === $user->id;
+        return $user->isAdmin() || (int) $visit->getAttribute('agent_id') === $user->id;
     }
 
     /**

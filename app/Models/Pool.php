@@ -41,6 +41,12 @@ class Pool extends Model
     /** @use HasFactory<PoolFactory> */
     use BelongsToTenant, HasFactory, SoftDeletes;
 
+    /** The kinds of pool a company can record (labels: resources/js/lib/labels.ts). */
+    public const TYPES = ['inground', 'above_ground', 'indoor', 'spa', 'infinity', 'other'];
+
+    /** How a pool is sanitized. */
+    public const SANITIZERS = ['chlorine', 'salt', 'bromine', 'biguanide', 'ozone', 'uv', 'other'];
+
     /**
      * The routine check for a pool's sanitizer, added to every visit's checklist:
      * a chlorine pool's tablet chlorinator, a salt pool's cell. Others have none.

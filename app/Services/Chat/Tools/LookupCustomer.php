@@ -38,7 +38,7 @@ class LookupCustomer extends AssistantTool
 
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin';
+        return $user->isAdmin();
     }
 
     public function execute(array $params, User $user): string

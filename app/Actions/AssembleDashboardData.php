@@ -281,11 +281,7 @@ class AssembleDashboardData
         $chem = app(ChemistryService::class);
 
         return ['pools' => $customer->pools->map(function (Pool $pool) use ($chem): array {
-            $reading = $pool->visits()->where('status', 'completed')->latest('completed_at')->with('chemicalReading')->first()?->chemicalReading;
-            $health = $reading === null ? null : $chem->getLSIStatus((float) ($reading->lsi_score ?? $chem->calculateLSI([
-                'temperature' => $reading->water_temperature, 'ph' => $reading->ph,
-                'alkalinity' => $reading->alkalinity, 'calcium_hardness' => $reading->calcium_hardness, 'salt' => $reading->salt,
-            ])));
+            $health = $chem->healthOf($pool->latestReading);
 
             return ['id' => $pool->id, 'name' => $pool->name, 'photo' => $this->photoUrl($pool->getAttribute('photo_path')), 'health' => $health];
         })->all()];

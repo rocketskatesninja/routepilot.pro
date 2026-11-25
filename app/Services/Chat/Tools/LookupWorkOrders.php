@@ -71,7 +71,7 @@ class LookupWorkOrders extends AssistantTool
             .($w->due_on !== null ? ' — due '.$w->due_on->format('M j').($w->isOverdue() ? ' (overdue)' : '') : '')
             .($w->pool !== null ? ' — '.$w->pool->name.' ('.($w->pool->customer?->displayName() ?? '?').')' : '')
             .' — '.($w->assignee?->displayName() ?? 'not assigned')
-            .($w->price !== null && $user->role === 'tenant_admin' ? ' — $'.number_format((float) $w->price, 2) : '')
+            .($w->price !== null && $user->isAdmin() ? ' — $'.number_format((float) $w->price, 2) : '')
             .(($d = self::note($w->details)) !== null ? "\n  Details: {$d}" : ''))->join("\n")
             .self::more($total, $orders->count());
     }

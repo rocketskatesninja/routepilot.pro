@@ -37,7 +37,7 @@ class LookupInventory extends AssistantTool
 
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin' && $this->tenant($user)?->inventory_tracking !== false;
+        return $user->isAdmin() && $this->tenant($user)?->inventory_tracking !== false;
     }
 
     public function execute(array $params, User $user): string

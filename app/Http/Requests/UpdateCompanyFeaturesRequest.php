@@ -5,18 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\Tenant;
-use Illuminate\Foundation\Http\FormRequest;
 
 /** A company's feature switches: saved on their own, from settings or the setup checklist. */
-class UpdateCompanyFeaturesRequest extends FormRequest
+class UpdateCompanyFeaturesRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        $user = $this->user();
-
-        return $user !== null && $user->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

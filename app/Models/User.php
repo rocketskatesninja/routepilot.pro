@@ -125,6 +125,12 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === 'super_admin';
     }
 
+    /** The company's admin: runs the office, manages people, billing and settings. */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'tenant_admin';
+    }
+
     public function isAgent(): bool
     {
         return $this->role === 'agent';

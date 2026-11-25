@@ -6,15 +6,9 @@ namespace App\Http\Requests;
 
 use App\Support\MailHost;
 use Closure;
-use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateMailConfigRequest extends FormRequest
+class UpdateMailConfigRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

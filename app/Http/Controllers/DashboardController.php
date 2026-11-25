@@ -33,7 +33,7 @@ class DashboardController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        if ($user->role === 'customer' && $user->getAttribute('dashboard_style') === 'simple') {
+        if ($user->isCustomer() && $user->getAttribute('dashboard_style') === 'simple') {
             $customer = Customer::query()->where('user_id', $user->id)->first();
             abort_if($customer === null, 404);
 
@@ -58,7 +58,7 @@ class DashboardController extends Controller
             'widgets' => fn (): array => app(AssembleDashboardData::class)->handle($user, $enabled),
             // First-run setup checklist — only the tenant admin sees it, and only
             // the client shows it while incomplete + not dismissed (see Grid.vue).
-            'onboarding' => fn () => ($user->role === 'tenant_admin' && $tenant instanceof Tenant)
+            'onboarding' => fn () => ($user->isAdmin() && $tenant instanceof Tenant)
                 ? OnboardingStatus::for($tenant)
                 : null,
         ];

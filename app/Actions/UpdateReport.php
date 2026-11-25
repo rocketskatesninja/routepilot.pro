@@ -39,13 +39,7 @@ class UpdateReport
             $reading = is_array($data['reading'] ?? null) ? $data['reading'] : [];
             $visit->chemicalReading()->delete();
             if (array_filter($reading, fn ($v): bool => $v !== null && $v !== '') !== []) {
-                $lsi = $this->chem->calculateLSI([
-                    'temperature' => $reading['water_temperature'] ?? null,
-                    'ph' => $reading['ph'] ?? null,
-                    'alkalinity' => $reading['alkalinity'] ?? null,
-                    'calcium_hardness' => $reading['calcium_hardness'] ?? null,
-                    'salt' => $reading['salt'] ?? null,
-                ]);
+                $lsi = $this->chem->lsiFor($reading);
                 $visit->chemicalReading()->create([
                     'free_chlorine' => $reading['free_chlorine'] ?? null,
                     'total_chlorine' => $reading['total_chlorine'] ?? null,

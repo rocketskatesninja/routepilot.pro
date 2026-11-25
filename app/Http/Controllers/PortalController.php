@@ -314,7 +314,7 @@ class PortalController extends Controller
     private function resolveCustomer(Request $request): Customer
     {
         $user = $request->user();
-        abort_unless($user?->role === 'customer', 403);
+        abort_unless($user?->isCustomer() === true, 403);
 
         $customer = Customer::query()->where('user_id', $user->id)->first();
         abort_if($customer === null, 404);

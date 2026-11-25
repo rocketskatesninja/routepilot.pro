@@ -5,16 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Support\Upload;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
-class StoreAgentRequest extends FormRequest
+class StoreAgentRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

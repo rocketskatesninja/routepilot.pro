@@ -7,7 +7,6 @@ namespace App\Dashboard;
 use App\Models\ChemicalInventory;
 use App\Models\Lead;
 use App\Models\Pool;
-use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\ServiceRequest;
 use App\Models\Tenant;
@@ -93,12 +92,9 @@ final class Advisories
             $a->add('amber', 'MapPinOff', 'Your business address couldn’t be placed on the map, so the weather and your website’s service-area map can’t show.', '/company?tab=address');
         }
 
-        // Techs with nothing today, on a day the others are working (a day off isn't news).
-        if (Route::query()->whereDate('scheduled_date', $today)->exists()) {
-            $idle = OpsSignals::idleTechs((int) $user->tenant_id);
-            if ($idle->isNotEmpty()) {
-                $a->add('info', 'Users', self::names($idle->map->displayName()).' '.self::verb($idle, 'has', 'have').' no stops today.', '/schedule');
-            }
+        $idle = OpsSignals::idleTechs((int) $user->tenant_id);
+        if ($idle->isNotEmpty()) {
+            $a->add('info', 'Users', self::names($idle->map->displayName()).' '.self::verb($idle, 'has', 'have').' no stops today.', '/schedule');
         }
         if ($tenant !== null && blank($tenant->logo_path)) {
             $a->add('info', 'Image', 'Add your logo: it goes on your emails, your website and the customer portal.', '/company');

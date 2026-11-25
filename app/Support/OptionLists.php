@@ -65,7 +65,7 @@ final class OptionLists
             ->orderBy('first_name')->get(['id', 'first_name', 'last_name', 'role'])
             ->map(fn (User $u): array => [
                 'id' => $u->id,
-                'name' => $u->role === 'tenant_admin' ? $u->displayName().' (admin)' : $u->displayName(),
+                'name' => $u->isAdmin() ? $u->displayName().' (admin)' : $u->displayName(),
             ])
             ->all();
     }

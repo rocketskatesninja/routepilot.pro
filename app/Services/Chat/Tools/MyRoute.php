@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
-use App\Models\ChemicalReading;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\User;
@@ -44,7 +43,7 @@ class MyRoute extends AssistantTool
 
     public function availableTo(User $user): bool
     {
-        return $user->role === 'agent';
+        return $user->isAgent();
     }
 
     public function execute(array $params, User $user): string
@@ -83,7 +82,7 @@ class MyRoute extends AssistantTool
                     return "{$stop->stop_order}. a removed pool — {$stop->status}";
                 }
                 $loc = $pool->serviceLocation;
-                $last = ChemicalReading::query()->whereHas('serviceVisit', fn ($q) => $q->where('pool_id', $pool->id))->latest()->first();
+                $last = $pool->latestReading;
                 $workOrders = ($orders->get($pool->id) ?? collect())->map(fn (WorkOrder $o): string => '    - '
                     .($runsTheList || $o->assigned_to === $user->id ? self::link('workorder', $o->id, $o->title) : $o->title)
                     .($o->urgent ? ' (URGENT)' : '').($o->due_on !== null ? ', due '.$o->due_on->format('M j') : '')

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Chat\Tools;
 
-use App\Models\ChemicalReading;
 use App\Models\Pool;
 use App\Models\User;
 use App\Services\Chat\AssistantTool;
@@ -73,7 +72,7 @@ class AnalyzeWater extends AssistantTool
         $pool = null;
         $source = '';
 
-        if (isset($params['pool_id']) || trim((string) ($params['customer_name'] ?? '')) !== '' || ($user->role === 'customer' && $readings === [])) {
+        if (isset($params['pool_id']) || trim((string) ($params['customer_name'] ?? '')) !== '' || ($user->isCustomer() && $readings === [])) {
             $pools = $this->resolvePools($user, $params);
             if (is_string($pools)) {
                 return $pools;
@@ -85,7 +84,7 @@ class AnalyzeWater extends AssistantTool
         }
 
         if ($readings === [] && $pool !== null) {
-            $latest = ChemicalReading::query()->whereHas('serviceVisit', fn ($q) => $q->where('pool_id', $pool->id))->with('serviceVisit')->latest()->first();
+            $latest = $pool->latestReading()->with('serviceVisit')->first();
             if ($latest === null) {
                 return "There's no water test on file for {$pool->name} yet. Ask for the readings.";
             }

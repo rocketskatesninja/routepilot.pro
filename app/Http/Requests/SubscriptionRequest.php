@@ -7,17 +7,11 @@ namespace App\Http\Requests;
 use App\Models\ServiceSubscription;
 use App\Models\Tenant;
 use App\Support\Weekday;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /** The service-plan form, for adding (POST) and editing (PATCH) a plan. */
-class SubscriptionRequest extends FormRequest
+class SubscriptionRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

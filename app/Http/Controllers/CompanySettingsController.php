@@ -34,7 +34,7 @@ class CompanySettingsController extends Controller
 {
     public function edit(Request $request): Response
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
 
         return Inertia::render('settings/Company', [
             'company' => [
@@ -67,7 +67,7 @@ class CompanySettingsController extends Controller
     /** The company's feature switches, saved the moment they're flipped. */
     public function updateFeatures(UpdateCompanyFeaturesRequest $request): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $message = '';
 
         foreach (Tenant::FEATURES as $feature => $name) {
@@ -88,7 +88,7 @@ class CompanySettingsController extends Controller
     /** Start (or resume) Stripe Connect onboarding for the tenant. */
     public function connect(Request $request, StripeService $stripe): SymfonyResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
 
         $account = $stripe->createConnectAccount($tenant);
         if ($account === null) {
@@ -108,7 +108,7 @@ class CompanySettingsController extends Controller
     /** Stripe redirects here after onboarding — refresh + store the account status. */
     public function connectReturn(Request $request, StripeService $stripe): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $enabled = $stripe->refreshConnectStatus($tenant);
 
         $this->audit($request, $tenant, 'company.stripe.onboarding_returned', ['charges_enabled' => $enabled]);
@@ -123,7 +123,7 @@ class CompanySettingsController extends Controller
 
     public function updateMail(UpdateMailConfigRequest $request, TenantMailer $mailer): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $data = $request->validated();
 
         $existing = Integration::query()->where('integration_type', 'smtp')->first();
@@ -162,7 +162,7 @@ class CompanySettingsController extends Controller
      */
     public function testMail(Request $request, TenantMailer $mailer): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $user = $request->user();
         abort_if($user === null, 403);
 
@@ -192,7 +192,7 @@ class CompanySettingsController extends Controller
     /** Stop using the company's mail server; its emails go out from RoutePilot again. */
     public function turnOffMail(Request $request): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         Integration::query()->where('integration_type', 'smtp')->update(['is_active' => false]);
         $this->audit($request, $tenant, 'company.mail.turned_off');
 
@@ -226,7 +226,7 @@ class CompanySettingsController extends Controller
 
     public function update(UpdateCompanyRequest $request, PhotoService $photos, GeocodingService $geocoder): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $data = $request->validated();
 
         $tenant->fill([
@@ -288,16 +288,5 @@ class CompanySettingsController extends Controller
     private function audit(Request $request, Tenant $tenant, string $action, ?array $changes = null): void
     {
         AuditLog::record($request->user(), $action, $tenant, $changes);
-    }
-
-    /** The admin's own tenant. */
-    private function tenant(Request $request): Tenant
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->role === 'tenant_admin', 403);
-        $tenant = $user->tenant;
-        abort_if($tenant === null, 403);
-
-        return $tenant;
     }
 }

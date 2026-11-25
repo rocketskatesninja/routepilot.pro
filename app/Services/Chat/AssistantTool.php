@@ -149,7 +149,7 @@ abstract class AssistantTool extends AiTool
 
         $name = trim((string) ($params['customer_name'] ?? ''));
         $poolName = trim((string) ($params['pool_name'] ?? ''));
-        if ($user->role !== 'customer') {
+        if (! $user->isCustomer()) {
             if (($problem = $this->nameProblem($name)) !== null) {
                 return $problem;
             }
@@ -207,7 +207,7 @@ abstract class AssistantTool extends AiTool
     /** A tech without Agent Plus sees only their own visits (as on the Reports page). */
     protected function ownVisitsOnly(User $user): bool
     {
-        return $user->role === 'agent' && ! $user->isAgentPlus();
+        return $user->isAgent() && ! $user->isAgentPlus();
     }
 
     /**

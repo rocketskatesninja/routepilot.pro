@@ -47,7 +47,7 @@ class WorkOrderPolicy
 
     public function delete(User $user, WorkOrder $order): bool
     {
-        return $this->ours($user, $order) && $user->role === 'tenant_admin';
+        return $this->ours($user, $order) && $user->isAdmin();
     }
 
     /**
@@ -56,7 +56,7 @@ class WorkOrderPolicy
      */
     public function bill(User $user, WorkOrder $order): bool
     {
-        return $this->ours($user, $order) && $user->role === 'tenant_admin' && $order->status === 'done'
+        return $this->ours($user, $order) && $user->isAdmin() && $order->status === 'done'
             && $user->tenant?->customer_billing !== false
             && $order->pool?->customer !== null && $order->billedCharge() === null;
     }
@@ -64,7 +64,7 @@ class WorkOrderPolicy
     /** Admins and Agent+ see and work every work order. */
     public static function runsTheList(User $user): bool
     {
-        return $user->role === 'tenant_admin' || $user->isAgentPlus();
+        return $user->isAdmin() || $user->isAgentPlus();
     }
 
     private function ours(User $user, WorkOrder $order): bool

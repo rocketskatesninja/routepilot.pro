@@ -29,7 +29,7 @@ class InvoiceController extends Controller
         $user = $request->user();
         abort_if($user === null, 403);
 
-        if ($user->role === 'customer') {
+        if ($user->isCustomer()) {
             $customer = Customer::query()->where('user_id', $user->id)->first();
             abort_unless($customer !== null && $invoice->getAttribute('customer_id') === $customer->id, 403);
         } else {

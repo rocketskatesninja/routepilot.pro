@@ -6,16 +6,10 @@ namespace App\Http\Requests;
 
 use App\Support\StandardChemicals;
 use App\Support\Upload;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreChemicalRequest extends FormRequest
+class StoreChemicalRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** A part is always counted in units; only a part has a part number. */
     protected function prepareForValidation(): void
     {

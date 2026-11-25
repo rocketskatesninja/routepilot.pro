@@ -45,7 +45,7 @@ class EnsureBillingActive
         }
 
         // The account owner can fix it; everyone else just sees the paused page.
-        return $user->role === 'tenant_admin'
+        return $user->isAdmin()
             ? redirect()->route('billing.show')
             : redirect()->route('account.paused');
     }

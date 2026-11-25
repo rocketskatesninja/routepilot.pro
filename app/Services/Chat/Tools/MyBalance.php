@@ -34,7 +34,7 @@ class MyBalance extends AssistantTool
 
     public function availableTo(User $user): bool
     {
-        return $user->role === 'customer' && $this->tenant($user)?->customer_billing !== false;
+        return $user->isCustomer() && $this->tenant($user)?->customer_billing !== false;
     }
 
     public function execute(array $params, User $user): string

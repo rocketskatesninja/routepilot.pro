@@ -6,17 +6,9 @@ namespace App\Http\Requests;
 
 use App\Support\EmailHtml;
 use App\Support\Upload;
-use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateCompanyRequest extends FormRequest
+class UpdateCompanyRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        $user = $this->user();
-
-        return $user !== null && $user->role === 'tenant_admin';
-    }
-
     /** Normalize the two-letter state to uppercase before validation. */
     protected function prepareForValidation(): void
     {

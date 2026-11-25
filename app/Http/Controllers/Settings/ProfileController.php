@@ -49,7 +49,7 @@ class ProfileController extends Controller
         // A customer's login and contact email are one and the same, so a change
         // only lands after they confirm it from the new inbox. Staff keep the
         // immediate change (they have no contact-record duality).
-        $needsVerification = $emailChanged && $user->role === 'customer';
+        $needsVerification = $emailChanged && $user->isCustomer();
         abort_if($emailChanged && $request->session()->has('impersonator_id'), 403, 'Not available while signed in as someone else.');
 
         $user->fill($request->safe()->only(['first_name', 'last_name']));

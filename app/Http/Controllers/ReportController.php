@@ -34,8 +34,8 @@ class ReportController extends Controller
     {
         $this->authorizeStaff($request);
         $user = $request->user();
-        $ownOnly = $user?->role === 'agent' && ! $user->isAgentPlus();
-        if ($user?->role === 'tenant_admin') {
+        $ownOnly = $user?->isAgent() === true && ! $user->isAgentPlus();
+        if ($user?->isAdmin() === true) {
             NavCounts::sawReports($user); // clears the sidebar's Reports number
         }
 
@@ -176,7 +176,7 @@ class ReportController extends Controller
             'customer' => $visit->pool?->customer?->displayName(),
             'customer_id' => $visit->pool?->customer?->getKey(),
             'agent' => $visit->agent?->displayName(),
-            'agent_id' => $visit->agent?->role === 'agent' ? $visit->agent->id : null, // People opens techs only, so only they're linked
+            'agent_id' => $visit->agent?->isAgent() === true ? $visit->agent->id : null, // People opens techs only, so only they're linked
             // The office typed this in for the tech (staff see it; the customer sees the tech).
             'entered_by' => $visit->entered_by_id !== null && $visit->entered_by_id !== $visit->agent_id ? $visit->enteredBy?->displayName() : null,
             'completed_on' => Tenant::localDate($visit->completed_at), // the company's day, not UTC's

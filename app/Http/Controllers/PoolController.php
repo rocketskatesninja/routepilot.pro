@@ -154,18 +154,8 @@ class PoolController extends Controller
     {
         $sub = $pool->subscriptions->first();
 
-        $health = null;
         $reading = $pool->latestReading;
-        if ($reading !== null) {
-            $lsi = $reading->lsi_score ?? $chem->calculateLSI([
-                'temperature' => $reading->water_temperature,
-                'ph' => $reading->ph,
-                'alkalinity' => $reading->alkalinity,
-                'calcium_hardness' => $reading->calcium_hardness,
-                'salt' => $reading->salt,
-            ]);
-            $health = $chem->getLSIStatus((float) $lsi);
-        }
+        $health = $chem->healthOf($reading);
 
         return [
             'id' => $pool->id,
@@ -212,18 +202,7 @@ class PoolController extends Controller
         // Single source of truth: the same relation the list rows use, so the detail
         // pane and the list's health dot can never disagree on "the latest reading".
         $reading = $pool->latestReading;
-
-        $health = null;
-        if ($reading !== null) {
-            $lsi = $reading->lsi_score ?? $chem->calculateLSI([
-                'temperature' => $reading->water_temperature,
-                'ph' => $reading->ph,
-                'alkalinity' => $reading->alkalinity,
-                'calcium_hardness' => $reading->calcium_hardness,
-                'salt' => $reading->salt,
-            ]);
-            $health = $chem->getLSIStatus((float) $lsi);
-        }
+        $health = $chem->healthOf($reading);
 
         $location = $pool->serviceLocation;
         $lastReportId = ServiceVisit::query()->where('pool_id', $pool->id)->where('status', 'completed')->latest('completed_at')->value('id');
@@ -274,7 +253,7 @@ class PoolController extends Controller
                 'service_type_id' => $sub->service_type_id,
                 'price' => (float) $sub->price,
                 'agent_id' => $sub->assigned_agent_id,
-                'agent_is_tech' => $sub->agent?->role === 'agent', // People opens techs only, so only they're linked
+                'agent_is_tech' => $sub->agent?->isAgent() === true, // People opens techs only, so only they're linked
                 'frequency' => $sub->frequency,
                 'preferred_day' => $sub->preferred_day,
                 'starts_on' => $sub->starts_on?->toDateString(),

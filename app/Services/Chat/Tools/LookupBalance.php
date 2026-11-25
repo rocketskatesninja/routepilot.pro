@@ -38,7 +38,7 @@ class LookupBalance extends AssistantTool
 
     public function availableTo(User $user): bool
     {
-        return $user->role === 'tenant_admin' && $this->tenant($user)?->customer_billing !== false;
+        return $user->isAdmin() && $this->tenant($user)?->customer_billing !== false;
     }
 
     public function execute(array $params, User $user): string

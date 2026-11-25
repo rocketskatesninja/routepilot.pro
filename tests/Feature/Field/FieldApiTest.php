@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ChemicalReading;
 use App\Models\Customer;
 use App\Models\Pool;
 use App\Models\Route;
@@ -156,4 +157,15 @@ test('a refused visit says why in words a tech can read, and the server logs it'
     Log::shouldHaveReceived('warning')
         ->withArgs(fn (string $message, array $context) => $message === 'Field visit refused' && $context['stop_id'] === $this->stop->id && isset($context['errors']['ph']))
         ->once();
+});
+
+test('the last test a tech sees is the latest visit\'s, even when an older report was typed in afterwards', function () {
+    $visit = fn (string $when) => ServiceVisit::factory()->for(test()->tenant)->for(test()->pool)
+        ->create(['agent_id' => test()->agent->id, 'status' => 'completed', 'completed_at' => $when, 'visited_at' => $when]);
+
+    ChemicalReading::factory()->for(test()->tenant)->for($visit(now()->subDays(2)->toDateTimeString()))->create(['ph' => 7.2, 'created_at' => now()->subDays(2)]);
+    // Last week's report, filled in by the office this morning: newer row, older visit.
+    ChemicalReading::factory()->for(test()->tenant)->for($visit(now()->subDays(9)->toDateTimeString()))->create(['ph' => 8.4, 'created_at' => now()]);
+
+    $this->actingAs($this->agent)->getJson('/api/field/today')->assertOk()->assertJsonPath('stops.0.last_reading.ph', 7.2);
 });

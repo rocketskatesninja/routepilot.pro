@@ -31,7 +31,7 @@ final class NavCounts
                 ->where(fn ($q) => $q->where('assigned_to', $user->id)->when(WorkOrderPolicy::runsTheList($user), fn ($q) => $q->orWhereNull('assigned_to')))
                 ->count(),
         ];
-        if ($user->role === 'tenant_admin') {
+        if ($user->isAdmin()) {
             $counts['requests'] = ServiceRequest::query()->where('status', 'pending')->whereHas('customer')->count()
                 + Lead::query()->where('status', 'new')->count();
             $counts['reports'] = ServiceVisit::query()->where('status', 'completed')

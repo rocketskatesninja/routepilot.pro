@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,10 +66,20 @@ abstract class Controller
         abort_unless($request->user()?->isSuperAdmin() === true, 403);
     }
 
+    /** The signed-in admin's own company; 403 for anyone else. */
+    protected function adminTenant(Request $request): Tenant
+    {
+        $this->authorizeAdmin($request);
+        $tenant = $request->user()?->tenant;
+        abort_if($tenant === null, 403);
+
+        return $tenant;
+    }
+
     /** Whether the user may manage (tenant_admin). */
     protected function canManage(?User $user): bool
     {
-        return $user?->role === 'tenant_admin';
+        return $user?->isAdmin() === true;
     }
 
     /** Public URL for a stored photo path, or null when unset. */

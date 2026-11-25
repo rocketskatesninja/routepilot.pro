@@ -31,7 +31,7 @@ class LandingController extends Controller
 {
     public function edit(Request $request, AssembleLandingData $assemble): Response
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $config = LandingConfig::forTenant($tenant->id);
         $config['sections'] = LandingConfig::withImageUrls($config['sections']);
 
@@ -63,7 +63,7 @@ class LandingController extends Controller
 
     public function update(UpdateLandingRequest $request, SaveLandingConfig $save): RedirectResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
 
         $save->handle($tenant, $request->only(['sections', 'seo', 'theme', 'title', 'social']));
 
@@ -73,7 +73,7 @@ class LandingController extends Controller
     /** Upload a single landing image (hero / OG); returns its stored path + URL. */
     public function uploadImage(Request $request, PhotoService $photos): JsonResponse
     {
-        $tenant = $this->tenant($request);
+        $tenant = $this->adminTenant($request);
         $request->validate(['image' => ['required', 'image', 'max:10240', Upload::IMAGE_SIZE]]);
 
         $file = $request->file('image');
@@ -87,16 +87,5 @@ class LandingController extends Controller
     private function url(mixed $path): ?string
     {
         return is_string($path) && $path !== '' ? Storage::disk('public')->url($path) : null;
-    }
-
-    /** The admin's own tenant. */
-    private function tenant(Request $request): Tenant
-    {
-        $user = $request->user();
-        abort_unless($user !== null && $user->role === 'tenant_admin', 403);
-        $tenant = $user->tenant;
-        abort_if($tenant === null, 403);
-
-        return $tenant;
     }
 }

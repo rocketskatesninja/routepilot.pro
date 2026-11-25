@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
+use App\Models\Pool;
 use App\Models\ServiceRequest;
 use App\Models\ServiceSubscription;
 use App\Models\Tenant;
@@ -197,7 +198,7 @@ class InboxController extends Controller
                 'last_name' => $last,
                 'email' => $l->email ?? '',
                 'phone' => $l->getAttribute('phone') ?? '',
-                'pool_type' => in_array($poolType, ['inground', 'above_ground', 'indoor', 'spa', 'infinity', 'other'], true) ? $poolType : 'inground',
+                'pool_type' => in_array($poolType, Pool::TYPES, true) ? $poolType : 'inground',
                 'pool_volume' => is_numeric($details['volume_gallons'] ?? null) ? (int) $details['volume_gallons'] : null,
             ],
         ];

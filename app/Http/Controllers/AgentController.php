@@ -95,6 +95,6 @@ class AgentController extends Controller
     /** Ensure the bound user is one of this tenant's agents. */
     private function authorizeAgent(Request $request, User $agent): void
     {
-        abort_unless($agent->tenant_id === $request->user()?->tenant_id && $agent->role === 'agent', 404);
+        abort_unless($agent->tenant_id === $request->user()?->tenant_id && $agent->isAgent(), 404);
     }
 }

@@ -14,7 +14,6 @@ use App\Notifications\OpsAlert;
 use App\Notifications\ServiceReminder;
 use App\Support\EmailPreferences;
 use App\Support\OpsSignals;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 
@@ -39,124 +38,40 @@ class DailyOpsChecks
 
         $billing = Tenant::query()->find($tenantId)?->customer_billing !== false;
 
+        $n = fn (int $count, string $one, string $many): string => $count.' '.($count === 1 ? $one : $many);
+        $yesterday = Tenant::localToday()->subDay()->toDateString();
+
+        // What the office hears about each morning: [kind, title, how many, the sentence, where to look].
+        // The counts are OpsSignals', the same ones the dashboard's Advisories read.
+        $checks = [
+            ['unassigned_pools', 'Unassigned pools', $count = OpsSignals::unassignedPools()->count(),
+                $n($count, 'pool has', 'pools have').' an active plan but no assigned agent.', '/schedule'],
+            ['no_routes_tomorrow', 'No routes tomorrow', OpsSignals::nothingTomorrow() ? 1 : 0,
+                'No stops are scheduled for tomorrow. Open the schedule to materialize routes.', '/schedule'],
+            ['overdue_balances', 'Overdue balances', $count = $billing ? OpsSignals::overdueCustomers()->count() : 0,
+                $n($count, 'customer has a bill', 'customers have bills').' past due.', '/balances'],
+            ['stale_chemistry', 'Stale chemistry', $count = OpsSignals::untestedPools()->count(),
+                $n($count, "pool hasn't", "pools haven't").' been tested in over 2 weeks.', '/pools'],
+            ['idle_agents', 'Idle agents', $count = OpsSignals::idleTechs($tenantId)->count(),
+                $count.' active '.($count === 1 ? 'agent has' : 'agents have').' no stops scheduled today.', '/schedule'],
+            // MarkMissedStops marks them just before these checks run.
+            ['missed_stops', 'Missed stops', $count = OpsSignals::missedYesterday()->count(),
+                $n($count, 'stop', 'stops').' from yesterday '.($count === 1 ? 'was' : 'were').' never finished or skipped.', '/schedule?date='.$yesterday],
+        ];
+
         $alerts = 0;
-        $alerts += $this->unassignedPools($admins) ? 1 : 0;
-        $alerts += $this->noRoutesTomorrow($admins) ? 1 : 0;
-        $alerts += $billing && $this->overdueBalances($admins) ? 1 : 0;
-        $alerts += $this->staleChemistry($admins) ? 1 : 0;
-        $alerts += $this->idleAgents($admins) ? 1 : 0;
-        $alerts += $this->missedYesterday($admins) ? 1 : 0;
+        foreach ($checks as [$kind, $title, $count, $body, $url]) {
+            if ($count > 0) {
+                Notification::send($admins, new OpsAlert($kind, $title, $body, $url));
+                $alerts++;
+            }
+        }
 
         // Customer-facing reminders (one per affected homeowner, not per tenant).
         $alerts += $this->serviceTomorrow($tenantId);
         $alerts += $billing ? $this->overdueCustomerBalances() : 0;
 
         return $alerts;
-    }
-
-    /**
-     * Active subscriptions with no assigned agent — work that won't get routed.
-     *
-     * @param  Collection<int, User>  $admins
-     */
-    private function unassignedPools(Collection $admins): bool
-    {
-        $count = OpsSignals::unassignedPools()->count();
-
-        if ($count === 0) {
-            return false;
-        }
-
-        return $this->alert($admins, 'unassigned_pools', 'Unassigned pools',
-            $count.' '.($count === 1 ? 'pool has' : 'pools have').' an active plan but no assigned agent.',
-            '/schedule');
-    }
-
-    /**
-     * Nothing scheduled for tomorrow despite having active plans — likely an oversight.
-     *
-     * @param  Collection<int, User>  $admins
-     */
-    private function noRoutesTomorrow(Collection $admins): bool
-    {
-        if (! OpsSignals::nothingTomorrow()) {
-            return false;
-        }
-
-        return $this->alert($admins, 'no_routes_tomorrow', 'No routes tomorrow',
-            'No stops are scheduled for tomorrow. Open the schedule to materialize routes.',
-            '/schedule');
-    }
-
-    /**
-     * Customers with a bill past its due date.
-     *
-     * @param  Collection<int, User>  $admins
-     */
-    private function overdueBalances(Collection $admins): bool
-    {
-        $count = OpsSignals::overdueCustomers()->count();
-        if ($count === 0) {
-            return false;
-        }
-
-        return $this->alert($admins, 'overdue_balances', 'Overdue balances',
-            $count.' '.($count === 1 ? 'customer has a bill' : 'customers have bills').' past due.',
-            '/balances');
-    }
-
-    /**
-     * Active-plan pools with no chemistry reading in the last 14 days.
-     *
-     * @param  Collection<int, User>  $admins
-     */
-    private function staleChemistry(Collection $admins): bool
-    {
-        $count = OpsSignals::untestedPools()->count();
-        if ($count === 0) {
-            return false;
-        }
-
-        return $this->alert($admins, 'stale_chemistry', 'Stale chemistry',
-            $count.' '.($count === 1 ? "pool hasn't" : "pools haven't").' been tested in over 2 weeks.',
-            '/pools');
-    }
-
-    /**
-     * Active agents with no route today — capacity sitting idle.
-     *
-     * @param  Collection<int, User>  $admins
-     */
-    private function idleAgents(Collection $admins): bool
-    {
-        $count = OpsSignals::idleTechs((int) $admins->first()?->getAttribute('tenant_id'))->count();
-        if ($count === 0) {
-            return false;
-        }
-
-        return $this->alert($admins, 'idle_agents', 'Idle agents',
-            $count.' active '.($count === 1 ? 'agent has' : 'agents have').' no stops scheduled today.',
-            '/schedule');
-    }
-
-    /**
-     * Stops from yesterday that nobody finished or skipped (MarkMissedStops marks
-     * them just before these checks run).
-     *
-     * @param  Collection<int, User>  $admins
-     */
-    private function missedYesterday(Collection $admins): bool
-    {
-        $yesterday = Tenant::localToday()->subDay();
-        $count = OpsSignals::missedYesterday()->count();
-
-        if ($count === 0) {
-            return false;
-        }
-
-        return $this->alert($admins, 'missed_stops', 'Missed stops',
-            $count.' '.($count === 1 ? 'stop' : 'stops').' from yesterday '.($count === 1 ? 'was' : 'were').' never finished or skipped.',
-            '/schedule?date='.$yesterday->toDateString());
     }
 
     /**
@@ -231,13 +146,5 @@ class DailyOpsChecks
         }
 
         return $sent;
-    }
-
-    /** @param  Collection<int, User>  $admins */
-    private function alert(Collection $admins, string $kind, string $title, string $body, string $url): bool
-    {
-        Notification::send($admins, new OpsAlert($kind, $title, $body, $url));
-
-        return true;
     }
 }

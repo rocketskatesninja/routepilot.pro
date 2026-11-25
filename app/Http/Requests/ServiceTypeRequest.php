@@ -6,17 +6,11 @@ namespace App\Http\Requests;
 
 use App\Models\ServiceSubscription;
 use App\Models\ServiceType;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /** The service form, for adding (POST) and editing (PATCH) a catalog entry. */
-class ServiceTypeRequest extends FormRequest
+class ServiceTypeRequest extends AdminRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->role === 'tenant_admin';
-    }
-
     /** @return array<string, mixed> */
     public function rules(): array
     {

@@ -14,7 +14,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CompleteVisitRequest;
 use App\Models\AgentLocation;
 use App\Models\ChemicalInventory;
-use App\Models\ChemicalReading;
 use App\Models\FieldSyncKey;
 use App\Models\Pool;
 use App\Models\Route;
@@ -81,7 +80,7 @@ class FieldController extends Controller
             'office' => $tech->id !== $user->id,
             'past' => $date->lt(Tenant::localToday()->toDateString()),
             // The office's tech picker; agents only ever see their own route.
-            'techs' => $user->role === 'tenant_admin' ? $this->techs($user)->map(fn (User $t): array => ['id' => $t->id, 'name' => $t->displayName()])->values()->all() : null,
+            'techs' => $user->isAdmin() ? $this->techs($user)->map(fn (User $t): array => ['id' => $t->id, 'name' => $t->displayName()])->values()->all() : null,
             'stops' => $stops->map(fn (RouteStop $stop): array => $this->stop($stop, $workOrders->get($stop->pool_id, collect()), $user))->values()->all(),
             // The chemicals and repair parts a tech picks from; `key` lets a water-test suggestion find its chemical.
             'inventory' => ChemicalInventory::query()->active()
@@ -170,10 +169,7 @@ class FieldController extends Controller
         $location = $pool?->serviceLocation;
         $coords = $pool?->coordinates();
 
-        $last = $pool === null ? null : ChemicalReading::query()
-            ->whereHas('serviceVisit', fn ($q) => $q->where('pool_id', $pool->id))
-            ->latest()
-            ->first();
+        $last = $pool?->latestReading;
 
         return [
             'id' => $stop->id,
@@ -304,7 +300,7 @@ class FieldController extends Controller
     {
         $today = Tenant::localToday()->toImmutable();
         $date = $request->date('date')?->toImmutable() ?? $today;
-        if ($user->role !== 'tenant_admin') {
+        if (! $user->isAdmin()) {
             return [$user, $date];
         }
 
@@ -376,7 +372,7 @@ class FieldController extends Controller
     {
         abort_if($stop->route === null, 404); // Route is tenant-scoped — a foreign stop resolves to null.
         $user = $request->user();
-        $owns = $user instanceof User && ((int) $stop->route->getAttribute('agent_id') === $user->id || $user->role === 'tenant_admin');
+        $owns = $user instanceof User && ((int) $stop->route->getAttribute('agent_id') === $user->id || $user->isAdmin());
         abort_unless($owns, 403);
     }
 }

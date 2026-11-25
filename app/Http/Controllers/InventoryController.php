@@ -145,7 +145,7 @@ class InventoryController extends Controller
                 'on' => Tenant::localDate($t->created_at),
                 // The tech on a visit; otherwise whoever updated the stock in the office.
                 'by' => ($t->agent ?? $t->creator)?->displayName(),
-                'agent_id' => $t->agent?->role === 'agent' ? $t->agent->id : null, // People opens techs only
+                'agent_id' => $t->agent?->isAgent() === true ? $t->agent->id : null, // People opens techs only
                 // Usage from a visit: the pool, and the report it's on (an archived pool isn't on the Pools page, so no link).
                 'pool' => $t->pool?->getAttribute('name'),
                 'pool_id' => $t->pool !== null && ! $t->pool->trashed() ? $t->pool->id : null,
