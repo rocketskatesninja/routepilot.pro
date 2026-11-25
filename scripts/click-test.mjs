@@ -159,6 +159,11 @@ function noise(ctx, text) {
         report.notes.push(`${ctx.target.id}/${ctx.role}: a request was cut off when the test left a page (before ${ctx.where.path}).`);
         return true;
     }
+    // A web font whose download was cut off the same way (status 2152398850 is Firefox's "aborted").
+    if (/downloadable font: download failed.*status=2152398850/.test(text)) {
+        report.known++;
+        return true;
+    }
     return ctx.block && Date.now() - ctx.lastBlock < 3000 && BLOCK_NOISE.test(text);
 }
 
@@ -646,8 +651,12 @@ async function runFlows(creds) {
             .getByRole('button', { name: /Finish visit/ })
             .first()
             .tap();
-        await t.waitForTimeout(7000);
-        must(/4 of 6 done/.test(await t.locator('body').innerText()), 'The route doesn’t show the visit as done');
+        // Saved, synced and the route reloaded: usually a few seconds, longer on a busy machine.
+        await t.waitForFunction(() => /4 of 6 done/.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
+        must(
+            /4 of 6 done/.test(await t.locator('body').innerText()),
+            `The route doesn’t show the visit as done: "${(await t.locator('body').innerText()).slice(0, 160)}"`,
+        );
         await tech.context.close();
         await p.goto(`${BASE}/reports`, { waitUntil: 'domcontentloaded' });
         await settle(p);
