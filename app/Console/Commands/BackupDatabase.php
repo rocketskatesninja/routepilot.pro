@@ -48,16 +48,16 @@ class BackupDatabase extends Command
         $file = $dir.'/db-'.$stamp.'.sql';
 
         $command = sprintf(
-            'mysqldump --single-transaction --no-tablespaces --result-file=%s --host=%s --port=%s --user=%s %s %s',
+            'mysqldump --single-transaction --no-tablespaces --result-file=%s --host=%s --port=%s --user=%s %s',
             escapeshellarg($file),
             escapeshellarg($host),
             escapeshellarg($port),
             escapeshellarg($user),
-            $pass !== '' ? '--password='.escapeshellarg($pass) : '',
             escapeshellarg($name),
         );
 
-        $result = Process::timeout(300)->run($command);
+        // The password goes in the environment: a command line is readable by every user on the box.
+        $result = Process::timeout(300)->env(['MYSQL_PWD' => $pass])->run($command);
         if ($result->failed()) {
             $this->error('Backup failed: '.$result->errorOutput());
 

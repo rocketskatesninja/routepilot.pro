@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\VisitReportRules;
 use App\Models\RouteStop;
+use App\Support\Upload;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
@@ -39,7 +40,7 @@ class CompleteVisitRequest extends FormRequest
             // The single box older copies of the app still send (split by CreateWorkOrder::fromText).
             'work_order' => ['nullable', 'string', 'max:2000'],
             'photos' => ['nullable', 'array', 'max:6'],
-            'photos.*' => ['image', 'max:5120'],
+            'photos.*' => ['image', 'max:5120', Upload::IMAGE_SIZE],
             // Best-effort GPS proof-of-presence from the field app; idempotency key for offline replays.
             'completed_lat' => ['nullable', 'numeric', 'between:-90,90'],
             'completed_lng' => ['nullable', 'numeric', 'between:-180,180'],

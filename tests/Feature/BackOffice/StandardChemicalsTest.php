@@ -15,7 +15,7 @@ use App\Support\StandardChemicals;
 test('a new company starts with the standard chemicals, in gallons or pounds and with nothing in stock', function () {
     $this->post('/register', [
         'company' => 'Sunshine Pools', 'first_name' => 'Sam', 'last_name' => 'Rivera',
-        'email' => 'sam@example.com', 'password' => 'password', 'password_confirmation' => 'password',
+        'email' => 'sam@example.com', 'password' => 'a-long-password', 'password_confirmation' => 'a-long-password',
     ])->assertRedirect();
 
     $tenant = Tenant::query()->where('name', 'Sunshine Pools')->sole();

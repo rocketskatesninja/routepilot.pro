@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\Customer;
+use App\Support\Upload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,7 +37,7 @@ class UpdateCustomerRequest extends FormRequest
             'zip' => ['nullable', 'string', 'max:10'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'bill_chemicals' => ['boolean'],
-            'photo' => ['nullable', 'image', 'max:10240'],
+            'photo' => ['nullable', 'image', 'max:10240', Upload::IMAGE_SIZE],
         ];
     }
 }

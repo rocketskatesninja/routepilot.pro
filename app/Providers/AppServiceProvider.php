@@ -9,6 +9,7 @@ use App\Support\BrandColor;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View as ViewInstance;
 use Laravel\Cashier\Cashier;
 use Minishlink\WebPush\WebPush;
@@ -40,6 +41,13 @@ class AppServiceProvider extends ServiceProvider
         if (blank(config('cashier.webhook.secret'))) {
             config(['cashier.webhook.secret' => 'unset-'.Str::random(40)]);
         }
+
+        // One rule for every new password, whoever sets it (sign-up, reset, an
+        // admin creating a tech or a customer login). Production also refuses
+        // passwords found in known breaches.
+        Password::defaults(fn (): Password => $this->app->isProduction()
+            ? Password::min(10)->uncompromised()
+            : Password::min(10));
 
         // Inject the tenant's brand color into the root view server-side so the
         // SSR / first paint is on-brand before JS runs (applyBrand can't touch

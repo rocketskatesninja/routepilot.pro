@@ -99,7 +99,8 @@ export async function flushQueue(): Promise<number> {
     flushing = true;
     try {
         for (const item of await allQueued()) {
-            await sync(item);
+            // A refused visit would only be refused again: it waits for Retry, Reopen or Discard.
+            if (item.status === 'pending') await sync(item);
         }
     } finally {
         flushing = false;

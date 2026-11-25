@@ -9,6 +9,7 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -40,7 +41,10 @@ class TwoFactorAuth
         return $writer->writeString($uri);
     }
 
-    /** Verify a 6-digit TOTP code against the secret (±1 30s step). */
+    /**
+     * Verify a 6-digit TOTP code against the secret (±1 30s step). A code works
+     * once: someone who watched it typed can't use it again while it's still valid.
+     */
     public function verify(string $secret, string $code): bool
     {
         $code = preg_replace('/\s+/', '', $code) ?? '';
@@ -48,7 +52,12 @@ class TwoFactorAuth
             return false;
         }
 
-        return $this->google2fa->verifyKey($secret, $code, 1);
+        if (! $this->google2fa->verifyKey($secret, $code, 1)) {
+            return false;
+        }
+
+        // add() is false when the key is already there: this code was used. 2 minutes outlasts its window.
+        return Cache::add('totp-used:'.hash('sha256', $secret.'|'.$code), true, 120);
     }
 
     /**

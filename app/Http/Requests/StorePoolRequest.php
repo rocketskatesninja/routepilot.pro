@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Support\Upload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -47,7 +48,7 @@ class StorePoolRequest extends FormRequest
             'zip' => ['nullable', 'string', 'max:10'],
             'gate_code' => ['nullable', 'string', 'max:60'],
             'access_notes' => ['nullable', 'string', 'max:2000'],
-            'photo' => ['nullable', 'image', 'max:10240'],
+            'photo' => ['nullable', 'image', 'max:10240', Upload::IMAGE_SIZE],
         ];
     }
 }

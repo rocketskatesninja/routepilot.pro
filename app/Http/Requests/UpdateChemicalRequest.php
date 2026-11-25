@@ -6,6 +6,7 @@ namespace App\Http\Requests;
 
 use App\Models\ChemicalInventory;
 use App\Support\StandardChemicals;
+use App\Support\Upload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,7 +34,7 @@ class UpdateChemicalRequest extends FormRequest
             'cost_per_unit' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'sell_price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'supplier' => ['nullable', 'string', 'max:255'],
-            'photo' => ['nullable', 'image', 'max:10240'],
+            'photo' => ['nullable', 'image', 'max:10240', Upload::IMAGE_SIZE],
         ];
     }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EmailChoices from '@/components/EmailChoices.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
+import FormField from '@/components/FormField.vue';
 import Hint from '@/components/Hint.vue';
 import Chip from '@/components/pane/Chip.vue';
 import IconTile from '@/components/pane/IconTile.vue';
@@ -9,6 +10,7 @@ import PaneHeader from '@/components/pane/PaneHeader.vue';
 import PaneItem from '@/components/pane/PaneItem.vue';
 import PaneList from '@/components/pane/PaneList.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
+import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import { POOL_TYPES } from '@/lib/labels';
@@ -16,7 +18,7 @@ import { composeLink, poolLink, reportLink, telLink } from '@/lib/links';
 import { andList, monthYear } from '@/lib/portal';
 import { formatDay, formatMoney } from '@/lib/utils';
 import { type CustomerDetail } from '@/types/people';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
 import { Pencil, RotateCcw, Trash2, UserX, Waves } from '@lucide/vue';
 import { ref } from 'vue';
 
@@ -70,10 +72,15 @@ function purge() {
     const detail = s ? ` This removes ${s.pools} pool(s), ${s.visits} visit(s), ${s.invoices} invoice(s) and ${s.charges} charge(s).` : '';
     if (confirm(`Permanently delete this customer?${detail} This cannot be undone.`)) router.delete(url('/force'), leave);
 }
-function grantPortal() {
-    const pw = window.prompt('Set an initial portal password for this customer (min 8 characters):');
-    if (pw && pw.length >= 8) router.post(url('/portal'), { password: pw }, { preserveScroll: true });
+// A first portal password, typed into a masked box (a browser prompt shows it in clear text).
+const granting = ref(false);
+const portal = useForm({ password: '' });
+function closePortal() {
+    granting.value = false;
+    portal.reset();
+    portal.clearErrors();
 }
+const grantPortal = () => portal.post(url('/portal'), { preserveScroll: true, onSuccess: closePortal });
 const restorePortal = () => router.post(url('/portal/restore'), {}, { preserveScroll: true });
 const exportData = () => window.open(url('/export'), '_blank');
 </script>
@@ -106,7 +113,9 @@ const exportData = () => window.open(url('/export'), '_blank');
             </div>
             <template v-if="canManage && !customer.archived" #actions>
                 <Button size="sm" variant="outline" @click="emit('edit')"><Pencil class="mr-1 size-3.5" /> Edit</Button>
-                <Button v-if="customer.portal_status === 'none'" size="sm" variant="outline" @click="grantPortal">Grant portal</Button>
+                <Button v-if="customer.portal_status === 'none'" size="sm" variant="outline" :disabled="granting" @click="granting = true"
+                    >Grant portal</Button
+                >
                 <Button v-else-if="customer.portal_status === 'revoked'" size="sm" variant="outline" @click="restorePortal"
                     ><RotateCcw class="mr-1 size-3.5" /> Restore access</Button
                 >
@@ -122,6 +131,21 @@ const exportData = () => window.open(url('/export'), '_blank');
                 </Hint>
             </template>
         </PaneHeader>
+
+        <form v-if="granting" class="bg-card space-y-3 rounded-2xl border p-4" @submit.prevent="grantPortal">
+            <FormField
+                label="First portal password"
+                for="portal_pw"
+                :error="portal.errors.password"
+                hint="At least 10 characters. They sign in with their email and can change it afterwards."
+            >
+                <PasswordInput id="portal_pw" v-model="portal.password" autocomplete="new-password" class="max-w-xs" />
+            </FormField>
+            <div class="flex gap-2">
+                <Button type="submit" size="sm" :disabled="portal.processing || !portal.password">Grant portal login</Button>
+                <Button type="button" size="sm" variant="outline" @click="closePortal">Cancel</Button>
+            </div>
+        </form>
 
         <!-- archived: restore or permanently delete -->
         <div v-if="customer.archived && canManage" class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm">

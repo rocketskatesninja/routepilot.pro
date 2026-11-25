@@ -647,10 +647,14 @@ async function runFlows(creds) {
         await t.getByRole('button', { name: 'Add a part' }).tap();
         await pick('Part', 'or-112');
         await t.screenshot({ path: join(SHOTS, 'flow-field-visit.jpg'), type: 'jpeg', quality: 55, scale: 'css' });
+        // The route counts the visit done before it has reached the server, so wait for the send itself:
+        // closing the phone's browser any sooner can cut the upload off.
+        const sent = t.waitForResponse((r) => r.url().includes('/complete'), { timeout: 30000 }).catch(() => null);
         await t
             .getByRole('button', { name: /Finish visit/ })
             .first()
             .tap();
+        await sent;
         // Saved, synced and the route reloaded: usually a few seconds, longer on a busy machine.
         await t.waitForFunction(() => /4 of 6 done/.test(document.body.innerText), null, { timeout: 30000 }).catch(() => {});
         must(

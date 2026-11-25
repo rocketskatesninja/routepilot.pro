@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Support\Upload;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCustomerRequest extends FormRequest
@@ -32,7 +33,7 @@ class StoreCustomerRequest extends FormRequest
             'pool_type' => ['nullable', 'in:inground,above_ground,indoor,spa,infinity,other'],
             'pool_volume' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'pool_sanitizer' => ['nullable', 'in:chlorine,salt,bromine,biguanide,ozone,uv,other'],
-            'photo' => ['nullable', 'image', 'max:10240'],
+            'photo' => ['nullable', 'image', 'max:10240', Upload::IMAGE_SIZE],
         ];
     }
 }

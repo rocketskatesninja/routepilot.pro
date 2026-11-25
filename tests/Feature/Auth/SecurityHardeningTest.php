@@ -7,6 +7,8 @@ use App\Models\Invoice;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Csv;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Testing\TestResponse;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
@@ -168,4 +170,58 @@ test('the subscription webhook refuses calls when no secret is configured', func
 
     $this->postJson('/cashier/webhook', ['type' => 'customer.subscription.deleted', 'data' => ['object' => []]])
         ->assertForbidden();
+});
+
+/** A subscription webhook call signed the way Stripe signs them. */
+function signedSubscriptionWebhook(string $secret): TestResponse
+{
+    $payload = (string) json_encode(['id' => 'evt_test', 'type' => 'charge.refunded', 'data' => ['object' => []]]);
+    $time = time();
+
+    return test()->call('POST', '/cashier/webhook', [], [], [], [
+        'HTTP_STRIPE_SIGNATURE' => "t={$time},v1=".hash_hmac('sha256', "{$time}.{$payload}", $secret),
+        'CONTENT_TYPE' => 'application/json',
+    ], $payload);
+}
+
+test('the subscription webhook takes a call signed with its own secret, and no other', function () {
+    config(['cashier.webhook.secret' => 'whsec_subscriptions', 'services.stripe.webhook_secret' => 'whsec_customer_payments']);
+
+    signedSubscriptionWebhook('whsec_subscriptions')->assertOk();
+    // The customer-payments secret must not open the subscription endpoint.
+    signedSubscriptionWebhook('whsec_customer_payments')->assertForbidden();
+});
+
+test('a two-factor code works once', function () {
+    [$secret] = hardenTwoFactor($this->admin);
+    $code = app(Google2FA::class)->getCurrentOtp($secret);
+
+    $this->post('/login', ['email' => $this->admin->email, 'password' => 'password']);
+    $this->post('/two-factor-challenge', ['code' => $code])->assertRedirect(route('dashboard', absolute: false));
+    $this->post('/logout');
+
+    // Someone who watched it typed tries the same code inside its 30 seconds.
+    $this->post('/login', ['email' => $this->admin->email, 'password' => 'password']);
+    $this->post('/two-factor-challenge', ['code' => $code])->assertSessionHasErrors('code');
+    $this->assertGuest();
+});
+
+test('a password an admin sets for someone else meets the same rule as any other', function () {
+    $customer = Customer::factory()->for($this->tenant)->create();
+    $tech = ['first_name' => 'Tess', 'email' => 'tess@example.com'];
+
+    $this->actingAs($this->admin)->post('/agents', $tech + ['password' => 'ninechars'])->assertSessionHasErrors('password');
+    $this->actingAs($this->admin)->post("/customers/{$customer->id}/portal", ['password' => 'ninechars'])->assertSessionHasErrors('password');
+
+    $this->actingAs($this->admin)->post('/agents', $tech + ['password' => 'ten-chars!'])->assertSessionHasNoErrors();
+    $this->actingAs($this->admin)->post("/customers/{$customer->id}/portal", ['password' => 'ten-chars!'])->assertSessionHasNoErrors();
+});
+
+test('a picture too large to unpack safely is refused', function () {
+    $this->actingAs($this->admin)
+        ->patch('/settings/profile', [
+            'first_name' => 'Ada', 'email' => $this->admin->email,
+            'photo' => UploadedFile::fake()->image('wide.png', 12001, 4),
+        ])
+        ->assertSessionHasErrors('photo');
 });

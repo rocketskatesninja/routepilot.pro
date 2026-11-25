@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
 class GrantPortalRequest extends FormRequest
 {
@@ -17,7 +18,7 @@ class GrantPortalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => ['required', 'string', 'min:8', 'max:255'],
+            'password' => ['required', 'string', Password::defaults(), 'max:255'],
         ];
     }
 }

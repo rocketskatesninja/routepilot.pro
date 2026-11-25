@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\VisitPhoto;
 use App\Services\PhotoService;
 use App\Support\LandingConfig;
+use App\Support\Upload;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,7 +74,7 @@ class LandingController extends Controller
     public function uploadImage(Request $request, PhotoService $photos): JsonResponse
     {
         $tenant = $this->tenant($request);
-        $request->validate(['image' => ['required', 'image', 'max:10240']]);
+        $request->validate(['image' => ['required', 'image', 'max:10240', Upload::IMAGE_SIZE]]);
 
         $file = $request->file('image');
         abort_unless($file instanceof UploadedFile, 422);
