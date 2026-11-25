@@ -1,98 +1,19 @@
 <script setup lang="ts">
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import FormField from '@/components/FormField.vue';
-import Hint from '@/components/Hint.vue';
+import LeadPane from '@/components/inbox/LeadPane.vue';
+import RequestPane from '@/components/inbox/RequestPane.vue';
 import ListTable from '@/components/ListTable.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
-import NoteBubble from '@/components/NoteBubble.vue';
-import PlanFields from '@/components/PlanFields.vue';
 import Chip from '@/components/pane/Chip.vue';
-import IconTile from '@/components/pane/IconTile.vue';
-import PaneFacts from '@/components/pane/PaneFacts.vue';
-import PaneHeader from '@/components/pane/PaneHeader.vue';
-import PaneItem from '@/components/pane/PaneItem.vue';
-import PaneList from '@/components/pane/PaneList.vue';
-import PaneSection from '@/components/pane/PaneSection.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { POOL_TYPES } from '@/lib/labels';
-import { customerLink, poolLink, reportLink, telLink } from '@/lib/links';
 import { visitQuery } from '@/lib/listQuery';
-import { cap } from '@/lib/portal';
 import { formatDay } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
+import { INBOX_TONE, LEAD_SOURCES, LEAD_STATUSES, type LeadDetail, type LeadRow, type RequestDetail, type RequestRow } from '@/types/inbox';
 import { type Paginated } from '@/types/pagination';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CalendarCheck, Check, CirclePause, CircleStop, ClipboardList, Inbox, MessageSquare, Trash2, UserPlus, X } from '@lucide/vue';
+import { Head, router } from '@inertiajs/vue3';
+import { Inbox, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
-
-interface RequestRow {
-    id: number;
-    type: string;
-    title: string;
-    customer: string | null;
-    pool: string | null;
-    preferred_date: string | null;
-    on: string | null;
-    status: string;
-    status_label: string;
-}
-
-interface PlanLine {
-    id: number;
-    service_type_id: number;
-    service: string | null;
-    schedule: string;
-    status: string;
-    agent: string | null;
-}
-
-interface RequestDetail extends RequestRow {
-    customer_id: number;
-    pool_id: number | null;
-    for_service: boolean;
-    service: { id: number; name: string; offer: string; description: string | null; is_active: boolean } | null;
-    ends_on: string | null;
-    message: string | null;
-    visit: { id: number; on: string | null } | null; // sent from this visit's report email
-    reply: string | null;
-    answered_on: string | null;
-    plan: string | null;
-    plan_service: string | null;
-    pool_plans: PlanLine[];
-    defaults: {
-        frequency: string;
-        preferred_day: string;
-        day_of_month: number;
-        starts_on: string;
-        price: number;
-        assigned_agent_id: number | null;
-    } | null;
-}
-
-interface LeadRow {
-    id: number;
-    name: string;
-    contact: string | null;
-    source: string;
-    service: string | null;
-    on: string | null;
-    status: string;
-}
-
-// The detail's `service` is the full pick (name + price), not just the name the row shows.
-interface LeadDetail extends Omit<LeadRow, 'service'> {
-    email: string | null;
-    phone: string | null;
-    message: string | null;
-    details: { label: string; value: string }[];
-    service: { name: string; offer: string } | null;
-    customer: { id: number; name: string } | null;
-    convert: { first_name: string; last_name: string; email: string; phone: string; pool_type: string; pool_volume: number | null };
-}
 
 const props = defineProps<{
     tab: 'requests' | 'leads';
@@ -120,9 +41,10 @@ const visit = (tab: string, status: string, selected?: number, keep = true) =>
 const setTab = (tab: string) => visit(tab, 'open', undefined, false);
 const setStatus = (status: string) => visit(props.tab, status);
 const open = (id: number) => visitQuery({ selected: id });
+// Esc / the pane's close button: an open form first, then the pane itself.
+const pane = ref<{ closeForm: () => boolean } | null>(null);
 const closePane = () => {
-    if (mode.value !== 'none') mode.value = 'none';
-    else visitQuery({ selected: undefined });
+    if (!pane.value?.closeForm()) visitQuery({ selected: undefined });
 };
 
 // Deleting: the ticked rows (this tab, this page) from the header, or the open one from its pane.
@@ -146,136 +68,6 @@ const tabs = computed(() => [
     { key: 'requests', label: 'Customer requests', count: props.counts.requests },
     { key: 'leads', label: 'Website leads', count: props.counts.leads },
 ]);
-
-const statusTone: Record<string, 'good' | 'warn' | 'info' | 'muted'> = {
-    pending: 'warn',
-    new: 'warn',
-    approved: 'good',
-    converted: 'good',
-    contacted: 'info',
-};
-
-const sources: Record<string, string> = { quote: 'Website quote', booking: 'Booking form', contact: 'Contact form', chatbot: 'Website chat' };
-const leadStatuses: Record<string, string> = { new: 'New', contacted: 'Contacted', converted: 'Customer', archived: 'Archived' };
-const requestIcon: Record<string, typeof Inbox> = { service: ClipboardList, hold: CirclePause, cancel: CircleStop, other: MessageSquare };
-const firstWord = (name: string | null) => name?.split(' ')[0] ?? null;
-
-// --- answering a request: one panel at a time in the detail pane ---
-const mode = ref<'none' | 'approve' | 'decline' | 'convert'>('none');
-watch(
-    () => props.selected?.id,
-    () => (mode.value = 'none'),
-);
-
-// Forms are built from functions so reset() always starts blank — never with
-// the note or reason typed for the previous request.
-const approveForm = useForm(() => ({
-    price: '' as number | string,
-    frequency: 'weekly',
-    preferred_day: '',
-    day_of_month: '' as number | string,
-    starts_on: '',
-    ends_on: '',
-    assigned_agent_id: '' as number | string,
-    reply: '',
-}));
-const declineForm = useForm(() => ({ reply: '' }));
-
-function openApprove() {
-    const d = request.value?.defaults;
-    approveForm.reset();
-    approveForm.clearErrors();
-    if (d) {
-        approveForm.frequency = d.frequency;
-        approveForm.preferred_day = d.preferred_day;
-        approveForm.day_of_month = d.day_of_month;
-        approveForm.starts_on = d.starts_on;
-        approveForm.price = d.price; // the service's price, to adjust for this pool
-        approveForm.assigned_agent_id = d.assigned_agent_id ?? '';
-    }
-    mode.value = 'approve';
-}
-
-function openDecline() {
-    declineForm.reset();
-    declineForm.clearErrors();
-    mode.value = 'decline';
-}
-
-const submitApprove = () => {
-    if (!request.value) return;
-    approveForm.post(`/requests/${request.value.id}/approve`, { preserveScroll: true, onSuccess: () => (mode.value = 'none') });
-};
-const submitDecline = () => {
-    if (!request.value) return;
-    declineForm.post(`/requests/${request.value.id}/decline`, { preserveScroll: true, onSuccess: () => (mode.value = 'none') });
-};
-
-// Approving a service the pool already has would add a second plan for it.
-const duplicatePlan = computed(() => {
-    const r = request.value;
-    return r?.for_service ? r.pool_plans.find((p) => p.status === 'active' && p.service_type_id === r.service?.id) : undefined;
-});
-
-// What "approve" does for this kind of request, in plain words.
-const approveLabel = computed(() => {
-    const r = request.value;
-    if (!r) return '';
-    if (r.for_service) return 'Approve & schedule';
-    if (r.visit) return 'Reply'; // a message from a visit report
-    return { hold: 'Set the pause', cancel: 'Stop service' }[r.type] ?? 'Mark done';
-});
-const approveExplainer = computed(() => {
-    const r = request.value;
-    if (!r) return '';
-    if ((r.type === 'hold' || r.type === 'cancel') && !r.plan_service) {
-        return 'That service has since been removed, so there is nothing to change — this just marks the request done.';
-    }
-    const service = `${r.plan_service} (${r.plan}) on ${r.pool}`;
-    if (r.type === 'hold') {
-        return `Pauses ${service} from ${formatDay(r.preferred_date)} through ${formatDay(r.ends_on)}; it comes back on its own after that. Their other services carry on.`;
-    }
-    if (r.type === 'cancel') {
-        const when = r.preferred_date ? `after ${formatDay(r.preferred_date)}` : 'right away';
-        return `Ends ${service} ${when}. Their other services carry on, and completed visits and billing history stay.`;
-    }
-    if (r.visit) return 'Emails your answer to them and marks the message done.';
-    return 'Marks the request as handled. Add a note if you want to reply.';
-});
-
-// --- website leads ---
-const setLeadStatus = (status: string) => {
-    if (!lead.value) return;
-    router.patch(`/leads/${lead.value.id}`, { status }, { preserveScroll: true });
-};
-
-const convertForm = useForm(() => ({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    address_line1: '',
-    city: '',
-    state: '',
-    zip: '',
-    pool_name: 'Pool',
-    pool_type: 'inground',
-    pool_volume: '' as number | string,
-}));
-
-function openConvert() {
-    const c = lead.value?.convert;
-    if (!c) return;
-    convertForm.reset();
-    convertForm.clearErrors();
-    Object.assign(convertForm, { ...c, pool_volume: c.pool_volume ?? '' });
-    mode.value = 'convert';
-}
-
-const submitConvert = () => {
-    if (!lead.value) return;
-    convertForm.post(`/leads/${lead.value.id}/convert`, { onSuccess: () => (mode.value = 'none') });
-};
 </script>
 
 <template>
@@ -342,7 +134,7 @@ const submitConvert = () => {
                             </td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap @md:table-cell">{{ formatDay(r.on) }}</td>
                             <td class="px-4 py-2.5">
-                                <Chip :tone="statusTone[r.status] ?? 'muted'">{{ r.status_label }}</Chip>
+                                <Chip :tone="INBOX_TONE[r.status] ?? 'muted'">{{ r.status_label }}</Chip>
                             </td>
                         </template>
                         <template #empty>
@@ -376,10 +168,10 @@ const submitConvert = () => {
                                 <div class="font-medium">{{ l.name }}</div>
                                 <div class="text-muted-foreground text-xs">{{ l.contact ?? '—' }}</div>
                             </td>
-                            <td class="text-muted-foreground px-4 py-2.5">{{ l.service ?? sources[l.source] ?? l.source }}</td>
+                            <td class="text-muted-foreground px-4 py-2.5">{{ l.service ?? LEAD_SOURCES[l.source] ?? l.source }}</td>
                             <td class="text-muted-foreground hidden px-4 py-2.5 whitespace-nowrap @md:table-cell">{{ formatDay(l.on) }}</td>
                             <td class="px-4 py-2.5">
-                                <Chip :tone="statusTone[l.status] ?? 'muted'">{{ leadStatuses[l.status] ?? l.status }}</Chip>
+                                <Chip :tone="INBOX_TONE[l.status] ?? 'muted'">{{ LEAD_STATUSES[l.status] ?? l.status }}</Chip>
                             </td>
                         </template>
                         <template #empty>
@@ -391,332 +183,15 @@ const submitConvert = () => {
 
                 <template #detail>
                     <!-- ===== a customer request ===== -->
-                    <div v-if="request" class="space-y-6">
-                        <PaneHeader :title="request.title" :summary="`Received ${formatDay(request.on)}.`">
-                            <template #media><IconTile :icon="requestIcon[request.type] ?? MessageSquare" size="lg" /></template>
-                            <template #actions>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    class="text-red-600 hover:text-red-600 dark:text-red-400"
-                                    @click="remove([request.id])"
-                                    ><Trash2 class="mr-1 size-3.5" /> Delete</Button
-                                >
-                            </template>
-                            <template #badge>
-                                <Chip :tone="request.status === 'pending' ? 'warn' : request.status === 'approved' ? 'good' : 'muted'">{{
-                                    request.status_label
-                                }}</Chip>
-                            </template>
-                            <p class="mt-2 text-[15px]">
-                                From
-                                <Link :href="customerLink(request.customer_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
-                                    request.customer
-                                }}</Link><template v-if="request.pool_id"
-                                    >, for
-                                    <Link :href="poolLink(request.pool_id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
-                                        request.pool
-                                    }}</Link></template
-                                >
-                            </p>
-                        </PaneHeader>
-
-                        <PaneFacts
-                            :facts="[
-                                {
-                                    label: 'Would like to start',
-                                    value:
-                                        request.type === 'service'
-                                            ? request.preferred_date
-                                                ? formatDay(request.preferred_date)
-                                                : 'As soon as possible'
-                                            : null,
-                                },
-                                {
-                                    label: 'Service',
-                                    value:
-                                        (request.type === 'hold' || request.type === 'cancel') && request.plan
-                                            ? `${request.plan_service}, ${request.plan}`
-                                            : null,
-                                },
-                                {
-                                    label: 'Pause',
-                                    value: request.type === 'hold' ? `${formatDay(request.preferred_date)} to ${formatDay(request.ends_on)}` : null,
-                                },
-                                {
-                                    label: 'Last service',
-                                    value:
-                                        request.type === 'cancel'
-                                            ? request.preferred_date
-                                                ? formatDay(request.preferred_date)
-                                                : 'As soon as possible'
-                                            : null,
-                                },
-                            ]"
-                        />
-
-                        <PaneList v-if="request.service">
-                            <PaneItem :title="request.service.name" :sub="request.service.description">
-                                <p v-if="!request.service.is_active" class="mt-1 text-amber-700 dark:text-amber-400">
-                                    This service is no longer active.
-                                </p>
-                                <template #trailing
-                                    ><span class="text-primary text-xs font-semibold whitespace-nowrap">{{ request.service.offer }}</span></template
-                                >
-                            </PaneItem>
-                        </PaneList>
-
-                        <NoteBubble v-if="request.message" :author="`${firstWord(request.customer) ?? 'They'} wrote`">{{
-                            request.message
-                        }}</NoteBubble>
-                        <p v-if="request.visit" class="text-sm">
-                            Sent from the report for the {{ formatDay(request.visit.on) }} visit.
-                            <Link :href="reportLink(request.visit.id)" class="text-primary font-medium underline-offset-4 hover:underline"
-                                >See the report</Link
-                            >
-                        </p>
-
-                        <PaneSection v-if="request.pool_id" title="Already on this pool">
-                            <PaneList v-if="request.pool_plans.length">
-                                <PaneItem
-                                    v-for="p in request.pool_plans"
-                                    :key="p.id"
-                                    :title="p.service"
-                                    :sub="`${p.schedule}${p.agent ? ` with ${p.agent}` : ''}`"
-                                >
-                                    <template v-if="p.status !== 'active'" #trailing>
-                                        <Chip>{{ p.status === 'cancelled' ? 'Ended' : 'Paused' }}</Chip>
-                                    </template>
-                                </PaneItem>
-                            </PaneList>
-                            <p v-else class="text-muted-foreground text-sm">No plans yet.</p>
-                        </PaneSection>
-
-                        <!-- answered -->
-                        <PaneSection v-if="request.status !== 'pending'" title="Your answer">
-                            <p class="text-sm">
-                                {{ request.status_label }}<template v-if="request.answered_on"> on {{ formatDay(request.answered_on) }}</template
-                                ><template v-if="request.plan && request.type === 'service'">: {{ request.plan }}</template
-                                >.
-                            </p>
-                            <NoteBubble
-                                v-if="request.reply"
-                                :author="request.status === 'declined' ? 'The reason you gave' : 'Your note'"
-                                class="mt-2"
-                                >{{ request.reply }}</NoteBubble
-                            >
-                        </PaneSection>
-
-                        <!-- answer it -->
-                        <template v-else>
-                            <p
-                                v-if="duplicatePlan"
-                                class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400"
-                            >
-                                {{ request.pool }} already has {{ request.title }} ({{ duplicatePlan.schedule }}). Approving adds a second plan —
-                                decline instead if this is a mix-up.
-                            </p>
-                            <div v-if="mode === 'none'" class="flex flex-wrap gap-2">
-                                <Button size="sm" @click="openApprove"
-                                    ><component :is="request.visit ? MessageSquare : CalendarCheck" class="mr-1 size-3.5" />
-                                    {{ approveLabel }}</Button
-                                >
-                                <Hint text="Say no to this request, with a note the customer sees. It moves to Closed.">
-                                    <Button size="sm" variant="outline" @click="openDecline"><X class="mr-1 size-3.5" /> Decline</Button>
-                                </Hint>
-                            </div>
-
-                            <!-- approve: a service request gets its plan -->
-                            <form
-                                v-else-if="mode === 'approve'"
-                                class="border-border space-y-4 rounded-2xl border p-4 text-sm"
-                                @submit.prevent="submitApprove"
-                            >
-                                <template v-if="request.for_service">
-                                    <div>
-                                        <h3 class="text-lg font-semibold tracking-tight">Schedule it</h3>
-                                        <p class="text-muted-foreground">
-                                            Creates the plan on {{ request.pool }}. Its visits go on the route as soon as you save.
-                                        </p>
-                                    </div>
-                                    <PlanFields
-                                        v-model="approveForm"
-                                        :agents="props.agents"
-                                        id-prefix="ap"
-                                        price-hint="What this pool pays, starting from the service’s price. Your answer tells them."
-                                    />
-                                </template>
-                                <p v-else class="text-muted-foreground">{{ approveExplainer }}</p>
-
-                                <div class="grid gap-1.5">
-                                    <Label for="ap_reply"
-                                        >Note to the customer <span class="text-muted-foreground font-normal">(optional)</span></Label
-                                    >
-                                    <Textarea id="ap_reply" v-model="approveForm.reply" rows="2" />
-                                </div>
-                                <p class="text-muted-foreground text-xs">The customer is told in their portal and by email.</p>
-                                <div class="flex justify-end gap-2">
-                                    <Button type="button" variant="outline" size="sm" @click="mode = 'none'">Cancel</Button>
-                                    <Button type="submit" size="sm" :disabled="approveForm.processing"
-                                        ><Check class="mr-1 size-3.5" /> {{ request.for_service ? 'Schedule it' : approveLabel }}</Button
-                                    >
-                                </div>
-                            </form>
-
-                            <!-- decline -->
-                            <form
-                                v-else-if="mode === 'decline'"
-                                class="border-border space-y-3 rounded-2xl border p-4 text-sm"
-                                @submit.prevent="submitDecline"
-                            >
-                                <div class="grid gap-1.5">
-                                    <Label for="dc_reply">Why? <span class="text-muted-foreground font-normal">The customer sees this.</span></Label>
-                                    <Textarea
-                                        id="dc_reply"
-                                        v-model="declineForm.reply"
-                                        rows="3"
-                                        placeholder="e.g. We're fully booked on Tuesdays — reply and we'll find another day."
-                                    />
-                                    <p v-if="declineForm.errors.reply" class="text-xs text-red-600">{{ declineForm.errors.reply }}</p>
-                                </div>
-                                <div class="flex justify-end gap-2">
-                                    <Button type="button" variant="outline" size="sm" @click="mode = 'none'">Cancel</Button>
-                                    <Button type="submit" size="sm" variant="destructive" :disabled="declineForm.processing">Decline request</Button>
-                                </div>
-                            </form>
-                        </template>
-                    </div>
-
-                    <!-- ===== a website lead ===== -->
-                    <div v-else-if="lead" class="space-y-6">
-                        <PaneHeader :title="lead.name" :summary="`${sources[lead.source] ?? lead.source}, ${formatDay(lead.on)}.`">
-                            <template #media><IconTile :icon="UserPlus" size="lg" /></template>
-                            <template #actions>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    class="text-red-600 hover:text-red-600 dark:text-red-400"
-                                    @click="remove([lead.id])"
-                                    ><Trash2 class="mr-1 size-3.5" /> Delete</Button
-                                >
-                            </template>
-                            <template #badge>
-                                <Chip
-                                    :tone="
-                                        lead.status === 'new'
-                                            ? 'warn'
-                                            : lead.status === 'converted'
-                                              ? 'good'
-                                              : lead.status === 'contacted'
-                                                ? 'info'
-                                                : 'muted'
-                                    "
-                                    >{{ leadStatuses[lead.status] ?? lead.status }}</Chip
-                                >
-                            </template>
-                            <p v-if="lead.customer" class="mt-2 text-[15px]">
-                                Now a customer:
-                                <Link :href="customerLink(lead.customer.id)" class="text-primary font-medium underline-offset-4 hover:underline">{{
-                                    lead.customer.name
-                                }}</Link>
-                            </p>
-                        </PaneHeader>
-
-                        <PaneFacts
-                            :facts="[
-                                { label: 'Email', value: lead.email, href: lead.email ? `mailto:${lead.email}` : null },
-                                { label: 'Phone', value: lead.phone, href: lead.phone ? telLink(lead.phone) : null },
-                                ...lead.details.map((d) => ({
-                                    label: d.label,
-                                    value: d.label === 'Preferred date' ? formatDay(d.value) : cap(d.value),
-                                })),
-                            ]"
-                        />
-
-                        <PaneSection v-if="lead.service" title="Picked on your website">
-                            <PaneList>
-                                <PaneItem :title="lead.service.name">
-                                    <template #trailing
-                                        ><span class="text-primary text-xs font-semibold whitespace-nowrap">{{ lead.service.offer }}</span></template
-                                    >
-                                </PaneItem>
-                            </PaneList>
-                        </PaneSection>
-
-                        <NoteBubble v-if="lead.message" :author="`${firstWord(lead.name) ?? 'They'} wrote`">{{ lead.message }}</NoteBubble>
-
-                        <template v-if="!lead.customer">
-                            <div v-if="mode !== 'convert'" class="flex flex-wrap items-center gap-2">
-                                <Hint text="Opens a customer form with this lead’s details already filled in. Nothing is saved until you add them.">
-                                    <Button size="sm" @click="openConvert"><UserPlus class="mr-1 size-3.5" /> Convert to customer</Button>
-                                </Hint>
-                                <select
-                                    :value="lead.status"
-                                    class="border-input bg-background h-8 w-36 rounded-md border px-2 text-sm"
-                                    aria-label="Lead status"
-                                    @change="setLeadStatus(($event.target as HTMLSelectElement).value)"
-                                >
-                                    <option value="new">New</option>
-                                    <option value="contacted">Contacted</option>
-                                    <option value="archived">Archived</option>
-                                </select>
-                            </div>
-
-                            <!-- convert: the add-customer form, pre-filled -->
-                            <form v-else class="border-border space-y-4 rounded-2xl border p-4 text-sm" @submit.prevent="submitConvert">
-                                <div>
-                                    <h3 class="text-lg font-semibold tracking-tight">New customer</h3>
-                                    <p class="text-muted-foreground">
-                                        Adds them and their pool.<template v-if="lead.service">
-                                            Their pick — {{ lead.service.name }} — then waits in Customer requests for you to approve &amp;
-                                            schedule.</template
-                                        >
-                                    </p>
-                                </div>
-                                <div class="flex flex-wrap gap-3">
-                                    <FormField label="First name" for="cv_first" :error="convertForm.errors.first_name"
-                                        ><Input id="cv_first" v-model="convertForm.first_name" class="w-44"
-                                    /></FormField>
-                                    <FormField label="Last name" for="cv_last"
-                                        ><Input id="cv_last" v-model="convertForm.last_name" class="w-44"
-                                    /></FormField>
-                                </div>
-                                <div class="flex flex-wrap gap-3">
-                                    <FormField label="Email" for="cv_email" :error="convertForm.errors.email"
-                                        ><Input id="cv_email" v-model="convertForm.email" type="email" class="w-60"
-                                    /></FormField>
-                                    <FormField label="Phone" for="cv_phone"
-                                        ><Input id="cv_phone" v-model="convertForm.phone" class="w-40"
-                                    /></FormField>
-                                </div>
-                                <FormField label="Street address" for="cv_addr"><Input id="cv_addr" v-model="convertForm.address_line1" /></FormField>
-                                <div class="flex flex-wrap gap-3">
-                                    <FormField label="City" for="cv_city"><Input id="cv_city" v-model="convertForm.city" class="w-40" /></FormField>
-                                    <FormField label="State" for="cv_state" :error="convertForm.errors.state"
-                                        ><Input id="cv_state" v-model="convertForm.state" maxlength="2" class="w-16 uppercase"
-                                    /></FormField>
-                                    <FormField label="ZIP" for="cv_zip"><Input id="cv_zip" v-model="convertForm.zip" class="w-24" /></FormField>
-                                </div>
-                                <div class="flex flex-wrap gap-3">
-                                    <FormField label="Pool name" for="cv_pool" :error="convertForm.errors.pool_name"
-                                        ><Input id="cv_pool" v-model="convertForm.pool_name" class="w-44"
-                                    /></FormField>
-                                    <FormField label="Type" for="cv_type"
-                                        ><Select id="cv_type" v-model="convertForm.pool_type" class="w-36">
-                                            <option v-for="(label, key) in POOL_TYPES" :key="key" :value="key">{{ label }}</option>
-                                        </Select></FormField
-                                    >
-                                    <FormField label="Gallons" for="cv_gal"
-                                        ><Input id="cv_gal" v-model="convertForm.pool_volume" type="number" min="0" class="w-28"
-                                    /></FormField>
-                                </div>
-                                <div class="flex justify-end gap-2">
-                                    <Button type="button" variant="outline" size="sm" @click="mode = 'none'">Cancel</Button>
-                                    <Button type="submit" size="sm" :disabled="convertForm.processing">Add customer</Button>
-                                </div>
-                            </form>
-                        </template>
-                    </div>
+                    <RequestPane
+                        v-if="request"
+                        ref="pane"
+                        :key="`r${request.id}`"
+                        :request="request"
+                        :agents="props.agents"
+                        @remove="remove([request.id])"
+                    />
+                    <LeadPane v-else-if="lead" ref="pane" :key="`l${lead.id}`" :lead="lead" @remove="remove([lead.id])" />
                 </template>
             </MasterDetail>
         </div>
