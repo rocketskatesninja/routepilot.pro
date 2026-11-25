@@ -61,7 +61,7 @@
         "ziggy-js": "^2.7.0"
     },
     "optionalDependencies": {
-        "@rollup/rollup-linux-x64-gnu": "4.68.2",
+        "@rollup/rollup-linux-x64-gnu": "4.68.3",
         "@tailwindcss/oxide-linux-x64-gnu": "^4.3.5",
         "lightningcss-linux-x64-gnu": "^1.29.1"
     },
