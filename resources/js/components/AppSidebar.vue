@@ -12,12 +12,10 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
-import { useCustomerBilling } from '@/composables/useCustomerBilling';
-import { useFeature } from '@/composables/useFeature';
-import { useInventoryTracking } from '@/composables/useInventoryTracking';
+import { useNav } from '@/composables/useNav';
 import { useOnline } from '@/composables/useOnline';
-import { navByRole, type NavSection } from '@/lib/nav';
-import { type NavCounts, type NavItem, type SharedData } from '@/types';
+import { type NavSection } from '@/lib/nav';
+import { type NavCounts, type SharedData } from '@/types';
 import { usePage } from '@inertiajs/vue3';
 import { computed, onBeforeMount, onMounted } from 'vue';
 import AppLogo from './AppLogo.vue';
@@ -34,32 +32,18 @@ const classes = () => document.documentElement.classList;
 onBeforeMount(() => classes().add('preload'));
 onMounted(() => requestAnimationFrame(() => requestAnimationFrame(() => classes().remove('preload'))));
 
-// Links to the parts of RoutePilot a company can switch off. (/billing is its own subscription: it stays.)
-const billing = useCustomerBilling();
-const website = useFeature('landing_page');
-const assistant = useFeature('ai_assistant');
-const shown = (item: NavItem): boolean =>
-    (billing.value || !['/balances', '/balance'].includes(item.href)) &&
-    (website.value || item.href !== '/company/landing') &&
-    (assistant.value || item.href !== '/assistant');
-// A company that doesn't count its stock just has a list of chemicals.
-const tracking = useInventoryTracking();
-const named = (item: NavItem): NavItem => (item.href === '/inventory' && !tracking.value ? { ...item, title: 'Chemicals' } : item);
-
 // The assistant needs the internet: offline, its link is dimmed and says so.
 const online = useOnline();
 
 // Which links carry a number, and which count it is.
 const countFor: Record<string, keyof NavCounts> = { '/reports': 'reports', '/work-orders': 'work_orders', '/inbox': 'requests' };
 
+const nav = useNav();
 const navSections = computed<NavSection[]>(() => {
-    const role = page.props.auth.role ?? 'customer';
     const counts = page.props.auth.counts ?? {};
-    return (navByRole[role] ?? navByRole.customer).map((section) => ({
+    return nav.value.map((section) => ({
         ...section,
         items: section.items
-            .filter(shown)
-            .map(named)
             .map((item) => (countFor[item.href] ? { ...item, badge: counts[countFor[item.href]] } : item))
             .map((item) => (item.href === '/assistant' && !online.value ? { ...item, note: 'offline' } : item)),
     }));

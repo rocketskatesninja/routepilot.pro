@@ -17,3 +17,34 @@ export const POOL_TYPES: Record<string, string> = {
     infinity: 'Infinity',
     other: 'Other',
 };
+
+export const SANITIZERS: Record<string, string> = {
+    chlorine: 'Chlorine',
+    salt: 'Salt',
+    bromine: 'Bromine',
+    biguanide: 'Biguanide',
+    ozone: 'Ozone',
+    uv: 'UV',
+    other: 'Other',
+};
+
+export const FILTERS: Record<string, string> = { cartridge: 'Cartridge', sand: 'Sand', de: 'DE' };
+
+/** A service plan's status, and the chip colour that goes with it. */
+export const PLAN_STATUS: Record<string, string> = { active: 'Active', paused: 'Paused', cancelled: 'Ended' };
+export const planTone = (status: string) => (status === 'active' ? 'good' : status === 'paused' ? 'warn' : 'muted');
+
+/** The kinds of equipment a pool's list tracks ("salt_cell" reads "salt cell"). */
+export const EQUIPMENT_TYPES = ['pump', 'filter', 'heater', 'salt_cell', 'cleaner', 'automation', 'other'];
+export const equipmentLabel = (type: string) => type.replace('_', ' ');
+
+/** A new plan starts from how its service is sold: its schedule (a one-time job → One-time) and its price. */
+export function startFromService(
+    plan: { frequency: string; price: number | string },
+    services: { id: number; frequency: string; price: number }[],
+    id: unknown,
+): void {
+    const service = services.find((t) => t.id === Number(id));
+    if (service && SCHEDULES[service.frequency]) plan.frequency = service.frequency;
+    plan.price = service?.price ?? '';
+}

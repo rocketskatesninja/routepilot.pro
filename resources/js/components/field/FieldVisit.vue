@@ -9,7 +9,7 @@ import WaterChecks from '@/components/portal/WaterChecks.vue';
 import { Button } from '@/components/ui/button';
 import { fullAnalysis, type FullAnalysis, type Reading, type Recommendation } from '@/lib/chemistry';
 import { partLabel, SUGGESTION_KEYS, toStockAmount } from '@/lib/field/chemicals';
-import { shrinkPhoto } from '@/lib/field/photo';
+import { shrinkPhoto } from '@/lib/image';
 import { isSignedOut } from '@/lib/field/session';
 import {
     deleteDraft,

@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { useSidebar } from '@/components/ui/sidebar';
 import { useCommandPalette } from '@/composables/useCommandPalette';
-import { useCustomerBilling } from '@/composables/useCustomerBilling';
-import { useFeature } from '@/composables/useFeature';
-import { useInventoryTracking } from '@/composables/useInventoryTracking';
+import { useNav } from '@/composables/useNav';
 import { isSignedOutResponse } from '@/lib/http';
 import { type SharedData } from '@/types';
 import { router, usePage } from '@inertiajs/vue3';
@@ -37,27 +35,10 @@ const inputEl = ref<HTMLInputElement | null>(null);
 let seq = 0;
 let debounce: ReturnType<typeof setTimeout> | null = null;
 
-// Static "go to" commands — a quick jump to any screen.
-const NAV: Item[] = [
-    { type: 'page', label: 'Dashboard', url: '/dashboard' },
-    { type: 'page', label: 'People', url: '/people' },
-    { type: 'page', label: 'Requests', url: '/inbox' },
-    { type: 'page', label: 'Schedule', url: '/schedule' },
-    { type: 'page', label: 'Pools', url: '/pools' },
-    { type: 'page', label: 'Reports', url: '/reports' },
-    { type: 'page', label: 'Insights', url: '/insights' },
-    { type: 'page', label: 'Inventory', url: '/inventory' },
-    { type: 'page', label: 'Balances', url: '/balances' },
-    { type: 'page', label: 'Assistant', url: '/assistant' },
-];
-
-const billing = useCustomerBilling();
-const tracking = useInventoryTracking();
-const assistant = useFeature('ai_assistant');
+// "Go to" commands: the same pages as this person's sidebar.
+const nav = useNav();
 const pages = computed<Item[]>(() =>
-    NAV.filter((n) => (billing.value || n.url !== '/balances') && (assistant.value || n.url !== '/assistant')).map((n) =>
-        n.url === '/inventory' && !tracking.value ? { ...n, label: 'Chemicals' } : n,
-    ),
+    nav.value.flatMap((section) => section.items.map((item) => ({ type: 'page', label: item.title, url: item.href }))),
 );
 
 // Pages only surface once you type (so an empty palette isn't a clone of the sidebar).

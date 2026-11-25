@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import EmailAttachments from '@/components/EmailAttachments.vue';
+import EmailComposer from '@/components/EmailComposer.vue';
 import EntityAvatar from '@/components/EntityAvatar.vue';
 import MasterDetail from '@/components/MasterDetail.vue';
 import Chip from '@/components/pane/Chip.vue';
@@ -8,16 +8,17 @@ import PaneFacts from '@/components/pane/PaneFacts.vue';
 import PaneHeader from '@/components/pane/PaneHeader.vue';
 import PaneSection from '@/components/pane/PaneSection.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
-import RichTextEditor from '@/components/RichTextEditor.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { saveRecord } from '@/composables/useCrudForm';
+import { useEmailComposer, type Audience } from '@/composables/useEmailComposer';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { telLink } from '@/lib/links';
 import { cap, monthYear } from '@/lib/portal';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Building2, LogIn, Mail, Paperclip, Pencil, Plus, Send, Users } from '@lucide/vue';
+import { Building2, LogIn, Mail, Pencil, Plus, Users } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 
 type PlatformType = 'tenants' | 'agents' | 'customers';
@@ -56,11 +57,6 @@ interface PersonDetail {
     login_id: number | null; // the user to sign in as; null = a customer with no portal login
 }
 
-interface Audience {
-    key: string;
-    label: string;
-    count: number;
-}
 interface Campaign {
     id: number;
     subject: string;
@@ -120,102 +116,43 @@ function closeDrawer() {
 }
 
 // --- email mode (checkboxes appear; composer docks in the pane) ---
-const picked = ref<string[]>([]);
-const isPicked = (row: Row) => picked.value.includes(row.key);
-function togglePick(row: Row) {
-    const i = picked.value.indexOf(row.key);
-    if (i === -1) picked.value.push(row.key);
-    else picked.value.splice(i, 1);
-}
-const pageKeys = computed(() => props.people.data.map((r) => r.key));
-const allOnPage = computed(() => pageKeys.value.length > 0 && pageKeys.value.every((k) => picked.value.includes(k)));
-function toggleAll() {
-    if (allOnPage.value) picked.value = picked.value.filter((k) => !pageKeys.value.includes(k));
-    else picked.value = [...new Set([...picked.value, ...pageKeys.value])];
-}
-
-const emailOpen = ref(false);
-const emailForm = useForm<{ audience: string; subject: string; body: string; attachments: File[]; recipients: string[] }>({
-    audience: 'tenants',
-    subject: '',
-    // A new message opens with a greeting the writer can change; {first name} is each person's own.
-    body: '<p>Hi {first name},</p><p></p>',
-    attachments: [],
-    recipients: [],
-});
-// The server's word on the files (the list as a whole, or one of them).
-const attachmentError = computed(() => Object.entries(emailForm.errors as Record<string, string>).find(([k]) => k.startsWith('attachments'))?.[1]);
-// Ticking someone means "send to these people": the audience follows. Untick everyone and
-// it goes back to the first group (there's no "Selected people" left to pick).
-watch(
-    () => picked.value.length,
-    (now, before) => {
-        if (now > before) emailForm.audience = 'selected';
-        else if (now === 0 && emailForm.audience === 'selected') emailForm.audience = props.audiences[0]?.key ?? 'tenants';
-    },
+const email = useEmailComposer(
+    () => props.audiences,
+    () => props.people.data.map((r) => r.key),
 );
-const audienceOptions = computed(() => [
-    ...(picked.value.length ? [{ key: 'selected', label: 'Selected people', count: picked.value.length }] : []),
-    ...props.audiences,
-]);
-const emailCount = computed(() => audienceOptions.value.find((a) => a.key === emailForm.audience)?.count ?? 0);
 function openEmail() {
-    createOpen.value = false;
-    editOpen.value = false;
-    emailForm.audience = picked.value.length ? 'selected' : (props.audiences[0]?.key ?? 'tenants');
-    emailForm.clearErrors();
-    emailOpen.value = true;
-}
-function submitEmail() {
-    emailForm.recipients = emailForm.audience === 'selected' ? [...picked.value] : [];
-    emailForm.post('/people/email', {
-        preserveScroll: true,
-        onSuccess: () => {
-            emailOpen.value = false;
-            emailForm.reset();
-            picked.value = [];
-        },
-    });
+    form.value = null;
+    email.start();
 }
 
-// --- tenant create / edit (super-admin) ---
-const createOpen = ref(false);
+// --- tenant create / edit (super-admin): one form in the pane at a time ---
+const form = ref<'create' | 'edit' | null>(null);
 const createForm = useForm({ company: '', first_name: '', last_name: '', email: '', password: '' });
 function openCreate() {
-    emailOpen.value = false;
-    editOpen.value = false;
+    email.close();
     createForm.reset();
     createForm.clearErrors();
-    createOpen.value = true;
+    form.value = 'create';
 }
-function submitCreate() {
-    createForm.post('/tenants', {
-        preserveScroll: true,
-        onSuccess: () => {
-            createOpen.value = false;
-            createForm.reset();
-        },
+const submitCreate = () =>
+    saveRecord(createForm, '/tenants', null, () => {
+        form.value = null;
+        createForm.reset();
     });
-}
 
-const editOpen = ref(false);
 const editId = ref<number | null>(null);
 const editForm = useForm({ name: '', slug: '', status: 'active' });
 const slugChanged = computed(() => tenant.value !== null && editForm.slug !== tenant.value.slug);
 function openEdit(t: TenantDetail) {
-    emailOpen.value = false;
-    createOpen.value = false;
+    email.close();
     editForm.name = t.name;
     editForm.slug = t.slug;
     editForm.status = t.status;
     editForm.clearErrors();
     editId.value = t.id;
-    editOpen.value = true;
+    form.value = 'edit';
 }
-function submitEdit() {
-    if (editId.value === null) return;
-    editForm.patch(`/tenants/${editId.value}`, { preserveScroll: true, onSuccess: () => (editOpen.value = false) });
-}
+const submitEdit = () => saveRecord(editForm, '/tenants', editId.value, () => (form.value = null));
 
 function impersonate(t: TenantDetail) {
     if (!confirm(`Sign in as ${t.name}'s admin? This is logged.`)) return;
@@ -254,22 +191,16 @@ const person = computed(() => (props.selected && props.selected.type !== 'tenant
 /** "9 pools and 4 users. On RoutePilot since September 2026." */
 const tenantSummary = (t: TenantDetail) =>
     `${t.pools} pool${t.pools === 1 ? '' : 's'} and ${t.users} user${t.users === 1 ? '' : 's'}.${t.created ? ` On RoutePilot since ${monthYear(t.created)}.` : ''}`;
-const anyFormOpen = computed(() => createOpen.value || editOpen.value || emailOpen.value);
 const paneKey = computed(() => {
-    if (createOpen.value) return 'create';
-    if (editOpen.value) return `edit-${editId.value}`;
-    if (emailOpen.value) return 'email';
+    if (form.value === 'edit') return `edit-${editId.value}`;
+    if (form.value) return form.value;
+    if (email.open) return 'email';
     return props.selected ? `${props.selected.type}-${props.selected.id}` : null;
 });
-const paneOpen = computed(() => anyFormOpen.value || props.selected !== null);
 function closePane() {
-    if (anyFormOpen.value) {
-        createOpen.value = false;
-        editOpen.value = false;
-        emailOpen.value = false;
-    } else {
-        closeDrawer();
-    }
+    if (form.value) form.value = null;
+    else if (email.open) email.close();
+    else closeDrawer();
 }
 </script>
 
@@ -293,13 +224,13 @@ function closePane() {
             <Input v-model="search" type="search" placeholder="Search people…" class="h-9 w-44 lg:w-56" />
             <Button v-if="props.filters.type === 'tenants'" size="sm" @click="openCreate"><Plus class="mr-1 size-4" /> Tenant</Button>
             <Button size="sm" variant="outline" @click="openEmail"
-                ><Mail class="mr-1 size-4" /> Email<span v-if="picked.length"> ({{ picked.length }})</span></Button
+                ><Mail class="mr-1 size-4" /> Email<span v-if="email.picked.length"> ({{ email.picked.length }})</span></Button
             >
         </template>
 
         <div class="flex h-full flex-1 flex-col gap-4 p-4">
             <MasterDetail
-                :has-selection="paneOpen"
+                :has-selection="paneKey !== null"
                 :selection-key="paneKey"
                 empty-text="Select someone to see details, or hit Email to broadcast."
                 @close="closePane"
@@ -309,8 +240,8 @@ function closePane() {
                         <table class="w-full text-sm">
                             <thead class="bg-muted/50 text-muted-foreground text-left">
                                 <tr>
-                                    <th v-if="emailOpen" class="w-10 px-4 py-2">
-                                        <input type="checkbox" :checked="allOnPage" aria-label="Select all" @change="toggleAll" />
+                                    <th v-if="email.open" class="w-10 px-4 py-2">
+                                        <input type="checkbox" :checked="email.allOnPage" aria-label="Select all" @change="email.toggleAll()" />
                                     </th>
                                     <th class="px-4 py-2 font-medium">Name</th>
                                     <th class="hidden px-4 py-2 font-medium @md:table-cell">Detail</th>
@@ -325,19 +256,19 @@ function closePane() {
                                     :key="row.key"
                                     class="border-border cursor-pointer border-t transition-colors"
                                     :class="
-                                        (emailOpen && isPicked(row)) ||
-                                        (!emailOpen && props.selected?.type === row.type && props.selected?.id === row.id)
+                                        (email.open && email.isPicked(row.key)) ||
+                                        (!email.open && props.selected?.type === row.type && props.selected?.id === row.id)
                                             ? 'bg-primary/10'
                                             : 'hover:bg-muted/40'
                                     "
-                                    @click="emailOpen ? togglePick(row) : openRowDetail(row)"
+                                    @click="email.open ? email.toggle(row.key) : openRowDetail(row)"
                                 >
-                                    <td v-if="emailOpen" class="px-4 py-2.5" @click.stop>
+                                    <td v-if="email.open" class="px-4 py-2.5" @click.stop>
                                         <input
                                             type="checkbox"
-                                            :checked="isPicked(row)"
+                                            :checked="email.isPicked(row.key)"
                                             :aria-label="`Select ${row.name}`"
-                                            @change="togglePick(row)"
+                                            @change="email.toggle(row.key)"
                                         />
                                     </td>
                                     <td class="px-4 py-2.5">
@@ -357,7 +288,7 @@ function closePane() {
                                     <td class="text-muted-foreground hidden px-4 py-2.5 @xl:table-cell">{{ row.meta ?? '—' }}</td>
                                 </tr>
                                 <tr v-if="props.people.data.length === 0">
-                                    <td :colspan="emailOpen ? 4 : 3" class="text-muted-foreground px-4 py-10 text-center">
+                                    <td :colspan="email.open ? 4 : 3" class="text-muted-foreground px-4 py-10 text-center">
                                         <Users class="mx-auto mb-2 size-6 opacity-50" />
                                         Nobody here.
                                     </td>
@@ -370,7 +301,7 @@ function closePane() {
 
                 <template #detail>
                     <!-- add tenant -->
-                    <form v-if="createOpen" class="space-y-4 text-sm" @submit.prevent="submitCreate">
+                    <form v-if="form === 'create'" class="space-y-4 text-sm" @submit.prevent="submitCreate">
                         <PaneHeader title="New tenant" summary="Creates the company and its first admin, already verified." />
                         <div class="grid gap-1.5">
                             <Label for="company">Company name</Label>
@@ -392,13 +323,13 @@ function closePane() {
                             <p v-if="createForm.errors.password" class="text-xs text-red-600">{{ createForm.errors.password }}</p>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="createOpen = false">Cancel</Button>
+                            <Button type="button" variant="outline" @click="form = null">Cancel</Button>
                             <Button type="submit" :disabled="createForm.processing">Create tenant</Button>
                         </div>
                     </form>
 
                     <!-- edit tenant -->
-                    <form v-else-if="editOpen" class="space-y-4 text-sm" @submit.prevent="submitEdit">
+                    <form v-else-if="form === 'edit'" class="space-y-4 text-sm" @submit.prevent="submitEdit">
                         <PaneHeader title="Edit tenant" summary="Suspending locks their staff out. You can still sign in as them." />
                         <div class="grid gap-1.5">
                             <Label for="tn">Company name</Label>
@@ -425,57 +356,20 @@ function closePane() {
                             </select>
                         </div>
                         <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="editOpen = false">Cancel</Button>
+                            <Button type="button" variant="outline" @click="form = null">Cancel</Button>
                             <Button type="submit" :disabled="editForm.processing">Save</Button>
                         </div>
                     </form>
 
                     <!-- broadcast / selected email -->
-                    <form v-else-if="emailOpen" class="space-y-4 text-sm" @submit.prevent="submitEmail">
-                        <PaneHeader title="Email people" summary="Tick people in the list, or send to a whole group." />
-                        <div class="grid gap-1.5">
-                            <Label for="aud">Audience</Label>
-                            <select id="aud" v-model="emailForm.audience" class="border-input bg-background h-9 rounded-md border px-2 text-sm">
-                                <option v-for="a in audienceOptions" :key="a.key" :value="a.key">{{ a.label }} ({{ a.count }})</option>
-                            </select>
-                            <p class="text-muted-foreground text-xs">{{ emailCount }} recipient(s). Tenant picks reach that company's admins.</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label for="esub">Subject</Label>
-                            <Input id="esub" v-model="emailForm.subject" />
-                            <p v-if="emailForm.errors.subject" class="text-xs text-red-600">{{ emailForm.errors.subject }}</p>
-                        </div>
-                        <div class="grid gap-1.5">
-                            <Label>Message</Label>
-                            <RichTextEditor v-model="emailForm.body" first-name />
-                            <p v-if="emailForm.errors.body" class="text-xs text-red-600">{{ emailForm.errors.body }}</p>
-                        </div>
-                        <EmailAttachments v-model="emailForm.attachments" :recipients="emailCount" :error="attachmentError" />
-                        <div v-if="props.recent.length" class="border-border border-t pt-2">
-                            <p class="text-muted-foreground mb-1 text-xs font-medium">Recent broadcasts</p>
-                            <ul class="text-muted-foreground space-y-0.5 text-xs">
-                                <li v-for="c in props.recent.slice(0, 5)" :key="c.id" class="flex justify-between gap-2">
-                                    <span class="flex min-w-0 items-center gap-1"
-                                        ><span class="truncate" :title="c.subject">{{ c.subject }}</span
-                                        ><Paperclip
-                                            v-if="c.files?.length"
-                                            class="size-3 shrink-0"
-                                            :title="c.files.join(', ')"
-                                            :aria-label="`${c.files.length} file(s)`" /></span
-                                    ><span class="shrink-0"
-                                        ><span class="capitalize">{{ c.audience }}</span> · {{ c.sent }}/{{ c.recipients
-                                        }}<span v-if="c.failed" class="text-red-500"> · {{ c.failed }} failed</span></span
-                                    >
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="flex justify-end gap-2 pt-2">
-                            <Button type="button" variant="outline" @click="emailOpen = false">Cancel</Button>
-                            <Button type="submit" :disabled="emailForm.processing || emailCount === 0"
-                                ><Send class="mr-1 size-4" /> Send to {{ emailCount }}</Button
-                            >
-                        </div>
-                    </form>
+                    <EmailComposer
+                        v-else-if="email.open"
+                        :composer="email"
+                        summary="Tick people in the list, or send to a whole group."
+                        note="Tenant picks reach that company's admins."
+                        :recent="props.recent"
+                        @cancel="email.close()"
+                    />
 
                     <!-- a tenant (manage) -->
                     <div v-else-if="tenant" class="space-y-6">
