@@ -4,23 +4,11 @@ import LineChart from '@/components/charts/LineChart.vue';
 import Sparkline from '@/components/charts/Sparkline.vue';
 import { useCustomerBilling } from '@/composables/useCustomerBilling';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { inboxLeadLink } from '@/lib/links';
 import { formatMoney } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { UserPlus } from '@lucide/vue';
+import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-interface LeadRow {
-    id: number;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    message: string | null;
-    source: string;
-    status: string;
-    on: string | null;
-}
 type Point = { label: string; value: number };
 
 const props = defineProps<{
@@ -35,8 +23,6 @@ const props = defineProps<{
     revenue_series: Point[];
     visits_series: Point[];
     ar_aging: Point[];
-    leads: LeadRow[];
-    new_leads: number;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Insights', href: '/insights' }];
@@ -76,17 +62,6 @@ const cards = computed(() => [
     { label: 'Active pools', value: String(props.active_pools), accent: '' },
     { label: 'Active agents', value: String(props.active_agents), accent: '' },
 ]);
-
-const statuses = ['new', 'contacted', 'converted', 'archived'];
-const statusClass = (s: string) =>
-    s === 'converted'
-        ? 'text-emerald-600 dark:text-emerald-400'
-        : s === 'archived'
-          ? 'text-muted-foreground'
-          : s === 'contacted'
-            ? 'text-sky-600 dark:text-sky-400'
-            : 'text-amber-600 dark:text-amber-400';
-const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead.id}`, { status }, { preserveScroll: true });
 </script>
 
 <template>
@@ -94,9 +69,9 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col p-4">
-            <div class="grid flex-1 gap-4 xl:min-h-0 xl:grid-cols-5">
+            <div class="flex flex-1 xl:min-h-0">
                 <!-- metrics + charts -->
-                <div class="flex flex-col gap-4 xl:col-span-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
+                <div class="flex flex-1 flex-col gap-4 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         <div v-for="c in cards" :key="c.label" class="border-border flex flex-col rounded-xl border p-4">
                             <div class="text-2xl font-semibold tabular-nums" :class="c.accent">{{ c.value }}</div>
@@ -128,47 +103,6 @@ const setStatus = (lead: LeadRow, status: string) => router.patch(`/leads/${lead
                             />
                         </div>
                     </div>
-                </div>
-
-                <!-- leads inbox -->
-                <div class="border-border flex min-h-0 flex-col overflow-hidden rounded-xl border xl:col-span-2">
-                    <h2 class="border-border flex items-center justify-between border-b px-4 py-2 font-medium">
-                        <span>Leads</span>
-                        <span
-                            v-if="props.new_leads"
-                            class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400"
-                            >{{ props.new_leads }} new</span
-                        >
-                    </h2>
-                    <ul class="divide-border min-h-0 flex-1 divide-y overflow-y-auto text-sm">
-                        <li v-for="lead in props.leads" :key="lead.id" class="flex items-start justify-between gap-3 px-4 py-3">
-                            <div class="min-w-0">
-                                <Link :href="inboxLeadLink(lead.id)" class="font-medium underline-offset-2 hover:underline">{{ lead.name }}</Link>
-                                <div
-                                    class="text-muted-foreground truncate text-xs"
-                                    :title="[lead.email ?? lead.phone ?? '—', lead.source, lead.on].filter(Boolean).join(' · ')"
-                                >
-                                    {{ lead.email ?? lead.phone ?? '—' }} · <span class="capitalize">{{ lead.source }}</span>
-                                    <span v-if="lead.on"> · {{ lead.on }}</span>
-                                </div>
-                                <div v-if="lead.message" class="text-muted-foreground mt-0.5 truncate text-xs" :title="lead.message">
-                                    {{ lead.message }}
-                                </div>
-                            </div>
-                            <select
-                                :value="lead.status"
-                                class="border-input bg-background h-8 shrink-0 rounded-md border px-2 text-xs font-medium capitalize"
-                                :class="statusClass(lead.status)"
-                                @change="setStatus(lead, ($event.target as HTMLSelectElement).value)"
-                            >
-                                <option v-for="s in statuses" :key="s" :value="s">{{ s }}</option>
-                            </select>
-                        </li>
-                        <li v-if="props.leads.length === 0" class="text-muted-foreground px-4 py-10 text-center">
-                            <UserPlus class="mx-auto mb-2 size-6 opacity-50" />
-                            No leads yet — they arrive from your public site.
-                        </li>
-                    </ul>
                 </div>
             </div>
         </div>

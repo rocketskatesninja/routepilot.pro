@@ -103,13 +103,12 @@ test('blank key field leaves the existing key untouched', function () {
     expect(app(PlatformAiSettings::class)->key('anthropic'))->toBe('original-key');
 });
 
-test('per-tenant update sets enabled, override and quota; blank quota clears it', function () {
+test('per-tenant update sets enabled and quota; blank quota clears it', function () {
     $this->actingAs($this->super)->patch("/platform/ai/tenants/{$this->tenant->id}", [
-        'enabled' => false, 'allow_override' => true, 'quota' => 1200,
+        'enabled' => false, 'quota' => 1200,
     ])->assertRedirect();
 
     expect(TenantSetting::getFor($this->tenant->id, 'ai_enabled'))->toBe('0')
-        ->and(TenantSetting::getFor($this->tenant->id, 'ai_allow_override'))->toBe('1')
         ->and(TenantSetting::getFor($this->tenant->id, 'ai_monthly_quota'))->toBe('1200')
         ->and(app(AiQuota::class)->limit($this->tenant->id))->toBe(1200)
         ->and(app(AiQuota::class)->enabled($this->tenant->id))->toBeFalse();
@@ -117,7 +116,7 @@ test('per-tenant update sets enabled, override and quota; blank quota clears it'
     // Clearing the quota falls back to the platform default.
     PlatformSetting::set('ai_default_quota', '300');
     $this->actingAs($this->super)->patch("/platform/ai/tenants/{$this->tenant->id}", [
-        'enabled' => true, 'allow_override' => false, 'quota' => null,
+        'enabled' => true, 'quota' => null,
     ])->assertRedirect();
 
     expect(TenantSetting::getFor($this->tenant->id, 'ai_monthly_quota'))->toBeNull()
@@ -133,7 +132,7 @@ test('the assistant is blocked for a tenant with AI disabled', function () {
 
 test('a tenant cannot reach the per-tenant AI endpoint', function () {
     $this->actingAs($this->admin)->patch("/platform/ai/tenants/{$this->tenant->id}", [
-        'enabled' => true, 'allow_override' => false, 'quota' => null,
+        'enabled' => true, 'quota' => null,
     ])->assertForbidden();
 });
 

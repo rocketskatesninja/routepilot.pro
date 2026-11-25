@@ -10,8 +10,8 @@ use App\Models\User;
 use App\Services\ChemistryService;
 
 /**
- * Chemistry engine against the database: volume-scaled dosing, weather
- * and trend adjustments, drain/refill suppression, and per-pool target
+ * Chemistry engine against the database: volume-scaled dosing,
+ * trend adjustments, drain/refill suppression, and per-pool target
  * overrides. Dosage amounts are golden parity values.
  */
 beforeEach(function () {
@@ -102,25 +102,6 @@ test('a required drain/refill suppresses all chemical dosing', function () {
         ->and($recs[0]['chemical'])->toBe('Partial Drain & Refill')
         ->and($recs[0]['urgency'])->toBe('high')
         ->and(implode(' ', $recs[0]['notes']))->toContain('skipped');
-});
-
-test('rain forecast bumps a low-chlorine dose 40% (golden vector)', function () {
-    $pool = makePool($this->tenant, $this->customer, ['volume_gallons' => 10000]);
-    $weather = ['daily' => [[
-        'precipitation_probability_max' => 85,
-        'temperature_2m_max' => 75,
-        'uv_index_max' => 4,
-        'wind_speed_10m_max' => 5,
-        'temperature_2m_min' => 60,
-    ]]];
-
-    $result = $this->chem->fullAnalysis(['free_chlorine' => 0.5, 'cyanuric_acid' => 40], $pool, $weather);
-    $rec = $result['recommendations'][0];
-
-    expect($rec['amount'])->toBe(2.8) // 2.0 * 1.40
-        ->and($rec['original_amount'])->toBe(2.0)
-        ->and($rec['was_adjusted'])->toBeTrue()
-        ->and($rec['adjustments'][0])->toContain('rain');
 });
 
 test('a chronic, unresponsive parameter escalates urgency and bumps the dose 15%', function () {

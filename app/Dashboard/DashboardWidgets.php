@@ -39,7 +39,6 @@ class DashboardWidgets
         // customer (portal)
         'my_pools' => ['label' => 'My pools', 'icon' => 'Waves', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
         'next_visit' => ['label' => 'Next visit', 'icon' => 'CalendarDays', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
-        'account_balance' => ['label' => 'Account balance', 'icon' => 'Banknote', 'minW' => 3, 'minH' => 2, 'w' => 6, 'h' => 3, 'roles' => ['customer']],
         'customer_visits' => ['label' => 'Recent activity', 'icon' => 'FileText', 'minW' => 3, 'minH' => 3, 'w' => 12, 'h' => 4, 'roles' => ['customer']],
         'pay_bill' => ['label' => 'Pay your bill', 'icon' => 'CreditCard', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 4, 'roles' => ['customer']],
         'request_service' => ['label' => 'Request a service', 'icon' => 'CalendarPlus', 'minW' => 3, 'minH' => 3, 'w' => 6, 'h' => 5, 'roles' => ['customer']],
@@ -50,7 +49,7 @@ class DashboardWidgets
     ];
 
     /** Widgets that only make sense for a company billing its customers here. */
-    private const BILLING = ['billing_summary', 'account_balance', 'pay_bill'];
+    private const BILLING = ['billing_summary', 'pay_bill'];
 
     /** Widgets that only make sense for a company counting its stock here. */
     private const INVENTORY = ['running_low'];

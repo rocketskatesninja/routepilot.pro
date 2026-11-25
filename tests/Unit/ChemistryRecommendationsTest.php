@@ -7,7 +7,7 @@ use App\Services\ChemistryService;
 
 /**
  * Characterization tests for generateRecommendations(): they pin the exact
- * dosing / trend / weather / drain-refill / sort behavior so the method can be
+ * dosing / trend / drain-refill / sort behavior so the method can be
  * decomposed without changing its output. These are a behavior contract —
  * change them ONLY for a deliberate, documented behavior change.
  */
@@ -25,9 +25,9 @@ beforeEach(function () {
  * @param  array{has_history: bool, parameters: array<string, mixed>}  $trends
  * @return list<array<string, mixed>>
  */
-function recs(ChemistryService $chem, Pool $pool, array $reading, array $trends = ['has_history' => false, 'parameters' => []], ?array $weather = null): array
+function recs(ChemistryService $chem, Pool $pool, array $reading, array $trends = ['has_history' => false, 'parameters' => []]): array
 {
-    return $chem->generateRecommendations($reading, $pool, $chem->analyzeReading($reading), $trends, $weather);
+    return $chem->generateRecommendations($reading, $pool, $chem->analyzeReading($reading), $trends);
 }
 
 test('low free chlorine yields the base chlorine dosage at high urgency', function () {
@@ -108,15 +108,4 @@ test('different products are not merged', function () {
 
     expect($result)->toHaveCount(2)
         ->and(array_column($result, 'chemical'))->toBe(['Granular Chlorine (Cal-Hypo)', 'Muriatic Acid']);
-});
-
-test('heavy-rain weather multiplies the chlorine dose and flags the adjustment', function () {
-    $weather = ['daily' => [['precipitation_probability_max' => 90, 'temperature_2m_max' => 80, 'uv_index_max' => 5]]];
-    $result = recs($this->chem, $this->pool, ['free_chlorine' => 0.5, 'cyanuric_acid' => 50], weather: $weather);
-
-    expect($result)->toHaveCount(1)
-        ->and($result[0]['original_amount'])->toBe(2.0)
-        ->and($result[0]['amount'])->toBe(2.8)
-        ->and($result[0]['was_adjusted'])->toBeTrue()
-        ->and($result[0]['adjustments'])->toHaveCount(1);
 });

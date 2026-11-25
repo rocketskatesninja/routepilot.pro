@@ -80,13 +80,3 @@ test('custom ranges override classification', function () {
 
     expect($analysis['ph']['status'])->toBe('normal');
 });
-
-test('weather alerts: high wind is info, freeze risk is warning', function () {
-    $alerts = $this->chem->getWeatherAlerts(['daily' => [
-        ['wind_speed_10m_max' => 30, 'temperature_2m_min' => 30],
-    ]]);
-
-    expect($alerts)->toHaveCount(2)
-        ->and($alerts[0]['severity'])->toBe('info')
-        ->and($alerts[1]['severity'])->toBe('warning');
-});

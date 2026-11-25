@@ -42,7 +42,7 @@ interface TenantDetail {
     users: number;
     created: string | null;
     logo_url: string | null;
-    ai: { enabled: boolean; allow_override: boolean; quota: number | string | null; limit: number; used: number; cost: number };
+    ai: { enabled: boolean; quota: number | string | null; limit: number; used: number; cost: number };
 }
 interface PersonDetail {
     type: 'agent' | 'customer';
@@ -227,9 +227,8 @@ function impersonatePerson(p: PersonDetail) {
 }
 
 // --- per-tenant AI (auto-save to the platform endpoint) ---
-const aiForm = reactive<{ enabled: boolean; allow_override: boolean; quota: number | string | null }>({
+const aiForm = reactive<{ enabled: boolean; quota: number | string | null }>({
     enabled: true,
-    allow_override: false,
     quota: null,
 });
 watch(
@@ -237,7 +236,6 @@ watch(
     (s) => {
         if (s && s.type === 'tenant') {
             aiForm.enabled = s.ai.enabled;
-            aiForm.allow_override = s.ai.allow_override;
             aiForm.quota = s.ai.quota;
         }
     },
@@ -247,11 +245,7 @@ const aiLimit = computed(() => (aiForm.quota !== null && aiForm.quota !== '' ? N
 function saveTenantAi() {
     if (!props.selected || props.selected.type !== 'tenant') return;
     const quota = aiForm.quota === null || aiForm.quota === '' ? null : Number(aiForm.quota);
-    router.patch(
-        `/platform/ai/tenants/${props.selected.id}`,
-        { enabled: aiForm.enabled, allow_override: aiForm.allow_override, quota },
-        { preserveScroll: true, preserveState: true },
-    );
+    router.patch(`/platform/ai/tenants/${props.selected.id}`, { enabled: aiForm.enabled, quota }, { preserveScroll: true, preserveState: true });
 }
 
 // --- shared pane ---
@@ -546,15 +540,6 @@ function closePane() {
                                         :placeholder="`${props.aiDefaultQuota}`"
                                         @change="saveTenantAi"
                                     />
-                                </li>
-                                <li>
-                                    <label class="flex cursor-pointer items-center justify-between gap-4 px-4 py-3">
-                                        <span>
-                                            <span class="block font-medium">Own AI provider</span>
-                                            <span class="text-muted-foreground">Let them use their own provider, model and key.</span>
-                                        </span>
-                                        <input v-model="aiForm.allow_override" type="checkbox" class="size-5" @change="saveTenantAi" />
-                                    </label>
                                 </li>
                             </ul>
                         </PaneSection>

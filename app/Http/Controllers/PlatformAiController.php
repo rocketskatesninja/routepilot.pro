@@ -113,12 +113,10 @@ class PlatformAiController extends Controller
 
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
-            'allow_override' => ['required', 'boolean'],
             'quota' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ]);
 
         TenantSetting::setFor($tenant->id, 'ai_enabled', $data['enabled'] ? '1' : '0');
-        TenantSetting::setFor($tenant->id, 'ai_allow_override', $data['allow_override'] ? '1' : '0');
 
         if (array_key_exists('quota', $data) && $data['quota'] !== null) {
             TenantSetting::setFor($tenant->id, 'ai_monthly_quota', (string) $data['quota']);
@@ -129,7 +127,7 @@ class PlatformAiController extends Controller
         }
 
         AuditLog::record($request->user(), 'platform.ai.tenant_updated', $tenant, [
-            'enabled' => $data['enabled'], 'allow_override' => $data['allow_override'], 'quota' => $data['quota'] ?? null,
+            'enabled' => $data['enabled'], 'quota' => $data['quota'] ?? null,
         ]);
 
         return back()->with('success', "AI settings updated for {$tenant->name}.");

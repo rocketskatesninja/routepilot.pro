@@ -14,7 +14,6 @@
             "sanitizer": "chlorine",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": -0.16,
@@ -89,8 +88,7 @@
                     "adjustments": [],
                     "was_adjusted": false
                 }
-            ],
-            "weather_alerts": []
+            ]
         }
     },
     {
@@ -105,7 +103,6 @@
             "sanitizer": "chlorine",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": 0.55,
@@ -157,8 +154,7 @@
                     "was_adjusted": false,
                     "combined": true
                 }
-            ],
-            "weather_alerts": []
+            ]
         }
     },
     {
@@ -173,7 +169,6 @@
             "sanitizer": "chlorine",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": 0.62,
@@ -229,8 +224,7 @@
                     "adjustments": [],
                     "was_adjusted": false
                 }
-            ],
-            "weather_alerts": []
+            ]
         }
     },
     {
@@ -245,7 +239,6 @@
             "sanitizer": "salt",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": -0.21,
@@ -296,100 +289,7 @@
                     "adjustments": [],
                     "was_adjusted": false
                 }
-            ],
-            "weather_alerts": []
-        }
-    },
-    {
-        "name": "low chlorine with heavy rain and extreme heat stacks weather adjustments",
-        "reading": {
-            "free_chlorine": 0.5,
-            "ph": 7.4,
-            "cyanuric_acid": 20
-        },
-        "pool": {
-            "volume_gallons": 10000,
-            "sanitizer": "chlorine",
-            "custom_target_ranges": null
-        },
-        "weather": {
-            "daily": [
-                {
-                    "precipitation_probability_max": 90,
-                    "temperature_2m_max": 104,
-                    "uv_index_max": 9,
-                    "temperature_2m_min": 70,
-                    "wind_speed_10m_max": 10
-                }
             ]
-        },
-        "expected": {
-            "lsi": {
-                "value": -0.16,
-                "status": "balanced",
-                "color": "green",
-                "label": "Balanced",
-                "description": "Water chemistry is in ideal balance."
-            },
-            "parameters": {
-                "free_chlorine": {
-                    "value": 0.5,
-                    "status": "low",
-                    "label": "Free Chlorine",
-                    "unit": "ppm",
-                    "min": 1,
-                    "max": 3
-                },
-                "ph": {
-                    "value": 7.4,
-                    "status": "normal",
-                    "label": "pH",
-                    "unit": "",
-                    "min": 7.2,
-                    "max": 7.6
-                },
-                "cyanuric_acid": {
-                    "value": 20,
-                    "status": "low",
-                    "label": "Cyanuric Acid (CYA)",
-                    "unit": "ppm",
-                    "min": 30,
-                    "max": 80
-                }
-            },
-            "trends": {
-                "has_history": false,
-                "parameters": []
-            },
-            "recommendations": [
-                {
-                    "parameter": "Free Chlorine",
-                    "chemical": "Granular Chlorine (Cal-Hypo)",
-                    "amount": 4.3,
-                    "unit": "oz",
-                    "urgency": "high",
-                    "notes": [],
-                    "original_amount": 2,
-                    "adjustments": [
-                        "+40% — rain expected, will dilute chlorine",
-                        "+35% — high heat/UV burns chlorine faster",
-                        "+15% — low CYA with sun exposure (no UV protection)"
-                    ],
-                    "was_adjusted": true
-                },
-                {
-                    "parameter": "Cyanuric Acid (CYA)",
-                    "chemical": "Cyanuric Acid (Stabilizer)",
-                    "amount": 1,
-                    "unit": "lbs",
-                    "urgency": "medium",
-                    "notes": ["Add through skimmer with pump running. Takes 3-5 days to dissolve fully."],
-                    "original_amount": 1,
-                    "adjustments": [],
-                    "was_adjusted": false
-                }
-            ],
-            "weather_alerts": []
         }
     },
     {
@@ -408,7 +308,6 @@
                 }
             }
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": 0.24,
@@ -439,8 +338,7 @@
                 "has_history": false,
                 "parameters": []
             },
-            "recommendations": [],
-            "weather_alerts": []
+            "recommendations": []
         }
     },
     {
@@ -455,7 +353,6 @@
             "sanitizer": "salt",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": -0.21,
@@ -508,8 +405,7 @@
                     "adjustments": [],
                     "was_adjusted": false
                 }
-            ],
-            "weather_alerts": []
+            ]
         }
     },
     {
@@ -524,7 +420,6 @@
             "sanitizer": "chlorine",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": -0.16,
@@ -577,8 +472,7 @@
                     "adjustments": [],
                     "was_adjusted": false
                 }
-            ],
-            "weather_alerts": []
+            ]
         }
     },
     {
@@ -594,7 +488,6 @@
             "sanitizer": "salt",
             "custom_target_ranges": null
         },
-        "weather": null,
         "expected": {
             "lsi": {
                 "value": -0.21,
@@ -657,8 +550,7 @@
                     "was_adjusted": false,
                     "combined": true
                 }
-            ],
-            "weather_alerts": []
+            ]
         }
     }
 ]

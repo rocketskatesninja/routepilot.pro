@@ -69,7 +69,6 @@ class AssembleDashboardData
             // customer
             'my_pools' => fn () => $this->myPools($user),
             'next_visit' => fn () => $this->nextVisit($user),
-            'account_balance' => fn () => $this->accountBalance($user),
             'customer_visits' => fn () => $this->customerVisits($user),
             'pay_bill' => fn () => $this->payBill($user),
             'request_service' => fn () => $this->requestService(),

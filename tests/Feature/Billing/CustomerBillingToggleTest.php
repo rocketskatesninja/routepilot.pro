@@ -383,7 +383,7 @@ test('billing widgets leave dashboards with it off, and come back with it on', f
 
     expect($placed('desktop'))->toBe(['next_visit'])
         ->and($placed('mobile'))->not->toContain('pay_bill')
-        ->and(collect(DashboardWidgets::palette($user()))->pluck('key'))->not->toContain('pay_bill', 'account_balance');
+        ->and(collect(DashboardWidgets::palette($user()))->pluck('key'))->not->toContain('pay_bill');
     $admin = User::query()->findOrFail($this->admin->id);
     expect(collect(DashboardWidgets::palette($admin))->pluck('key'))->not->toContain('billing_summary')
         ->and(DashboardWidgets::keysFor($admin))->not->toContain('billing_summary');

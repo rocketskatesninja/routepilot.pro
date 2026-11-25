@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue';
-import AccountBalanceWidget from './widgets/AccountBalanceWidget.vue';
 import AdvisoriesWidget from './widgets/AdvisoriesWidget.vue';
 import BillingSummaryWidget from './widgets/BillingSummaryWidget.vue';
 import MyPoolsWidget from './widgets/MyPoolsWidget.vue';
@@ -45,7 +44,6 @@ const registry: Record<string, Component> = {
     // customer
     my_pools: MyPoolsWidget,
     next_visit: NextVisitWidget,
-    account_balance: AccountBalanceWidget,
     customer_visits: RecentVisitsWidget,
     pay_bill: PayBillWidget,
     request_service: RequestServiceWidget,

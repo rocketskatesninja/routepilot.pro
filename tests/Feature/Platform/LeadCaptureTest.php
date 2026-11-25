@@ -31,9 +31,9 @@ test('an admin sees the leads inbox and updates status', function () {
     $lead = Lead::create(['name' => 'Jo', 'email' => 'jo@x.test', 'source' => 'contact']);
 
     $this->actingAs($this->admin)
-        ->get('/insights')
+        ->get('/inbox?tab=leads')
         ->assertOk()
-        ->assertInertia(fn (Assert $page) => $page->component('reports/Insights')->has('leads', 1));
+        ->assertInertia(fn (Assert $page) => $page->component('inbox/Index')->has('rows.data', 1));
 
     $this->actingAs($this->admin)->patch("/leads/{$lead->id}", ['status' => 'contacted'])->assertRedirect();
     expect($lead->fresh()?->status)->toBe('contacted');

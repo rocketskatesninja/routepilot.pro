@@ -28,17 +28,6 @@ export interface PoolLike {
     custom_target_ranges?: Record<string, { min?: number; max?: number }> | null;
 }
 
-interface DailyWeather {
-    precipitation_probability_max?: number | null;
-    temperature_2m_max?: number | null;
-    temperature_2m_min?: number | null;
-    uv_index_max?: number | null;
-    wind_speed_10m_max?: number | null;
-}
-export interface Weather {
-    daily?: DailyWeather[];
-}
-
 export interface Recommendation {
     parameter: string;
     chemical: string;
@@ -226,8 +215,6 @@ export function analyzeTrends(history: Reading[], currentReading: Reading, range
     return { has_history: true, parameters };
 }
 
-const pct = (factor: number): string => `${round(factor * 100)}%`;
-
 /** Ounces that raise 10,000 gallons by 1 ppm of free chlorine: Cal-Hypo (65%) by weight, liquid chlorine (10–12.5%) by volume. */
 const CAL_HYPO_OZ_PER_PPM = 2.0;
 const LIQUID_CHLORINE_OZ_PER_PPM = 10.0;
@@ -357,57 +344,6 @@ function getBaseDosage(param: string, data: ParamAnalysis, volumeGallons: number
     }
 }
 
-const max = (rows: DailyWeather[], key: keyof DailyWeather, fallback: number): number => {
-    const vals = rows.map((r) => r[key]).filter((v): v is number => v !== null && v !== undefined);
-    return vals.length ? Math.max(...vals) : fallback;
-};
-const min = (rows: DailyWeather[], key: keyof DailyWeather, fallback: number): number => {
-    const vals = rows.map((r) => r[key]).filter((v): v is number => v !== null && v !== undefined);
-    return vals.length ? Math.min(...vals) : fallback;
-};
-
-function getWeatherAdjustments(param: string, data: ParamAnalysis, weather: Weather, reading: Reading): { factor: number; reason: string }[] {
-    const adjustments: { factor: number; reason: string }[] = [];
-    const daily = weather.daily ?? [];
-    const maxRainProb = max(daily, 'precipitation_probability_max', 0);
-    const maxTemp = max(daily, 'temperature_2m_max', 80);
-    const maxUV = max(daily, 'uv_index_max', 5);
-
-    if (param === 'free_chlorine' && data.status === 'low') {
-        if (maxRainProb > 50) {
-            const factor = maxRainProb > 80 ? 0.4 : 0.2;
-            adjustments.push({ factor, reason: `+${pct(factor)} — rain expected, will dilute chlorine` });
-        }
-        if (maxTemp > 90 || maxUV > 7) {
-            const factor = maxTemp > 100 ? 0.35 : 0.2;
-            adjustments.push({ factor, reason: `+${pct(factor)} — high heat/UV burns chlorine faster` });
-        }
-        const cya = num(reading.cyanuric_acid, 40);
-        if (cya < 30 && maxUV > 5) {
-            adjustments.push({ factor: 0.15, reason: '+15% — low CYA with sun exposure (no UV protection)' });
-        }
-    }
-
-    if (param === 'alkalinity' && data.status === 'low' && maxRainProb > 50) {
-        const factor = maxRainProb > 80 ? 0.25 : 0.15;
-        adjustments.push({ factor, reason: `+${pct(factor)} — rain will further dilute alkalinity` });
-    }
-
-    return adjustments;
-}
-
-export function getWeatherAlerts(weather: Weather): { severity: string; message: string }[] {
-    const alerts: { severity: string; message: string }[] = [];
-    const daily = weather.daily ?? [];
-    const maxWind = max(daily, 'wind_speed_10m_max', 0);
-    const minTemp = min(daily, 'temperature_2m_min', 50);
-
-    if (maxWind > 25) alerts.push({ severity: 'info', message: 'High winds expected — anticipate extra debris in pools.' });
-    if (minTemp <= 32) alerts.push({ severity: 'warning', message: 'Freeze risk — advise running pumps continuously to prevent pipe damage.' });
-
-    return alerts;
-}
-
 const needsDrainRefill = (param: string, data: ParamAnalysis): boolean =>
     (param === 'calcium_hardness' || param === 'cyanuric_acid') && data.value > data.max;
 
@@ -498,13 +434,7 @@ function sortByUrgency(recommendations: Recommendation[]): Recommendation[] {
         .map(([r]) => r);
 }
 
-export function generateRecommendations(
-    reading: Reading,
-    pool: PoolLike,
-    analysis: Record<string, ParamAnalysis>,
-    trends: Trends,
-    weather?: Weather | null,
-): Recommendation[] {
+export function generateRecommendations(reading: Reading, pool: PoolLike, analysis: Record<string, ParamAnalysis>, trends: Trends): Recommendation[] {
     const recommendations: Recommendation[] = [];
     const volumeGallons = pool.volume_gallons ?? 10000;
     const sanitizer = pool.sanitizer ?? 'chlorine';
@@ -522,12 +452,6 @@ export function generateRecommendations(
         const adjustments: string[] = [];
 
         applyTrendAdjustment(rec, data, trends.parameters[param], adjustments);
-        if (weather) {
-            for (const adj of getWeatherAdjustments(param, data, weather, reading)) {
-                rec.amount *= 1 + adj.factor;
-                adjustments.push(adj.reason);
-            }
-        }
         markDrainRefillIfNeeded(rec, param, data);
 
         rec.original_amount = originalAmount;
@@ -546,23 +470,20 @@ export interface FullAnalysis {
     parameters: Record<string, ParamAnalysis>;
     trends: Trends;
     recommendations: Recommendation[];
-    weather_alerts: { severity: string; message: string }[];
 }
 
 /** Full on-device analysis, mirroring ChemistryService::fullAnalysis. */
-export function fullAnalysis(reading: Reading, pool: PoolLike, options: { weather?: Weather | null; history?: Reading[] } = {}): FullAnalysis {
+export function fullAnalysis(reading: Reading, pool: PoolLike, options: { history?: Reading[] } = {}): FullAnalysis {
     const ranges = targetsFor(pool);
     const lsi = calculateLSI(reading);
     const parameters = analyzeReading(reading, ranges);
     const trends = analyzeTrends(options.history ?? [], reading, ranges);
-    const recommendations = generateRecommendations(reading, pool, parameters, trends, options.weather);
-    const weatherAlerts = options.weather ? getWeatherAlerts(options.weather) : [];
+    const recommendations = generateRecommendations(reading, pool, parameters, trends);
 
     return {
         lsi: { value: lsi, ...getLSIStatus(lsi) },
         parameters,
         trends,
         recommendations,
-        weather_alerts: weatherAlerts,
     };
 }

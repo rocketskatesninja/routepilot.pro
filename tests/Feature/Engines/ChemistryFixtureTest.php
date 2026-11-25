@@ -17,7 +17,7 @@ use App\Services\ChemistryService;
  */
 test('the PHP engine reproduces the shared chemistry fixture', function () {
     $path = resource_path('js/lib/__fixtures__/chemistry-vectors.json');
-    /** @var list<array{name: string, reading: array<string, float|int|null>, pool: array<string, mixed>, weather: array<string, mixed>|null, expected: array<string, mixed>}> $vectors */
+    /** @var list<array{name: string, reading: array<string, float|int|null>, pool: array<string, mixed>, expected: array<string, mixed>}> $vectors */
     $vectors = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
     $update = (bool) getenv('UPDATE_CHEMISTRY_FIXTURE');
 
@@ -31,7 +31,7 @@ test('the PHP engine reproduces the shared chemistry fixture', function () {
             'sanitizer_type' => $vector['pool']['sanitizer'],
             'custom_target_ranges' => $vector['pool']['custom_target_ranges'],
         ]);
-        $actual = app(ChemistryService::class)->fullAnalysis($vector['reading'], $pool, $vector['weather']);
+        $actual = app(ChemistryService::class)->fullAnalysis($vector['reading'], $pool);
 
         if ($update) {
             $vectors[$i]['expected'] = $actual;

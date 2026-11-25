@@ -198,7 +198,7 @@ test('guests cannot save a dashboard layout', function () {
 test('the widget catalog role-filters', function () {
     expect(DashboardWidgets::keysForRole('tenant_admin'))->toContain('stats', 'my_route', 'requests')->not->toContain('agent_stats', 'platform_stats')
         ->and(DashboardWidgets::keysForRole('agent'))->toContain('agent_stats', 'agent_route', 'weather')->not->toContain('stats', 'requests')
-        ->and(DashboardWidgets::keysForRole('customer'))->toContain('my_pools', 'next_visit', 'account_balance')
+        ->and(DashboardWidgets::keysForRole('customer'))->toContain('my_pools', 'next_visit', 'pay_bill')
         ->and(DashboardWidgets::keysForRole('super_admin'))->toContain('platform_stats', 'recent_tenants');
 
     $agent = User::factory()->agent()->for($this->tenant)->create();

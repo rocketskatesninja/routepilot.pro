@@ -10,7 +10,7 @@ use App\Models\Pool;
 /**
  * Chemistry engine — LSI water balance, per-parameter analysis against
  * target ranges, 12-visit trend detection, and volume-scaled dosing
- * recommendations with trend + weather adjustments.
+ * recommendations with trend adjustments.
  *
  * Ported from the legacy app (golden-vector parity tests in
  * tests/Unit/ChemistryGoldenVectorsTest.php guard the math). This PHP
@@ -240,14 +240,12 @@ class ChemistryService
 
     /**
      * Volume-scaled dosing recommendations for out-of-range parameters,
-     * adjusted for trends (chronic / treatment-didn't-help) and weather
-     * (rain dilution, heat/UV burn-off). A required drain/refill
-     * suppresses all chemical dosing.
+     * adjusted for trends (chronic / treatment-didn't-help). A required
+     * drain/refill suppresses all chemical dosing.
      *
      * @param  array<string, float|int|null>  $reading
      * @param  array<string, array{value: float|int, status: string, label: string, unit: string, min: float, max: float}>  $analysis
      * @param  array{has_history: bool, parameters: array<string, mixed>}  $trends
-     * @param  array{daily?: list<array<string, float|int|null>>}|null  $weather
      * @return list<array<string, mixed>>
      */
     public function generateRecommendations(
@@ -255,7 +253,6 @@ class ChemistryService
         Pool $pool,
         array $analysis,
         array $trends,
-        ?array $weather = null,
     ): array {
         $recommendations = [];
         $volumeGallons = $pool->volume_gallons ?? 10000;
@@ -281,10 +278,6 @@ class ChemistryService
             $adjustments = [];
 
             $this->applyTrendAdjustment($rec, $data, $trends['parameters'][$param] ?? null, $adjustments);
-
-            if ($weather) {
-                $this->applyWeatherAdjustments($rec, $param, $data, $weather, $reading, $adjustments);
-            }
 
             $this->markDrainRefillIfNeeded($rec, $param, $data);
 
@@ -413,23 +406,6 @@ class ChemistryService
     }
 
     /**
-     * Scale the dose by any weather-driven multipliers (rain dilution, UV burn-off).
-     *
-     * @param  array<string, mixed>  $rec
-     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
-     * @param  array{daily?: list<array<string, float|int|null>>}  $weather
-     * @param  array<string, float|int|null>  $reading
-     * @param  list<string>  $adjustments
-     */
-    private function applyWeatherAdjustments(array &$rec, string $param, array $data, array $weather, array $reading, array &$adjustments): void
-    {
-        foreach ($this->getWeatherAdjustments($param, $data, $weather, $reading) as $adj) {
-            $rec['amount'] *= (1 + $adj['factor']);
-            $adjustments[] = $adj['reason'];
-        }
-    }
-
-    /**
      * High calcium / CYA: flag the rec as a drain/refill and explain why.
      *
      * @param  array<string, mixed>  $rec
@@ -488,68 +464,6 @@ class ChemistryService
         usort($recommendations, fn ($a, $b) => ($rank[$a['urgency'] ?? 'normal'] ?? 2) <=> ($rank[$b['urgency'] ?? 'normal'] ?? 2));
 
         return $recommendations;
-    }
-
-    /**
-     * Weather-driven dosage multipliers for a low parameter.
-     *
-     * @param  array{value: float|int, status: string, label: string, unit: string, min: float, max: float}  $data
-     * @param  array{daily?: list<array<string, float|int|null>>}  $weather
-     * @param  array<string, float|int|null>  $reading
-     * @return list<array{factor: float, reason: string}>
-     */
-    protected function getWeatherAdjustments(string $param, array $data, array $weather, array $reading): array
-    {
-        $adjustments = [];
-        $daily = collect($weather['daily'] ?? []);
-        $maxRainProb = $daily->max('precipitation_probability_max') ?? 0;
-        $maxTemp = $daily->max('temperature_2m_max') ?? 80;
-        $maxUV = $daily->max('uv_index_max') ?? 5;
-
-        if ($param === 'free_chlorine' && $data['status'] === 'low') {
-            if ($maxRainProb > 50) {
-                $factor = $maxRainProb > 80 ? 0.40 : 0.20;
-                $adjustments[] = ['factor' => $factor, 'reason' => "+{$this->pct($factor)} — rain expected, will dilute chlorine"];
-            }
-            if ($maxTemp > 90 || $maxUV > 7) {
-                $factor = $maxTemp > 100 ? 0.35 : 0.20;
-                $adjustments[] = ['factor' => $factor, 'reason' => "+{$this->pct($factor)} — high heat/UV burns chlorine faster"];
-            }
-            $cya = $reading['cyanuric_acid'] ?? 40;
-            if ($cya < 30 && $maxUV > 5) {
-                $adjustments[] = ['factor' => 0.15, 'reason' => '+15% — low CYA with sun exposure (no UV protection)'];
-            }
-        }
-
-        if ($param === 'alkalinity' && $data['status'] === 'low' && $maxRainProb > 50) {
-            $factor = $maxRainProb > 80 ? 0.25 : 0.15;
-            $adjustments[] = ['factor' => $factor, 'reason' => "+{$this->pct($factor)} — rain will further dilute alkalinity"];
-        }
-
-        return $adjustments;
-    }
-
-    /**
-     * Operational weather alerts (not dosage-related).
-     *
-     * @param  array{daily?: list<array<string, float|int|null>>}  $weather
-     * @return list<array{severity: string, message: string}>
-     */
-    public function getWeatherAlerts(array $weather): array
-    {
-        $alerts = [];
-        $daily = collect($weather['daily'] ?? []);
-        $maxWind = $daily->max('wind_speed_10m_max') ?? 0;
-        $minTemp = $daily->min('temperature_2m_min') ?? 50;
-
-        if ($maxWind > 25) {
-            $alerts[] = ['severity' => 'info', 'message' => 'High winds expected — anticipate extra debris in pools.'];
-        }
-        if ($minTemp <= 32) {
-            $alerts[] = ['severity' => 'warning', 'message' => 'Freeze risk — advise running pumps continuously to prevent pipe damage.'];
-        }
-
-        return $alerts;
     }
 
     /**
@@ -677,14 +591,12 @@ class ChemistryService
 
     /**
      * Full analysis for a reading at a pool: LSI, per-parameter status
-     * against the pool's effective targets, trends, recommendations,
-     * and any weather alerts.
+     * against the pool's effective targets, trends and recommendations.
      *
      * @param  array<string, float|int|null>  $reading
-     * @param  array{daily?: list<array<string, float|int|null>>}|null  $weather
      * @return array<string, mixed>
      */
-    public function fullAnalysis(array $reading, Pool $pool, ?array $weather = null): array
+    public function fullAnalysis(array $reading, Pool $pool): array
     {
         $ranges = $this->targetsFor($pool);
 
@@ -693,20 +605,13 @@ class ChemistryService
         $paramAnalysis = $this->analyzeReading($reading, $ranges);
         // A pool that isn't on file (just a volume and readings) has no history to trend.
         $trends = $pool->exists ? $this->analyzeTrends($pool->id, $reading, $ranges) : ['has_history' => false, 'parameters' => []];
-        $recommendations = $this->generateRecommendations($reading, $pool, $paramAnalysis, $trends, $weather);
-        $weatherAlerts = $weather ? $this->getWeatherAlerts($weather) : [];
+        $recommendations = $this->generateRecommendations($reading, $pool, $paramAnalysis, $trends);
 
         return [
             'lsi' => ['value' => $lsi, ...$lsiStatus],
             'parameters' => $paramAnalysis,
             'trends' => $trends,
             'recommendations' => $recommendations,
-            'weather_alerts' => $weatherAlerts,
         ];
-    }
-
-    protected function pct(float $factor): string
-    {
-        return round($factor * 100).'%';
     }
 }

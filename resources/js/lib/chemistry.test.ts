@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import rawVectors from './__fixtures__/chemistry-vectors.json';
-import { analyzeReading, calculateLSI, fullAnalysis, getLSIStatus, type PoolLike, type Reading, type Weather } from './chemistry';
+import { analyzeReading, calculateLSI, fullAnalysis, getLSIStatus, type PoolLike, type Reading } from './chemistry';
 
 interface Vector {
     name: string;
     reading: Reading;
     pool: PoolLike;
-    weather: Weather | null;
     expected: ReturnType<typeof fullAnalysis>;
 }
 const vectors = rawVectors as unknown as Vector[];
@@ -27,7 +26,7 @@ function normalize(expected: Vector['expected']): Vector['expected'] {
 describe('chemistry engine parity with the PHP golden fixture', () => {
     for (const v of vectors) {
         it(v.name, () => {
-            expect(fullAnalysis(v.reading, v.pool, { weather: v.weather })).toEqual(normalize(v.expected));
+            expect(fullAnalysis(v.reading, v.pool)).toEqual(normalize(v.expected));
         });
     }
 });
