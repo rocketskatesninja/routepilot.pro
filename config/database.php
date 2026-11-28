@@ -56,6 +56,11 @@ return [
             'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
             'prefix' => '',
             'prefix_indexes' => true,
+            // The app keeps UTC, and says so. Without this MySQL takes every time it is
+            // handed as the server's own local time, and where that clock is not UTC it
+            // refuses any time in the hour the clocks skip each March. See the 2026_11_27
+            // "store times as utc" migration; do not remove this without it.
+            'timezone' => '+00:00',
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
